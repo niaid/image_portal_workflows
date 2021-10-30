@@ -16,7 +16,8 @@ Broadly speaking the below should be close to what you'll need to do.
 	`git remote add upstream git@github.com:niaid/nih_3d_workflows.git`
 
 - ensure origin and upstream look something like this:
-  ```$ git remote -v
+  ```
+  $ git remote -v
   origin	git@github.com:philipmac/image_portal_workflows.git (fetch)
   origin	git@github.com:philipmac/image_portal_workflows.git (push)
   upstream	git@github.com:niaid/image_portal_workflows.git (fetch)
