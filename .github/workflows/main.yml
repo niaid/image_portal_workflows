@@ -41,7 +41,7 @@ jobs:
         rm docs/_build/html/.buildinfo
         touch docs/_build/html/.nojekyll
         git update-ref refs/heads/${TARGET_BRANCH} origin/${TARGET_BRANCH}
-        ./.github/worflows/update-gh-pages.sh docs/_build/html
+        ./.github/workflows/update-gh-pages.sh docs/_build/html
         repo_uri="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
         git push $repo_uri ${TARGET_BRANCH}
       env:
