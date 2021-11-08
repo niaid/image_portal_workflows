@@ -36,7 +36,7 @@ jobs:
         name: sphinx-docs
         path: docs/_build/html
     - name: Update gh-pages
-      if: github.ref == 'refs/heads/master'
+      if: github.ref == 'refs/heads/main'
       run: |
         rm docs/_build/html/.buildinfo
         touch docs/_build/html/.nojekyll
