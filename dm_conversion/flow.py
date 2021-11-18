@@ -83,5 +83,5 @@ with Flow("dm_to_jpeg") as flow:
     jpeg_status_codes = wait.map(jpeg_container_ids)
 #    logs = logs(_id, upstream_tasks=[status_code])
 
-input_dir = "/home/macmenaminpe/code/image_portal_workflows/test/input_files/"
-flow.run(input_dir=input_dir)
+# input_dir = "/home/macmenaminpe/code/image_portal_workflows/test/input_files/"
+# flow.run(input_dir=input_dir)
