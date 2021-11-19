@@ -17,6 +17,20 @@ jobs:
       matrix:
         python-version: ["3.8"]
     steps:
+    - name: Create LFS file list
+      run: |
+        git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+    - name: Restore LFS cache
+      uses: actions/cache@v2
+      id: lfs-cache
+      with:
+        path: .git/lfs
+        key: lfs-v1-${{ hashFiles('.lfs-assets-id') }}
+        restore-keys:
+          lfs-v1-
+    - name: Git LFS Pull
+      run: |
+        git lfs pull
     - uses: actions/checkout@v2
     - name: Container Build
       id: docker-build
