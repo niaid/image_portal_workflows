@@ -17,6 +17,7 @@ jobs:
       matrix:
         python-version: ["3.8"]
     steps:
+    - uses: actions/checkout@v2
     - name: Create LFS file list
       run: |
         git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
@@ -31,7 +32,6 @@ jobs:
     - name: Git LFS Pull
       run: |
         git lfs pull
-    - uses: actions/checkout@v2
     - name: Container Build
       id: docker-build
       env:
