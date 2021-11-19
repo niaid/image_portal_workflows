@@ -12,7 +12,7 @@ jobs:
         - name: Container Build
           id: docker-build
           env:
-            DOCKERFILE_PATH: utils/imod/Dockerfile
+            DOCKERFILE_PATH: utils/imod/
           run: |
             docker build $DOCKERFILE_PATH
         - name: Container Test
