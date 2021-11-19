@@ -18,16 +18,15 @@ jobs:
         python-version: ["3.8"]
     steps:
     - uses: actions/checkout@v2
-            - name: Container Build
-          id: docker-build
-          env:
-            DOCKERFILE_PATH: utils/imod/
-          run: |
+    - name: Container Build
+      id: docker-build
+      env:
+        DOCKERFILE_PATH: utils/imod/
+      run: |
             docker build $DOCKERFILE_PATH
-        - name: Container Test
-          run: |
+    - name: Container Test
+      run: |
             docker run imod dm2mrc -h
-
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
