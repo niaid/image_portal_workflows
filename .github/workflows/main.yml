@@ -10,14 +10,15 @@ on:
     branches:
       - main
 
-jobs:
-
-  docker:
-    name: Build image
+jobs:  
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8"]
     steps:
-        - uses: actions/checkout@v2
-        - name: Container Build
+    - uses: actions/checkout@v2
+            - name: Container Build
           id: docker-build
           env:
             DOCKERFILE_PATH: utils/imod/
@@ -26,14 +27,7 @@ jobs:
         - name: Container Test
           run: |
             docker run imod dm2mrc -h
-  
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.8"]
-    steps:
-    - uses: actions/checkout@v2
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
