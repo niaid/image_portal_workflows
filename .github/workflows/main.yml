@@ -12,6 +12,40 @@ on:
 
 jobs:
 
+  docker:
+    name: Build image
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v2
+        - name: Container Build
+          id: docker-build
+          env:
+            DOCKERFILE_PATH: utils/imod/
+          run: |
+            docker build $DOCKERFILE_PATH
+        - name: Container Test
+          run: |
+            docker run imod dm2mrc -h
+  
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8"]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        sudo apt -y update && sudo apt -y install libgl-dev
+    - name: Running pytest
+      run: |
+        pytest test/
 
   docs:
     runs-on: ubuntu-latest
