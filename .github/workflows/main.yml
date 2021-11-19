@@ -23,7 +23,7 @@ jobs:
       env:
         DOCKERFILE_PATH: utils/imod/
       run: |
-            docker build $DOCKERFILE_PATH
+            docker build -t imod $DOCKERFILE_PATH
     - name: Container Test
       run: |
             docker run imod dm2mrc -h
