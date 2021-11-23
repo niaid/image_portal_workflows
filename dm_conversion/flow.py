@@ -125,13 +125,13 @@ with Flow("dm_to_jpeg") as flow:
     jpeg_status_codes = wait.map(jpeg_container_ids)
 
     thumb_container_ids = create_thumb.map(
-        input_dir=unmapped(input_dir), fp=dm4_fps, size=unmapped("sm")
+        input_dir=unmapped(input_dir), fp=dm4_fps, size=unmapped("sm"), upstream_tasks=[status_code]
     )
     thumb_container_starts = start.map(thumb_container_ids)
     thumb_status_codes = wait.map(thumb_container_ids)
 
     thumb_container_ids_lg = create_thumb.map(
-        input_dir=unmapped(input_dir), fp=dm4_fps, size=unmapped("lg")
+        input_dir=unmapped(input_dir), fp=dm4_fps, size=unmapped("lg"), upstream_tasks=[status_code]
     )
     thumb_container_starts = start.map(thumb_container_ids_lg)
     thumb_status_codes = wait.map(thumb_container_ids_lg)
