@@ -21,7 +21,7 @@ class Job:
 
 
 class Container_Dm2mrc(CreateContainer):
-    def run(self, input_dir: str, fp: Path):
+    def run(self, input_dir: str, fp: Path, output_fp: Path):
         return super().run(
             image_name="imod",
             volumes=[f"{input_dir}:/io"],
@@ -29,7 +29,7 @@ class Container_Dm2mrc(CreateContainer):
             command=[
                 Config.dm2mrc_loc,
                 f"/io/{fp.stem}.dm4",
-                f"/io/{fp.stem}.mrc",
+                output_fp.as_posix(),
             ],
         )
 
@@ -44,7 +44,7 @@ class Container_gm_convert(CreateContainer):
     # -size 300x300 "/io/20210525_1416_A000_G000.jpeg"
     # -resize 300x300 -sharpen 2 -quality 70 "/io/20210525_1416_A000_G000_sm.jpeg"
 
-    def run(self, input_dir: str, fp: Path, size: str):
+    def run(self, input_dir: str, fp: Path, output_fp: Path, size: str):
         if size == "sm":
             scaler = Config.size_sm
         elif size == "lg":
@@ -67,13 +67,13 @@ class Container_gm_convert(CreateContainer):
                 "2",
                 "-quality",
                 "70",
-                f"/io/{fp.stem}_{size}.jpeg",
+                output_fp.as_posix(),
             ],
         )
 
 
 class Container_Mrc2tif(CreateContainer):
-    def run(self, input_dir: str, fp: Path):
+    def run(self, input_dir: str, fp: Path, output_fp: Path):
         return super().run(
             image_name="imod",
             volumes=[f"{input_dir}:/io"],
@@ -82,7 +82,7 @@ class Container_Mrc2tif(CreateContainer):
                 Config.mrc2tif_loc,
                 "-j",
                 f"/io/{fp.stem}.mrc",
-                f"/io/{fp.stem}.jpeg",
+                output_fp.as_posix(),
             ],
         )
 
@@ -109,30 +109,58 @@ def init_job(input_dir: Path) -> Job:
     return Job(input_dir=input_dir)
 
 
+@task
+def gen_output_fp(input_fp: Path, output_ext) -> Path:
+    return Path(f"/io/{input_fp.stem}{output_ext}")
+
+
 with Flow("dm_to_jpeg") as flow:
     input_dir = Parameter("input_dir")
     job = init_job(input_dir=input_dir)
     dm4_fps = get_files(job, "dm4")
 
-    dm_container_ids = create_mrc.map(input_dir=unmapped(input_dir), fp=dm4_fps)
-    dm_container_starts = start.map(dm_container_ids)
-    status_code = wait.map(dm_container_ids)
+    # dm* to mrc conversion
+    mrc_locs = gen_output_fp.map(input_fp=dm4_fps, output_ext=unmapped(".mrc"))
+    mrc_ids = create_mrc.map(
+        input_dir=unmapped(input_dir), fp=dm4_fps, output_fp=mrc_locs
+    )
+    mrc_starts = start.map(mrc_ids)
+    mrc_statuses = wait.map(mrc_ids)
 
+    # mrc to jpeg conversion
+    jpeg_locs = gen_output_fp.map(input_fp=mrc_locs, output_ext=unmapped(".jpeg"))
     jpeg_container_ids = create_jpeg.map(
-        input_dir=unmapped(input_dir), fp=dm4_fps, upstream_tasks=[status_code]
+        input_dir=unmapped(input_dir),
+        fp=dm4_fps,
+        output_fp=jpeg_locs,
+        upstream_tasks=[mrc_statuses],
     )
     jpeg_container_starts = start.map(jpeg_container_ids)
     jpeg_status_codes = wait.map(jpeg_container_ids)
 
+    small_thumb_locs = gen_output_fp.map(
+        input_fp=jpeg_locs, output_ext=unmapped("_SM.jpeg")
+    )
     thumb_container_ids = create_thumb.map(
-        input_dir=unmapped(input_dir), fp=dm4_fps, size=unmapped("sm"), upstream_tasks=[status_code]
+        input_dir=unmapped(input_dir),
+        fp=jpeg_locs,
+        output_fp=small_thumb_locs,
+        size=unmapped("sm"),
+        upstream_tasks=[jpeg_status_codes],
     )
-    thumb_container_starts = start.map(thumb_container_ids)
-    thumb_status_codes = wait.map(thumb_container_ids)
+    thumb_container_starts_sm = start.map(thumb_container_ids)
+    thumb_status_codes_sm = wait.map(thumb_container_ids)
 
-    thumb_container_ids_lg = create_thumb.map(
-        input_dir=unmapped(input_dir), fp=dm4_fps, size=unmapped("lg"), upstream_tasks=[status_code]
+    large_thumb_locs = gen_output_fp.map(
+        input_fp=jpeg_locs, output_ext=unmapped("_LG.jpeg")
     )
-    thumb_container_starts = start.map(thumb_container_ids_lg)
-    thumb_status_codes = wait.map(thumb_container_ids_lg)
+    thumb_container_ids_lg = create_thumb.map(
+        input_dir=unmapped(input_dir),
+        fp=jpeg_locs,
+        output_fp=large_thumb_locs,
+        size=unmapped("lg"),
+        upstream_tasks=[jpeg_status_codes],
+    )
+    thumb_container_starts_lg = start.map(thumb_container_ids_lg)
+    thumb_status_codes_lg = wait.map(thumb_container_ids_lg)
 #    logs = logs(_id, upstream_tasks=[status_code])
