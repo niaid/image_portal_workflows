@@ -1,7 +1,7 @@
+import sys
 sys.path.append("..")
 from image_portal_workflows.dm_conversion.flow import flow
 import os
-import sys
 
 
 def test_dm4_conv():
