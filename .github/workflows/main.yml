@@ -37,7 +37,7 @@ jobs:
           DOCKERFILE_PATH: utils/imod/
         run: |
           docker build -t imod $DOCKERFILE_PATH
-      - name: Container Test
+      - name: IMOD Container Test
         run: |
           docker run imod dm2mrc -h
       - name: Graphicsmagick Container Build
@@ -46,9 +46,9 @@ jobs:
           DOCKERFILE_PATH: utils/graphicsmagick/
         run: |
           docker build -t graphicsmagick $DOCKERFILE_PATH
-      - name: Container Test
+      - name: Graphicsmagick Container Test
         run: |
-          docker run graphicsmagick gm convert
+          docker run graphicsmagick gm -version
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
