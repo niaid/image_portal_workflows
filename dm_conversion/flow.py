@@ -60,7 +60,7 @@ class Container_gm_convert(CreateContainer):
                 "convert",
                 "-size",
                 scaler,
-                f"/io/{fp.stem}.jpeg",
+                fp.as_posix(),
                 "-resize",
                 scaler,
                 "-sharpen",
