@@ -1,7 +1,7 @@
 from typing import Optional, List
 from pathlib import Path
 from prefect.engine import signals
-from prefect import Flow, task, Parameter, unmapped
+from prefect import Flow, task, Parameter, unmapped, context
 from prefect.triggers import always_run
 from prefect.tasks.docker.containers import (
     CreateContainer,
@@ -12,6 +12,8 @@ from prefect.tasks.docker.containers import (
 
 
 from image_portal_workflows.config import Config
+
+logger = context.get("logger")
 
 
 class Job:
@@ -36,7 +38,6 @@ class Container_Dm2mrc(CreateContainer):
 
 class Container_gm_convert(CreateContainer):
     gm = "/usr/bin/gm"
-    cmd = "gm convert"
     sharpen = "2"
     # docker run
     # -v $(pwd)/test/input_files/:/io
@@ -45,6 +46,7 @@ class Container_gm_convert(CreateContainer):
     # -resize 300x300 -sharpen 2 -quality 70 "/io/20210525_1416_A000_G000_sm.jpeg"
 
     def run(self, input_dir: str, fp: Path, output_fp: Path, size: str):
+        logger.info(f"trying to convert {fp} to {output_fp}")
         if size == "sm":
             scaler = Config.size_sm
         elif size == "lg":
@@ -97,7 +99,7 @@ logs = GetContainerLogs(trigger=always_run)
 
 
 @task
-def get_files(job: Job, ext: str) -> Optional[List[Path]]:
+def list_files(job: Job, ext: str) -> Optional[List[Path]]:
     _files = list(job.input_dir.glob(f"**/*.{ext}"))
     if not _files:
         raise ValueError(f"{job.input_dir} contains no files with extension {ext}")
@@ -117,7 +119,7 @@ def gen_output_fp(input_fp: Path, output_ext) -> Path:
 with Flow("dm_to_jpeg") as flow:
     input_dir = Parameter("input_dir")
     job = init_job(input_dir=input_dir)
-    dm4_fps = get_files(job, "dm4")
+    dm4_fps = list_files(job, "dm4")
 
     # dm* to mrc conversion
     mrc_locs = gen_output_fp.map(input_fp=dm4_fps, output_ext=unmapped(".mrc"))
@@ -141,15 +143,15 @@ with Flow("dm_to_jpeg") as flow:
     small_thumb_locs = gen_output_fp.map(
         input_fp=jpeg_locs, output_ext=unmapped("_SM.jpeg")
     )
-    thumb_container_ids = create_thumb.map(
+    thumb_container_ids_sm = create_thumb.map(
         input_dir=unmapped(input_dir),
         fp=jpeg_locs,
         output_fp=small_thumb_locs,
         size=unmapped("sm"),
         upstream_tasks=[jpeg_status_codes],
     )
-    thumb_container_starts_sm = start.map(thumb_container_ids)
-    thumb_status_codes_sm = wait.map(thumb_container_ids)
+    thumb_container_starts_sm = start.map(thumb_container_ids_sm)
+    thumb_status_codes_sm = wait.map(thumb_container_ids_sm)
 
     large_thumb_locs = gen_output_fp.map(
         input_fp=jpeg_locs, output_ext=unmapped("_LG.jpeg")
