@@ -1,3 +1,4 @@
+from os import name
 from typing import Optional, List
 from pathlib import Path
 from prefect.engine import signals
@@ -24,15 +25,15 @@ class Job:
 
 class Container_Dm2mrc(CreateContainer):
     def run(self, input_dir: str, fp: Path, output_fp: Path):
+        logger.info(f"Dm2mrc mouting {input_dir} to /io")
+        f_in = f"/io/{fp.name}"
+        f_out = f"/io/{output_fp.name}"
+        logger.info(f"trying to convert {f_in} to {f_out}")
         return super().run(
             image_name="imod",
             volumes=[f"{input_dir}:/io"],
             host_config={"binds": [input_dir + ":/io"]},
-            command=[
-                Config.dm2mrc_loc,
-                f"/io/{fp.stem}.dm4",
-                output_fp.as_posix(),
-            ],
+            command=[Config.dm2mrc_loc, f_in, f_out],
         )
 
 
@@ -46,7 +47,9 @@ class Container_gm_convert(CreateContainer):
     # -resize 300x300 -sharpen 2 -quality 70 "/io/20210525_1416_A000_G000_sm.jpeg"
 
     def run(self, input_dir: str, fp: Path, output_fp: Path, size: str):
-        logger.info(f"trying to convert {fp} to {output_fp}")
+        f_in = f"/io/{fp.name}"
+        f_out = f"/io/{output_fp.name}"
+        logger.info(f"trying to convert {f_in} to {f_out}")
         if size == "sm":
             scaler = Config.size_sm
         elif size == "lg":
@@ -62,20 +65,24 @@ class Container_gm_convert(CreateContainer):
                 "convert",
                 "-size",
                 scaler,
-                fp.as_posix(),
+                f_in,
                 "-resize",
                 scaler,
                 "-sharpen",
                 "2",
                 "-quality",
                 "70",
-                output_fp.as_posix(),
+                f_out,
             ],
         )
 
 
 class Container_Mrc2tif(CreateContainer):
     def run(self, input_dir: str, fp: Path, output_fp: Path):
+        logger.info(f"Mrc2tiff mouting {input_dir} to /io")
+        f_in = f"/io/{fp.name}"
+        f_out = f"/io/{output_fp.name}"
+        logger.info(f"trying to convert {f_in} to {f_out}")
         return super().run(
             image_name="imod",
             volumes=[f"{input_dir}:/io"],
@@ -83,8 +90,8 @@ class Container_Mrc2tif(CreateContainer):
             command=[
                 Config.mrc2tif_loc,
                 "-j",
-                f"/io/{fp.stem}.mrc",
-                output_fp.as_posix(),
+                f_in,
+                f_out,
             ],
         )
 
@@ -99,11 +106,13 @@ logs = GetContainerLogs(trigger=always_run)
 
 
 @task
-def list_files(job: Job, ext: str) -> Optional[List[Path]]:
-    _files = list(job.input_dir.glob(f"**/*.{ext}"))
+def list_files(input_dir: str, ext: str) -> Optional[List[Path]]:
+    input_path = Path(input_dir)
+    _files = list(input_path.glob(f"**/*.{ext}"))
+    _file_names = [Path(_file.name) for _file in _files]
     if not _files:
         raise ValueError(f"{job.input_dir} contains no files with extension {ext}")
-    return _files
+    return _file_names
 
 
 @task
@@ -112,17 +121,27 @@ def init_job(input_dir: Path) -> Job:
 
 
 @task
-def gen_output_fp(input_fp: Path, output_ext) -> Path:
-    return Path(f"/io/{input_fp.stem}{output_ext}")
+def gen_output_fname(input_fp: Path, output_ext) -> Path:
+    output_fp = Path(f"{input_fp.stem}{output_ext}")
+    logger.info(f"input: {input_fp} output: {output_fp}")
+    return output_fp
 
 
 with Flow("dm_to_jpeg") as flow:
     input_dir = Parameter("input_dir")
     job = init_job(input_dir=input_dir)
-    dm4_fps = list_files(job, "dm4")
+    dm4_fps = list_files(input_dir, "dm4")
+
+    #    mrc_id = create_mrc(
+    #            input_dir=input_dir,
+    #            fp=Path("/io/20210525_1416.dm4"),
+    #            output_fp=Path("/io/20210525_1416.mrc"))
+    #
+    #    mrc_starts = start(mrc_id)
+    #    mrc_statuses = wait(mrc_id)
 
     # dm* to mrc conversion
-    mrc_locs = gen_output_fp.map(input_fp=dm4_fps, output_ext=unmapped(".mrc"))
+    mrc_locs = gen_output_fname.map(input_fp=dm4_fps, output_ext=unmapped(".mrc"))
     mrc_ids = create_mrc.map(
         input_dir=unmapped(input_dir), fp=dm4_fps, output_fp=mrc_locs
     )
@@ -130,17 +149,18 @@ with Flow("dm_to_jpeg") as flow:
     mrc_statuses = wait.map(mrc_ids)
 
     # mrc to jpeg conversion
-    jpeg_locs = gen_output_fp.map(input_fp=mrc_locs, output_ext=unmapped(".jpeg"))
+    jpeg_locs = gen_output_fname.map(input_fp=mrc_locs, output_ext=unmapped(".jpeg"))
     jpeg_container_ids = create_jpeg.map(
         input_dir=unmapped(input_dir),
-        fp=dm4_fps,
+        fp=mrc_locs,
         output_fp=jpeg_locs,
         upstream_tasks=[mrc_statuses],
     )
     jpeg_container_starts = start.map(jpeg_container_ids)
     jpeg_status_codes = wait.map(jpeg_container_ids)
 
-    small_thumb_locs = gen_output_fp.map(
+    # size down jpegs for small thumbs
+    small_thumb_locs = gen_output_fname.map(
         input_fp=jpeg_locs, output_ext=unmapped("_SM.jpeg")
     )
     thumb_container_ids_sm = create_thumb.map(
@@ -152,8 +172,9 @@ with Flow("dm_to_jpeg") as flow:
     )
     thumb_container_starts_sm = start.map(thumb_container_ids_sm)
     thumb_status_codes_sm = wait.map(thumb_container_ids_sm)
-#
-#    large_thumb_locs = gen_output_fp.map(
+
+#    # size dow jpegs for large thumbs
+#    large_thumb_locs = gen_output_fname.map(
 #        input_fp=jpeg_locs, output_ext=unmapped("_LG.jpeg")
 #    )
 #    thumb_container_ids_lg = create_thumb.map(
@@ -161,8 +182,7 @@ with Flow("dm_to_jpeg") as flow:
 #        fp=jpeg_locs,
 #        output_fp=large_thumb_locs,
 #        size=unmapped("lg"),
-#        upstream_tasks=[jpeg_status_codes],
 #    )
-#    thumb_container_starts_lg = start.map(thumb_container_ids_lg)
-#    thumb_status_codes_lg = wait.map(thumb_container_ids_lg)
-#    logs = logs(_id, upstream_tasks=[status_code])
+#    thumb_container_starts_lg = start.map()
+#    thumb_status_codes_lg = wait.map()
+    # logs = logs(_id, upstream_tasks=[status_code])
