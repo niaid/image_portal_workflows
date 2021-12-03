@@ -5,86 +5,94 @@ on:
     branches:
       - main
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
     branches:
       - main
 
-jobs:  
+jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.8"]
     steps:
-    - uses: actions/checkout@v2
-    - name: Create LFS file list
-      run: |
-        git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
-    - name: Restore LFS cache
-      uses: actions/cache@v2
-      id: lfs-cache
-      with:
-        path: .git/lfs
-        key: lfs-v1-${{ hashFiles('.lfs-assets-id') }}
-        restore-keys:
-          lfs-v1-
-    - name: Git LFS Pull
-      run: |
-        git lfs pull
-    - name: Container Build
-      id: docker-build
-      env:
-        DOCKERFILE_PATH: utils/imod/
-      run: |
-            docker build -t imod $DOCKERFILE_PATH
-    - name: Container Test
-      run: |
-            docker run imod dm2mrc -h
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        sudo apt -y update && sudo apt -y install libgl-dev
-    - name: Running pytest
-      run: |
-        pytest test/
+      - uses: actions/checkout@v2
+      - name: Create LFS file list
+        run: |
+          git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+      - name: Restore LFS cache
+        uses: actions/cache@v2
+        id: lfs-cache
+        with:
+          path: .git/lfs
+          key: lfs-v1-${{ hashFiles('.lfs-assets-id') }}
+          restore-keys: lfs-v1-
+      - name: Git LFS Pull
+        run: |
+          git lfs pull
+      - name: IMOD Container Build
+        id: docker-build-imod
+        env:
+          DOCKERFILE_PATH: utils/imod/
+        run: |
+          docker build -t imod $DOCKERFILE_PATH
+      - name: IMOD Container Test
+        run: |
+          docker run imod dm2mrc -h
+      - name: Graphicsmagick Container Build
+        id: docker-build-graphicsmagick
+        env:
+          DOCKERFILE_PATH: utils/graphicsmagick/
+        run: |
+          docker build -t graphicsmagick $DOCKERFILE_PATH
+      - name: Graphicsmagick Container Test
+        run: |
+          docker run graphicsmagick gm -version
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          sudo apt -y update && sudo apt -y install libgl-dev
+      - name: Running pytest
+        run: |
+          pytest test/
 
   docs:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
-    - name: Install dependencies
-      run: |
-        python -m pip install -r docs/requirements.txt
-    - name: Build Sphinx Documentation
-      run: |
-        make -C docs html
-    - name: Upload documentation
-      if: github.event_name == 'push'
-      uses: actions/upload-artifact@v1
-      with:
-        name: sphinx-docs
-        path: docs/_build/html
-    - name: Update gh-pages
-      if: github.ref == 'refs/heads/main'
-      run: |
-        rm docs/_build/html/.buildinfo
-        touch docs/_build/html/.nojekyll
-        git update-ref refs/heads/${TARGET_BRANCH} origin/${TARGET_BRANCH}
-        ./.github/workflows/update-gh-pages.sh docs/_build/html
-        repo_uri="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-        git push $repo_uri ${TARGET_BRANCH}
-      env:
-        GITHUB_TOKEN: ${{ secrets.github_token }}
-        TARGET_BRANCH: 'gh-pages'
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          python -m pip install -r docs/requirements.txt
+      - name: Build Sphinx Documentation
+        run: |
+          make -C docs html
+      - name: Upload documentation
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v1
+        with:
+          name: sphinx-docs
+          path: docs/_build/html
+      - name: Update gh-pages
+        if: github.ref == 'refs/heads/main'
+        run: |
+          rm docs/_build/html/.buildinfo
+          touch docs/_build/html/.nojekyll
+          git update-ref refs/heads/${TARGET_BRANCH} origin/${TARGET_BRANCH}
+          ./.github/workflows/update-gh-pages.sh docs/_build/html
+          repo_uri="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push $repo_uri ${TARGET_BRANCH}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+          TARGET_BRANCH: "gh-pages"
