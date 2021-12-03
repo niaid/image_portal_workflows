@@ -25,7 +25,7 @@ class Job:
 
 class Container_Dm2mrc(CreateContainer):
     def run(self, input_dir: str, fp: Path, output_fp: Path):
-        logger.info(f"Dm2mrc mouting {input_dir} to /io")
+        logger.info(f"Dm2mrc mounting {input_dir} to /io")
         f_in = f"/io/{fp.name}"
         f_out = f"/io/{output_fp.name}"
         logger.info(f"trying to convert {f_in} to {f_out}")
@@ -47,6 +47,7 @@ class Container_gm_convert(CreateContainer):
     # -resize 300x300 -sharpen 2 -quality 70 "/io/20210525_1416_A000_G000_sm.jpeg"
 
     def run(self, input_dir: str, fp: Path, output_fp: Path, size: str):
+        logger.info(f"gm_convert mounting {input_dir} to /io")
         f_in = f"/io/{fp.name}"
         f_out = f"/io/{output_fp.name}"
         logger.info(f"trying to convert {f_in} to {f_out}")
@@ -79,7 +80,7 @@ class Container_gm_convert(CreateContainer):
 
 class Container_Mrc2tif(CreateContainer):
     def run(self, input_dir: str, fp: Path, output_fp: Path):
-        logger.info(f"Mrc2tiff mouting {input_dir} to /io")
+        logger.info(f"Mrc2tiff mounting {input_dir} to /io")
         f_in = f"/io/{fp.name}"
         f_out = f"/io/{output_fp.name}"
         logger.info(f"trying to convert {f_in} to {f_out}")
