@@ -104,8 +104,10 @@ create_thumb = Container_gm_convert()
 startDM = StartContainer()
 startMRC = StartContainer()
 startGM = StartContainer()
+startGMlg = StartContainer()
 waitDM = WaitOnContainer()
 waitMRC = WaitOnContainer()
+waitGMlg = WaitOnContainer()
 waitGM = WaitOnContainer()
 
 
@@ -188,6 +190,8 @@ with Flow("dm_to_jpeg") as flow:
         size=unmapped("lg"),
         upstream_tasks=[jpeg_status_codes],
     )
-    thumb_container_starts_lg = startGM.map(thumb_container_ids_lg)
-    thumb_status_codes_lg = waitGM.map(thumb_container_ids_lg)
+    thumb_container_starts_lg = startGMlg.map(thumb_container_ids_lg)
+    thumb_status_codes_lg = waitGMlg.map(
+            thumb_container_ids_lg,
+            upstream_tasks=[thumb_container_starts_lg])
     # logs = logs(_id, upstream_tasks=[status_code])
