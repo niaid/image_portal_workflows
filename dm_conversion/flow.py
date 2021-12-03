@@ -101,9 +101,15 @@ create_mrc = Container_Dm2mrc()
 create_jpeg = Container_Mrc2tif()
 create_thumb = Container_gm_convert()
 
-start = StartContainer()
-wait = WaitOnContainer()
-logs = GetContainerLogs(trigger=always_run)
+startDM = StartContainer()
+startMRC = StartContainer()
+startGM = StartContainer()
+waitDM = WaitOnContainer()
+waitMRC = WaitOnContainer()
+waitGM = WaitOnContainer()
+logsDM = GetContainerLogs(trigger=always_run)
+logsMRC = GetContainerLogs(trigger=always_run)
+logsGM = GetContainerLogs(trigger=always_run)
 
 
 @task
@@ -146,8 +152,8 @@ with Flow("dm_to_jpeg") as flow:
     mrc_ids = create_mrc.map(
         input_dir=unmapped(input_dir), fp=dm4_fps, output_fp=mrc_locs
     )
-    mrc_starts = start.map(mrc_ids)
-    mrc_statuses = wait.map(mrc_ids)
+    mrc_starts = startDM.map(mrc_ids)
+    mrc_statuses = waitDM.map(mrc_ids)
 
     # mrc to jpeg conversion
     jpeg_locs = gen_output_fname.map(input_fp=mrc_locs, output_ext=unmapped(".jpeg"))
@@ -155,10 +161,10 @@ with Flow("dm_to_jpeg") as flow:
         input_dir=unmapped(input_dir),
         fp=mrc_locs,
         output_fp=jpeg_locs,
-        upstream_tasks=[mrc_statuses],
+        upstream_tasks=[mrc_statuses, mrc_starts],
     )
-    jpeg_container_starts = start.map(jpeg_container_ids)
-    jpeg_status_codes = wait.map(jpeg_container_ids)
+    jpeg_container_starts = startMRC.map(jpeg_container_ids)
+    jpeg_status_codes = waitMRC.map(jpeg_container_ids)
 
     # size down jpegs for small thumbs
     small_thumb_locs = gen_output_fname.map(
@@ -171,8 +177,8 @@ with Flow("dm_to_jpeg") as flow:
         size=unmapped("sm"),
         upstream_tasks=[jpeg_status_codes],
     )
-    thumb_container_starts_sm = start.map(thumb_container_ids_sm)
-    thumb_status_codes_sm = wait.map(thumb_container_ids_sm)
+    thumb_container_starts_sm = startGM.map(thumb_container_ids_sm)
+    thumb_status_codes_sm = waitGM.map(thumb_container_ids_sm)
 
 #    # size dow jpegs for large thumbs
 #    large_thumb_locs = gen_output_fname.map(
