@@ -192,6 +192,6 @@ with Flow("dm_to_jpeg") as flow:
     )
     thumb_container_starts_lg = startGMlg.map(thumb_container_ids_lg)
     thumb_status_codes_lg = waitGMlg.map(
-            thumb_container_ids_lg,
-            upstream_tasks=[thumb_container_starts_lg])
+        thumb_container_ids_lg, upstream_tasks=[thumb_container_starts_lg]
+    )
     # logs = logs(_id, upstream_tasks=[status_code])
