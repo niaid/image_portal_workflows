@@ -1,9 +1,7 @@
-from os import name
 from typing import Optional, List
 from pathlib import Path
 from prefect.engine import signals
 from prefect import Flow, task, Parameter, unmapped, context
-from prefect.triggers import always_run
 from prefect.tasks.docker.containers import (
     CreateContainer,
     StartContainer,
@@ -20,7 +18,7 @@ logger = context.get("logger")
 class Job:
     def __init__(self, input_dir):
         self.output_dir = Path("/io/")
-        self.input_dir = Path(input_dir)
+        self.input_dir = Path(Config.proj_dir + input_dir)
 
 
 class Container_Dm2mrc(CreateContainer):
@@ -104,12 +102,11 @@ create_thumb = Container_gm_convert()
 startDM = StartContainer()
 startMRC = StartContainer()
 startGM = StartContainer()
+startGMlg = StartContainer()
 waitDM = WaitOnContainer()
 waitMRC = WaitOnContainer()
+waitGMlg = WaitOnContainer()
 waitGM = WaitOnContainer()
-logsDM = GetContainerLogs(trigger=always_run)
-logsMRC = GetContainerLogs(trigger=always_run)
-logsGM = GetContainerLogs(trigger=always_run)
 
 
 @task
@@ -189,7 +186,10 @@ with Flow("dm_to_jpeg") as flow:
 #        fp=jpeg_locs,
 #        output_fp=large_thumb_locs,
 #        size=unmapped("lg"),
+#        upstream_tasks=[jpeg_status_codes],
 #    )
-#    thumb_container_starts_lg = start.map()
-#    thumb_status_codes_lg = wait.map()
+#    thumb_container_starts_lg = startGMlg.map(thumb_container_ids_lg)
+#    thumb_status_codes_lg = waitGMlg.map(
+#        thumb_container_ids_lg, upstream_tasks=[thumb_container_starts_lg]
+#    )
     # logs = logs(_id, upstream_tasks=[status_code])
