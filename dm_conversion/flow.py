@@ -1,9 +1,7 @@
-from os import name
 from typing import Optional, List
 from pathlib import Path
 from prefect.engine import signals
 from prefect import Flow, task, Parameter, unmapped, context
-from prefect.triggers import always_run
 from prefect.tasks.docker.containers import (
     CreateContainer,
     StartContainer,
@@ -20,7 +18,7 @@ logger = context.get("logger")
 class Job:
     def __init__(self, input_dir):
         self.output_dir = Path("/io/")
-        self.input_dir = Path(input_dir)
+        self.input_dir = Path(Config.proj_dir + input_dir)
 
 
 class Container_Dm2mrc(CreateContainer):
