@@ -2,6 +2,7 @@ from typing import Optional, List
 from pathlib import Path
 from prefect.engine import signals
 from prefect import Flow, task, Parameter, unmapped, context
+from prefect.engine.state import State
 from prefect.tasks.docker.containers import (
     CreateContainer,
     StartContainer,
@@ -142,10 +143,35 @@ def check_input_fname(input_fps: List[Path], fp_to_check: str) -> List[Path]:
             return [Path(fp_to_check)]
     raise signals.FAIL(f"Expecting file: {fp_to_check}, not found in input_dir")
 
+def notify_api_completion(flow: Flow, old_state, new_state) -> State:
+        """
+        Prefect workflows transition from State to State, see:
+        https://docs.prefect.io/core/concepts/states.html#overview.
+        This method checks if the State being transitioned into is an is_finished state.
+        If it is, a notification is sent stating the workflow is finished.
+        Is a static method because signiture much conform as above, see:
+        https://docs.prefect.io/core/concepts/notifications.html#state-handlers
+        """
+        pass
+#        if new_state.is_finished():
+#            if environ.get("LOCAL_JOB"):
+#                return new_state
+#            token = prefect.context.get("parameters", {}).get("token")
+#            callback_url = prefect.context.get("parameters", {}).get("callback_url")
+#            if new_state.is_successful():
+#                status = "success"
+#            else:
+#                status = "fail"
+#            url = f"{callback_url}/submissions/{submission_id}/runs/{run_id}/status/{status}"
+#            requests.post(url, headers=_gen_headers(), data={"message": "placeholder"})
+#        return new_state
 
-with Flow("dm_to_jpeg") as flow:
+with Flow("dm_to_jpeg",
+        state_handlers=[notify_api_completion]) as flow:
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
+    callback_url = Parameter("callback_url")
+    token = Parameter("token")
     job = init_job(input_dir=input_dir)
     dm4_fps = list_files(input_dir, "dm4")
     dm4_fps = check_input_fname(input_fps=dm4_fps, fp_to_check=file_name)
