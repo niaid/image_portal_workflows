@@ -110,7 +110,7 @@ waitGM = WaitOnContainer()
 
 
 @task
-def list_files(input_dir: str, ext: str) -> Optional[List[Path]]:
+def list_files(input_dir: str, ext: str) -> List[Path]:
     input_path = Path(input_dir)
     _files = list(input_path.glob(f"**/*.{ext}"))
     _file_names = [Path(_file.name) for _file in _files]
@@ -131,10 +131,24 @@ def gen_output_fname(input_fp: Path, output_ext) -> Path:
     return output_fp
 
 
+@task
+def check_input_fname(input_fps: List[Path], fp_to_check: str) -> List[Path]:
+    """ensures that a file_name is extant,
+    if so will return as Path, else raise exception."""
+    if fp_to_check is None:
+        return input_fps
+    for _fp in input_fps:
+        if _fp.name == fp_to_check:
+            return [Path(fp_to_check)]
+    raise signals.FAIL(f"Expecting file: {fp_to_check}, not found in input_dir")
+
+
 with Flow("dm_to_jpeg") as flow:
     input_dir = Parameter("input_dir")
+    file_name = Parameter("file_name", default=None)
     job = init_job(input_dir=input_dir)
     dm4_fps = list_files(input_dir, "dm4")
+    dm4_fps = check_input_fname(input_fps=dm4_fps, fp_to_check=file_name)
 
     #    mrc_id = create_mrc(
     #            input_dir=input_dir,
@@ -192,4 +206,4 @@ with Flow("dm_to_jpeg") as flow:
 #    thumb_status_codes_lg = waitGMlg.map(
 #        thumb_container_ids_lg, upstream_tasks=[thumb_container_starts_lg]
 #    )
-    # logs = logs(_id, upstream_tasks=[status_code])
+# logs = logs(_id, upstream_tasks=[status_code])
