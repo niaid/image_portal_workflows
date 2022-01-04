@@ -111,9 +111,8 @@ waitGM = WaitOnContainer()
 
 
 @task
-def list_files(input_dir: str, ext: str) -> List[Path]:
-    input_path = Path(input_dir)
-    _files = list(input_path.glob(f"**/*.{ext}"))
+def list_files(job: Job, ext: str) -> List[Path]:
+    _files = list(job.input_dir.glob(f"**/*.{ext}"))
     _file_names = [Path(_file.name) for _file in _files]
     if not _files:
         raise ValueError(f"{job.input_dir} contains no files with extension {ext}")
@@ -173,7 +172,7 @@ with Flow("dm_to_jpeg",
     callback_url = Parameter("callback_url")
     token = Parameter("token")
     job = init_job(input_dir=input_dir)
-    dm4_fps = list_files(input_dir, "dm4")
+    dm4_fps = list_files(job, "dm4")
     dm4_fps = check_input_fname(input_fps=dm4_fps, fp_to_check=file_name)
 
     #    mrc_id = create_mrc(
