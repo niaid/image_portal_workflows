@@ -1,5 +1,8 @@
-from typing import Optional, List
+import requests
+import json
+from typing import Optional, List, Dict
 from pathlib import Path
+import prefect
 from prefect.engine import signals
 from prefect import Flow, task, Parameter, unmapped, context
 from prefect.engine.state import State
@@ -23,15 +26,16 @@ class Job:
 
 
 class Container_Dm2mrc(CreateContainer):
-    def run(self, input_dir: str, fp: Path, output_fp: Path):
-        logger.info(f"Dm2mrc mounting {input_dir} to /io")
-        f_in = f"/io/{fp.name}"
-        f_out = f"/io/{output_fp.name}"
+    def run(self, input_dir: str, output_dir: str, fp: Path, output_fp: Path):
+        logger.info(f"Dm2mrc mounting {input_dir} to /in")
+        logger.info(f"Dm2mrc mounting {output_dir} to /out")
+        f_in = f"/in/{fp.name}"
+        f_out = f"/out/{output_fp.name}"
         logger.info(f"trying to convert {f_in} to {f_out}")
         return super().run(
             image_name="imod",
-            volumes=[f"{input_dir}:/io"],
-            host_config={"binds": [input_dir + ":/io"]},
+            volumes=[f"{input_dir}:/in", f"{output_dir}:/out"],
+            host_config={"binds": [input_dir + ":/in", output_dir + ":/out"]},
             command=[Config.dm2mrc_loc, f_in, f_out],
         )
 
@@ -142,51 +146,116 @@ def check_input_fname(input_fps: List[Path], fp_to_check: str) -> List[Path]:
             return [Path(fp_to_check)]
     raise signals.FAIL(f"Expecting file: {fp_to_check}, not found in input_dir")
 
-def notify_api_completion(flow: Flow, old_state, new_state) -> State:
-        """
-        Prefect workflows transition from State to State, see:
-        https://docs.prefect.io/core/concepts/states.html#overview.
-        This method checks if the State being transitioned into is an is_finished state.
-        If it is, a notification is sent stating the workflow is finished.
-        Is a static method because signiture much conform as above, see:
-        https://docs.prefect.io/core/concepts/notifications.html#state-handlers
-        """
-        pass
-#        if new_state.is_finished():
-#            if environ.get("LOCAL_JOB"):
-#                return new_state
-#            token = prefect.context.get("parameters", {}).get("token")
-#            callback_url = prefect.context.get("parameters", {}).get("callback_url")
-#            if new_state.is_successful():
-#                status = "success"
-#            else:
-#                status = "fail"
-#            url = f"{callback_url}/submissions/{submission_id}/runs/{run_id}/status/{status}"
-#            requests.post(url, headers=_gen_headers(), data={"message": "placeholder"})
-#        return new_state
 
-with Flow("dm_to_jpeg",
-        state_handlers=[notify_api_completion]) as flow:
+def _gen_files(dname: str, inputs: List[Path]) -> List[Dict]:
+    files = list()
+    for _file in inputs:
+        elt = {
+            "primaryFilePath": dname + _file.as_posix(),
+            "title": _file.stem,
+            "assets": list(),
+        }
+        files.append(elt)
+    return files
+
+
+def _add_outputs(
+    dname: str, files: List[Dict], outputs: List[Path], _type: str
+) -> List[Dict]:
+    for i, elt in enumerate(files):
+        elt["assets"].append({"type": _type, "path": dname + outputs[i].as_posix()})
+    return files
+
+
+def notify_api_completion(flow: Flow, old_state, new_state) -> State:
+    """
+    Prefect workflows transition from State to State, see:
+    https://docs.prefect.io/core/concepts/states.html#overview.
+    This method checks if the State being transitioned into is an is_finished state.
+    If it is, a notification is sent stating the workflow is finished.
+    Is a static method because signiture much conform as above, see:
+    https://docs.prefect.io/core/concepts/notifications.html#state-handlers
+
+    """
+    if new_state.is_finished():
+        #            if environ.get("LOCAL_JOB"):
+        #                return new_state
+        if new_state.is_successful():
+            status = "success"
+        else:
+            status = "fail"
+    return new_state
+
+
+@task
+def generate_callback_body(
+    sample_id: str,
+    token: str,
+    callback_url: str,
+    input_dir,
+    inputs,
+    jpeg_locs,
+    small_thumb_locs,
+):
+    """
+    the body of the callback should look something like this:
+    {
+        "status": "success",
+        "files":
+        [
+            {
+                "primaryFilePath: "Lab/PI/Myproject/MySession/Sample1/file_a.dm4",
+                "title": "file_a",
+                "assets":
+                [
+                    {
+                        "type": "keyImage",
+                        "path": "Lab/PI/Myproject/MySession/Sample1/file_a.jpg"
+                    },
+                    {
+                        "type": "thumbnail",
+                        "path": "Lab/PI/Myproject/MySession/Sample1/file_a_s.jpg"
+                    }
+                ]
+            }
+        ]
+    }
+    """
+    files = _gen_files(dname=input_dir, inputs=inputs)
+    files = _add_outputs(
+        dname=input_dir, files=files, outputs=jpeg_locs, _type="keyImage"
+    )
+    files = _add_outputs(
+        dname=input_dir, files=files, outputs=small_thumb_locs, _type="thumbnail"
+    )
+    url = f"{callback_url}/api/pipeline/{sample_id}"
+    data = {"status": "success", "files": files}
+    headers = {"Authorization": "Bearer " + token}
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    logger.info(response.url)
+    logger.info(response.status_code)
+    logger.info(json.dumps(data))
+    logger.info(response.text)
+    logger.info(response.headers)
+
+
+with Flow("dm_to_jpeg", state_handlers=[notify_api_completion]) as flow:
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url")
     token = Parameter("token")
+    sample_id = Parameter("sample_id")
     job = init_job(input_dir=input_dir)
     dm4_fps = list_files(job, "dm4")
     dm4_fps = check_input_fname(input_fps=dm4_fps, fp_to_check=file_name)
 
-    #    mrc_id = create_mrc(
-    #            input_dir=input_dir,
-    #            fp=Path("/io/20210525_1416.dm4"),
-    #            output_fp=Path("/io/20210525_1416.mrc"))
-    #
-    #    mrc_starts = start(mrc_id)
-    #    mrc_statuses = wait(mrc_id)
-
     # dm* to mrc conversion
     mrc_locs = gen_output_fname.map(input_fp=dm4_fps, output_ext=unmapped(".mrc"))
     mrc_ids = create_mrc.map(
-        input_dir=unmapped(input_dir), fp=dm4_fps, output_fp=mrc_locs
+        input_dir=unmapped(input_dir),
+        output_dir=unmapped("test"),
+        fp=dm4_fps,
+        output_fp=mrc_locs,
     )
     mrc_starts = startDM.map(mrc_ids)
     mrc_statuses = waitDM.map(mrc_ids)
@@ -216,6 +285,17 @@ with Flow("dm_to_jpeg",
     thumb_container_starts_sm = startGM.map(thumb_container_ids_sm)
     thumb_status_codes_sm = waitGM.map(thumb_container_ids_sm)
 
+    generate_callback_body(
+        sample_id,
+        token,
+        callback_url,
+        input_dir,
+        dm4_fps,
+        jpeg_locs,
+        small_thumb_locs,
+        upstream_tasks=[thumb_container_starts_sm],
+    )
+#
 #    # size dow jpegs for large thumbs
 #    large_thumb_locs = gen_output_fname.map(
 #        input_fp=jpeg_locs, output_ext=unmapped("_LG.jpeg")
