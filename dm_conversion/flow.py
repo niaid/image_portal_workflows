@@ -231,10 +231,9 @@ def generate_callback_body(
     files = _add_outputs(
         dname=input_dir, files=files, outputs=small_thumb_locs, _type="thumbnail"
     )
-    url = f"{callback_url}/api/pipeline/{sample_id}"
     data = {"status": "success", "files": files}
     headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
-    response = requests.post(url, headers=headers, data=json.dumps(data))
+    response = requests.post(callback_url, headers=headers, data=json.dumps(data))
     logger.info(response.url)
     logger.info(response.status_code)
     logger.info(json.dumps(data))
