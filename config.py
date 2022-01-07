@@ -6,4 +6,4 @@ class Config:
     size_sm = "300x300"
     # the path to the Projects dir - can vary depending on mount point.
     proj_dir = "/hedwigqa_data/Projects/"
-    assets_dir = "/hedwigqa_data/Assets/ "
+    assets_dir = "/hedwigqa_data/Assets/"
