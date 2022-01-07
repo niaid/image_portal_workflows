@@ -149,6 +149,8 @@ def check_input_fname(input_fps: List[Path], fp_to_check: str) -> List[Path]:
 
 
 def _gen_files(dname: str, inputs: List[Path]) -> List[Dict]:
+    if not dname.endswith("/"):
+        dname = dname + "/"
     files = list()
     for _file in inputs:
         elt = {
@@ -231,7 +233,7 @@ def generate_callback_body(
     )
     url = f"{callback_url}/api/pipeline/{sample_id}"
     data = {"status": "success", "files": files}
-    headers = {"Authorization": "Bearer " + token}
+    headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
     response = requests.post(url, headers=headers, data=json.dumps(data))
     logger.info(response.url)
     logger.info(response.status_code)
