@@ -166,7 +166,7 @@ def _add_outputs(
     dname: str, files: List[Dict], outputs: List[Path], _type: str
 ) -> List[Dict]:
     for i, elt in enumerate(files):
-        elt["assets"].append({"type": _type, "path": dname + outputs[i].as_posix()})
+        elt["assets"].append({"type": _type, "path": dname + '/' + outputs[i].as_posix()})
     return files
 
 
