@@ -1,4 +1,6 @@
 import requests
+import os
+import shutil
 import json
 from typing import Optional, List, Dict
 from pathlib import Path
@@ -21,21 +23,20 @@ logger = context.get("logger")
 
 class Job:
     def __init__(self, input_dir):
-        self.output_dir = Path("/io/")
+        self.output_dir = Path(Config.assets_dir + input_dir)
         self.input_dir = Path(Config.proj_dir + input_dir)
 
 
 class Container_Dm2mrc(CreateContainer):
-    def run(self, input_dir: str, output_dir: str, fp: Path, output_fp: Path):
-        logger.info(f"Dm2mrc mounting {input_dir} to /in")
-        logger.info(f"Dm2mrc mounting {output_dir} to /out")
-        f_in = f"/in/{fp.name}"
-        f_out = f"/out/{output_fp.name}"
+    def run(self, input_dir: Path, fp: Path, output_fp: Path):
+        logger.info(f"Dm2mrc mounting {input_dir} to /io")
+        f_in = f"/io/{fp.name}"
+        f_out = f"/io/{output_fp.name}"
         logger.info(f"trying to convert {f_in} to {f_out}")
         return super().run(
             image_name="imod",
-            volumes=[f"{input_dir}:/in", f"{output_dir}:/out"],
-            host_config={"binds": [input_dir + ":/in", output_dir + ":/out"]},
+            volumes=[f"{input_dir}:/io"],
+            host_config={"binds": [input_dir.as_posix() + ":/io"]},
             command=[Config.dm2mrc_loc, f_in, f_out],
         )
 
@@ -49,7 +50,7 @@ class Container_gm_convert(CreateContainer):
     # -size 300x300 "/io/20210525_1416_A000_G000.jpeg"
     # -resize 300x300 -sharpen 2 -quality 70 "/io/20210525_1416_A000_G000_sm.jpeg"
 
-    def run(self, input_dir: str, fp: Path, output_fp: Path, size: str):
+    def run(self, input_dir: Path, fp: Path, output_fp: Path, size: str):
         logger.info(f"gm_convert mounting {input_dir} to /io")
         f_in = f"/io/{fp.name}"
         f_out = f"/io/{output_fp.name}"
@@ -63,7 +64,7 @@ class Container_gm_convert(CreateContainer):
         return super().run(
             image_name="graphicsmagick",
             volumes=[f"{input_dir}:/io"],
-            host_config={"binds": [input_dir + ":/io"]},
+            host_config={"binds": [input_dir.as_posix() + ":/io"]},
             command=[
                 Container_gm_convert.gm,
                 "convert",
@@ -82,7 +83,7 @@ class Container_gm_convert(CreateContainer):
 
 
 class Container_Mrc2tif(CreateContainer):
-    def run(self, input_dir: str, fp: Path, output_fp: Path):
+    def run(self, input_dir: Path, fp: Path, output_fp: Path):
         logger.info(f"Mrc2tiff mounting {input_dir} to /io")
         f_in = f"/io/{fp.name}"
         f_out = f"/io/{output_fp.name}"
@@ -90,7 +91,7 @@ class Container_Mrc2tif(CreateContainer):
         return super().run(
             image_name="imod",
             volumes=[f"{input_dir}:/io"],
-            host_config={"binds": [input_dir + ":/io"]},
+            host_config={"binds": [input_dir.as_posix() + ":/io"]},
             command=[
                 Config.mrc2tif_loc,
                 "-j",
@@ -115,11 +116,11 @@ waitGM = WaitOnContainer()
 
 
 @task
-def list_files(job: Job, ext: str) -> List[Path]:
-    _files = list(job.input_dir.glob(f"**/*.{ext}"))
+def list_files(input_dir: Path, ext: str) -> List[Path]:
+    _files = list(input_dir.glob(f"**/*.{ext}"))
     _file_names = [Path(_file.name) for _file in _files]
     if not _files:
-        raise ValueError(f"{job.input_dir} contains no files with extension {ext}")
+        raise ValueError(f"{input_dir} contains no files with extension {ext}")
     return _file_names
 
 
@@ -239,31 +240,65 @@ def generate_callback_body(
     logger.info(response.headers)
 
 
+@task
+def copy_inputs_to_outputs_dir(
+    input_dir_fp: Path, output_dir_fp: Path, fps: List[Path]
+):
+    """
+    inputs are found in /Projects/Lab/PI/Proj_name/Session_name/Sample_name/
+    outputs are placed in /Assets/Lab/PI/Proj_name/Session_name/Sample_name/
+    I'm going to copy inputs over, and process them in place.
+    """
+    for fp in fps:
+        full_fp = f"{input_dir_fp}/{fp}"
+        logger.info(f"coping {full_fp} to {output_dir_fp}")
+        shutil.copy(full_fp, output_dir_fp)
+
+
+@task
+def gen_output_dir(input_dir: str) -> Path:
+    output_path = Path(Config.assets_dir + input_dir)
+    logger.info(f"Output path is {output_path}")
+    os.makedirs(output_path.as_posix(), exist_ok=True)
+    return output_path
+
+
+@task
+def get_input_dir(input_dir: str) -> Path:
+    input_path = Path(Config.proj_dir + input_dir)
+    logger.info(f"Input path is {input_path}")
+    return input_path
+
+
 with Flow("dm_to_jpeg", state_handlers=[notify_api_completion]) as flow:
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url")
     token = Parameter("token")
     sample_id = Parameter("sample_id")
-    job = init_job(input_dir=input_dir)
-    dm4_fps = list_files(job, "dm4")
+    input_dir_fp = get_input_dir(input_dir=input_dir)
+    # job = init_job(input_dir=input_dir)
+    dm4_fps = list_files(input_dir_fp, "dm4")
     dm4_fps = check_input_fname(input_fps=dm4_fps, fp_to_check=file_name)
+    output_dir_fp = gen_output_dir(input_dir=input_dir)
+    copied = copy_inputs_to_outputs_dir(
+        input_dir_fp=input_dir_fp, output_dir_fp=output_dir_fp, fps=dm4_fps
+    )
 
-    # dm* to mrc conversion
+    #    # dm* to mrc conversion
     mrc_locs = gen_output_fname.map(input_fp=dm4_fps, output_ext=unmapped(".mrc"))
     mrc_ids = create_mrc.map(
-        input_dir=unmapped(input_dir),
-        output_dir=unmapped("test"),
+        input_dir=unmapped(output_dir_fp),
         fp=dm4_fps,
         output_fp=mrc_locs,
     )
     mrc_starts = startDM.map(mrc_ids)
     mrc_statuses = waitDM.map(mrc_ids)
-
+    #
     # mrc to jpeg conversion
     jpeg_locs = gen_output_fname.map(input_fp=mrc_locs, output_ext=unmapped(".jpeg"))
     jpeg_container_ids = create_jpeg.map(
-        input_dir=unmapped(input_dir),
+        input_dir=unmapped(output_dir_fp),
         fp=mrc_locs,
         output_fp=jpeg_locs,
         upstream_tasks=[mrc_statuses, mrc_starts],
@@ -276,7 +311,7 @@ with Flow("dm_to_jpeg", state_handlers=[notify_api_completion]) as flow:
         input_fp=jpeg_locs, output_ext=unmapped("_SM.jpeg")
     )
     thumb_container_ids_sm = create_thumb.map(
-        input_dir=unmapped(input_dir),
+        input_dir=unmapped(output_dir_fp),
         fp=jpeg_locs,
         output_fp=small_thumb_locs,
         size=unmapped("sm"),
