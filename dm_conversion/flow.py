@@ -343,7 +343,7 @@ with Flow("dm_to_jpeg", state_handlers=[notify_api_completion]) as flow:
         callback_url,
         input_dir,
         dm4_fps,
-        jpeg_locs,
+        large_thumb_locs,
         small_thumb_locs,
         upstream_tasks=[thumb_container_starts_sm, thumb_container_starts_lg],
     )
