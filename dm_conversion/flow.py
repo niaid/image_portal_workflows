@@ -28,6 +28,8 @@ class Job:
 
 
 class Container_Dm2mrc(CreateContainer):
+    """
+    """
     def run(self, input_dir: Path, fp: Path, output_fp: Path):
         logger.info(f"Dm2mrc mounting {input_dir} to /io")
         f_in = f"/io/{fp.name}"
@@ -117,6 +119,11 @@ waitGM = WaitOnContainer()
 
 @task
 def list_files(input_dir: Path, ext: str) -> List[Path]:
+    """
+    TODO: util type method
+    workflows have to find which inputs to run on, inputs are defined as all 
+    files within a directory.
+    """
     _files = list(input_dir.glob(f"**/*.{ext}"))
     _file_names = [Path(_file.name) for _file in _files]
     if not _files:
@@ -126,20 +133,28 @@ def list_files(input_dir: Path, ext: str) -> List[Path]:
 
 @task
 def init_job(input_dir: Path) -> Job:
+    """ not clear if this class is needed - seems to only be used to house input_dir
+    ATM."""
     return Job(input_dir=input_dir)
 
 
 @task
 def gen_output_fname(input_fp: Path, output_ext) -> Path:
+    """TODO: util type method
+    Each file is generated using the input file name, without extension,
+    with a new extension."""
     output_fp = Path(f"{input_fp.stem}{output_ext}")
     logger.info(f"input: {input_fp} output: {output_fp}")
     return output_fp
 
 
 @task
-def check_input_fname(input_fps: List[Path], fp_to_check: str) -> List[Path]:
-    """ensures that a file_name is extant,
-    if so will return as Path, else raise exception."""
+def run_single_file(input_fps: List[Path], fp_to_check: str) -> List[Path]:
+    """TODO: util type method
+    Workflows can be run on single files, if the file_name param is used.
+    This function will limit the list of inputs to only that file_name (if 
+    provided), and check the file exists, if so will return as Path, else 
+    raise exception."""
     if fp_to_check is None:
         return input_fps
     for _fp in input_fps:
@@ -148,7 +163,11 @@ def check_input_fname(input_fps: List[Path], fp_to_check: str) -> List[Path]:
     raise signals.FAIL(f"Expecting file: {fp_to_check}, not found in input_dir")
 
 
-def _gen_files(dname: str, inputs: List[Path]) -> List[Dict]:
+def _gen_callback_file_list(dname: str, inputs: List[Path]) -> List[Dict]:
+    """TODO: util type method
+    converts a list of Paths to a datastructure used to create JSON for 
+    the callback
+    """
     if not dname.endswith("/"):
         dname = dname + "/"
     files = list()
@@ -165,6 +184,10 @@ def _gen_files(dname: str, inputs: List[Path]) -> List[Dict]:
 def _add_outputs(
     dname: str, files: List[Dict], outputs: List[Path], _type: str
 ) -> List[Dict]:
+    """TODO: util type method
+    converts a list of Paths to a data structure used to create JSON for 
+    the callback
+    """
     for i, elt in enumerate(files):
         elt["assets"].append({"type": _type, "path": dname + '/' + outputs[i].as_posix()})
     return files
@@ -192,7 +215,6 @@ def notify_api_completion(flow: Flow, old_state, new_state) -> State:
 
 @task
 def generate_callback_body(
-    sample_id: str,
     token: str,
     callback_url: str,
     input_dir,
@@ -201,6 +223,8 @@ def generate_callback_body(
     small_thumb_locs,
 ):
     """
+    Upon completion of file conversion a callback is made to the calling
+    API specifying the locations of files, along with metadata about the files.
     the body of the callback should look something like this:
     {
         "status": "success",
@@ -224,7 +248,7 @@ def generate_callback_body(
         ]
     }
     """
-    files = _gen_files(dname=input_dir, inputs=inputs)
+    files = _gen_callback_file_list(dname=input_dir, inputs=inputs)
     files = _add_outputs(
         dname=input_dir, files=files, outputs=jpeg_locs, _type="keyImage"
     )
@@ -246,8 +270,8 @@ def copy_inputs_to_outputs_dir(
     input_dir_fp: Path, output_dir_fp: Path, fps: List[Path]
 ):
     """
-    inputs are found in /Projects/Lab/PI/Proj_name/Session_name/Sample_name/
-    outputs are placed in /Assets/Lab/PI/Proj_name/Session_name/Sample_name/
+    inputs are found in {nfs_dir}/Projects/Lab/PI/Proj_name/Session_name/Sample_name/
+    outputs are placed in {nfs_dir}/Assets/Lab/PI/Proj_name/Session_name/Sample_name/
     I'm going to copy inputs over, and process them in place.
     """
     for fp in fps:
@@ -258,6 +282,10 @@ def copy_inputs_to_outputs_dir(
 
 @task
 def gen_output_dir(input_dir: str) -> Path:
+    """The output directory, ie the place outputs are written to mirrors
+    input_dir, except rather than the path getting rooted "{nfs_dir}/Projects/...", outputs
+    are rooted in "{nfs_dir}/Assets/...".
+    """
     output_path = Path(Config.assets_dir + input_dir)
     logger.info(f"Output path is {output_path}")
     os.makedirs(output_path.as_posix(), exist_ok=True)
@@ -266,6 +294,9 @@ def gen_output_dir(input_dir: str) -> Path:
 
 @task
 def get_input_dir(input_dir: str) -> Path:
+    """Does nothing more than concat the POSTed input file path to the 
+    mount point.
+    """
     input_path = Path(Config.proj_dir + input_dir)
     logger.info(f"Input path is {input_path}")
     return input_path
@@ -276,11 +307,11 @@ with Flow("dm_to_jpeg", state_handlers=[notify_api_completion]) as flow:
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url")
     token = Parameter("token")
-    sample_id = Parameter("sample_id")
+    sample_id = Parameter("sample_id")()
     input_dir_fp = get_input_dir(input_dir=input_dir)
     # job = init_job(input_dir=input_dir)
     dm4_fps = list_files(input_dir_fp, "dm4")
-    dm4_fps = check_input_fname(input_fps=dm4_fps, fp_to_check=file_name)
+    dm4_fps = run_single_file(input_fps=dm4_fps, fp_to_check=file_name)
     output_dir_fp = gen_output_dir(input_dir=input_dir)
     copied = copy_inputs_to_outputs_dir(
         input_dir_fp=input_dir_fp, output_dir_fp=output_dir_fp, fps=dm4_fps
@@ -338,7 +369,6 @@ with Flow("dm_to_jpeg", state_handlers=[notify_api_completion]) as flow:
     )
 
     generate_callback_body(
-        sample_id,
         token,
         callback_url,
         input_dir,
