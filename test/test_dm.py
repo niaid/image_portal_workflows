@@ -8,7 +8,11 @@ from prefect.tasks.prefect import create_flow_run
 
 sys.path.append("..")
 from image_portal_workflows.config import Config
-from image_portal_workflows.dm_conversion.flow import flow, _add_outputs, _gen_files
+from image_portal_workflows.dm_conversion.flow import (
+    flow,
+    _add_outputs,
+    _gen_callback_file_list,
+)
 import os
 
 
@@ -54,7 +58,7 @@ def test_inputs_to_outputs():
     input_files = [Path("a.txt"), Path("b.txt"), Path("c.txt")]
     output_files_a = [Path("a.axt"), Path("b.axt"), Path("c.axt")]
     output_files_b = [Path("a.bxt"), Path("b.bxt"), Path("c.bxt")]
-    _files = _gen_files(dname=dname, inputs=input_files)
+    _files = _gen_callback_file_list(dname=dname, inputs=input_files)
     _files = _add_outputs(
         dname=dname, files=_files, outputs=output_files_a, _type="type_axt"
     )
