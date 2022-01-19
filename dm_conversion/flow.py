@@ -119,13 +119,15 @@ waitGM = WaitOnContainer()
 
 
 @task
-def list_files(input_dir: Path, ext: str) -> List[Path]:
+def list_files(input_dir: Path, exts: List[str]) -> List[Path]:
     """
     TODO: util type method
     workflows have to find which inputs to run on, inputs are defined as all
     files within a directory.
     """
-    _files = list(input_dir.glob(f"*.{ext}"))
+    _files = list()
+    for ext in exts:
+        _files.extend(input_dir.glob(f"*.{ext}"))
     _file_names = [Path(_file.name) for _file in _files]
     logger.info("Found files:")
     logger.info(_file_names)
@@ -267,6 +269,7 @@ def generate_callback_body(
     logger.info(json.dumps(data))
     logger.info(response.text)
     logger.info(response.headers)
+    return files
 
 
 @task
@@ -311,6 +314,24 @@ get_logs = GetContainerLogs(trigger=always_run)
 
 
 @task
+def clean_up_outputs_dir(assets_dir: Path, to_keep: List[Dict]):
+    """uses the files datastructure that's used in the callback to
+    list any files that are reported as assets. If the file is not
+    reported it's considered not needed, and deleted.
+    """
+    _fnames_to_keep = list()
+    for elt in to_keep:
+        assets = elt["assets"]
+        for asset in assets:
+            fp = Path(asset["path"])
+            _fnames_to_keep.append(fp.name)
+    for i in assets_dir.glob("*"):
+        if i.name not in _fnames_to_keep:
+            logger.info(f"Cleaning up {i.as_posix()}")
+            os.remove(i)
+
+
+@task
 def print_t(t):
     """dumb function to print stuff..."""
     logger.info("++++++++++++++++++++++++++++++++++++++++")
@@ -325,18 +346,18 @@ with Flow("dm_to_jpeg", state_handlers=[notify_api_completion]) as flow:
     sample_id = Parameter("sample_id")()
     input_dir_fp = get_input_dir(input_dir=input_dir)
     # job = init_job(input_dir=input_dir)
-    dm4_fps = list_files(input_dir_fp, "dm4")
-    dm4_fps = run_single_file(input_fps=dm4_fps, fp_to_check=file_name)
+    dm_fps = list_files(input_dir_fp, ["dm4", "dm3"])
+    dm_fps = run_single_file(input_fps=dm_fps, fp_to_check=file_name)
     output_dir_fp = gen_output_dir(input_dir=input_dir)
     copied = copy_inputs_to_outputs_dir(
         input_dir_fp=input_dir_fp, output_dir_fp=output_dir_fp
     )
 
     #    # dm* to mrc conversion
-    mrc_locs = gen_output_fname.map(input_fp=dm4_fps, output_ext=unmapped(".mrc"))
+    mrc_locs = gen_output_fname.map(input_fp=dm_fps, output_ext=unmapped(".mrc"))
     mrc_ids = create_mrc.map(
         input_dir=unmapped(output_dir_fp),
-        fp=dm4_fps,
+        fp=dm_fps,
         output_fp=mrc_locs,
     )
     mrc_starts = startDM.map(mrc_ids)
@@ -355,7 +376,9 @@ with Flow("dm_to_jpeg", state_handlers=[notify_api_completion]) as flow:
 
     # check input_dir for any tif / tiff files
     tiff_locs = list_files(
-        input_dir=output_dir_fp, ext="tif", upstream_tasks=[jpeg_status_codes]
+        input_dir=output_dir_fp,
+        exts=["tif", "tiff", "jpeg"],
+        upstream_tasks=[jpeg_status_codes],
     )
     jpeg_locs = jpeg_locs + tiff_locs
 
@@ -391,7 +414,7 @@ with Flow("dm_to_jpeg", state_handlers=[notify_api_completion]) as flow:
         thumb_container_ids_lg, upstream_tasks=[thumb_container_starts_lg]
     )
 
-    generate_callback_body(
+    callback_files = generate_callback_body(
         token,
         callback_url,
         input_dir,
@@ -400,5 +423,7 @@ with Flow("dm_to_jpeg", state_handlers=[notify_api_completion]) as flow:
         small_thumb_locs,
         upstream_tasks=[thumb_container_starts_sm, thumb_container_starts_lg],
     )
+
+    clean_up_outputs_dir(assets_dir=output_dir_fp, to_keep=callback_files)
 
 # logs = logs(_id, upstream_tasks=[status_code])
