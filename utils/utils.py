@@ -18,7 +18,7 @@ logger = context.get("logger")
 def _add_outputs(
     dname: str, files: List[Dict], outputs: List[Path], _type: str
 ) -> List[Dict]:
-    """TODO: util type method
+    """
     converts a list of Paths to a data structure used to create JSON for
     the callback
     """
@@ -30,7 +30,6 @@ def _add_outputs(
 @task
 def list_files(input_dir: Path, exts: List[str]) -> List[Path]:
     """
-    TODO: util type method
     workflows have to find which inputs to run on, inputs are defined as all
     files within a directory.
     """
@@ -58,7 +57,7 @@ def list_files(input_dir: Path, exts: List[str]) -> List[Path]:
 
 @task
 def gen_output_fname(input_fp: Path, output_ext) -> Path:
-    """TODO: util type method
+    """
     Each file is generated using the input file name, without extension,
     with a new extension."""
     output_fp = Path(f"{input_fp.stem}{output_ext}")
@@ -68,7 +67,7 @@ def gen_output_fname(input_fp: Path, output_ext) -> Path:
 
 @task
 def run_single_file(input_fps: List[Path], fp_to_check: str) -> List[Path]:
-    """TODO: util type method
+    """
     Workflows can be run on single files, if the file_name param is used.
     This function will limit the list of inputs to only that file_name (if
     provided), and check the file exists, if so will return as Path, else
@@ -82,7 +81,7 @@ def run_single_file(input_fps: List[Path], fp_to_check: str) -> List[Path]:
 
 
 def _gen_callback_file_list(dname: str, inputs: List[Path]) -> List[Dict]:
-    """TODO: util type method
+    """
     converts a list of Paths to a datastructure used to create JSON for
     the callback
     """
@@ -99,6 +98,23 @@ def _gen_callback_file_list(dname: str, inputs: List[Path]) -> List[Dict]:
     return files
 
 
+def notify_api_running(flow: Flow, old_state, new_state) -> State:
+    """
+    tells API the workflow has started to run.
+    """
+    if new_state.is_running():
+        callback_url = prefect.context.get("callback_url")
+        token = prefect.context.get("token")
+        headers = {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json",
+        }
+        requests.post(
+            callback_url, headers=headers, data=json.dumps({"status": "running"})
+        )
+    return new_state
+
+
 def notify_api_completion(flow: Flow, old_state, new_state) -> State:
     """
     Prefect workflows transition from State to State, see:
@@ -110,12 +126,20 @@ def notify_api_completion(flow: Flow, old_state, new_state) -> State:
 
     """
     if new_state.is_finished():
-        #            if environ.get("LOCAL_JOB"):
-        #                return new_state
+        status = ""
         if new_state.is_successful():
             status = "success"
         else:
             status = "fail"
+        callback_url = prefect.context.parameters.get("callback_url")
+        token = prefect.context.parameters.get("token")
+        headers = {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json",
+        }
+        requests.post(
+            callback_url, headers=headers, data=json.dumps({"status": status})
+        )
     return new_state
 
 
@@ -225,7 +249,7 @@ def generate_callback_body(
     files = _add_outputs(
         dname=input_dir, files=files, outputs=small_thumb_locs, _type="thumbnail"
     )
-    data = {"status": "success", "files": files}
+    data = {"files": files}
     headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
     response = requests.post(callback_url, headers=headers, data=json.dumps(data))
     logger.info(response.url)
