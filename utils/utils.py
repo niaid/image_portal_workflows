@@ -10,6 +10,7 @@ from prefect import Flow, task, context
 from prefect.engine.state import State
 from prefect.engine import signals
 
+from prefect.triggers import all_finished
 from image_portal_workflows.config import Config
 
 logger = context.get("logger")
@@ -103,8 +104,8 @@ def notify_api_running(flow: Flow, old_state, new_state) -> State:
     tells API the workflow has started to run.
     """
     if new_state.is_running():
-        callback_url = prefect.context.get("callback_url")
-        token = prefect.context.get("token")
+        callback_url = prefect.context.parameters.get("callback_url")
+        token = prefect.context.parameters.get("token")
         headers = {
             "Authorization": "Bearer " + token,
             "Content-Type": "application/json",
@@ -184,7 +185,7 @@ def get_input_dir(input_dir: str) -> Path:
 
 
 @task
-def clean_up_outputs_dir(assets_dir: Path, to_keep: List[Dict]):
+def clean_up_outputs_dir(assets_dir: Path, to_keep: List[Dict], trigger=all_finished):
     """uses the files datastructure that's used in the callback to
     list any files that are reported as assets. If the file is not
     reported it's considered not needed, and deleted.
