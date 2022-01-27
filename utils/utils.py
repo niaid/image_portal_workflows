@@ -3,10 +3,10 @@ import os
 import shutil
 import json
 import prefect
-from typing import Optional, List, Dict
+from typing import List, Dict
 from pathlib import Path
 from prefect import task, context
-from prefect import Flow, task, Parameter, unmapped, context
+from prefect import Flow, task, context
 from prefect.engine.state import State
 from prefect.engine import signals
 
@@ -109,9 +109,10 @@ def notify_api_running(flow: Flow, old_state, new_state) -> State:
             "Authorization": "Bearer " + token,
             "Content-Type": "application/json",
         }
-        requests.post(
+        response = requests.post(
             callback_url, headers=headers, data=json.dumps({"status": "running"})
         )
+        logger.info(response.text)
     return new_state
 
 
@@ -137,9 +138,10 @@ def notify_api_completion(flow: Flow, old_state, new_state) -> State:
             "Authorization": "Bearer " + token,
             "Content-Type": "application/json",
         }
-        requests.post(
+        response = requests.post(
             callback_url, headers=headers, data=json.dumps({"status": status})
         )
+        logger.info(response.text)
     return new_state
 
 
