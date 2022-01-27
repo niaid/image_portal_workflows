@@ -6,7 +6,6 @@ from prefect.tasks.docker.containers import (
     WaitOnContainer,
     GetContainerLogs,
 )
-from prefect.triggers import always_run
 from prefect.engine import signals
 
 
@@ -109,7 +108,9 @@ waitGM = WaitOnContainer()
 # get_logs = GetContainerLogs(trigger=always_run)
 
 
-with Flow("dm_to_jpeg", state_handlers=[utils.notify_api_completion]) as flow:
+with Flow(
+    "dm_to_jpeg", state_handlers=[utils.notify_api_completion, utils.notify_api_running]
+) as flow:
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url")
