@@ -7,4 +7,4 @@ class Config:
     # the path to the Projects dir - can vary depending on mount point.
     proj_dir = "/hedwigqa_data/Projects/"
     assets_dir = "/hedwigqa_data/Assets/"
-    two_d_input_exts = ["dm4", "dm3", "tif", "tiff"]
+    two_d_input_exts = ["dm4", "dm3", "tif", "tiff", "png", "jpg", "jpeg"]

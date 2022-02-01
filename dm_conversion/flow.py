@@ -151,7 +151,7 @@ with Flow(
     # check input_dir for any tif / tiff files
     tiff_locs = utils.list_files(
         input_dir=output_dir_fp,
-        exts=["tif", "tiff", "jpeg"],
+        exts=["tif", "tiff", "jpeg", "png"],
         upstream_tasks=[jpeg_status_codes],
     )
     jpeg_locs = jpeg_locs + tiff_locs
