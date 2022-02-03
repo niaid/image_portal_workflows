@@ -1,4 +1,4 @@
-FROM centos:8
+FROM amazonlinux
 
-RUN yum install -y epel-release && yum -y repolist && yum -y install GraphicsMagick
+RUN amazon-linux-extras install epel -y && yum -y install GraphicsMagick
 
