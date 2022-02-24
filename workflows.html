@@ -1,0 +1,260 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Workflows &#8212; Image Portal Workflows  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Development" href="development.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="workflows">
+<h1>Workflows<a class="headerlink" href="#workflows" title="Permalink to this headline">¶</a></h1>
+<p>TomoJS 3D pipeline for tomographic reconstruction.</p>
+<p>The term “batch run tomo[gram]” is abbreviated BRT.</p>
+<section id="processes">
+<h2>Processes<a class="headerlink" href="#processes" title="Permalink to this headline">¶</a></h2>
+<section id="generate-brt-directive-file">
+<h3>Generate BRT Directive File<a class="headerlink" href="#generate-brt-directive-file" title="Permalink to this headline">¶</a></h3>
+<dl class="simple">
+<dt>Description:</dt><dd><p>Generate a configuration file of parameter for BRT process.</p>
+</dd>
+<dt>Outputs:</dt><dd><ul class="simple">
+<li><p>a BRT directive file with a <cite>.adoc</cite> file extension.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Alternatively, the file could be provided and this step skipped. The directive file format is documented IMOD’s
+<a class="reference external" href="https://bio3d.colorado.edu/imod/doc/man/batchruntomo.html">batchruntomo</a> documentation. There is specific descriptions of the <a class="reference external" href="https://bio3d.colorado.edu/imod/doc/directives.html">directives</a> specified in a “directives.csv”
+file within IMOD.</p>
+<p>The following is a Jinja like template for key-value pairs to be configured:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>setupset.copyarg.name={{ basename }}
+setupset.copyarg.gold= {{ beadSize ~10}}
+setupset.copyarg.pixel={{ pixelSize }}
+comparam.prenewst.newstack.BinByFactor={{ bin (4) ? }}
+comparam.track.beadtrack.LightBeads={{ lightBeads (0) ? }}
+comparam.tilt.tilt.THICKNESS={{ thickness ~256 }}
+runtime.AlignedStack.any.binByFactor={{ bin }}
+setupset.copyarg.montage={{ montage (0) ? }}
+setupset.datasetDirectory={{ local processing folder, POSIXified }}
+</pre></div>
+</div>
+<p>The existing directive file is <cite>dirTemplate.adoc</cite> with empty values that can be updated as above.</p>
+<p>BRT support multiple layers of “Template Files”  so that directives can be defined for a microscope, system, and user.
+The other directive files can be defined as parameters it the batch directive file provided on the command line.</p>
+</section>
+<section id="batchruntomo-brt">
+<h3>BatchRunTomo (BRT)<a class="headerlink" href="#batchruntomo-brt" title="Permalink to this headline">¶</a></h3>
+<dl class="simple">
+<dt>Description:</dt><dd><p>Perform computational expensive operations of processing an acquired tomography tilt-series and reconstructing a 3D
+volume. The process consists of numerous step to prepare, align, and perform 3d reconstruction from the tilt series
+acquired by the microscope.</p>
+</dd>
+<dt>Inputs:</dt><dd><ol class="arabic simple">
+<li><p>the original image from the microscope usually with an <cite>.mrc</cite> extension (<cite>.st</cite> possible ). The filename part before
+the final “.” is considered the <cite>BASENAME</cite>.</p></li>
+<li><p>BRT directive file</p></li>
+</ol>
+</dd>
+<dt>Primary Outputs:</dt><dd><ol class="arabic simple">
+<li><p><cite>BASENAME_rec.mrc</cite> - the source for the reconstruction movie</p></li>
+<li><p><cite>BASENAME_full_rec.mrc</cite> - the source for the Neuroglancer pyramid</p></li>
+<li><p><cite>BASENAME_ali.mrc</cite> - the source for the tilt movie</p></li>
+</ol>
+</dd>
+<dt>Auxiliary Outputs:</dt><dd><ol class="arabic simple">
+<li><p>Other outputs such as logs and transformation files may need to be saved as well.</p></li>
+</ol>
+</dd>
+</dl>
+<p>The process is IMOD’s <a class="reference external" href="https://bio3d.colorado.edu/imod/doc/man/batchruntomo.html">batchruntomo</a>, run with the following command line arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">batchruntomo</span> <span class="o">-</span><span class="n">di</span> <span class="n">BASENAME</span><span class="o">.</span><span class="n">adoc</span> <span class="o">-</span><span class="n">gpus</span> <span class="mi">1</span> <span class="o">-</span><span class="n">cpus</span> <span class="mi">20</span>
+</pre></div>
+</div>
+<p>The <cite>gpus</cite> is for configuring the local GPU, and <cite>cpus</cite> configures the number of cores to use.  Many
+temporary and log files are created during this process.</p>
+</section>
+<section id="generate-tilt-movie">
+<h3>Generate tilt movie<a class="headerlink" href="#generate-tilt-movie" title="Permalink to this headline">¶</a></h3>
+<dl class="simple">
+<dt>Description:</dt><dd><p>Convert a MRC file of the aligned tilt series into a movie for easy viewing.</p>
+</dd>
+<dt>Inputs:</dt><dd><ol class="arabic simple">
+<li><p><cite>BASENAME_ali.mrc</cite> - the aligned 2d slices of image stack</p></li>
+</ol>
+</dd>
+<dt>Outputs:</dt><dd><ol class="arabic simple">
+<li><p>Generates a tilt movie for easy viewing</p></li>
+<li><p>The key thumbnail is  keyimg_BASENAME_s.jpg, the corresponding MIDDLE_I is the full size.</p></li>
+</ol>
+</dd>
+</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>dimensions = (header -s ${BASENAME}_ali.mrv) # space separated list of dimensions sizes (x y z)
+MIDDLE_I = floor(dimensions.z/2))
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>for i in dimensions.z\:
+  newstack -secs {i}-{i} ALI_FILENAME WORKDIR/hedwig/BASENAME_ali{i}.mrc
+newstack -float 3 WORKDIR/hedwig/BASENAME_ali*.mrc WORKDIR/hedwig/ali_BASENAME.mrc
+mrc2tif -j -C 0,255 WORKDIR/hedwig/ali_BASENAME.mrc WORKDIR/hedwig/BASENAME_ali
+gm convert -size 300x300 WORKDIR/hedwig/BASENAME_ali.{MIDDLE_I}.jpg -resize 300x300 -sharpen 2 -quality 70 WORKDIR/hedwig/keyimg_BASENAME_s.jpg
+ffmpeg -f image2 -framerate 4 -i ${BASENAME}_ali.%03d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 tiltMov_${BASENAME}.mp4
+</pre></div>
+</div>
+</section>
+<section id="generate-reconstruction-movie">
+<h3>Generate reconstruction movie<a class="headerlink" href="#generate-reconstruction-movie" title="Permalink to this headline">¶</a></h3>
+<dl class="simple">
+<dt>Description:</dt><dd><p>Convert a MRC file of the reconstructed 3D volume into a movie for easy viewing.</p>
+</dd>
+<dt>Inputs:</dt><dd><ol class="arabic simple">
+<li><p><cite>BASENAME_rec.mrc</cite> - the reconstruction of the 3d volume ( may already be binned by some factor when compared to full).</p></li>
+</ol>
+</dd>
+<dt>Outputs:</dt><dd><ol class="arabic simple" start="2">
+<li><p>Generates a movie of the reconstructed 3D volume.</p></li>
+</ol>
+</dd>
+</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>for i in range(2, dimensions.z-2):
+  IZMIN = i-2
+  IZMAX = i+2
+  clip avg -2d -iz IZMIN-IZMAX  -m 1 WORKDIR/BASENAME_rec.mrc WORKDIR/hedwig/BASENAME_ave${I}.mrc
+newstack -float 3 WORKDIR/hedwig/BASENAME_ave* WORKDIR/hedwig/ave_BASENAME.mrc
+binvol -binning 2 WORKDIR/hedwig/ave_BASENAME.mrc WORKDIR/hedwig/avebin8_BASENAME.mrc
+mrc2tif -j -C 100,255 WORKDIR/hedwig/ave_BASNAME.mrc hedwig/BASENAME_mp4
+ffmpeg -f image2 -framerate 8 -i WORKDIR/hedwig/BASENAME_mp4.%04d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 WORKDIR/hedwig/keyMov_BASENAME.mp4
+</pre></div>
+</div>
+</section>
+<section id="generate-neuroglancer-pyramid">
+<h3>Generate Neuroglancer Pyramid<a class="headerlink" href="#generate-neuroglancer-pyramid" title="Permalink to this headline">¶</a></h3>
+<dl>
+<dt>Descriptions:</dt><dd><p>Generates a <a class="reference external" href="https://github.com/google/neuroglancer">Neuroglancer</a> <a class="reference external" href="https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/volume.md">precomputed</a> pyramid from an MRC file of a 3D volume. This does not work for tilt series, or other
+non-volumetric files.</p>
+</dd>
+<dt>Inputs:</dt><dd><ol class="arabic simple">
+<li><p>A MRC file of a 3D volume.</p></li>
+</ol>
+</dd>
+<dt>Outputs:</dt><dd><ol class="arabic simple">
+<li><p>A directory structure of the <a class="reference external" href="https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/volume.md">precomputed</a> pyramid.</p></li>
+</ol>
+</dd>
+<dt>Steps:</dt><dd><p>1. Convert the MRC file to NIFTI (<cite>.nii</cite>).
+The Neuroglancer file format only support unsigned integer of 8 or 16 bits. When this input is a signed integer the
+output pixel types needs to be changed and the pixel values adjusted. The NIAID <a class="reference external" href="https://github.com/niaid/tomojs-pytools">tomojs-pytools</a> <cite>mrc2nift</cite>
+command-line tool can do this conversion.
+2. The <a class="reference external" href="https://github.com/HumanBrainProject/neuroglancer-scripts">neuroglancer-scripts</a> tools are used to convert the NIFTI file to the precompute format:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">volume</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">precomputed</span><span class="o">-</span><span class="n">pyramid</span> <span class="o">--</span><span class="n">downscaling</span><span class="o">-</span><span class="n">method</span><span class="o">=</span><span class="n">average</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">gzip</span> <span class="o">--</span><span class="n">flat</span> <span class="n">nifti</span><span class="o">.</span><span class="n">nii</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">neuro</span><span class="o">-</span><span class="n">BASENAME</span>
+</pre></div>
+</div>
+<p>3. The default minimum and maximum values used for visualization also need to be computed from the NIFTI file. The
+NIAID <a class="reference external" href="https://github.com/niaid/tomojs-pytools">tomojs-pytools</a> <cite>mrc_visual_min_max</cite> performs this computation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mrc_visual_min_max</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">nifti</span><span class="o">.</span><span class="n">nii</span> <span class="o">--</span><span class="n">mad</span> <span class="mi">5</span> <span class="o">--</span><span class="n">output</span><span class="o">-</span><span class="n">json</span> <span class="n">mrc2ngpc</span><span class="o">-</span><span class="n">output</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<p>The <a class="reference external" href="https://github.com/seung-lab/cloud-volume">cloud-volume</a> tool may be an alternative tool for the precompute conversion.</p>
+</section>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Image Portal Workflows</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Workflows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#processes">Processes</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="development.html" title="previous chapter">Development</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, NIAID.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.4.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/workflows.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

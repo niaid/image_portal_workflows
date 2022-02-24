@@ -13,3 +13,4 @@ Welcome to Image Portal Workflows's documentation!
    :caption: Contents:
 
    development
+   workflows
