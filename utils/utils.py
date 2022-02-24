@@ -86,8 +86,6 @@ def _gen_callback_file_list(dname: str, inputs: List[Path]) -> List[Dict]:
     converts a list of Paths to a datastructure used to create JSON for
     the callback
     """
-    if not dname.endswith("/"):
-        dname = dname + "/"
     files = list()
     for _file in inputs:
         elt = {
@@ -151,7 +149,8 @@ def copy_inputs_to_outputs_dir(input_dir_fp: Path, output_dir_fp: Path):
     """
     inputs are found in {nfs_dir}/Projects/Lab/PI/Proj_name/Session_name/Sample_name/
     outputs are placed in {nfs_dir}/Assets/Lab/PI/Proj_name/Session_name/Sample_name/
-    I'm going to copy inputs over, and process them in place.
+    Copies inputs, as defined as files with the appropriate extensions, from input dir
+    to output_dir (where they will be processed).
     """
     fps = list()
     for ext in Config.two_d_input_exts:
@@ -245,6 +244,8 @@ def generate_callback_body(
         ]
     }
     """
+    if not input_dir.endswith("/"):
+        input_dir = input_dir + "/"
     files = _gen_callback_file_list(dname=input_dir, inputs=inputs)
     files = _add_outputs(
         dname=input_dir, files=files, outputs=jpeg_locs, _type="keyImage"
