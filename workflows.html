@@ -51,16 +51,17 @@
 <p>Alternatively, the file could be provided and this step skipped. The directive file format is documented IMOD’s
 <a class="reference external" href="https://bio3d.colorado.edu/imod/doc/man/batchruntomo.html">batchruntomo</a> documentation. There is specific descriptions of the <a class="reference external" href="https://bio3d.colorado.edu/imod/doc/directives.html">directives</a> specified in a “directives.csv”
 file within IMOD.</p>
-<p>The following is a Jinja like template for key-value pairs to be configured:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>setupset.copyarg.name={{ basename }}
-setupset.copyarg.gold= {{ beadSize ~10}}
-setupset.copyarg.pixel={{ pixelSize }}
-comparam.prenewst.newstack.BinByFactor={{ bin (4) ? }}
-comparam.track.beadtrack.LightBeads={{ lightBeads (0) ? }}
-comparam.tilt.tilt.THICKNESS={{ thickness ~256 }}
-runtime.AlignedStack.any.binByFactor={{ bin }}
-setupset.copyarg.montage={{ montage (0) ? }}
-setupset.datasetDirectory={{ local processing folder, POSIXified }}
+<p>The following is a Jinja like template for key-value pairs to be configured. The <cite>{{ }}</cite> denotes where the substitution
+should be made. Inside the curly brackets is a suggested parameter name for the value with defaults in parenthesis:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">setupset</span><span class="o">.</span><span class="n">copyarg</span><span class="o">.</span><span class="n">name</span><span class="o">=</span><span class="p">{{</span> <span class="n">basename</span> <span class="p">}}</span>
+<span class="n">setupset</span><span class="o">.</span><span class="n">copyarg</span><span class="o">.</span><span class="n">gold</span><span class="o">=</span><span class="p">{{</span> <span class="n">beadSize</span> <span class="p">(</span><span class="o">~</span><span class="mi">10</span><span class="p">)}}</span>
+<span class="n">setupset</span><span class="o">.</span><span class="n">copyarg</span><span class="o">.</span><span class="n">pixel</span><span class="o">=</span><span class="p">{{</span> <span class="n">pixelSize</span> <span class="p">}}</span>
+<span class="n">comparam</span><span class="o">.</span><span class="n">prenewst</span><span class="o">.</span><span class="n">newstack</span><span class="o">.</span><span class="n">BinByFactor</span><span class="o">=</span><span class="p">{{</span> <span class="nb">bin</span> <span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="p">}}</span>
+<span class="n">comparam</span><span class="o">.</span><span class="n">track</span><span class="o">.</span><span class="n">beadtrack</span><span class="o">.</span><span class="n">LightBeads</span><span class="o">=</span><span class="p">{{</span> <span class="n">lightBeads</span> <span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="p">}}</span>
+<span class="n">comparam</span><span class="o">.</span><span class="n">tilt</span><span class="o">.</span><span class="n">tilt</span><span class="o">.</span><span class="n">THICKNESS</span><span class="o">=</span><span class="p">{{</span> <span class="n">thickness</span> <span class="p">(</span><span class="o">~</span><span class="mi">256</span><span class="p">)</span> <span class="p">}}</span>
+<span class="n">runtime</span><span class="o">.</span><span class="n">AlignedStack</span><span class="o">.</span><span class="n">any</span><span class="o">.</span><span class="n">binByFactor</span><span class="o">=</span><span class="p">{{</span> <span class="nb">bin</span> <span class="p">}}</span>
+<span class="n">setupset</span><span class="o">.</span><span class="n">copyarg</span><span class="o">.</span><span class="n">montage</span><span class="o">=</span><span class="p">{{</span> <span class="n">montage</span> <span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="p">}}</span>
+<span class="n">setupset</span><span class="o">.</span><span class="n">datasetDirectory</span><span class="o">=</span><span class="p">{{</span> <span class="n">local</span> <span class="n">processing</span> <span class="n">folder</span> <span class="p">(</span><span class="n">POSIX</span> <span class="n">convention</span><span class="p">)</span> <span class="p">}}</span>
 </pre></div>
 </div>
 <p>The existing directive file is <cite>dirTemplate.adoc</cite> with empty values that can be updated as above.</p>

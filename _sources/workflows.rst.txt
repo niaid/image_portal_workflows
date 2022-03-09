@@ -23,19 +23,20 @@ Alternatively, the file could be provided and this step skipped. The directive f
 `batchruntomo`_ documentation. There is specific descriptions of the `directives`_ specified in a "directives.csv"
 file within IMOD.
 
-The following is a Jinja like template for key-value pairs to be configured:
+The following is a Jinja like template for key-value pairs to be configured. The `{{ }}` denotes where the substitution
+should be made. Inside the curly brackets is a suggested parameter name for the value with defaults in parenthesis:
 
 ::
 
    setupset.copyarg.name={{ basename }}
-   setupset.copyarg.gold= {{ beadSize ~10}}
+   setupset.copyarg.gold={{ beadSize (~10)}}
    setupset.copyarg.pixel={{ pixelSize }}
-   comparam.prenewst.newstack.BinByFactor={{ bin (4) ? }}
-   comparam.track.beadtrack.LightBeads={{ lightBeads (0) ? }}
-   comparam.tilt.tilt.THICKNESS={{ thickness ~256 }}
+   comparam.prenewst.newstack.BinByFactor={{ bin (4) }}
+   comparam.track.beadtrack.LightBeads={{ lightBeads (0) }}
+   comparam.tilt.tilt.THICKNESS={{ thickness (~256) }}
    runtime.AlignedStack.any.binByFactor={{ bin }}
-   setupset.copyarg.montage={{ montage (0) ? }}
-   setupset.datasetDirectory={{ local processing folder, POSIXified }}
+   setupset.copyarg.montage={{ montage (0) }}
+   setupset.datasetDirectory={{ local processing folder (POSIX convention) }}
 
 
 The existing directive file is `dirTemplate.adoc` with empty values that can be updated as above.
