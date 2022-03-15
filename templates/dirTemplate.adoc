@@ -1,0 +1,83 @@
+#Batchruntomo Setup
+
+setupset.copyarg.name={{ basename }}
+setupset.copyarg.gold={{ bead_size }}
+setupset.copyarg.montage={{ montage }}
+setupset.copyarg.extract=1
+setupset.scanHeader=1
+setupset.copyarg.twodir=0
+setupset.datasetDirectory={{ input_dir }}
+setupset.copyarg.pixel={{ pixel_size }}
+ 
+#Preprocessing
+ 
+runtime.Preprocessing.any.removeXrays=1
+comparam.eraser.ccderaser.PeakCriterion=6.
+comparam.eraser.ccderaser.DiffCriterion=4.
+
+
+#Coarse alignment
+
+comparam.prenewst.newstack.BinByFactor={{ newstack_bin_by_fact }}
+comparam.prenewst.newstack.ModeToOutput=1
+
+#Tracking choices
+
+runtime.Fiducials.any.trackingMethod=0
+runtime.Fiducials.any.seedingMethod=1
+
+#Beadtracking
+
+comparam.track.beadtrack.LightBeads={{ light_beads }}
+comparam.autofidseed.autofidseed.TwoSurfaces=1
+comparam.track.beadtrack.SobelFilterCentering=1
+comparam.track.beadtrack.KernelSigmaForSobel=0.5
+comparam.track.beadtrack.RoundsOfTracking=4
+comparam.track.beadtrack.LocalAreaTracking=0
+runtime.BeadTracking.any.numberOfRuns=2
+
+#Auto seed finding
+
+comparam.autofidseed.autofidseed.TargetNumberOfBeads=50
+comparam.autofidseed.autofidseed.TwoSurfaces=1
+
+#RAPTOR parameter
+
+#Patch tracking
+
+#Alignment
+
+comparam.align.tiltalign.SurfacesToAnalyze=2
+comparam.align.tiltalign.RobustFitting=1
+comparam.align.tiltalign.LocalAlignments=1
+comparam.align.tiltalign.TargetPatchSizeXandY=700,700
+comparam.align.tiltalign.MinFidsTotalAndEachSurface=8,2
+
+#Tomogram Positioning
+
+#runtime.Positioning.any.wholeTomogram=1
+#runtime.Positioning.any.binByFactor=4
+#runtime.Positioning.any.thickness=2500
+
+#Aligned stack choices
+
+
+#Aligned stack parameters
+
+runtime.AlignedStack.any.linearInterpolation=1
+runtime.AlignedStack.any.binByFactor={runtime_bin_by_fact }}
+
+#Reconstruction
+
+comparam.tilt.tilt.THICKNESS={{ tilt_thickness }}
+#comparam.tilt.tilt.LOG=32768
+runtime.Reconstruction.a.useSirt=0
+runtime.Reconstruction.any.doBackprojAlso=1
+
+#SIRT parameters
+
+#Postprocessing
+runtime.Trimvol.any.reorient=2
+runtime.RAPTOR.any.numberOfMarkers=15
+comparam.xcorr_pt.tiltxcorr.SizeOfPatchesXandY=250,250
+runtime.PatchTracking.any.contourPieces=4
