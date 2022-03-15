@@ -1,0 +1,71 @@
+setupset.copyarg.name={{ basename }}
+setupset.copyarg.dual=0
+setupset.copyarg.gold={{ bead_size ~10}} 
+setupset.copyarg.extract=1
+setupset.copyarg.bextract=0
+setupset.copyarg.defocus= 0
+setupset.copyarg.pixel={{ pixel_size }} 
+setupset.copyarg.rotation = 
+#setupset.copyarg.brotation =
+#setupset.copyarg.ctfnoise=
+
+setupset.scanHeader=1
+setupset.datasetDirectory= 
+runtime.Preprocessing.any.removeXrays=1
+comparam.eraser.ccderaser.PeakCriterion=8.
+comparam.eraser.ccderaser.DiffCriterion=6.
+comparam.eraser.ccderaser.LineObjects=2
+comparam.eraser.ccderaser.BoundaryObjects=3
+comparam.eraser.ccderaser.AllSectionObjects=1,2,3
+
+comparam.xcorr.tiltxcorr.FilterRadius2=0.3
+comparam.xcorr.tiltxcorr.FilterSigma2=
+runtime.Fiducials.any.fiducialless=0
+comparam.prenewst.newstack.BinByFactor=
+comparam.prenewst.newstack.ModeToOutput=1
+runtime.Fiducials.any.trackingMethod=0
+runtime.Fiducials.any.seedingMethod=3
+
+comparam.track.beadtrack.LightBeads= 0
+comparam.track.beadtrack.SobelFilterCentering=1
+comparam.track.beadtrack.RoundsOfTracking=4
+runtime.BeadTracking.any.numberOfRuns=2
+
+comparam.autofidseed.autofidseed.TwoSurfaces=1
+comparam.autofidseed.autofidseed.TargetNumberOfBeads=50
+
+runtime.RAPTOR.any.numberOfMarkers=15
+
+comparam.xcorr_pt.tiltxcorr.SizeOfPatchesXandY=250,250
+#comparam.xcorr_pt.tiltxcorr.IterateCorrelations=
+#comparam.xcorr_pt.tiltxcorr.FilterRadius2=
+#comparam.xcorr_pt.tiltxcorr.FilterSigma2=
+#comparam.xcorr_pt.tiltxcorr.BoundaryModel=
+#comparam.xcorr_pt.tiltxcorr.LengthAndOverlap=
+runtime.PatchTracking.any.contourPieces=4
+
+comparam.align.tiltalign.SurfacesToAnalyze=2
+comparam.align.tiltalign.LocalAlignments=1
+comparam.align.tiltalign.RobustFitting=1
+comparam.align.tiltalign.KFactorScaling=0.9
+runtime.TiltAlignment.any.enableStretching=1
+
+#runtime.AlignedStack.any.correctCTF=0
+#runtime.AlignedStack.any.eraseGold=0
+#runtime.AlignedStack.any.filterStack=0
+
+runtime.AlignedStack.any.linearInterpolation=1
+runtime.AlignedStack.any.binByFactor=1
+
+comparam.mtffilter.mtffilter.LowPassRadiusSigma=0.4,.05
+
+comparam.tilt.tilt.THICKNESS= 
+#runtime.Reconstruction.any.extraThickness=50
+#comparam.tilt.tilt.LOG=
+runtime.Reconstruction.a.useSirt=0
+runtime.Reconstruction.any.doBackprojAlso=1
+
+comparam.sirtsetup.sirtsetup.LeaveIterations=
+comparam.sirtsetup.sirtsetup.ScaleToInteger=-20000,20000
+#comparam.sirtsetup.sirtsetup.RadiusAndSigma=
+
