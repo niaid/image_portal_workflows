@@ -2,3 +2,4 @@ prefect
 sphinx_rtd_theme
 sphinx-autodoc-typehints
 pytest
+dask-jobqueue
