@@ -1,3 +1,16 @@
+from dask_jobqueue import SLURMCluster
+from prefect.executors import DaskExecutor
+import prefect
+
+
+def SLURM_exec():
+    cluster = SLURMCluster(n_workers=3)
+    logging = prefect.context.get("logger")
+    logging.debug(f"Dask cluster started")
+    logging.debug(f"see dashboard {cluster.dashboard_link}")
+    return cluster
+
+
 class Config:
     # location in container
     dm2mrc_loc = "/usr/local/IMOD/bin/dm2mrc"
@@ -8,3 +21,5 @@ class Config:
     proj_dir = "/hedwigqa_data/Projects/"
     assets_dir = "/hedwigqa_data/Assets/"
     two_d_input_exts = ["dm4", "dm3", "tif", "tiff", "png", "jpg", "jpeg"]
+    SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
+    brt_binary = "/opt/rml/imod/bin/batchruntomo"
