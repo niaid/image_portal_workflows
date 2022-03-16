@@ -2,6 +2,7 @@ from dask_jobqueue import SLURMCluster
 from prefect.executors import DaskExecutor
 import prefect
 
+
 def SLURM_exec():
     cluster = SLURMCluster(n_workers=3)
     logging = prefect.context.get("logger")
@@ -22,4 +23,3 @@ class Config:
     two_d_input_exts = ["dm4", "dm3", "tif", "tiff", "png", "jpg", "jpeg"]
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
-
