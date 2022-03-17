@@ -23,3 +23,5 @@ class Config:
     two_d_input_exts = ["dm4", "dm3", "tif", "tiff", "png", "jpg", "jpeg"]
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
+    tmp_dir = "/gs1/home/macmenaminpe/tmp"
+    proj_dir = "/mnt/ai-fas12/RMLEMHedwigQA/TestData/"

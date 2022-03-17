@@ -15,6 +15,8 @@ def hpc_env(monkeypatch):
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
     monkeypatch.setattr(Config, "proj_dir", os.getcwd())
     monkeypatch.setattr(Config, "assets_dir", tempfile.mkdtemp())
+    monkeypatch.setattr(Config, "tmp_dir", "/tmp/")
+    monkeypatch.setattr(Config, "brt_binary", "echo ")
 
 
 # def test_brt(hpc_env, monkeypatch):
