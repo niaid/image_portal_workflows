@@ -7,7 +7,7 @@ setupset.copyarg.extract=1
 setupset.scanHeader=1
 setupset.copyarg.twodir=0
 setupset.datasetDirectory={{ dataset_dir }}
-setupset.copyarg.pixel={{ pixel_size }}
+setupset.copyarg.pixel=
  
 #Preprocessing
  
@@ -18,7 +18,7 @@ comparam.eraser.ccderaser.DiffCriterion=4.
 
 #Coarse alignment
 
-comparam.prenewst.newstack.BinByFactor={{ newstack_bin_by_fact }}
+comparam.prenewst.newstack.BinByFactor=
 comparam.prenewst.newstack.ModeToOutput=1
 
 #Tracking choices
@@ -65,7 +65,7 @@ comparam.align.tiltalign.MinFidsTotalAndEachSurface=8,2
 #Aligned stack parameters
 
 runtime.AlignedStack.any.linearInterpolation=1
-runtime.AlignedStack.any.binByFactor={{ runtime_bin_by_fact }}
+runtime.AlignedStack.any.binByFactor=
 
 #Reconstruction
 
