@@ -17,9 +17,11 @@ from image_portal_workflows.config import Config
 
 shell_task = ShellTask(helper_script="cd ~")
 
+
 class BrtTask(ShellTask):
     def __init__(self, adoc_fp):
-       self.command=f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1"
+        self.command = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1"
+
 
 @task
 def make_work_dir() -> Path:
@@ -29,7 +31,7 @@ def make_work_dir() -> Path:
 @task
 def prep_adoc(working_dir: Path, fname: Path) -> Path:
     """copy the template adoc file to the working_dir, and add vars"""
-    repo_dir = os.path.join(os.path.dirname(__file__), '..')
+    repo_dir = os.path.join(os.path.dirname(__file__), "..")
     adoc_fp = f"{working_dir}/{fname.stem}.adoc_template"
     shutil.copyfile(f"{repo_dir}/templates/dirTemplate.adoc", adoc_fp)
     return Path(adoc_fp)
@@ -72,10 +74,11 @@ def update_adoc(adoc_fp: Path) -> Path:
     output = template.render(vals)
     adoc_loc = Path(f"{adoc_fp.parent}/{adoc_fp.stem}.adoc")
     with open(adoc_loc, "w") as _file:
-         print(output, file=_file)
+        print(output, file=_file)
     logger = prefect.context.get("logger")
     logger.info(f"created {adoc_loc}")
     return adoc_loc
+
 
 @task
 def create_brt_command(adoc_fp: Path) -> str:
@@ -83,6 +86,7 @@ def create_brt_command(adoc_fp: Path) -> str:
     cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1"
     logger.info(cmd)
     return cmd
+
 
 @task
 def gen_dimension_command(adoc_fp: Path) -> str:
@@ -94,13 +98,14 @@ def gen_dimension_command(adoc_fp: Path) -> str:
     logger.info(cmd)
     return cmd
 
+
 @task
 def check_brt_run_ok(adoc_fp: Path):
     """
     ensures the following files exist:
     BASENAME_rec.mrc - the source for the reconstruction movie
     BASENAME_full_rec.mrc - the source for the Neuroglancer pyramid
-    BASENAME_ali.mrc 
+    BASENAME_ali.mrc
     """
     rec_file = Path(f"{adoc_fp.parent}/{adoc_fp.stem}_rec.mrc")
     full_rec_file = Path(f"{adoc_fp.parent}/{adoc_fp.stem}_full_rec.mrc")
@@ -123,8 +128,6 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as flow:
     brt_command = create_brt_command(adoc_fp=updated_adoc)
     input_fp = prep_input_fp(fname=fname, working_dir=working_dir)
     brt = shell_task(command=brt_command, upstream_tasks=[input_fp])
-    check_brt_run_ok(adoc_fp=updated_adoc)
+    check_brt_run_ok(adoc_fp=updated_adoc, upstream_tasks=[brt])
     dimensions_cmd = gen_dimension_command(adoc_fp=updated_adoc, upstream_tasks=[brt])
     dimensions = shell_task(command=dimensions_cmd)
-
-
