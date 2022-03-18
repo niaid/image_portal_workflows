@@ -62,11 +62,11 @@ def update_adoc(adoc_fp: Path) -> Path:
     vals = {
         "basename": adoc_fp.stem,
         "bead_size": 10,
-        "pixel_size": 4,
-        "newstack_bin_by_fact": 4,
+        # "pixel_size": 4,
+        # "newstack_bin_by_fact": 4,
         "light_beads": 0,
         "tilt_thickness": 256,
-        "runtime_bin_by_fact": 4,
+        # "runtime_bin_by_fact": 4,
         "montage": 0,
         "dataset_dir": str(adoc_fp.parent),
     }
