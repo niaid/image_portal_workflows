@@ -6,7 +6,7 @@ setupset.copyarg.montage={{ montage }}
 setupset.copyarg.extract=1
 setupset.scanHeader=1
 setupset.copyarg.twodir=0
-setupset.datasetDirectory={{ input_dir }}
+setupset.datasetDirectory={{ dataset_dir }}
 setupset.copyarg.pixel={{ pixel_size }}
  
 #Preprocessing
@@ -65,7 +65,7 @@ comparam.align.tiltalign.MinFidsTotalAndEachSurface=8,2
 #Aligned stack parameters
 
 runtime.AlignedStack.any.linearInterpolation=1
-runtime.AlignedStack.any.binByFactor={runtime_bin_by_fact }}
+runtime.AlignedStack.any.binByFactor={{ runtime_bin_by_fact }}
 
 #Reconstruction
 
