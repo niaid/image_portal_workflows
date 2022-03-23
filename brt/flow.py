@@ -133,9 +133,12 @@ def log(t):
 
 @task
 def gen_ns_cmnds(fp: Path, z_dim) -> List[str]:
+    """
+    newstack -secs {i}-{i} path/BASENAME_ali*.mrc WORKDIR/hedwig/BASENAME_ali{i}.mrc
+    """
     cmds = list()
     for i in range(1, int(z_dim)):
-        cmds.append(f"newstack -secs {i}-{i} {fp.as_posix()} {fp.parent}/{fp.stem}.mrc")
+        cmds.append(f"newstack -secs {i}-{i} {fp.parent}/{fp.stem}_ali*.mrc {fp.parent}/{fp.stem}.mrc")
     return cmds
 
 
@@ -144,7 +147,7 @@ def gen_ns_float(fp: Path) -> str:
     """
     newstack -float 3 path/BASENAME_ali*.mrc path/ali_BASENAME.mrc
     """
-    in_fp = f"{fp.parent}/{fp.stem}*.mrc"
+    in_fp = f"{fp.parent}/{fp.stem}_ali*.mrc"
     out_fp = f"{fp.parent}/ali_{fp.stem}.mrc"
     return f"newstack -float 3 {in_fp} {out_fp}"
 
@@ -219,6 +222,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as flow:
     xyz_dim = shell_task(command=xyz_dim_cmd)
     z_dim = split_dims(xyz_dim)
     newstack_cmds = gen_ns_cmnds(fp=tomogram_fp, z_dim=z_dim, upstream_tasks=[brt])
+    log(newstack_cmds)
     newstacks = shell_task.map(command=newstack_cmds)
     ns_float_cmd = gen_ns_float(fp=tomogram_fp, upstream_tasks=[newstacks])
     log(ns_float_cmd)
