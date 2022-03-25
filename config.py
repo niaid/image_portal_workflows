@@ -7,7 +7,7 @@ import prefect
 
 
 def SLURM_exec():
-    cluster = SLURMCluster(n_workers=3)
+    cluster = SLURMCluster(n_workers=30)
     logging = prefect.context.get("logger")
     logging.debug(f"Dask cluster started")
     logging.debug(f"see dashboard {cluster.dashboard_link}")
