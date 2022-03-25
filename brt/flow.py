@@ -324,5 +324,6 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as flow:
     mrc2tiff_rc_cmd = gen_mrc2tiff_rc_cmd(fp=tomogram_fp, upstream_tasks=[bin_vol])
     mrc2tiff_rc = shell_task(command=mrc2tiff_rc_cmd)
     ffmpeg_rc_cmd = gen_ffmpeg_rc_cmd(fp=tomogram_fp, upstream_tasks=[mrc2tiff_rc])
+    log(ffmpeg_rc_cmd)
     ffmpeg_rc = shell_task(command=ffmpeg_rc_cmd)
     # END RECONSTR MOVIE
