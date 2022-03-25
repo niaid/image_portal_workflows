@@ -302,11 +302,11 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as flow:
     mrc2tiff = shell_task(command=mrc2tiff_cmd)
     middle_i = calc_middle_i(z_dim)
     gm_cmd = gen_gm_convert(
-        fp=tomogram_fp, middle_i=middle_i, upstream_tasks=[ns_float]
+        fp=tomogram_fp, middle_i=middle_i, upstream_tasks=[mrc2tiff]
     )
     log(gm_cmd)
     gm = shell_task(command=gm_cmd)
-    mpeg_cmd = gen_ffmpeg_cmd(fp=tomogram_fp, upstream_tasks=[ns_float])
+    mpeg_cmd = gen_ffmpeg_cmd(fp=tomogram_fp, upstream_tasks=[mrc2tiff])
     log(mpeg_cmd)
     mpeg = shell_task(command=mpeg_cmd)
     # END TILT MOVIE GENERATION
