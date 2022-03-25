@@ -258,9 +258,9 @@ def gen_mrc2tiff_rc_cmd(fp: Path) -> str:
 def gen_ffmpeg_rc_cmd(fp: Path) -> str:
     """
     TODO - 3 or 4?
-    ffmpeg -f image2 -framerate 8 -i path/BASENAME.%03d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 path/keyMov_BASENAME.mp4
+    ffmpeg -f image2 -framerate 8 -i path/BASENAME_mp4.%03d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 path/keyMov_BASENAME.mp4
     """
-    fp_in = f"{fp.parent}/{fp.stem}.%03d.jpg"
+    fp_in = f"{fp.parent}/{fp.stem}_mp4.%03d.jpg"
     fp_out = f"{fp.parent}/keyMov_{fp.stem}.mp4"
     return f"ffmpeg -f image2 -framerate 8 -i {fp_in} -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
 
