@@ -19,7 +19,7 @@ from prefect.tasks.shell import ShellTask
 from image_portal_workflows.utils import utils
 from image_portal_workflows.config import Config
 
-shell_task = ShellTask()
+shell_task = ShellTask(log_stderr=True)
 
 
 @task
