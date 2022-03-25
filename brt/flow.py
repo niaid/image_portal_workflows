@@ -17,7 +17,6 @@ from prefect.tasks.shell import ShellTask
 
 
 from image_portal_workflows.utils import utils
-from image_portal_workflows import config
 from image_portal_workflows.config import Config
 
 shell_task = ShellTask()
@@ -138,7 +137,9 @@ def gen_ns_cmnds(fp: Path, z_dim) -> List[str]:
     """
     cmds = list()
     for i in range(1, int(z_dim)):
-        cmds.append(f"newstack -secs {i}-{i} {fp.parent}/{fp.stem}_ali*.mrc {fp.parent}/{fp.stem}.mrc")
+        cmds.append(
+            f"newstack -secs {i}-{i} {fp.parent}/{fp.stem}_ali*.mrc {fp.parent}/{fp.stem}.mrc"
+        )
     return cmds
 
 
@@ -195,11 +196,72 @@ def gen_ffmpeg_cmd(fp: Path) -> str:
 @task
 def split_dims(dims: List[int]):
     """
+    TODO typing here is wrong
     dims comes in as a str of x,y,z dims
     just return third elt (first elt is empty) and assume it's Z
     """
     chunks = re.split(" +", str(dims))
     return chunks[3]
+
+
+# "_rc" denotes ReConstruction movie related funcs
+@task
+def gen_clip_rc_cmds(fp: Path, z_dim) -> List[str]:
+    """
+    for i in range(2, dimensions.z-2):
+       IZMIN = i-2
+       IZMAX = i+2
+       clip avg -2d -iz IZMIN-IZMAX  -m 1 path/BASENAME_rec.mrc path/hedwig/BASENAME_ave${I}.mrc
+    """
+    cmds = list()
+    for i in range(2, int(z_dim) - 2):
+        izmin = i - 2
+        izmax = i + 2
+        in_fp = f"{fp.parent}/{fp.stem}_rec.mrc"
+        out_fp = f"{fp.parent}/{fp.stem}_ave{str(i)}.mrc"
+        cmd = f"clip avg -2d -iz {str(izmin)}-{str(izmax)} -m 1 {in_fp} {out_fp}"
+        cmds.append(cmd)
+    return cmds
+
+
+@task
+def newstack_fl_rc_cmd(fp: Path) -> str:
+    """
+    newstack -float 3 path/BASENAME_ave* path/ave_BASENAME.mrc
+    """
+    fp_in = f"{fp.parent}/{fp.stem}_ave*"
+    fp_out = f"{fp.parent}/ave_{fp.stem}.mrc"
+    return f"newstack -float 3 {fp_in} {fp_out}"
+
+
+@task
+def gen_binvol_rc_cmd(fp: Path) -> str:
+    """
+    binvol -binning 2 path/ave_BASENAME.mrc path/avebin8_BASENAME.mrc
+    """
+    fp_in = f"{fp.parent}/ave_{fp.stem}.mrc"
+    fp_out = f"{fp.parent}/avebin8_{fp.stem}.mrc"
+    return f"binvol -binning 2 {fp_in} {fp_out}"
+
+
+@task
+def gen_mrc2tiff_rc_cmd(fp: Path) -> str:
+    """
+    mrc2tif -j -C 100,255 path/ave_BASNAME.mrc path/BASENAME_mp4
+    """
+    fp_in = f"{fp.parent}/ave_{fp.stem}.mrc"
+    fp_out = f"{fp.parent}/{fp.stem}_mp4"
+    return f"mrc2tif -j -C 100,255 {fp_in} {fp_out}"
+
+
+@task
+def gen_ffmpeg_rc_cmd(fp: Path) -> str:
+    """
+    ffmpeg -f image2 -framerate 8 -i path/BASENAME_mp4.%04d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 path/keyMov_BASENAME.mp4
+    """
+    fp_in = f"{fp.parent}/{fp.stem}_mp4.%04d.jpg"
+    fp_out = f"{fp.parent}/keyMov_{fp.stem}.mp4"
+    return f"ffmpeg -f image2 -framerate 8 -i {fp_in} -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
 
 
 with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as flow:
@@ -212,15 +274,23 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as flow:
     working_dir = make_work_dir()
     adoc_fp = prep_adoc(working_dir, fname)
     updated_adoc = update_adoc(adoc_fp)
+    tomogram_fp = prep_input_fp(fname=fname, working_dir=working_dir)
+
+    # START BRT (Batchruntomo) - long running process.
     brt_command = create_brt_command(adoc_fp=updated_adoc)
     log(brt_command)
-    tomogram_fp = prep_input_fp(fname=fname, working_dir=working_dir)
     brt = shell_task(command=brt_command, upstream_tasks=[tomogram_fp])
     check_brt_run_ok(tg_fp=tomogram_fp, upstream_tasks=[brt])
+    # END BRT, check files for success (else fail here)
+
+    # stack dimensions - used in movie creation
     xyz_dim_cmd = gen_dimension_command(tg_fp=tomogram_fp, upstream_tasks=[brt])
     log(xyz_dim_cmd)
     xyz_dim = shell_task(command=xyz_dim_cmd)
     z_dim = split_dims(xyz_dim)
+    # end dims
+
+    # START TILT MOVIE GENERATION:
     newstack_cmds = gen_ns_cmnds(fp=tomogram_fp, z_dim=z_dim, upstream_tasks=[brt])
     log(newstack_cmds)
     newstacks = shell_task.map(command=newstack_cmds)
@@ -239,3 +309,19 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as flow:
     mpeg_cmd = gen_ffmpeg_cmd(fp=tomogram_fp, upstream_tasks=[ns_float])
     log(mpeg_cmd)
     mpeg = shell_task(command=mpeg_cmd)
+    # END TILT MOVIE GENERATION
+
+    # START RECONSTR MOVIE GENERATION:
+    clip_cmds = gen_clip_rc_cmds(fp=tomogram_fp, z_dim=z_dim, upstream_tasks=[brt])
+    log.map(clip_cmds)
+    clips = shell_task.map(command=clip_cmds)
+    ns_float_rc_cmd = newstack_fl_rc_cmd(fp=tomogram_fp, upstream_tasks=[clips])
+    log(ns_float_rc_cmd)
+    ns_float_rc = shell_task(command=ns_float_rc_cmd)
+    bin_vol_cmd = gen_binvol_rc_cmd(fp=tomogram_fp, upstream_tasks=[ns_float_rc])
+    bin_vol = shell_task(command=bin_vol_cmd)
+    mrc2tiff_rc_cmd = gen_mrc2tiff_rc_cmd(fp=tomogram_fp, upstream_tasks=[bin_vol])
+    mrc2tiff_rc = shell_task(command=mrc2tiff_rc_cmd)
+    ffmpeg_rc_cmd = gen_ffmpeg_rc_cmd(fp=tomogram_fp, upstream_tasks=[mrc2tiff_rc])
+    ffmpeg_rc = shell_task(command=ffmpeg_rc_cmd)
+    # END RECONSTR MOVIE
