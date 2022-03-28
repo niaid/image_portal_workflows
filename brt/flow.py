@@ -265,6 +265,30 @@ def gen_ffmpeg_rc_cmd(fp: Path) -> str:
     return f"ffmpeg -f image2 -framerate 8 -i {fp_in} -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
 
 
+@task
+def gen_mrc2nifti_cmd(fp: Path) -> str:
+    """
+    mrc2nifti path/{basename}.mrc path/{basename}.nii
+    """
+    return f"mrc2nifti {fp.parent}/{fp.stem}.mrc {fp.parent}/{fp.stem}.nii"
+
+
+@task
+def gen_pyramid_cmd(fp: Path) -> str:
+    """
+    volume-to-precomputed-pyramid --downscaling-method=average --no-gzip --flat path/basename.nii path/neuro-basename
+    """
+    return f"volume-to-precomputed-pyramid --downscaling-method=average --no-gzip --flat {fp.parent}/{fp.stem}.nii {fp.parent}/neuro-{fp.stem}"
+
+
+@task
+def gen_min_max_cmd(fp: Path) -> str:
+    """
+    mrc_visual_min_max {basename}.nii --mad 5 --output-json mrc2ngpc-output.json
+    """
+    return f"mrc_visual_min_max {fp.parent}/{fp.stem}.nii --mad 5 --output-json mrc2ngpc-output.json"
+
+
 with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as flow:
     input_dir = Parameter("input_dir")
     callback_url = Parameter("callback_url")()
@@ -327,3 +351,12 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as flow:
     log(ffmpeg_rc_cmd)
     ffmpeg_rc = shell_task(command=ffmpeg_rc_cmd)
     # END RECONSTR MOVIE
+
+    # START PYRAMID GEN
+    mrc2nifti_cmd = gen_mrc2nifti_cmd(fp=tomogram_fp)
+    mrc2nifti = shell_task(command=mrc2nifti_cmd)
+    pyramid_cmd = gen_pyramid_cmd(fp=tomogram_fp, upstream_tasks=[mrc2nifti])
+    gen_pyramid = shell_task(command=pyramid_cmd)
+    min_max_cmd = gen_min_max_cmd(fp=tomogram_fp, upstream_tasks=[mrc2nifti])
+    min_max = shell_task(command=min_max_cmd)
+    # END PYRAMID
