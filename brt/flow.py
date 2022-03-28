@@ -271,8 +271,7 @@ def gen_mrc2nifti_cmd(fp: Path) -> str:
     mrc2nifti path/{basename}.mrc path/{basename}.nii
     """
     return f"mrc2nifti {fp.parent}/{fp.stem}.mrc {fp.parent}/{fp.stem}.nii"
-
-
+    
 @task
 def gen_pyramid_cmd(fp: Path) -> str:
     """
@@ -280,12 +279,11 @@ def gen_pyramid_cmd(fp: Path) -> str:
     """
     return f"volume-to-precomputed-pyramid --downscaling-method=average --no-gzip --flat {fp.parent}/{fp.stem}.nii {fp.parent}/neuro-{fp.stem}"
 
-
 @task
 def gen_min_max_cmd(fp: Path) -> str:
     """
     mrc_visual_min_max {basename}.nii --mad 5 --output-json mrc2ngpc-output.json
-    """
+    """ 
     return f"mrc_visual_min_max {fp.parent}/{fp.stem}.nii --mad 5 --output-json mrc2ngpc-output.json"
 
 
@@ -354,9 +352,13 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as flow:
 
     # START PYRAMID GEN
     mrc2nifti_cmd = gen_mrc2nifti_cmd(fp=tomogram_fp)
+    log(mrc2nifti_cmd)
     mrc2nifti = shell_task(command=mrc2nifti_cmd)
     pyramid_cmd = gen_pyramid_cmd(fp=tomogram_fp, upstream_tasks=[mrc2nifti])
+    log(pyramid_cmd)
     gen_pyramid = shell_task(command=pyramid_cmd)
     min_max_cmd = gen_min_max_cmd(fp=tomogram_fp, upstream_tasks=[mrc2nifti])
+    log(min_max_cmd)
     min_max = shell_task(command=min_max_cmd)
     # END PYRAMID
+
