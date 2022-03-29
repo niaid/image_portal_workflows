@@ -268,9 +268,9 @@ def gen_ffmpeg_rc_cmd(fp: Path) -> str:
 @task
 def gen_mrc2nifti_cmd(fp: Path) -> str:
     """
-    mrc2nifti path/{basename}.mrc path/{basename}.nii
+    mrc2nifti path/{basename}_full_rec.mrc path/{basename}.nii
     """
-    return f"mrc2nifti {fp.parent}/{fp.stem}.mrc {fp.parent}/{fp.stem}.nii"
+    return f"mrc2nifti {fp.parent}/{fp.stem}_full_rec.mrc {fp.parent}/{fp.stem}.nii"
     
 @task
 def gen_pyramid_cmd(fp: Path) -> str:
@@ -351,7 +351,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as flow:
     # END RECONSTR MOVIE
 
     # START PYRAMID GEN
-    mrc2nifti_cmd = gen_mrc2nifti_cmd(fp=tomogram_fp)
+    mrc2nifti_cmd = gen_mrc2nifti_cmd(fp=tomogram_fp, upstream_tasks=[brt])
     log(mrc2nifti_cmd)
     mrc2nifti = shell_task(command=mrc2nifti_cmd)
     pyramid_cmd = gen_pyramid_cmd(fp=tomogram_fp, upstream_tasks=[mrc2nifti])
