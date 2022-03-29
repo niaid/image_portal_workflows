@@ -284,7 +284,7 @@ def gen_min_max_cmd(fp: Path) -> str:
     """
     mrc_visual_min_max {basename}.nii --mad 5 --output-json mrc2ngpc-output.json
     """ 
-    return f"mrc_visual_min_max {fp.parent}/{fp.stem}.nii --mad 5 --output-json mrc2ngpc-output.json"
+    return f"mrc_visual_min_max {fp.parent}/{fp.stem}.nii --mad 5 --output-json {fp.parent}/mrc2ngpc-output.json"
 
 
 with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as flow:
