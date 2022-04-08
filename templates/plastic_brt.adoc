@@ -1,0 +1,133 @@
+# jinja version of file name: Plastic.adoc
+# Template author: Cindi Schwartz
+# this is an adoc file, used to define parameters for Batchruntomo
+# see: https://bio3d.colorado.edu/imod/doc/directives.html
+
+#Copytomocoms
+# wf computes - required
+setupset.copyarg.name = {{ name }}
+# naming convention of [Filename]a.mrc and [Filename]b.mrc
+# wf computes - required
+setupset.copyarg.stackext = {{ stackext }}
+
+# wf computes
+{% if currentBStackExt is not none %}
+setupset.currentBStackExt = {{ currentBStackExt }}
+{% endif %}
+
+{% if dual is not none %}
+setupset.copyarg.dual = {{ dual }}
+{% endif %}
+
+setupset.copyarg.pixel =
+
+{% if montage is not none %}
+setupset.copyarg.montage = {{ montage }}
+{% endif %}
+
+# required
+setupset.copyarg.gold = {{ gold }}
+
+setupset.copyarg.extract = 1
+setupset.copyarg.bextract = 1
+setupset.scanHeader = 1
+{% if focus is not none %}
+setupset.copyarg.focus = {{ focus }}
+{% endif %}
+
+{% if bfocus is not none %}
+setupset.copyarg.bfocus = {{ bfocus }}
+{% endif %}
+# wf computes - required
+setupset.datasetDirectory={{ datasetDirectory }}
+
+#Preprocessing
+runtime.Preprocessing.any.removeXrays = 1
+runtime.Preprocessing.any.archiveOriginal = 1
+
+#Course Alignment
+comparam.prenewst.newstack.BinByFactor = 1
+{% if fiducialless is not none %}
+runtime.Fiducials.any.fiducialless = {{ fiducialless }}
+{% endif %}
+
+#Tracking Choices
+{% if trackingMethod is not none %}
+runtime.Fiducials.any.trackingMethod = {{ trackingMethod }}
+{% endif %}
+
+runtime.Fiducials.any.seedingMethod = 1
+runtime.Fiducials.b.seedingMethod = 2
+
+#Beadtracking
+comparam.track.beadtrack.LocalAreaTracking = 1
+comparam.track.beadtrack.LocalAreaTargetSize = 500,500
+comparam.track.beadtrack.SobelFilterCentering = 1
+comparam.track.beadtrack.RoundsOfTracking = 4
+runtime.BeadTracking.any.numberOfRuns = 2
+
+#Auto Seed Finding
+{% if TwoSurfaces is not none %}
+comparam.autofidseed.autofidseed.TwoSurfaces = {{ TwoSurfaces }}
+{% endif %}
+
+{% if TargetNumberOfBeads %}
+comparam.autofidseed.autofidseed.TargetNumberOfBeads = {{ TargetNumberOfBeads }}
+{% endif %}
+
+#Patch Tracking
+comparam.xcorr_pt.tiltxcorr.SizeOfPatchesXandY = 300,300
+
+#Alignment
+# wf computes
+comparam.align.tiltalign.SurfacesToAnalyze = {{ SurfacesToAnalyze }}
+{% if LocalAlignments is not none %}
+comparam.align.tiltalign.LocalAlignments = {{ LocalAlignments }}
+{% endif %}
+comparam.align.tiltalign.TargetPatchSizeXandY = 500,500
+comparam.align.tiltalign.MinFidsTotalAndEachSurface = 8,3
+comparam.align.tiltalign.MagOption = 1
+comparam.align.tiltalign.TiltOption = 1
+comparam.align.tiltalign.RotOption = 1
+comparam.align.tiltalign.RobustFitting = 1
+runtime.TiltAlignment.any.enableStretching = 1
+
+#Tomogram Positioning
+runtime.Positioning.any.sampleType = 1
+# wf computes - 1.5 * THICKNESS
+runtime.Positioning.any.thickness = {{ rpa_thickness }}
+
+#Aligned Stack Choices
+#Aligned Stack Parameters
+runtime.AlignedStack.any.linearInterpolation = 0
+runtime.AlignedStack.any.binByFactor = 1
+comparam.golderaser.ccderaser.ExpandCircleIterations = 3
+
+#CTF Correction Parameters
+#Reconstruction
+# required
+comparam.tilt.tilt.THICKNESS = {{ THICKNESS }}
+comparam.tilt.tilt.LOG=
+
+#SIRT Parameters
+#Tomogram Combination
+runtime.Combine.any.matchAtoBThickRatio = 0.1
+runtime.Combine.any.findSecBoxSize = 32
+runtime.Combine.any.findSecNumScales = 4
+runtime.Combine.any.patchSize = E
+runtime.Combine.any.finalPatchSize = E
+runtime.Combine.any.extraTargets = 0.4,0.45
+comparam.matchorwarp.matchorwarp.WarpLimits = 0.3,0.5,0.8,1.0
+
+#Postprocessing
+runtime.Postprocess.any.doTrimvol = 1
+runtime.Trimvol.any.reorient = 2
+runtime.Trimvol.any.findSecAddThickness = 25
+runtime.Trimvol.any.scaleFromX = 0.7
+runtime.Trimvol.any.scaleFromY = 0.7
+runtime.Trimvol.any.scaleFromZ = 0.25
+
+#Data Set Cleanup
+runtime.Cleanup.any.doCleanup = 1
+runtime.Cleanup.any.keepAligned = 1
+runtime.Cleanup.any.keepAxis = 1
