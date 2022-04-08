@@ -367,6 +367,7 @@ if __name__ == "__main__":
             focus=focus,
             bfocus=bfocus,
             fiducialless=fiducialless,
+            trackingMethod=trackingMethod,
             TwoSurfaces=TwoSurfaces,
             LocalAlignments=LocalAlignments,
             THICKNESS=THICKNESS,
