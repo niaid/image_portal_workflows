@@ -23,35 +23,37 @@ shell_task = ShellTask(log_stderr=True)
 
 
 @task
-def make_work_dir() -> Path:
+def make_work_dir(fname: Path) -> Path:
     """
     a temporary dir to house all files. Will be rm'd upon completion.
+    dummy arg fname - using as placeholder - TODO
     """
     return Path(tempfile.mkdtemp(dir=Config.tmp_dir))
 
 
 @task
-def prep_adoc(working_dir: Path, fname: Path) -> Path:
+def copy_template(working_dir: Path, template_name: str) -> Path:
     """
-    copy the template adoc file to the working_dir,
-    interpolate vars, TODO"""
-    adoc_fp = f"{working_dir}/{fname.stem}.adoc_template"
-    shutil.copyfile(f"{Config.template_dir}/dirTemplate.adoc", adoc_fp)
+    copies the template adoc file to the working_dir,
+    """
+    adoc_fp = f"{working_dir}/{template_name}.adoc"
+    shutil.copyfile(f"{Config.template_dir}/{template_name}.adoc", adoc_fp)
     return Path(adoc_fp)
 
 
 @task
-def list_input_dir(input_dir_fp: Path) -> Path:
+def list_input_dir(input_dir_fp: Path) -> List[Path]:
     """
     discover the contents of the input_dir AKA "Sample"
     note, only lists mrc files currently. TODO(?)
+    include .st files TODO
     note, only processing first file ATM (test)
     """
     logger = prefect.context.get("logger")
     logger.info(f"trying to list {input_dir_fp}")
     mrc_files = glob.glob(f"{input_dir_fp}/*.mrc")
     # if len mrc_files == 0: raise?
-    return Path(mrc_files[0])
+    return Path(mrc_files)
 
 
 @task
@@ -64,29 +66,65 @@ def prep_input_fp(fname: Path, working_dir: Path) -> Path:
 
 
 @task
-def update_adoc(adoc_fp: Path) -> Path:
-    """updates the adoc file with input params, TODO"""
+def update_adoc(
+    adoc_fp: Path,
+    tg_fp: Path,
+    dual: str,
+    montage: str,
+    gold: str,
+    focus: str,
+    bfocus: str,
+    fiducialless: str,
+    trackingMethod: str,
+    TwoSurfaces: str,
+    TargetNumberOfBeads: str,
+    LocalAlignments: str,
+    THICKNESS: str,
+) -> Path:
+    """updates the adoc file with input params,"""
     file_loader = FileSystemLoader(str(adoc_fp.parent))
     env = Environment(loader=file_loader)
     template = env.get_template(adoc_fp.name)
+
+    name = tg_fp.stem
+    stackext = tg_fp.suffix
+    currentBStackExt = "mrc"  # TODO - should be a tupple of fps
+    datasetDirectory = adoc_fp.parent
+    if TwoSurfaces == "0":
+        SurfacesToAnalyze = 1
+    elif TwoSurfaces == "1":
+        SurfacesToAnalyze = 2
+    else:
+        raise signals.FAIL(
+            f"Unable to resolve SurfacesToAnalyze, TwoSurfaces \
+                is set to {TwoSurfaces}, and should be 0 or 1"
+        )
+    rpa_thickness = int(THICKNESS) * 1.5
+
     vals = {
-        "basename": adoc_fp.stem,
-        "bead_size": 10,
-        # "pixel_size": 4,
-        # "newstack_bin_by_fact": 4,
-        "light_beads": 0,
-        "tilt_thickness": 256,
-        # "runtime_bin_by_fact": 4,
-        "montage": 0,
-        "dataset_dir": str(adoc_fp.parent),
+        "name": name,
+        "stackext": stackext,
+        "currentBStackExt": currentBStackExt,
+        "dual": dual,
+        "montage": montage,
+        "gold": gold,
+        "focus": focus,
+        "bfocus": bfocus,
+        "datasetDirectory": datasetDirectory,
+        "fiducialless": fiducialless,
+        "trackingMethod": trackingMethod,
+        "TwoSurfaces": TwoSurfaces,
+        "TargetNumberOfBeads": TargetNumberOfBeads,
+        "SurfacesToAnalyze": SurfacesToAnalyze,
+        "LocalAlignments": LocalAlignments,
+        "rpa_thickness": rpa_thickness,
+        "THICKNESS": THICKNESS,
     }
 
     output = template.render(vals)
     adoc_loc = Path(f"{adoc_fp.parent}/{adoc_fp.stem}.adoc")
     with open(adoc_loc, "w") as _file:
         print(output, file=_file)
-    logger = prefect.context.get("logger")
-    logger.info(f"created {adoc_loc}")
     return adoc_loc
 
 
@@ -119,9 +157,9 @@ def check_brt_run_ok(tg_fp: Path):
 
 
 @task
-def log(t):
+def log(item: str) -> None:
     logger = prefect.context.get("logger")
-    logger.info(t)
+    logger.info(item)
 
 
 # @task
@@ -271,7 +309,8 @@ def gen_mrc2nifti_cmd(fp: Path) -> str:
     mrc2nifti path/{basename}_full_rec.mrc path/{basename}.nii
     """
     return f"mrc2nifti {fp.parent}/{fp.stem}_full_rec.mrc {fp.parent}/{fp.stem}.nii"
-    
+
+
 @task
 def gen_pyramid_cmd(fp: Path) -> str:
     """
@@ -279,86 +318,133 @@ def gen_pyramid_cmd(fp: Path) -> str:
     """
     return f"volume-to-precomputed-pyramid --downscaling-method=average --no-gzip --flat {fp.parent}/{fp.stem}.nii {fp.parent}/neuro-{fp.stem}"
 
+
 @task
 def gen_min_max_cmd(fp: Path) -> str:
     """
     mrc_visual_min_max {basename}.nii --mad 5 --output-json mrc2ngpc-output.json
-    """ 
+    """
     return f"mrc_visual_min_max {fp.parent}/{fp.stem}.nii --mad 5 --output-json {fp.parent}/mrc2ngpc-output.json"
 
 
-with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as flow:
-    input_dir = Parameter("input_dir")
-    callback_url = Parameter("callback_url")()
-    token = Parameter("token")()
-    sample_id = Parameter("sample_id")()
-    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
-    fname = list_input_dir(input_dir_fp=input_dir_fp)
-    working_dir = make_work_dir()
-    adoc_fp = prep_adoc(working_dir, fname)
-    updated_adoc = update_adoc(adoc_fp)
-    tomogram_fp = prep_input_fp(fname=fname, working_dir=working_dir)
+if __name__ == "__main__":
+    with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
+        # This block of params map are for adoc file specfication.
+        # Note the ugly names, these parameters are lifted verbatim from
+        # https://bio3d.colorado.edu/imod/doc/directives.html where possible.
+        # (there are two thickness args, these are not verbatim.)
+        dual = Parameter("dual")
+        montage = Parameter("montage")
+        gold = Parameter("gold")
+        focus = Parameter("focus")
+        bfocus = Parameter("bfocus")
+        fiducialless = Parameter("fiducialless")
+        trackingMethod = Parameter("trackingMethod")
+        TwoSurfaces = Parameter("TwoSurfaces")
+        TargetNumberOfBeads = Parameter("TargetNumberOfBeads")
+        LocalAlignments = Parameter("LocalAlignments")
+        THICKNESS = Parameter("THICKNESS")
+        # end user facing adoc params
 
-    # START BRT (Batchruntomo) - long running process.
-    brt_command = create_brt_command(adoc_fp=updated_adoc)
-    log(brt_command)
-    brt = shell_task(command=brt_command, upstream_tasks=[tomogram_fp])
-    check_brt_run_ok(tg_fp=tomogram_fp, upstream_tasks=[brt])
-    # END BRT, check files for success (else fail here)
+        adoc_template = Parameter("adoc_template")
+        input_dir = Parameter("input_dir")
+        callback_url = Parameter("callback_url")()
+        token = Parameter("token")()
+        sample_id = Parameter("sample_id")()
+        # a single input_dir will have n tomograms
+        input_dir_fp = utils.get_input_dir(input_dir=input_dir)
+        fnames = list_input_dir(input_dir_fp=input_dir_fp)
+        working_dirs = make_work_dir.map(fname=fnames)
+        adoc_fps = copy_template.map(working_dir=working_dirs, fname=fnames)
+        updated_adocs = update_adoc.map(
+            adoc_fp=adoc_fps,
+            tg_fp=fnames,
+            dual=dual,
+            montage=montage,
+            gold=gold,
+            focus=focus,
+            bfocus=bfocus,
+            fiducialless=fiducialless,
+            TwoSurfaces=TwoSurfaces,
+            LocalAlignments=LocalAlignments,
+            THICKNESS=THICKNESS,
+        )
+        log.map(item=updated_adocs)
+        tomogram_fps = prep_input_fp.map(fname=fnames, working_dir=working_dirs)
 
-    # stack dimensions - used in movie creation
-    xyz_dim_cmd = gen_dimension_command(tg_fp=tomogram_fp, upstream_tasks=[brt])
-    log(xyz_dim_cmd)
-    xyz_dim = shell_task(command=xyz_dim_cmd)
-    z_dim = split_dims(xyz_dim)
-    # end dims
+        # START BRT (Batchruntomo) - long running process.
+        brt_commands = create_brt_command.map(adoc_fp=updated_adocs)
+        log.map(item=brt_commands)
+        brts = shell_task.map(command=brt_commands, upstream_tasks=[tomogram_fps])
+        brts_ok = check_brt_run_ok.map(tg_fp=tomogram_fps, upstream_tasks=[brts])
+        # END BRT, check files for success (else fail here)
 
-    # START TILT MOVIE GENERATION:
-    newstack_cmds = gen_ns_cmnds(fp=tomogram_fp, z_dim=z_dim, upstream_tasks=[brt])
-    log(newstack_cmds)
-    newstacks = shell_task.map(command=newstack_cmds)
-    ns_float_cmd = gen_ns_float(fp=tomogram_fp, upstream_tasks=[newstacks])
-    log(ns_float_cmd)
-    ns_float = shell_task(command=ns_float_cmd)
-    mrc2tiff_cmd = gen_mrc2tiff(fp=tomogram_fp, upstream_tasks=[ns_float])
-    log(mrc2tiff_cmd)
-    mrc2tiff = shell_task(command=mrc2tiff_cmd)
-    middle_i = calc_middle_i(z_dim)
-    gm_cmd = gen_gm_convert(
-        fp=tomogram_fp, middle_i=middle_i, upstream_tasks=[mrc2tiff]
-    )
-    log(gm_cmd)
-    gm = shell_task(command=gm_cmd)
-    mpeg_cmd = gen_ffmpeg_cmd(fp=tomogram_fp, upstream_tasks=[mrc2tiff])
-    log(mpeg_cmd)
-    mpeg = shell_task(command=mpeg_cmd)
-    # END TILT MOVIE GENERATION
+        # stack dimensions - used in movie creation
+        xyz_dim_cmds = gen_dimension_command.map(
+            tg_fp=tomogram_fps, upstream_tasks=[brts]
+        )
+        log.map(item=xyz_dim_cmds)
+        xyz_dims = shell_task.map(command=xyz_dim_cmds)
+        z_dims = split_dims(xyz_dims)
+        # end dims
 
-    # START RECONSTR MOVIE GENERATION:
-    clip_cmds = gen_clip_rc_cmds(fp=tomogram_fp, z_dim=z_dim, upstream_tasks=[brt])
-    log.map(clip_cmds)
-    clips = shell_task.map(command=clip_cmds)
-    ns_float_rc_cmd = newstack_fl_rc_cmd(fp=tomogram_fp, upstream_tasks=[clips])
-    log(ns_float_rc_cmd)
-    ns_float_rc = shell_task(command=ns_float_rc_cmd)
-    bin_vol_cmd = gen_binvol_rc_cmd(fp=tomogram_fp, upstream_tasks=[ns_float_rc])
-    bin_vol = shell_task(command=bin_vol_cmd)
-    mrc2tiff_rc_cmd = gen_mrc2tiff_rc_cmd(fp=tomogram_fp, upstream_tasks=[bin_vol])
-    mrc2tiff_rc = shell_task(command=mrc2tiff_rc_cmd)
-    ffmpeg_rc_cmd = gen_ffmpeg_rc_cmd(fp=tomogram_fp, upstream_tasks=[mrc2tiff_rc])
-    log(ffmpeg_rc_cmd)
-    ffmpeg_rc = shell_task(command=ffmpeg_rc_cmd)
-    # END RECONSTR MOVIE
+        # START TILT MOVIE GENERATION:
+        newstack_cmds = gen_ns_cmnds.map(
+            fp=tomogram_fps, z_dim=z_dims, upstream_tasks=[brts]
+        )
+        log.map(item=newstack_cmds)
+        newstacks = shell_task.map(command=newstack_cmds)
+        ns_float_cmds = gen_ns_float(fp=tomogram_fps, upstream_tasks=[newstacks])
+        log.map(item=ns_float_cmds)
+        ns_floats = shell_task.map(command=ns_float_cmds)
+        mrc2tiff_cmds = gen_mrc2tiff.map(fp=tomogram_fps, upstream_tasks=[ns_floats])
+        log.map(item=mrc2tiff_cmds)
+        mrc2tiffs = shell_task.map(command=mrc2tiff_cmds)
+        middle_is = calc_middle_i.map(z_dim=z_dims)
+        gm_cmds = gen_gm_convert.map(
+            fp=tomogram_fps, middle_i=middle_is, upstream_tasks=[mrc2tiffs]
+        )
+        log.map(item=gm_cmds)
+        gms = shell_task.map(command=gm_cmds)
+        mpeg_cmds = gen_ffmpeg_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2tiffs])
+        log(mpeg_cmds)
+        mpegs = shell_task.map(command=mpeg_cmds)
+        # END TILT MOVIE GENERATION
 
-    # START PYRAMID GEN
-    mrc2nifti_cmd = gen_mrc2nifti_cmd(fp=tomogram_fp, upstream_tasks=[brt])
-    log(mrc2nifti_cmd)
-    mrc2nifti = shell_task(command=mrc2nifti_cmd)
-    pyramid_cmd = gen_pyramid_cmd(fp=tomogram_fp, upstream_tasks=[mrc2nifti])
-    log(pyramid_cmd)
-    gen_pyramid = shell_task(command=pyramid_cmd)
-    min_max_cmd = gen_min_max_cmd(fp=tomogram_fp, upstream_tasks=[mrc2nifti])
-    log(min_max_cmd)
-    min_max = shell_task(command=min_max_cmd)
-    # END PYRAMID
+        # START RECONSTR MOVIE GENERATION:
+        clip_cmds = gen_clip_rc_cmds.map(
+            fp=tomogram_fps, z_dim=z_dims, upstream_tasks=[brts]
+        )
+        log.map(clip_cmds)
+        clips = shell_task.map(command=clip_cmds)
+        ns_float_rc_cmds = newstack_fl_rc_cmd.map(
+            fp=tomogram_fps, upstream_tasks=[clips]
+        )
+        log.map(item=ns_float_rc_cmds)
+        ns_float_rcs = shell_task.map(command=ns_float_rc_cmds)
+        bin_vol_cmds = gen_binvol_rc_cmd.map(
+            fp=tomogram_fps, upstream_tasks=[ns_float_rcs]
+        )
+        bin_vols = shell_task.map(command=bin_vol_cmds)
+        mrc2tiff_rc_cmds = gen_mrc2tiff_rc_cmd.map(
+            fp=tomogram_fps, upstream_tasks=[bin_vols]
+        )
+        mrc2tiff_rcs = shell_task.map(command=mrc2tiff_rc_cmds)
+        ffmpeg_rc_cmds = gen_ffmpeg_rc_cmd.map(
+            fp=tomogram_fps, upstream_tasks=[mrc2tiff_rcs]
+        )
+        log.map(ffmpeg_rc_cmds)
+        ffmpeg_rcs = shell_task.map(command=ffmpeg_rc_cmds)
+        # END RECONSTR MOVIE
 
+        # START PYRAMID GEN
+        mrc2nifti_cmds = gen_mrc2nifti_cmd.map(fp=tomogram_fps, upstream_tasks=[brts])
+        log.map(mrc2nifti_cmds)
+        mrc2niftis = shell_task.map(command=mrc2nifti_cmds)
+        pyramid_cmds = gen_pyramid_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2niftis])
+        log.map(pyramid_cmds)
+        gen_pyramids = shell_task.map(command=pyramid_cmds)
+        min_max_cmds = gen_min_max_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2niftis])
+        log.map(item=min_max_cmds)
+        min_maxs = shell_task(command=min_max_cmds)
+        # END PYRAMID
