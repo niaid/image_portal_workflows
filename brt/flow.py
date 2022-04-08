@@ -355,7 +355,9 @@ if __name__ == "__main__":
         input_dir_fp = utils.get_input_dir(input_dir=input_dir)
         fnames = list_input_dir(input_dir_fp=input_dir_fp)
         working_dirs = make_work_dir.map(fname=fnames)
-        adoc_fps = copy_template.map(working_dir=working_dirs, fname=fnames)
+        adoc_fps = copy_template.map(
+            working_dir=working_dirs, template_name="plastic_brt"
+        )
         updated_adocs = update_adoc.map(
             adoc_fp=adoc_fps,
             tg_fp=fnames,
