@@ -369,6 +369,7 @@ if __name__ == "__main__":
             fiducialless=fiducialless,
             trackingMethod=trackingMethod,
             TwoSurfaces=TwoSurfaces,
+            TargetNumberOfBeads=TargetNumberOfBeads,
             LocalAlignments=LocalAlignments,
             THICKNESS=THICKNESS,
         )
