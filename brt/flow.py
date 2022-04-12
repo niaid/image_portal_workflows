@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import prefect
 from jinja2 import Environment, FileSystemLoader
-from prefect import task, Flow, Parameter
+from prefect import task, Flow, Parameter, unmapped
 from prefect.engine import signals
 from prefect.tasks.shell import ShellTask
 
@@ -52,8 +52,10 @@ def list_input_dir(input_dir_fp: Path) -> List[Path]:
     logger = prefect.context.get("logger")
     logger.info(f"trying to list {input_dir_fp}")
     mrc_files = glob.glob(f"{input_dir_fp}/*.mrc")
-    # if len mrc_files == 0: raise?
-    return Path(mrc_files)
+    if len(mrc_files) == 0:
+        raise signals.FAIL(f"Unable to find any input files in dir: {input_dir_fp}")
+    mrc_fps = [Path(f) for f in mrc_files]
+    return mrc_fps
 
 
 @task
@@ -121,6 +123,15 @@ def update_adoc(
         "THICKNESS": THICKNESS,
     }
 
+    # junk above for now.
+    vals = {
+        "basename": adoc_fp.stem,
+        "bead_size": 10,
+        "light_beads": 0,
+        "tilt_thickness": 256,
+        "montage": 0,
+        "dataset_dir": str(adoc_fp.parent),
+    }
     output = template.render(vals)
     adoc_loc = Path(f"{adoc_fp.parent}/{adoc_fp.stem}.adoc")
     with open(adoc_loc, "w") as _file:
@@ -356,22 +367,22 @@ if __name__ == "__main__":
         fnames = list_input_dir(input_dir_fp=input_dir_fp)
         working_dirs = make_work_dir.map(fname=fnames)
         adoc_fps = copy_template.map(
-            working_dir=working_dirs, template_name="plastic_brt"
+            working_dir=working_dirs, template_name=unmapped("dirTemplate")
         )
         updated_adocs = update_adoc.map(
             adoc_fp=adoc_fps,
             tg_fp=fnames,
-            dual=dual,
-            montage=montage,
-            gold=gold,
-            focus=focus,
-            bfocus=bfocus,
-            fiducialless=fiducialless,
-            trackingMethod=trackingMethod,
-            TwoSurfaces=TwoSurfaces,
-            TargetNumberOfBeads=TargetNumberOfBeads,
-            LocalAlignments=LocalAlignments,
-            THICKNESS=THICKNESS,
+            dual=unmapped(dual),
+            montage=unmapped(montage),
+            gold=unmapped(gold),
+            focus=unmapped(focus),
+            bfocus=unmapped(bfocus),
+            fiducialless=unmapped(fiducialless),
+            trackingMethod=unmapped(trackingMethod),
+            TwoSurfaces=unmapped(TwoSurfaces),
+            TargetNumberOfBeads=unmapped(TargetNumberOfBeads),
+            LocalAlignments=unmapped(LocalAlignments),
+            THICKNESS=unmapped(THICKNESS)
         )
         log.map(item=updated_adocs)
         tomogram_fps = prep_input_fp.map(fname=fnames, working_dir=working_dirs)
