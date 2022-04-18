@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import subprocess
 import re
 import math
 import glob
@@ -11,15 +12,16 @@ import shutil
 import tempfile
 import prefect
 from jinja2 import Environment, FileSystemLoader
-from prefect import task, Flow, Parameter, unmapped
+from prefect import task, Flow, Parameter, unmapped, flatten
 from prefect.engine import signals
-from prefect.tasks.shell import ShellTask
+# from prefect.tasks.shell import ShellTask
 
 
 from image_portal_workflows.utils import utils
+from image_portal_workflows.shell_task_echo import ShellTaskEcho
 from image_portal_workflows.config import Config
 
-shell_task = ShellTask(log_stderr=True)
+shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
 
 @task
@@ -125,7 +127,7 @@ def update_adoc(
 
     # junk above for now.
     vals = {
-        "basename": adoc_fp.stem,
+        "basename": name,
         "bead_size": 10,
         "light_beads": 0,
         "tilt_thickness": 256,
@@ -148,7 +150,11 @@ def create_brt_command(adoc_fp: Path) -> str:
 @task
 def gen_dimension_command(tg_fp: Path) -> str:
     command = f"header -s {tg_fp.parent}/{tg_fp.stem}_ali.mrc"
-    return command
+    a = subprocess.run(command, shell=True, check=True, capture_output=True)
+    outputs = a.stdout
+    xyz_dim = re.split(" +(\d+)", str(outputs))
+    return xyz_dim[5]
+
 
 
 @task
@@ -311,7 +317,7 @@ def gen_ffmpeg_rc_cmd(fp: Path) -> str:
     """
     fp_in = f"{fp.parent}/{fp.stem}_mp4.%03d.jpg"
     fp_out = f"{fp.parent}/keyMov_{fp.stem}.mp4"
-    return f"ffmpeg -f image2 -framerate 8 -i {fp_in} -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
+    return f"ffmpeg -f image2 -framerate 8 -y -i {fp_in} -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
 
 
 @task
@@ -327,7 +333,10 @@ def gen_pyramid_cmd(fp: Path) -> str:
     """
     volume-to-precomputed-pyramid --downscaling-method=average --no-gzip --flat path/basename.nii path/neuro-basename
     """
-    return f"volume-to-precomputed-pyramid --downscaling-method=average --no-gzip --flat {fp.parent}/{fp.stem}.nii {fp.parent}/neuro-{fp.stem}"
+    outdir = Path(f"{fp.parent}/neuro-{fp.stem}")
+    if outdir.exists():
+        shutil.rmtree(outdir)
+    return f"volume-to-precomputed-pyramid --downscaling-method=average --no-gzip --flat {fp.parent}/{fp.stem}.nii {outdir}"
 
 
 @task
@@ -386,7 +395,6 @@ if __name__ == "__main__":
         )
         log.map(item=updated_adocs)
         tomogram_fps = prep_input_fp.map(fname=fnames, working_dir=working_dirs)
-
         # START BRT (Batchruntomo) - long running process.
         brt_commands = create_brt_command.map(adoc_fp=updated_adocs)
         log.map(item=brt_commands)
@@ -395,21 +403,18 @@ if __name__ == "__main__":
         # END BRT, check files for success (else fail here)
 
         # stack dimensions - used in movie creation
-        xyz_dim_cmds = gen_dimension_command.map(
-            tg_fp=tomogram_fps, upstream_tasks=[brts]
+        z_dims = gen_dimension_command.map(
+            tg_fp=tomogram_fps, upstream_tasks=[brts_ok]
         )
-        log.map(item=xyz_dim_cmds)
-        xyz_dims = shell_task.map(command=xyz_dim_cmds)
-        z_dims = split_dims(xyz_dims)
         # end dims
 
         # START TILT MOVIE GENERATION:
         newstack_cmds = gen_ns_cmnds.map(
-            fp=tomogram_fps, z_dim=z_dims, upstream_tasks=[brts]
+            fp=tomogram_fps, z_dim=z_dims, upstream_tasks=[brts_ok]
         )
         log.map(item=newstack_cmds)
-        newstacks = shell_task.map(command=newstack_cmds)
-        ns_float_cmds = gen_ns_float(fp=tomogram_fps, upstream_tasks=[newstacks])
+        newstacks = shell_task.map(command=newstack_cmds, to_echo="this is echo")
+        ns_float_cmds = gen_ns_float.map(fp=tomogram_fps, upstream_tasks=[newstacks])
         log.map(item=ns_float_cmds)
         ns_floats = shell_task.map(command=ns_float_cmds)
         mrc2tiff_cmds = gen_mrc2tiff.map(fp=tomogram_fps, upstream_tasks=[ns_floats])
@@ -428,10 +433,10 @@ if __name__ == "__main__":
 
         # START RECONSTR MOVIE GENERATION:
         clip_cmds = gen_clip_rc_cmds.map(
-            fp=tomogram_fps, z_dim=z_dims, upstream_tasks=[brts]
+            fp=tomogram_fps, z_dim=z_dims, upstream_tasks=[brts_ok]
         )
         log.map(clip_cmds)
-        clips = shell_task.map(command=clip_cmds)
+        clips = shell_task.map(command=flatten(clip_cmds))
         ns_float_rc_cmds = newstack_fl_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[clips]
         )
@@ -453,7 +458,7 @@ if __name__ == "__main__":
         # END RECONSTR MOVIE
 
         # START PYRAMID GEN
-        mrc2nifti_cmds = gen_mrc2nifti_cmd.map(fp=tomogram_fps, upstream_tasks=[brts])
+        mrc2nifti_cmds = gen_mrc2nifti_cmd.map(fp=tomogram_fps, upstream_tasks=[brts_ok])
         log.map(mrc2nifti_cmds)
         mrc2niftis = shell_task.map(command=mrc2nifti_cmds)
         pyramid_cmds = gen_pyramid_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2niftis])
@@ -461,5 +466,5 @@ if __name__ == "__main__":
         gen_pyramids = shell_task.map(command=pyramid_cmds)
         min_max_cmds = gen_min_max_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2niftis])
         log.map(item=min_max_cmds)
-        min_maxs = shell_task(command=min_max_cmds)
+        min_maxs = shell_task.map(command=min_max_cmds)
         # END PYRAMID
