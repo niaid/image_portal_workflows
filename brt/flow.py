@@ -14,6 +14,7 @@ import prefect
 from jinja2 import Environment, FileSystemLoader
 from prefect import task, Flow, Parameter, unmapped, flatten
 from prefect.engine import signals
+
 # from prefect.tasks.shell import ShellTask
 
 
@@ -154,7 +155,6 @@ def gen_dimension_command(tg_fp: Path) -> str:
     outputs = a.stdout
     xyz_dim = re.split(" +(\d+)", str(outputs))
     return xyz_dim[5]
-
 
 
 @task
@@ -391,40 +391,43 @@ if __name__ == "__main__":
             TwoSurfaces=unmapped(TwoSurfaces),
             TargetNumberOfBeads=unmapped(TargetNumberOfBeads),
             LocalAlignments=unmapped(LocalAlignments),
-            THICKNESS=unmapped(THICKNESS)
+            THICKNESS=unmapped(THICKNESS),
         )
-        log.map(item=updated_adocs)
+        log(item=updated_adocs)
         tomogram_fps = prep_input_fp.map(fname=fnames, working_dir=working_dirs)
         # START BRT (Batchruntomo) - long running process.
         brt_commands = create_brt_command.map(adoc_fp=updated_adocs)
-        log.map(item=brt_commands)
-        brts = shell_task.map(command=brt_commands, upstream_tasks=[tomogram_fps])
+        brt_commands_logged = log(item=brt_commands)
+        brts = shell_task.map(
+            command=brt_commands, upstream_tasks=[tomogram_fps, brt_commands_logged]
+        )
         brts_ok = check_brt_run_ok.map(tg_fp=tomogram_fps, upstream_tasks=[brts])
         # END BRT, check files for success (else fail here)
 
         # stack dimensions - used in movie creation
-        z_dims = gen_dimension_command.map(
-            tg_fp=tomogram_fps, upstream_tasks=[brts_ok]
-        )
-        # end dims
+        z_dims = gen_dimension_command.map(tg_fp=tomogram_fps, upstream_tasks=[brts_ok])
 
         # START TILT MOVIE GENERATION:
         newstack_cmds = gen_ns_cmnds.map(
             fp=tomogram_fps, z_dim=z_dims, upstream_tasks=[brts_ok]
         )
-        log.map(item=newstack_cmds)
-        newstacks = shell_task.map(command=newstack_cmds, to_echo="this is echo")
+        newstack_cmds_logged = log(item=newstack_cmds)
+        newstacks = shell_task.map(
+            command=newstack_cmds,
+            upstream_tasks=[newstack_cmds_logged],
+            to_echo=unmapped("NEWSTACK"),
+        )
         ns_float_cmds = gen_ns_float.map(fp=tomogram_fps, upstream_tasks=[newstacks])
-        log.map(item=ns_float_cmds)
+        log(item=ns_float_cmds)
         ns_floats = shell_task.map(command=ns_float_cmds)
         mrc2tiff_cmds = gen_mrc2tiff.map(fp=tomogram_fps, upstream_tasks=[ns_floats])
-        log.map(item=mrc2tiff_cmds)
+        log(item=mrc2tiff_cmds)
         mrc2tiffs = shell_task.map(command=mrc2tiff_cmds)
         middle_is = calc_middle_i.map(z_dim=z_dims)
         gm_cmds = gen_gm_convert.map(
             fp=tomogram_fps, middle_i=middle_is, upstream_tasks=[mrc2tiffs]
         )
-        log.map(item=gm_cmds)
+        log(item=gm_cmds)
         gms = shell_task.map(command=gm_cmds)
         mpeg_cmds = gen_ffmpeg_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2tiffs])
         log(mpeg_cmds)
@@ -435,12 +438,12 @@ if __name__ == "__main__":
         clip_cmds = gen_clip_rc_cmds.map(
             fp=tomogram_fps, z_dim=z_dims, upstream_tasks=[brts_ok]
         )
-        log.map(clip_cmds)
+        log(clip_cmds)
         clips = shell_task.map(command=flatten(clip_cmds))
         ns_float_rc_cmds = newstack_fl_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[clips]
         )
-        log.map(item=ns_float_rc_cmds)
+        log(item=ns_float_rc_cmds)
         ns_float_rcs = shell_task.map(command=ns_float_rc_cmds)
         bin_vol_cmds = gen_binvol_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[ns_float_rcs]
@@ -453,18 +456,20 @@ if __name__ == "__main__":
         ffmpeg_rc_cmds = gen_ffmpeg_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[mrc2tiff_rcs]
         )
-        log.map(ffmpeg_rc_cmds)
+        log(ffmpeg_rc_cmds)
         ffmpeg_rcs = shell_task.map(command=ffmpeg_rc_cmds)
         # END RECONSTR MOVIE
 
         # START PYRAMID GEN
-        mrc2nifti_cmds = gen_mrc2nifti_cmd.map(fp=tomogram_fps, upstream_tasks=[brts_ok])
-        log.map(mrc2nifti_cmds)
+        mrc2nifti_cmds = gen_mrc2nifti_cmd.map(
+            fp=tomogram_fps, upstream_tasks=[brts_ok]
+        )
+        log(mrc2nifti_cmds)
         mrc2niftis = shell_task.map(command=mrc2nifti_cmds)
         pyramid_cmds = gen_pyramid_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2niftis])
-        log.map(pyramid_cmds)
+        log(pyramid_cmds)
         gen_pyramids = shell_task.map(command=pyramid_cmds)
         min_max_cmds = gen_min_max_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2niftis])
-        log.map(item=min_max_cmds)
+        log(item=min_max_cmds)
         min_maxs = shell_task.map(command=min_max_cmds)
         # END PYRAMID
