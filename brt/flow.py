@@ -133,19 +133,19 @@ def update_adoc(
     }
 
     # junk above for now.
-#    vals = {
-#        "basename": name,
-#        "bead_size": 10,
-#        "light_beads": 0,
-#        "tilt_thickness": 256,
-#        "montage": 0,
-#        "dataset_dir": str(adoc_fp.parent),
-#    }
+    #    vals = {
+    #        "basename": name,
+    #        "bead_size": 10,
+    #        "light_beads": 0,
+    #        "tilt_thickness": 256,
+    #        "montage": 0,
+    #        "dataset_dir": str(adoc_fp.parent),
+    #    }
     output = template.render(vals)
     adoc_loc = Path(f"{adoc_fp.parent}/{adoc_fp.stem}.adoc")
     with open(adoc_loc, "w") as _file:
         print(output, file=_file)
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(f"generated {adoc_loc}")
     return adoc_loc
 
@@ -153,7 +153,7 @@ def update_adoc(
 @task
 def create_brt_command(adoc_fp: Path) -> str:
     cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1"
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(cmd)
     return cmd
 
@@ -165,10 +165,9 @@ def gen_dimension_command(tg_fp: Path) -> str:
     outputs = a.stdout
     xyz_dim = re.split(" +(\d+)", str(outputs))
     z_dim = xyz_dim[5]
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(f"z_dim: {z_dim:}")
     return z_dim
-
 
 
 @task
@@ -197,7 +196,7 @@ def gen_ns_cmnds(fp: Path, z_dim) -> List[str]:
         cmds.append(
             f"newstack -secs {i}-{i} {fp.parent}/{fp.stem}_ali*.mrc {fp.parent}/{fp.stem}.mrc"
         )
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(cmds)
     return cmds
 
@@ -210,7 +209,7 @@ def gen_ns_float(fp: Path) -> str:
     in_fp = f"{fp.parent}/{fp.stem}_ali*.mrc"
     out_fp = f"{fp.parent}/ali_{fp.stem}.mrc"
     cmd = f"newstack -float 3 {in_fp} {out_fp}"
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(cmd)
 
 
@@ -220,7 +219,7 @@ def gen_mrc2tiff(fp: Path) -> str:
     in_fp = f"{fp.parent}/ali_{fp.stem}.mrc"
     out_fp = f"{fp.parent}/{fp.stem}_ali"
     cmd = f"mrc2tif -j -C 0,255 {in_fp} {out_fp}"
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(cmd)
 
 
@@ -233,7 +232,7 @@ def gen_gm_convert(fp: Path, middle_i: str) -> str:
     key_img = f"{fp.parent}/keyimg_{fp.stem}_s.jpg"
     cmd = f"gm convert -size 300x300 {middle_i_fname} -resize 300x300 \
             -sharpen 2 -quality 70 {key_img}"
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(cmd)
 
 
@@ -246,7 +245,7 @@ def calc_middle_i(z_dim: str) -> str:
     """
     fl = math.floor(int(z_dim) / 2)
     fl_padded = str(fl).rjust(3, "0")
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(f"middle i: {fl_padded}")
     return fl_padded
 
@@ -261,10 +260,8 @@ def gen_ffmpeg_cmd(fp: Path) -> str:
     out_fp = f"{fp.parent}/tiltMov_{fp.stem}.mp4"
     cmd = f"ffmpeg -y -f image2 -framerate 4 -i {input_fp} -vcodec \
             libx264 -pix_fmt yuv420p -s 1024,1024 {out_fp}"
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(f"ffmpeg command: {cmd}")
-
-
 
 
 # "_rc" denotes ReConstruction movie related funcs
@@ -284,7 +281,7 @@ def gen_clip_rc_cmds(fp: Path, z_dim) -> List[str]:
         out_fp = f"{fp.parent}/{fp.stem}_ave{str(i)}.mrc"
         cmd = f"clip avg -2d -iz {str(izmin)}-{str(izmax)} -m 1 {in_fp} {out_fp}"
         cmds.append(cmd)
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(f"reconstruction clip_cmds : {cmds}")
     return cmds
 
@@ -297,7 +294,7 @@ def newstack_fl_rc_cmd(fp: Path) -> str:
     fp_in = f"{fp.parent}/{fp.stem}_ave*"
     fp_out = f"{fp.parent}/ave_{fp.stem}.mrc"
     cmd = f"newstack -float 3 {fp_in} {fp_out}"
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(f"reconstruction newstack_fl_rc_cmd {cmd}")
 
 
@@ -309,7 +306,7 @@ def gen_binvol_rc_cmd(fp: Path) -> str:
     fp_in = f"{fp.parent}/ave_{fp.stem}.mrc"
     fp_out = f"{fp.parent}/avebin8_{fp.stem}.mrc"
     cmd = f"binvol -binning 2 {fp_in} {fp_out}"
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(f"reconstruction binvol command: {cmd}")
 
 
@@ -321,7 +318,7 @@ def gen_mrc2tiff_rc_cmd(fp: Path) -> str:
     fp_in = f"{fp.parent}/ave_{fp.stem}.mrc"
     fp_out = f"{fp.parent}/{fp.stem}_mp4"
     cmd = f"mrc2tif -j -C 100,255 {fp_in} {fp_out}"
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(f"mrc2tiff command: {cmd}")
 
 
@@ -336,7 +333,7 @@ def gen_ffmpeg_rc_cmd(fp: Path) -> str:
     fp_out = f"{fp.parent}/keyMov_{fp.stem}.mp4"
     cmd = f"ffmpeg -f image2 -framerate 8 -y -i {fp_in} -vcodec \
             libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(f"reconstruction ffmpeg command: {cmd}")
 
 
@@ -346,7 +343,7 @@ def gen_mrc2nifti_cmd(fp: Path) -> str:
     mrc2nifti path/{basename}_full_rec.mrc path/{basename}.nii
     """
     cmd = f"mrc2nifti {fp.parent}/{fp.stem}_full_rec.mrc {fp.parent}/{fp.stem}.nii"
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(f"mrc2nifti command: {cmd}")
 
 
@@ -356,13 +353,13 @@ def gen_pyramid_cmd(fp: Path) -> str:
     volume-to-precomputed-pyramid --downscaling-method=average --no-gzip --flat path/basename.nii path/neuro-basename
     """
     outdir = Path(f"{fp.parent}/neuro-{fp.stem}")
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     if outdir.exists():
         shutil.rmtree(outdir)
         logger.info(f"removing {outdir}")
     cmd = f"volume-to-precomputed-pyramid --downscaling-method=average --no-gzip \
             --flat {fp.parent}/{fp.stem}.nii {outdir}"
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(f"pyramid command: {cmd}")
 
 
@@ -373,7 +370,7 @@ def gen_min_max_cmd(fp: Path) -> str:
     """
     cmd = f"mrc_visual_min_max {fp.parent}/{fp.stem}.nii --mad 5 \
             --output-json {fp.parent}/mrc2ngpc-output.json"
-    logger = prefect.context.get('logger')
+    logger = prefect.context.get("logger")
     logger.info(f"ffmpeg command: {cmd}")
 
 
@@ -427,7 +424,9 @@ if __name__ == "__main__":
         # START BRT (Batchruntomo) - long running process.
         brt_commands = create_brt_command.map(adoc_fp=updated_adocs)
         brts = shell_task.map(
-            command=brt_commands, upstream_tasks=[unmapped(tomogram_fps)]
+            command=brt_commands,
+            upstream_tasks=[tomogram_fps],
+            to_echo=unmapped("BRT commands"),
         )
         brts_ok = check_brt_run_ok.map(tg_fp=tomogram_fps, upstream_tasks=[brts])
         # END BRT, check files for success (else fail here)
@@ -442,51 +441,69 @@ if __name__ == "__main__":
         newstacks = shell_task.map(
             command=newstack_cmds,
             upstream_tasks=[brts_ok],
-            to_echo=unmapped("NEWSTACK"),
+            to_echo=unmapped("newstack tilt"),
         )
         ns_float_cmds = gen_ns_float.map(fp=tomogram_fps, upstream_tasks=[newstacks])
-        ns_floats = shell_task.map(command=ns_float_cmds)
+        ns_floats = shell_task.map(
+            command=ns_float_cmds, to_echo=unmapped("ns_floats commands")
+        )
         mrc2tiff_cmds = gen_mrc2tiff.map(fp=tomogram_fps, upstream_tasks=[ns_floats])
-        mrc2tiffs = shell_task.map(command=mrc2tiff_cmds)
+        mrc2tiffs = shell_task.map(
+            command=mrc2tiff_cmds, to_echo=unmapped("mrc2tiff commands")
+        )
         middle_is = calc_middle_i.map(z_dim=z_dims)
         gm_cmds = gen_gm_convert.map(
             fp=tomogram_fps, middle_i=middle_is, upstream_tasks=[mrc2tiffs]
         )
-        gms = shell_task.map(command=gm_cmds)
+        gms = shell_task.map(command=gm_cmds, to_echo=unmapped("gm thumbnail commands"))
         mpeg_cmds = gen_ffmpeg_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2tiffs])
-        mpegs = shell_task.map(command=mpeg_cmds)
+        mpegs = shell_task.map(command=mpeg_cmds, to_echo=unmapped("ffmpeg comands"))
         # END TILT MOVIE GENERATION
 
         # START RECONSTR MOVIE GENERATION:
         clip_cmds = gen_clip_rc_cmds.map(
             fp=tomogram_fps, z_dim=z_dims, upstream_tasks=[brts_ok]
         )
-        clips = shell_task.map(command=flatten(clip_cmds))
+        clips = shell_task.map(
+            command=flatten(clip_cmds), to_echo=unmapped("rc clip commands")
+        )
         ns_float_rc_cmds = newstack_fl_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[clips]
         )
-        ns_float_rcs = shell_task.map(command=ns_float_rc_cmds)
+        ns_float_rcs = shell_task.map(
+            command=ns_float_rc_cmds, to_echo=unmapped("rc float commands")
+        )
         bin_vol_cmds = gen_binvol_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[ns_float_rcs]
         )
-        bin_vols = shell_task.map(command=bin_vol_cmds)
+        bin_vols = shell_task.map(
+            command=bin_vol_cmds, to_echo=unmapped("bin vols commands")
+        )
         mrc2tiff_rc_cmds = gen_mrc2tiff_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[bin_vols]
         )
-        mrc2tiff_rcs = shell_task.map(command=mrc2tiff_rc_cmds)
+        mrc2tiff_rcs = shell_task.map(
+            command=mrc2tiff_rc_cmds, to_echo=unmapped("mrc2tiff_rcs commands")
+        )
         ffmpeg_rc_cmds = gen_ffmpeg_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[mrc2tiff_rcs]
         )
-        ffmpeg_rcs = shell_task.map(command=ffmpeg_rc_cmds)
+        ffmpeg_rcs = shell_task.map(
+            command=ffmpeg_rc_cmds, to_echo=unmapped("ffmpeg_rc_cmds commands")
+        )
         # END RECONSTR MOVIE
 
         # START PYRAMID GEN
         mrc2nifti_cmds = gen_mrc2nifti_cmd.map(
             fp=tomogram_fps, upstream_tasks=[brts_ok]
         )
-        mrc2niftis = shell_task.map(command=mrc2nifti_cmds)
+        mrc2niftis = shell_task.map(
+            command=mrc2nifti_cmds, to_echo=unmapped("mrc2nifti")
+        )
         pyramid_cmds = gen_pyramid_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2niftis])
-        gen_pyramids = shell_task.map(command=pyramid_cmds)
+        gen_pyramids = shell_task.map(
+            command=pyramid_cmds, to_echo=unmapped("gen pyramid")
+        )
         min_max_cmds = gen_min_max_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2niftis])
-        min_maxs = shell_task.map(command=min_max_cmds)
+        min_maxs = shell_task.map(command=min_max_cmds, to_echo=unmapped("Min max"))
         # END PYRAMID
