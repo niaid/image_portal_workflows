@@ -452,7 +452,7 @@ if __name__ == "__main__":
             fp=tomogram_fps, z_dim=z_dims, upstream_tasks=[brts_ok]
         )
         newstacks = shell_task.map(
-            command=newstack_cmds,
+            command=flatten(newstack_cmds),
             upstream_tasks=[brts_ok],
             to_echo=unmapped("newstack tilt"),
         )
