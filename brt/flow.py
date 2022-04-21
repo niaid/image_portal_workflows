@@ -72,6 +72,7 @@ def prep_input_fp(fname: Path, working_dir: Path) -> Path:
     """
     copies tomographs (mrc files) into working_dir
     """
+    working_dir = "/gs1/home/macmenaminpe/tmp/clean_brt_stripped"
     fp = shutil.copyfile(src=fname.as_posix(), dst=f"{working_dir}/{fname.name}")
     return Path(fp)
 
@@ -155,7 +156,8 @@ def create_brt_command(adoc_fp: Path) -> str:
     cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1"
     logger = prefect.context.get("logger")
     logger.info(cmd)
-    return cmd
+    # return cmd
+    return "ls"
 
 
 @task
@@ -211,6 +213,7 @@ def gen_ns_float(fp: Path) -> str:
     cmd = f"newstack -float 3 {in_fp} {out_fp}"
     logger = prefect.context.get("logger")
     logger.info(cmd)
+    return cmd
 
 
 @task
@@ -221,6 +224,7 @@ def gen_mrc2tiff(fp: Path) -> str:
     cmd = f"mrc2tif -j -C 0,255 {in_fp} {out_fp}"
     logger = prefect.context.get("logger")
     logger.info(cmd)
+    return cmd
 
 
 @task
@@ -234,6 +238,7 @@ def gen_gm_convert(fp: Path, middle_i: str) -> str:
             -sharpen 2 -quality 70 {key_img}"
     logger = prefect.context.get("logger")
     logger.info(cmd)
+    return cmd
 
 
 @task
@@ -262,6 +267,7 @@ def gen_ffmpeg_cmd(fp: Path) -> str:
             libx264 -pix_fmt yuv420p -s 1024,1024 {out_fp}"
     logger = prefect.context.get("logger")
     logger.info(f"ffmpeg command: {cmd}")
+    return cmd
 
 
 # "_rc" denotes ReConstruction movie related funcs
@@ -296,6 +302,7 @@ def newstack_fl_rc_cmd(fp: Path) -> str:
     cmd = f"newstack -float 3 {fp_in} {fp_out}"
     logger = prefect.context.get("logger")
     logger.info(f"reconstruction newstack_fl_rc_cmd {cmd}")
+    return cmd
 
 
 @task
@@ -308,6 +315,7 @@ def gen_binvol_rc_cmd(fp: Path) -> str:
     cmd = f"binvol -binning 2 {fp_in} {fp_out}"
     logger = prefect.context.get("logger")
     logger.info(f"reconstruction binvol command: {cmd}")
+    return cmd
 
 
 @task
@@ -320,6 +328,7 @@ def gen_mrc2tiff_rc_cmd(fp: Path) -> str:
     cmd = f"mrc2tif -j -C 100,255 {fp_in} {fp_out}"
     logger = prefect.context.get("logger")
     logger.info(f"mrc2tiff command: {cmd}")
+    return cmd
 
 
 @task
@@ -335,6 +344,7 @@ def gen_ffmpeg_rc_cmd(fp: Path) -> str:
             libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
     logger = prefect.context.get("logger")
     logger.info(f"reconstruction ffmpeg command: {cmd}")
+    return cmd
 
 
 @task
@@ -345,6 +355,7 @@ def gen_mrc2nifti_cmd(fp: Path) -> str:
     cmd = f"mrc2nifti {fp.parent}/{fp.stem}_full_rec.mrc {fp.parent}/{fp.stem}.nii"
     logger = prefect.context.get("logger")
     logger.info(f"mrc2nifti command: {cmd}")
+    return cmd
 
 
 @task
@@ -361,6 +372,7 @@ def gen_pyramid_cmd(fp: Path) -> str:
             --flat {fp.parent}/{fp.stem}.nii {outdir}"
     logger = prefect.context.get("logger")
     logger.info(f"pyramid command: {cmd}")
+    return cmd
 
 
 @task
@@ -372,6 +384,7 @@ def gen_min_max_cmd(fp: Path) -> str:
             --output-json {fp.parent}/mrc2ngpc-output.json"
     logger = prefect.context.get("logger")
     logger.info(f"ffmpeg command: {cmd}")
+    return cmd
 
 
 if __name__ == "__main__":
@@ -507,3 +520,21 @@ if __name__ == "__main__":
         min_max_cmds = gen_min_max_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2niftis])
         min_maxs = shell_task.map(command=min_max_cmds, to_echo=unmapped("Min max"))
         # END PYRAMID
+
+f.run(dual="0",
+montage="0",
+gold="15",
+focus="0",
+bfocus="0",
+fiducialless="1",
+trackingMethod=None,
+TwoSurfaces="0",
+TargetNumberOfBeads="20",
+LocalAlignments="0",
+THICKNESS="30", 
+input_dir="single_mrc",
+token="the_token",
+sample_id="the_sample_id",
+callback_url="https://ptsv2.com/t/"
+)
+
