@@ -72,7 +72,7 @@ def prep_input_fp(fname: Path, working_dir: Path) -> Path:
     """
     copies tomographs (mrc files) into working_dir
     """
-    working_dir = "/gs1/home/macmenaminpe/tmp/clean_brt_stripped"
+    # working_dir = "/gs1/home/macmenaminpe/tmp/clean_brt_stripped"
     fp = shutil.copyfile(src=fname.as_posix(), dst=f"{working_dir}/{fname.name}")
     return Path(fp)
 
@@ -134,16 +134,16 @@ def update_adoc(
     }
 
     # junk above for now.
-    #    vals = {
-    #        "basename": name,
-    #        "bead_size": 10,
-    #        "light_beads": 0,
-    #        "tilt_thickness": 256,
-    #        "montage": 0,
-    #        "dataset_dir": str(adoc_fp.parent),
-    #    }
+    vals = {
+    "basename": name,
+    "bead_size": 10,
+    "light_beads": 0,
+    "tilt_thickness": 256,
+    "montage": 0,
+    "dataset_dir": str(adoc_fp.parent),
+    }
     output = template.render(vals)
-    adoc_loc = Path(f"{adoc_fp.parent}/{adoc_fp.stem}.adoc")
+    adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
     with open(adoc_loc, "w") as _file:
         print(output, file=_file)
     logger = prefect.context.get("logger")
@@ -156,8 +156,8 @@ def create_brt_command(adoc_fp: Path) -> str:
     cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1"
     logger = prefect.context.get("logger")
     logger.info(cmd)
-    # return cmd
-    return "ls"
+    return cmd
+    # return "ls"
 
 
 @task
@@ -299,7 +299,7 @@ def newstack_fl_rc_cmd(fp: Path) -> str:
     """
     fp_in = f"{fp.parent}/{fp.stem}_ave*"
     fp_out = f"{fp.parent}/ave_{fp.stem}.mrc"
-    cmd = f"newstack -float 3 {fp_in} {fp_out}"
+    cmd = f"sleep 60 && newstack -float 3 {fp_in} {fp_out}"
     logger = prefect.context.get("logger")
     logger.info(f"reconstruction newstack_fl_rc_cmd {cmd}")
     return cmd
@@ -474,6 +474,7 @@ if __name__ == "__main__":
         # END TILT MOVIE GENERATION
 
         # START RECONSTR MOVIE GENERATION:
+        # makes ave files:
         clip_cmds = gen_clip_rc_cmds.map(
             fp=tomogram_fps, z_dim=z_dims, upstream_tasks=[brts_ok]
         )
@@ -532,7 +533,8 @@ TwoSurfaces="0",
 TargetNumberOfBeads="20",
 LocalAlignments="0",
 THICKNESS="30", 
-input_dir="single_mrc",
+input_dir="/RMLEMHedwigQA/TestData/3D/CryoTomo/",
+# input_dir="/RMLEMHedwigQA/TestData/single_mrc/",
 token="the_token",
 sample_id="the_sample_id",
 callback_url="https://ptsv2.com/t/"
