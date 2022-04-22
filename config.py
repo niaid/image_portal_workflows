@@ -26,7 +26,8 @@ class Config:
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
     tmp_dir = "/gs1/home/macmenaminpe/tmp"
-    proj_dir = "/mnt/ai-fas12/RMLEMHedwigQA/TestData/"
+    # tmp_dir = "/tmp"
+    proj_dir = "/mnt/ai-fas12/"
     # repo_dir = os.path.join(os.path.dirname(__file__), "..")
     repo_dir = Path(os.path.dirname(__file__))
     template_dir = Path(f"{repo_dir.as_posix()}/templates")
