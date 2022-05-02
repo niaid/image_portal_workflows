@@ -16,6 +16,32 @@ from image_portal_workflows.config import Config
 logger = context.get("logger")
 
 
+@task
+def add_assets(assets_list: Dict, new_asset: Dict[str, str]) -> Dict:
+    assets_list.get("assets").append(new_asset)
+    return assets_list
+
+
+@task
+def generate_callback_files(input_fname: Path, input_fname_b: Path = None) -> Dict:
+    """
+    creates the base part callback, to which assets can be added.
+    TODO:
+    input_fname_b is optional, sometimes the input can be a pair of files.
+    eg:
+    [
+     {
+      "primaryFilePath": "Lab/PI/Myproject/MySession/Sample1/file_a.mrc",
+      "title": "file_a",
+      "assets": []
+     }
+    ]
+    """
+    title = input_fname.stem  # working for now.
+    primaryFilePath = _clean_subdir(subdir=Config.proj_dir, fp=input_fname)
+    return dict(primaryFilePath=primaryFilePath.as_posix(), title=title, assets=list())
+
+
 def _add_outputs(
     dname: str, files: List[Dict], outputs: List[Path], _type: str
 ) -> List[Dict]:
@@ -206,6 +232,65 @@ def print_t(t):
     """dumb function to print stuff..."""
     logger.info("++++++++++++++++++++++++++++++++++++++++")
     logger.info(t)
+
+
+def _clean_subdir(subdir: str, fp: Path) -> Path:
+    """
+    gets rid of a leading subdir from from path
+    eg /to/junk/the/path/fname -> /the/path/fname
+    note - path.relative_to raises a ValueError if it
+    does not contain the subpath, thus the strange looking try.
+    """
+    try:
+        if fp.relative_to(subdir):
+            fp = fp.relative_to(Config.proj_dir)
+        return fp
+    except ValueError:
+        return fp
+
+@task
+def to_command(cmd_and_fp: List[str]) -> str:
+    return cmd_and_fp[0]
+@task
+def to_fp(cmd_and_fp: List[str]) -> Path:
+    return Path(cmd_and_fp[1])
+
+@task
+def gen_assets_entry(
+    path: Path, asset_type: str, metadata: Dict[str, str] = None
+) -> Dict[str, str]:
+    """
+    asset type can be one of:
+
+    Thumbnail
+    averagedVolume
+    keyImage
+    keyThumbnail
+    recMovie
+    tiltMovie
+    volume
+    neuroglancerPrecomputed
+
+    used to build the callback for API
+    """
+    valid_typs = [
+        "Thumbnail",
+        "averagedVolume",
+        "keyImage",
+        "keyThumbnail",
+        "recMovie",
+        "tiltMovie",
+        "volume",
+        "neuroglancerPrecomputed",
+    ]
+    if asset_type not in valid_typs:
+        raise ValueError(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
+    path = _clean_subdir(Config.proj_dir, path)
+    if metadata:
+        asset = {asset_type: path.as_posix(), "metadata": metadata}
+    else:
+        asset = {asset_type: path.as_posix()}
+    return asset
 
 
 @task
