@@ -292,6 +292,13 @@ def gen_assets_entry(
         asset = {asset_type: path.as_posix()}
     return asset
 
+@task
+def copy_to_assets_dir(fp: Path, assets_dir: Path) -> None:
+    """
+    copy desired outputs to the assets (reported output) dir
+    """
+    # full_fp = Path(f"{Config.proj_dir}
+    shutil.copy(fp, assets_dir)
 
 @task
 def generate_callback_body(
