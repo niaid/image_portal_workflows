@@ -26,5 +26,6 @@ class ShellTaskEcho(ShellTask):
         if to_log_local and command:
             with open("{to_log_local.parent}/local_log.txt", "w") as _file:
                 _file.write(command)
+        if type(command) is list:
+            command = command[0]
         super().run(command=command, env=env, helper_script=helper_script)
-

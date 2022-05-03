@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
+import json
 import subprocess
 import re
 import math
 import glob
+from typing import List, Dict
 
-from typing import List
-
-# import os
 from pathlib import Path
 import shutil
 import tempfile
@@ -63,17 +62,19 @@ def list_input_dir(input_dir_fp: Path) -> List[Path]:
     mrc_files = glob.glob(f"{input_dir_fp}/*.mrc")
     if len(mrc_files) == 0:
         raise signals.FAIL(f"Unable to find any input files in dir: {input_dir_fp}")
-    mrc_fps = [Path(f) for f in mrc_files]
+    # mrc_fps = [Path(f) for f in mrc_files]
+    mrc_fps = [Path(f"/home/macmenaminpe/data/brt_run/2013-1220-dA30_5-BSC-1_10.mrc")]
     return mrc_fps
 
 
 @task
-def prep_input_fp(fname: Path, working_dir: Path) -> Path:
+def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
     """
-    copies tomographs (mrc files) into working_dir
+    copies files (tomograms/mrc files) into working_dir
+    returns Path of copied file
     """
-    # working_dir = "/gs1/home/macmenaminpe/tmp/clean_brt_stripped"
-    fp = shutil.copyfile(src=fname.as_posix(), dst=f"{working_dir}/{fname.name}")
+    fp = Path(f"/home/macmenaminpe/data/brt_run/{fname.name}")
+    # fp = shutil.copyfile(src=fname.as_posix(), dst=f"{working_dir}/{fname.name}")
     return Path(fp)
 
 
@@ -135,12 +136,12 @@ def update_adoc(
 
     # junk above for now.
     vals = {
-    "basename": name,
-    "bead_size": 10,
-    "light_beads": 0,
-    "tilt_thickness": 256,
-    "montage": 0,
-    "dataset_dir": str(adoc_fp.parent),
+        "basename": name,
+        "bead_size": 10,
+        "light_beads": 0,
+        "tilt_thickness": 256,
+        "montage": 0,
+        "dataset_dir": str(adoc_fp.parent),
     }
     output = template.render(vals)
     adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
@@ -157,6 +158,7 @@ def create_brt_command(adoc_fp: Path) -> str:
     logger = prefect.context.get("logger")
     logger.info(cmd)
     return cmd
+    # to short test
     # return "ls"
 
 
@@ -228,17 +230,18 @@ def gen_mrc2tiff(fp: Path) -> str:
 
 
 @task
-def gen_gm_convert(fp: Path, middle_i: str) -> str:
+def gen_gm_convert(fp: Path, middle_i: str) -> List[str]:
     """
+    generates the keyThumbnail
     gm convert -size 300x300 path/BASENAME_ali.{MIDDLE_I}.jpg -resize 300x300 -sharpen 2 -quality 70 path/keyimg_BASENAME_s.jpg
     """
     middle_i_fname = f"{fp.parent}/{fp.stem}_ali.{middle_i}.jpg"
-    key_img = f"{fp.parent}/keyimg_{fp.stem}_s.jpg"
+    thumbnail_fp = f"{fp.parent}/keyimg_{fp.stem}_s.jpg"
     cmd = f"gm convert -size 300x300 {middle_i_fname} -resize 300x300 \
-            -sharpen 2 -quality 70 {key_img}"
+            -sharpen 2 -quality 70 {thumbnail_fp}"
     logger = prefect.context.get("logger")
     logger.info(cmd)
-    return cmd
+    return [cmd, thumbnail_fp]
 
 
 @task
@@ -256,8 +259,9 @@ def calc_middle_i(z_dim: str) -> str:
 
 
 @task
-def gen_ffmpeg_cmd(fp: Path) -> str:
+def gen_ffmpeg_cmd(fp: Path) -> List[str]:
     """
+    generates the tilt moveie
     ffmpeg -f image2 -framerate 4 -i ${BASENAME}_ali.%03d.jpg -vcodec \
             libx264 -pix_fmt yuv420p -s 1024,1024 tiltMov_${BASENAME}.mp4
     """
@@ -267,7 +271,7 @@ def gen_ffmpeg_cmd(fp: Path) -> str:
             libx264 -pix_fmt yuv420p -s 1024,1024 {out_fp}"
     logger = prefect.context.get("logger")
     logger.info(f"ffmpeg command: {cmd}")
-    return cmd
+    return [cmd, out_fp]
 
 
 # "_rc" denotes ReConstruction movie related funcs
@@ -293,7 +297,7 @@ def gen_clip_rc_cmds(fp: Path, z_dim) -> List[str]:
 
 
 @task
-def newstack_fl_rc_cmd(fp: Path) -> str:
+def newstack_fl_rc_cmd(fp: Path) -> List[str]:
     """
     newstack -float 3 path/BASENAME_ave* path/ave_BASENAME.mrc
     """
@@ -302,11 +306,11 @@ def newstack_fl_rc_cmd(fp: Path) -> str:
     cmd = f"sleep 60 && newstack -float 3 {fp_in} {fp_out}"
     logger = prefect.context.get("logger")
     logger.info(f"reconstruction newstack_fl_rc_cmd {cmd}")
-    return cmd
+    return [cmd, fp_out]
 
 
 @task
-def gen_binvol_rc_cmd(fp: Path) -> str:
+def gen_binvol_rc_cmd(fp: Path) -> List[str]:
     """
     binvol -binning 2 path/ave_BASENAME.mrc path/avebin8_BASENAME.mrc
     """
@@ -315,7 +319,7 @@ def gen_binvol_rc_cmd(fp: Path) -> str:
     cmd = f"binvol -binning 2 {fp_in} {fp_out}"
     logger = prefect.context.get("logger")
     logger.info(f"reconstruction binvol command: {cmd}")
-    return cmd
+    return [cmd, fp_out]
 
 
 @task
@@ -332,7 +336,7 @@ def gen_mrc2tiff_rc_cmd(fp: Path) -> str:
 
 
 @task
-def gen_ffmpeg_rc_cmd(fp: Path) -> str:
+def gen_ffmpeg_rc_cmd(fp: Path) -> List[str]:
     """
     TODO - 3 or 4?
     ffmpeg -f image2 -framerate 8 -i path/BASENAME_mp4.%03d.jpg -vcodec \
@@ -344,7 +348,7 @@ def gen_ffmpeg_rc_cmd(fp: Path) -> str:
             libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
     logger = prefect.context.get("logger")
     logger.info(f"reconstruction ffmpeg command: {cmd}")
-    return cmd
+    return [cmd, fp_out]
 
 
 @task
@@ -359,7 +363,7 @@ def gen_mrc2nifti_cmd(fp: Path) -> str:
 
 
 @task
-def gen_pyramid_cmd(fp: Path) -> str:
+def gen_pyramid_cmd(fp: Path) -> List[str]:
     """
     volume-to-precomputed-pyramid --downscaling-method=average --no-gzip --flat path/basename.nii path/neuro-basename
     """
@@ -372,23 +376,31 @@ def gen_pyramid_cmd(fp: Path) -> str:
             --flat {fp.parent}/{fp.stem}.nii {outdir}"
     logger = prefect.context.get("logger")
     logger.info(f"pyramid command: {cmd}")
-    return cmd
+    return [cmd, outdir.as_posix()]
 
 
 @task
-def gen_min_max_cmd(fp: Path) -> str:
+def gen_min_max_cmd(fp: Path) -> List[str]:
     """
     mrc_visual_min_max {basename}.nii --mad 5 --output-json mrc2ngpc-output.json
     """
+    out_fp = f"{fp.parent}/mrc2ngpc-output.json"
     cmd = f"mrc_visual_min_max {fp.parent}/{fp.stem}.nii --mad 5 \
-            --output-json {fp.parent}/mrc2ngpc-output.json"
+            --output-json {out_fp}"
     logger = prefect.context.get("logger")
     logger.info(f"ffmpeg command: {cmd}")
-    return cmd
+    return [cmd, out_fp]
+
+
+@task
+def parse_min_max_file(fp: Path) -> Dict[str, str]:
+    with open(fp, "r") as _file:
+        return json.load(_file)
 
 
 if __name__ == "__main__":
     with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
+        # with Flow("brt_flow") as f:
         # This block of params map are for adoc file specfication.
         # Note the ugly names, these parameters are lifted verbatim from
         # https://bio3d.colorado.edu/imod/doc/directives.html where possible.
@@ -433,7 +445,12 @@ if __name__ == "__main__":
             LocalAlignments=unmapped(LocalAlignments),
             THICKNESS=unmapped(THICKNESS),
         )
-        tomogram_fps = prep_input_fp.map(fname=fnames, working_dir=working_dirs)
+        tomogram_fps = copy_tg_to_working_dir.map(
+            fname=fnames, working_dir=working_dirs
+        )
+        # {thing}_elt(s) are the JSON elements for use in callback.
+        files_elts = utils.generate_callback_files.map(input_fname=tomogram_fps)
+
         # START BRT (Batchruntomo) - long running process.
         brt_commands = create_brt_command.map(adoc_fp=updated_adocs)
         brts = shell_task.map(
@@ -465,11 +482,32 @@ if __name__ == "__main__":
             command=mrc2tiff_cmds, to_echo=unmapped("mrc2tiff commands")
         )
         middle_is = calc_middle_i.map(z_dim=z_dims)
-        gm_cmds = gen_gm_convert.map(
+
+        # key_imgs are an output/asset - location needs to be reported.
+        gm_cmds_and_thumbnail_locs = gen_gm_convert.map(
             fp=tomogram_fps, middle_i=middle_is, upstream_tasks=[mrc2tiffs]
         )
+        thumbnail_fps = utils.to_fp.map(cmd_and_fp=gm_cmds_and_thumbnail_locs)
+        thumbnail_locs_elt = utils.gen_assets_entry.map(
+            asset_type=unmapped("keyThumbnail"), path=thumbnail_fps
+        )
+        files_elts = utils.add_assets.map(
+            assets_list=files_elts, new_asset=thumbnail_locs_elt
+        )
+        gm_cmds = utils.to_command.map(cmd_and_fp=gm_cmds_and_thumbnail_locs)
+
         gms = shell_task.map(command=gm_cmds, to_echo=unmapped("gm thumbnail commands"))
-        mpeg_cmds = gen_ffmpeg_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2tiffs])
+        mpeg_cmds_and_tiltMovie_fps = gen_ffmpeg_cmd.map(
+            fp=tomogram_fps, upstream_tasks=[mrc2tiffs]
+        )
+        tiltMovie_fps = utils.to_fp.map(mpeg_cmds_and_tiltMovie_fps)
+        tiltMovie_fps_elts = utils.gen_assets_entry.map(
+            path=tiltMovie_fps, asset_type=unmapped("tiltMovie")
+        )
+        files_elts = utils.add_assets.map(
+            assets_list=files_elts, new_asset=tiltMovie_fps_elts
+        )
+        mpeg_cmds = utils.to_command.map(mpeg_cmds_and_tiltMovie_fps)
         mpegs = shell_task.map(command=mpeg_cmds, to_echo=unmapped("ffmpeg comands"))
         # END TILT MOVIE GENERATION
 
@@ -481,15 +519,31 @@ if __name__ == "__main__":
         clips = shell_task.map(
             command=flatten(clip_cmds), to_echo=unmapped("rc clip commands")
         )
-        ns_float_rc_cmds = newstack_fl_rc_cmd.map(
+        ns_float_rc_cmds_and_ave_vol_fps = newstack_fl_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[clips]
         )
+        ave_vol_fps = utils.to_fp.map(ns_float_rc_cmds_and_ave_vol_fps)
+        ave_vol_elts = utils.gen_assets_entry.map(
+            path=ave_vol_fps, asset_type=unmapped("averagedVolume")
+        )
+        files_elts = utils.add_assets.map(
+            assets_list=files_elts, new_asset=ave_vol_elts
+        )
+        ns_float_rc_cmds = utils.to_command.map(ns_float_rc_cmds_and_ave_vol_fps)
         ns_float_rcs = shell_task.map(
             command=ns_float_rc_cmds, to_echo=unmapped("rc float commands")
         )
-        bin_vol_cmds = gen_binvol_rc_cmd.map(
+        bin_vol_cmds_and_avebin8_fps = gen_binvol_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[ns_float_rcs]
         )
+        avebin8_fps = utils.to_fp.map(bin_vol_cmds_and_avebin8_fps)
+        avebin8_elts = utils.gen_assets_entry.map(
+            path=avebin8_fps, asset_type=unmapped("volume")
+        )
+        files_elts = utils.add_assets.map(
+            assets_list=files_elts, new_asset=avebin8_elts
+        )
+        bin_vol_cmds = utils.to_command.map(bin_vol_cmds_and_avebin8_fps)
         bin_vols = shell_task.map(
             command=bin_vol_cmds, to_echo=unmapped("bin vols commands")
         )
@@ -499,11 +553,19 @@ if __name__ == "__main__":
         mrc2tiff_rcs = shell_task.map(
             command=mrc2tiff_rc_cmds, to_echo=unmapped("mrc2tiff_rcs commands")
         )
-        ffmpeg_rc_cmds = gen_ffmpeg_rc_cmd.map(
+        ffmpeg_rc_cmds_and_ffmpeg_rc_fps = gen_ffmpeg_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[mrc2tiff_rcs]
         )
+        ffmpeg_rc_cmds = utils.to_command.map(ffmpeg_rc_cmds_and_ffmpeg_rc_fps)
         ffmpeg_rcs = shell_task.map(
             command=ffmpeg_rc_cmds, to_echo=unmapped("ffmpeg_rc_cmds commands")
+        )
+        ffmpeg_rc_fps = utils.to_fp.map(ffmpeg_rc_cmds_and_ffmpeg_rc_fps)
+        recMovie_elts = utils.gen_assets_entry.map(
+            path=ffmpeg_rc_fps, asset_type=unmapped("recMovie")
+        )
+        files_elts = utils.add_assets.map(
+            assets_list=files_elts, new_asset=recMovie_elts
         )
         # END RECONSTR MOVIE
 
@@ -514,29 +576,49 @@ if __name__ == "__main__":
         mrc2niftis = shell_task.map(
             command=mrc2nifti_cmds, to_echo=unmapped("mrc2nifti")
         )
-        pyramid_cmds = gen_pyramid_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2niftis])
+        pyramid_cmds_and_pyramid_fps = gen_pyramid_cmd.map(
+            fp=tomogram_fps, upstream_tasks=[mrc2niftis]
+        )
+        pyramid_cmds = utils.to_command.map(pyramid_cmds_and_pyramid_fps)
         gen_pyramids = shell_task.map(
             command=pyramid_cmds, to_echo=unmapped("gen pyramid")
         )
-        min_max_cmds = gen_min_max_cmd.map(fp=tomogram_fps, upstream_tasks=[mrc2niftis])
+        min_max_cmds_and_out_fps = gen_min_max_cmd.map(
+            fp=tomogram_fps, upstream_tasks=[mrc2niftis]
+        )
+        min_max_fps = utils.to_fp.map(min_max_cmds_and_out_fps)
+        min_max_cmds = utils.to_command.map(min_max_cmds_and_out_fps)
         min_maxs = shell_task.map(command=min_max_cmds, to_echo=unmapped("Min max"))
+        pyramid_fps = utils.to_fp.map(pyramid_cmds_and_pyramid_fps)
+        metadatas = parse_min_max_file.map(fp=min_max_fps)
+        pyramid_assets_elts = utils.gen_assets_entry.map(
+            path=pyramid_fps,
+            asset_type=unmapped("neuroglancerPrecomputed"),
+            metadata=metadatas,
+        )
+        files_elts = utils.add_assets.map(
+            assets_list=files_elts, new_asset=pyramid_assets_elts
+        )
+        utils.print_t.map(files_elts)
+        utils.print_t.map(min_maxs)
+
         # END PYRAMID
 
-f.run(dual="0",
-montage="0",
-gold="15",
-focus="0",
-bfocus="0",
-fiducialless="1",
-trackingMethod=None,
-TwoSurfaces="0",
-TargetNumberOfBeads="20",
-LocalAlignments="0",
-THICKNESS="30", 
-input_dir="/RMLEMHedwigQA/TestData/3D/CryoTomo/",
-# input_dir="/RMLEMHedwigQA/TestData/single_mrc/",
-token="the_token",
-sample_id="the_sample_id",
-callback_url="https://ptsv2.com/t/"
+result = f.run(
+    dual="0",
+    montage="0",
+    gold="15",
+    focus="0",
+    bfocus="0",
+    fiducialless="1",
+    trackingMethod=None,
+    TwoSurfaces="0",
+    TargetNumberOfBeads="20",
+    LocalAlignments="0",
+    THICKNESS="30",
+    input_dir="/home/macmenaminpe/data/brt_run/",
+    token="the_token",
+    sample_id="the_sample_id",
+    callback_url="https://ptsv2.com/t/",
 )
-
+# print(json.dumps(result.result[files_elts]))
