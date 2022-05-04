@@ -448,8 +448,6 @@ if __name__ == "__main__":
         tomogram_fps = copy_tg_to_working_dir.map(
             fname=fnames, working_dir=working_dirs
         )
-        # {thing}_elt(s) are the JSON elements for use in callback.
-        files_elts = utils.generate_callback_files.map(input_fname=tomogram_fps)
 
         # START BRT (Batchruntomo) - long running process.
         brt_commands = create_brt_command.map(adoc_fp=updated_adocs)
@@ -490,28 +488,11 @@ if __name__ == "__main__":
         gm_cmds = utils.to_command.map(cmd_and_fp=gm_cmds_and_thumbnail_locs)
 
         gms = shell_task.map(command=gm_cmds, to_echo=unmapped("gm thumbnail commands"))
-        thumbnail_fps = utils.to_fp.map(
-                cmd_and_fp=gm_cmds_and_thumbnail_locs,
-                upstream_tasks=[gms])
-        thumbnail_locs_elt = utils.gen_assets_entry.map(
-            asset_type=unmapped("keyThumbnail"), path=thumbnail_fps
-        )
-        files_elts = utils.add_assets.map(
-            assets_list=files_elts, new_asset=thumbnail_locs_elt
-        )
         mpeg_cmds_and_tiltMovie_fps = gen_ffmpeg_cmd.map(
             fp=tomogram_fps, upstream_tasks=[mrc2tiffs]
         )
         mpeg_cmds = utils.to_command.map(mpeg_cmds_and_tiltMovie_fps)
         mpegs = shell_task.map(command=mpeg_cmds, to_echo=unmapped("ffmpeg comands"))
-        tiltMovie_fps = utils.to_fp.map(mpeg_cmds_and_tiltMovie_fps,
-                upstream_tasks=[mpegs])
-        tiltMovie_fps_elts = utils.gen_assets_entry.map(
-            path=tiltMovie_fps, asset_type=unmapped("tiltMovie")
-        )
-        files_elts = utils.add_assets.map(
-            assets_list=files_elts, new_asset=tiltMovie_fps_elts
-        )
         # END TILT MOVIE GENERATION
 
         # START RECONSTR MOVIE GENERATION:
@@ -529,26 +510,12 @@ if __name__ == "__main__":
         ns_float_rcs = shell_task.map(
             command=ns_float_rc_cmds, to_echo=unmapped("rc float commands")
         )
-        ave_vol_fps = utils.to_fp.map(ns_float_rc_cmds_and_ave_vol_fps, upstream_tasks=[ns_float_rcs])
-        ave_vol_elts = utils.gen_assets_entry.map(
-            path=ave_vol_fps, asset_type=unmapped("averagedVolume")
-        )
-        files_elts = utils.add_assets.map(
-            assets_list=files_elts, new_asset=ave_vol_elts
-        )
         bin_vol_cmds_and_avebin8_fps = gen_binvol_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[ns_float_rcs]
         )
         bin_vol_cmds = utils.to_command.map(bin_vol_cmds_and_avebin8_fps)
         bin_vols = shell_task.map(
             command=bin_vol_cmds, to_echo=unmapped("bin vols commands")
-        )
-        avebin8_fps = utils.to_fp.map(bin_vol_cmds_and_avebin8_fps, upstream_tasks=[bin_vols])
-        avebin8_elts = utils.gen_assets_entry.map(
-            path=avebin8_fps, asset_type=unmapped("volume")
-        )
-        files_elts = utils.add_assets.map(
-            assets_list=files_elts, new_asset=avebin8_elts
         )
         mrc2tiff_rc_cmds = gen_mrc2tiff_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[bin_vols]
@@ -562,13 +529,6 @@ if __name__ == "__main__":
         ffmpeg_rc_cmds = utils.to_command.map(ffmpeg_rc_cmds_and_ffmpeg_rc_fps)
         ffmpeg_rcs = shell_task.map(
             command=ffmpeg_rc_cmds, to_echo=unmapped("ffmpeg_rc_cmds commands")
-        )
-        ffmpeg_rc_fps = utils.to_fp.map(ffmpeg_rc_cmds_and_ffmpeg_rc_fps, upstream_tasks=[ffmpeg_rcs])
-        recMovie_elts = utils.gen_assets_entry.map(
-            path=ffmpeg_rc_fps, asset_type=unmapped("recMovie")
-        )
-        files_elts = utils.add_assets.map(
-            assets_list=files_elts, new_asset=recMovie_elts
         )
         # END RECONSTR MOVIE
 
@@ -592,8 +552,71 @@ if __name__ == "__main__":
         min_max_fps = utils.to_fp.map(min_max_cmds_and_out_fps)
         min_max_cmds = utils.to_command.map(min_max_cmds_and_out_fps)
         min_maxs = shell_task.map(command=min_max_cmds, to_echo=unmapped("Min max"))
-        pyramid_fps = utils.to_fp.map(pyramid_cmds_and_pyramid_fps, upstream_tasks=[gen_pyramids])
         metadatas = parse_min_max_file.map(fp=min_max_fps, upstream_tasks=[min_maxs])
+        # END PYRAMID
+
+        # generate callback
+        files_elts = utils.generate_callback_files.map(input_fname=tomogram_fps)
+
+        # keyThumbnail
+        thumbnail_fps = utils.to_fp.map(
+            cmd_and_fp=gm_cmds_and_thumbnail_locs, upstream_tasks=[gms]
+        )
+        thumbnail_locs_elt = utils.gen_assets_entry.map(
+            asset_type=unmapped("keyThumbnail"), path=thumbnail_fps
+        )
+        files_elts = utils.add_assets.map(
+            assets_list=files_elts, new_asset=thumbnail_locs_elt
+        )
+
+        # tiltMovie
+        tiltMovie_fps = utils.to_fp.map(
+            mpeg_cmds_and_tiltMovie_fps, upstream_tasks=[mpegs]
+        )
+        tiltMovie_fps_elts = utils.gen_assets_entry.map(
+            path=tiltMovie_fps, asset_type=unmapped("tiltMovie")
+        )
+        files_elts = utils.add_assets.map(
+            assets_list=files_elts, new_asset=tiltMovie_fps_elts
+        )
+
+        # averagedVolume
+        ave_vol_fps = utils.to_fp.map(
+            ns_float_rc_cmds_and_ave_vol_fps, upstream_tasks=[ns_float_rcs]
+        )
+        ave_vol_elts = utils.gen_assets_entry.map(
+            path=ave_vol_fps, asset_type=unmapped("averagedVolume")
+        )
+        files_elts = utils.add_assets.map(
+            assets_list=files_elts, new_asset=ave_vol_elts
+        )
+
+        # volume
+        avebin8_fps = utils.to_fp.map(
+            bin_vol_cmds_and_avebin8_fps, upstream_tasks=[bin_vols]
+        )
+        avebin8_elts = utils.gen_assets_entry.map(
+            path=avebin8_fps, asset_type=unmapped("volume")
+        )
+        files_elts = utils.add_assets.map(
+            assets_list=files_elts, new_asset=avebin8_elts
+        )
+
+        # recMovie
+        ffmpeg_rc_fps = utils.to_fp.map(
+            ffmpeg_rc_cmds_and_ffmpeg_rc_fps, upstream_tasks=[ffmpeg_rcs]
+        )
+        recMovie_elts = utils.gen_assets_entry.map(
+            path=ffmpeg_rc_fps, asset_type=unmapped("recMovie")
+        )
+        files_elts = utils.add_assets.map(
+            assets_list=files_elts, new_asset=recMovie_elts
+        )
+
+        # element neuroglancerPrecomputed
+        pyramid_fps = utils.to_fp.map(
+            pyramid_cmds_and_pyramid_fps, upstream_tasks=[gen_pyramids]
+        )
         pyramid_assets_elts = utils.gen_assets_entry.map(
             path=pyramid_fps,
             asset_type=unmapped("neuroglancerPrecomputed"),
@@ -605,9 +628,8 @@ if __name__ == "__main__":
         utils.print_t.map(files_elts)
         utils.print_t.map(min_maxs)
 
-        # END PYRAMID
 
-#result = f.run(
+# result = f.run(
 #    dual="0",
 #    montage="0",
 #    gold="15",
@@ -623,5 +645,5 @@ if __name__ == "__main__":
 #    token="the_token",
 #    sample_id="the_sample_id",
 #    callback_url="https://ptsv2.com/t/",
-#)
+# )
 # print(json.dumps(result.result[files_elts]))
