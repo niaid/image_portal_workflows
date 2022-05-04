@@ -388,7 +388,7 @@ def gen_min_max_cmd(fp: Path) -> List[str]:
     cmd = f"mrc_visual_min_max {fp.parent}/{fp.stem}.nii --mad 5 \
             --output-json {out_fp}"
     logger = prefect.context.get("logger")
-    logger.info(f"ffmpeg command: {cmd}")
+    logger.info(f"gen_min_max_cmd command: {cmd}")
     return [cmd, out_fp]
 
 
@@ -487,28 +487,31 @@ if __name__ == "__main__":
         gm_cmds_and_thumbnail_locs = gen_gm_convert.map(
             fp=tomogram_fps, middle_i=middle_is, upstream_tasks=[mrc2tiffs]
         )
-        thumbnail_fps = utils.to_fp.map(cmd_and_fp=gm_cmds_and_thumbnail_locs)
+        gm_cmds = utils.to_command.map(cmd_and_fp=gm_cmds_and_thumbnail_locs)
+
+        gms = shell_task.map(command=gm_cmds, to_echo=unmapped("gm thumbnail commands"))
+        thumbnail_fps = utils.to_fp.map(
+                cmd_and_fp=gm_cmds_and_thumbnail_locs,
+                upstream_tasks=[gms])
         thumbnail_locs_elt = utils.gen_assets_entry.map(
             asset_type=unmapped("keyThumbnail"), path=thumbnail_fps
         )
         files_elts = utils.add_assets.map(
             assets_list=files_elts, new_asset=thumbnail_locs_elt
         )
-        gm_cmds = utils.to_command.map(cmd_and_fp=gm_cmds_and_thumbnail_locs)
-
-        gms = shell_task.map(command=gm_cmds, to_echo=unmapped("gm thumbnail commands"))
         mpeg_cmds_and_tiltMovie_fps = gen_ffmpeg_cmd.map(
             fp=tomogram_fps, upstream_tasks=[mrc2tiffs]
         )
-        tiltMovie_fps = utils.to_fp.map(mpeg_cmds_and_tiltMovie_fps)
+        mpeg_cmds = utils.to_command.map(mpeg_cmds_and_tiltMovie_fps)
+        mpegs = shell_task.map(command=mpeg_cmds, to_echo=unmapped("ffmpeg comands"))
+        tiltMovie_fps = utils.to_fp.map(mpeg_cmds_and_tiltMovie_fps,
+                upstream_tasks=[mpegs])
         tiltMovie_fps_elts = utils.gen_assets_entry.map(
             path=tiltMovie_fps, asset_type=unmapped("tiltMovie")
         )
         files_elts = utils.add_assets.map(
             assets_list=files_elts, new_asset=tiltMovie_fps_elts
         )
-        mpeg_cmds = utils.to_command.map(mpeg_cmds_and_tiltMovie_fps)
-        mpegs = shell_task.map(command=mpeg_cmds, to_echo=unmapped("ffmpeg comands"))
         # END TILT MOVIE GENERATION
 
         # START RECONSTR MOVIE GENERATION:
@@ -522,30 +525,30 @@ if __name__ == "__main__":
         ns_float_rc_cmds_and_ave_vol_fps = newstack_fl_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[clips]
         )
-        ave_vol_fps = utils.to_fp.map(ns_float_rc_cmds_and_ave_vol_fps)
+        ns_float_rc_cmds = utils.to_command.map(ns_float_rc_cmds_and_ave_vol_fps)
+        ns_float_rcs = shell_task.map(
+            command=ns_float_rc_cmds, to_echo=unmapped("rc float commands")
+        )
+        ave_vol_fps = utils.to_fp.map(ns_float_rc_cmds_and_ave_vol_fps, upstream_tasks=[ns_float_rcs])
         ave_vol_elts = utils.gen_assets_entry.map(
             path=ave_vol_fps, asset_type=unmapped("averagedVolume")
         )
         files_elts = utils.add_assets.map(
             assets_list=files_elts, new_asset=ave_vol_elts
         )
-        ns_float_rc_cmds = utils.to_command.map(ns_float_rc_cmds_and_ave_vol_fps)
-        ns_float_rcs = shell_task.map(
-            command=ns_float_rc_cmds, to_echo=unmapped("rc float commands")
-        )
         bin_vol_cmds_and_avebin8_fps = gen_binvol_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[ns_float_rcs]
         )
-        avebin8_fps = utils.to_fp.map(bin_vol_cmds_and_avebin8_fps)
+        bin_vol_cmds = utils.to_command.map(bin_vol_cmds_and_avebin8_fps)
+        bin_vols = shell_task.map(
+            command=bin_vol_cmds, to_echo=unmapped("bin vols commands")
+        )
+        avebin8_fps = utils.to_fp.map(bin_vol_cmds_and_avebin8_fps, upstream_tasks=[bin_vols])
         avebin8_elts = utils.gen_assets_entry.map(
             path=avebin8_fps, asset_type=unmapped("volume")
         )
         files_elts = utils.add_assets.map(
             assets_list=files_elts, new_asset=avebin8_elts
-        )
-        bin_vol_cmds = utils.to_command.map(bin_vol_cmds_and_avebin8_fps)
-        bin_vols = shell_task.map(
-            command=bin_vol_cmds, to_echo=unmapped("bin vols commands")
         )
         mrc2tiff_rc_cmds = gen_mrc2tiff_rc_cmd.map(
             fp=tomogram_fps, upstream_tasks=[bin_vols]
@@ -560,7 +563,7 @@ if __name__ == "__main__":
         ffmpeg_rcs = shell_task.map(
             command=ffmpeg_rc_cmds, to_echo=unmapped("ffmpeg_rc_cmds commands")
         )
-        ffmpeg_rc_fps = utils.to_fp.map(ffmpeg_rc_cmds_and_ffmpeg_rc_fps)
+        ffmpeg_rc_fps = utils.to_fp.map(ffmpeg_rc_cmds_and_ffmpeg_rc_fps, upstream_tasks=[ffmpeg_rcs])
         recMovie_elts = utils.gen_assets_entry.map(
             path=ffmpeg_rc_fps, asset_type=unmapped("recMovie")
         )
@@ -589,8 +592,8 @@ if __name__ == "__main__":
         min_max_fps = utils.to_fp.map(min_max_cmds_and_out_fps)
         min_max_cmds = utils.to_command.map(min_max_cmds_and_out_fps)
         min_maxs = shell_task.map(command=min_max_cmds, to_echo=unmapped("Min max"))
-        pyramid_fps = utils.to_fp.map(pyramid_cmds_and_pyramid_fps)
-        metadatas = parse_min_max_file.map(fp=min_max_fps)
+        pyramid_fps = utils.to_fp.map(pyramid_cmds_and_pyramid_fps, upstream_tasks=[gen_pyramids])
+        metadatas = parse_min_max_file.map(fp=min_max_fps, upstream_tasks=[min_maxs])
         pyramid_assets_elts = utils.gen_assets_entry.map(
             path=pyramid_fps,
             asset_type=unmapped("neuroglancerPrecomputed"),
@@ -604,21 +607,21 @@ if __name__ == "__main__":
 
         # END PYRAMID
 
-result = f.run(
-    dual="0",
-    montage="0",
-    gold="15",
-    focus="0",
-    bfocus="0",
-    fiducialless="1",
-    trackingMethod=None,
-    TwoSurfaces="0",
-    TargetNumberOfBeads="20",
-    LocalAlignments="0",
-    THICKNESS="30",
-    input_dir="/home/macmenaminpe/data/brt_run/",
-    token="the_token",
-    sample_id="the_sample_id",
-    callback_url="https://ptsv2.com/t/",
-)
+#result = f.run(
+#    dual="0",
+#    montage="0",
+#    gold="15",
+#    focus="0",
+#    bfocus="0",
+#    fiducialless="1",
+#    trackingMethod=None,
+#    TwoSurfaces="0",
+#    TargetNumberOfBeads="20",
+#    LocalAlignments="0",
+#    THICKNESS="30",
+#    input_dir="/home/macmenaminpe/data/brt_run/",
+#    token="the_token",
+#    sample_id="the_sample_id",
+#    callback_url="https://ptsv2.com/t/",
+#)
 # print(json.dumps(result.result[files_elts]))
