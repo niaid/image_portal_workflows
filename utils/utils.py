@@ -3,7 +3,7 @@ import os
 import shutil
 import json
 import prefect
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pathlib import Path
 from prefect import task, context
 from prefect import Flow, task, context
@@ -251,9 +251,14 @@ def _clean_subdir(subdir: str, fp: Path) -> Path:
 @task
 def to_command(cmd_and_fp: List[str]) -> str:
     return cmd_and_fp[0]
+
 @task
-def to_fp(cmd_and_fp: List[str]) -> Path:
-    return Path(cmd_and_fp[1])
+def to_fp(cmd_and_fp: List[str]) -> Optional[Path]:
+    path = Path(cmd_and_fp[1])
+    if path.exists():
+        return path
+    else:
+        raise signals.FAIL(f"File {cmd_and_fp[1]} does not exist.")
 
 @task
 def gen_assets_entry(
