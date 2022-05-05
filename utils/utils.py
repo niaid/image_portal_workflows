@@ -254,11 +254,25 @@ def to_command(cmd_and_fp: List[str]) -> str:
 
 @task
 def to_fp(cmd_and_fp: List[str]) -> Optional[Path]:
+    """
+    checks that an output file exists,
+    returns a Path for that file.
+    """
     path = Path(cmd_and_fp[1])
     if path.exists():
         return path
     else:
         raise signals.FAIL(f"File {cmd_and_fp[1]} does not exist.")
+
+@task
+def wrapper(cmd_and_fp: List[str], asset_dir: Path, asset_type: str):
+    """
+    placeholder for refactor
+    """
+    fp = to_fp(cmd_and_fp=cmd_and_fp)
+    asset_fp = copy_to_assets_dir(fp=fp, assets_dir=asset_dir)
+    loc_elt = gen_assets_entry( asset_type=asset_type, path=asset_fp)
+    return loc_elt
 
 @task
 def gen_assets_entry(
@@ -290,7 +304,6 @@ def gen_assets_entry(
     ]
     if asset_type not in valid_typs:
         raise ValueError(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
-    path = _clean_subdir(Config.proj_dir, path)
     if metadata:
         asset = {asset_type: path.as_posix(), "metadata": metadata}
     else:
@@ -298,12 +311,42 @@ def gen_assets_entry(
     return asset
 
 @task
-def copy_to_assets_dir(fp: Path, assets_dir: Path) -> None:
+def make_assets_dir(input_dir: str) -> Path:
+    """
+    input_dir comes in the form RMLEMHedwigQA/Projects/Lab/PI/
+    want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
+    """
+    input_dir = input_dir.replace("/Projects/", "/Assets/")
+    if not input_dir.endswith("/"):
+        input_dir = input_dir + "/"
+    assets_dir = Path(f"{Config.mount_point}{input_dir}")
+    logger = prefect.context.get("logger")
+    logger.info(f"making assets dir for {input_dir} at {assets_dir.as_posix()}")
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    return assets_dir
+
+
+@task
+def copy_to_assets_dir(fp: Path, assets_dir: Path) -> Path:
     """
     copy desired outputs to the assets (reported output) dir
+    eg copy /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/SARsCoV2_1/keyMov_SARsCoV2_1.mp4
+    to
+    /mnt/ai-fas12/RMLEMHedwigQA/Assets/Lab/Pi/SARsCoV2_1/keyMov_SARsCoV2_1.mp4
+    {mount_point}/{input_dir_as_asset}
+    eg temp_dir = /gs1/home/macmenaminpe/tmp/tmpgfcvuqz0/SARsCoV2_1
+    want to copy /gs1/home/macmenaminpe/tmp/tmpgfcvuqz0 (ie temp_dir.parent)
+    (note keep SARsCoV2_1) to assets_dir
     """
     # full_fp = Path(f"{Config.proj_dir}
-    shutil.copy(fp, assets_dir)
+    # want to remove the temp path, up until the tg name dir
+    tempdir_no_tg_name = fp.parent.parent
+    # eg SARsCoV2_1/keyMov_SARsCoV2_1.mp4
+    name_dir_fp = tempdir_no_tg_name.relative_to(fp)
+    dest = Path(f"{assets_dir}/{name_dir_fp}")
+    shutil.copytree(fp, dest)
+    # API doesn't want to know about mount_point
+    return dest.relative_to(Config.mount_point)
 
 @task
 def generate_callback_body(
