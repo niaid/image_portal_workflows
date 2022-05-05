@@ -25,13 +25,15 @@ shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
 
 @task
-def make_work_dir(fname: Path) -> Path:
+def make_work_dir(fp: Path) -> Path:
     """
-    a temporary dir to house all files. Will be rm'd upon completion.
-    dummy arg fname - using as placeholder - TODO
+    a temporary dir to house all files in the form:
+    {Config.tmp_dir}{fname.stem}.
+    eg: /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/tomogram_fname/
+    Will be rm'd upon completion.
     """
     logger = prefect.context.get("logger")
-    working_dir = tempfile.mkdtemp(dir=Config.tmp_dir)
+    working_dir = tempfile.mkdtemp(dir=f"{Config.tmp_dir}{fp.stem}")
     logger.info(f"created working_dir {working_dir}")
     return Path(working_dir)
 
@@ -62,8 +64,8 @@ def list_input_dir(input_dir_fp: Path) -> List[Path]:
     mrc_files = glob.glob(f"{input_dir_fp}/*.mrc")
     if len(mrc_files) == 0:
         raise signals.FAIL(f"Unable to find any input files in dir: {input_dir_fp}")
-    # mrc_fps = [Path(f) for f in mrc_files]
-    mrc_fps = [Path(f"/home/macmenaminpe/data/brt_run/2013-1220-dA30_5-BSC-1_10.mrc")]
+    mrc_fps = [Path(f) for f in mrc_files]
+    # mrc_fps = [Path(f"/home/macmenaminpe/data/brt_run/2013-1220-dA30_5-BSC-1_10.mrc")]
     return mrc_fps
 
 
@@ -426,9 +428,9 @@ if __name__ == "__main__":
         # a single input_dir will have n tomograms
         input_dir_fp = utils.get_input_dir(input_dir=input_dir)
         fnames = list_input_dir(input_dir_fp=input_dir_fp)
-        working_dirs = make_work_dir.map(fname=fnames)
+        temp_dirs = make_work_dir.map(fname=fnames)
         adoc_fps = copy_template.map(
-            working_dir=working_dirs, template_name=unmapped("dirTemplate")
+            working_dir=temp_dirs, template_name=unmapped("dirTemplate")
         )
         updated_adocs = update_adoc.map(
             adoc_fp=adoc_fps,
@@ -446,7 +448,7 @@ if __name__ == "__main__":
             THICKNESS=unmapped(THICKNESS),
         )
         tomogram_fps = copy_tg_to_working_dir.map(
-            fname=fnames, working_dir=working_dirs
+            fname=fnames, working_dir=temp_dirs
         )
 
         # START BRT (Batchruntomo) - long running process.
@@ -555,15 +557,20 @@ if __name__ == "__main__":
         metadatas = parse_min_max_file.map(fp=min_max_fps, upstream_tasks=[min_maxs])
         # END PYRAMID
 
-        # generate callback
+        # create assets directory
+        assets_dir = utils.make_assets_dir(input_dir=input_dir)
+
+        # generate callback body
         files_elts = utils.generate_callback_files.map(input_fname=tomogram_fps)
 
         # keyThumbnail
         thumbnail_fps = utils.to_fp.map(
             cmd_and_fp=gm_cmds_and_thumbnail_locs, upstream_tasks=[gms]
         )
+        thumbnail_asset_fps = utils.copy_to_assets_dir.map(fp=thumbnail_fps,
+                assets_dir=unmapped(assets_dir))
         thumbnail_locs_elt = utils.gen_assets_entry.map(
-            asset_type=unmapped("keyThumbnail"), path=thumbnail_fps
+            asset_type=unmapped("keyThumbnail"), path=thumbnail_asset_fps
         )
         files_elts = utils.add_assets.map(
             assets_list=files_elts, new_asset=thumbnail_locs_elt
