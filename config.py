@@ -1,5 +1,4 @@
 import os
-from tempfile import template
 from pathlib import Path
 from dask_jobqueue import SLURMCluster
 from prefect.executors import DaskExecutor
@@ -25,9 +24,13 @@ class Config:
     two_d_input_exts = ["dm4", "dm3", "tif", "tiff", "png", "jpg", "jpeg"]
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
-    tmp_dir = "/gs1/home/macmenaminpe/tmp"
-    # tmp_dir = "/tmp"
-    proj_dir = "/mnt/ai-fas12/"
+    # brt_binary = "/usr/local/IMOD/bin/batchruntomo"
+    # tmp_dir = "/gs1/home/macmenaminpe/tmp"
+    tmp_dir = "/gs1/Scratch/macmenaminpe_scratch/"
+    # tmp_dir = "/tmp/"
+    mount_point = "/mnt/ai-fas12/"
+    # mount_point = "/home/macmenaminpe/"
+    proj_dir = f"{mount_point}/data/"
     # repo_dir = os.path.join(os.path.dirname(__file__), "..")
     repo_dir = Path(os.path.dirname(__file__))
     template_dir = Path(f"{repo_dir.as_posix()}/templates")

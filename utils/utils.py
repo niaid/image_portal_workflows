@@ -18,6 +18,8 @@ logger = context.get("logger")
 
 @task
 def add_assets(assets_list: Dict, new_asset: Dict[str, str]) -> Dict:
+    logger = context.get("logger")
+    logger.info(f"Trying to add asset {new_asset}")
     assets_list.get("assets").append(new_asset)
     return assets_list
 
@@ -248,12 +250,13 @@ def _clean_subdir(subdir: str, fp: Path) -> Path:
     except ValueError:
         return fp
 
+
 @task
 def to_command(cmd_and_fp: List[str]) -> str:
     return cmd_and_fp[0]
 
-@task
-def to_fp(cmd_and_fp: List[str]) -> Optional[Path]:
+
+def _to_fp(cmd_and_fp: List[str]) -> Optional[Path]:
     """
     checks that an output file exists,
     returns a Path for that file.
@@ -264,24 +267,35 @@ def to_fp(cmd_and_fp: List[str]) -> Optional[Path]:
     else:
         raise signals.FAIL(f"File {cmd_and_fp[1]} does not exist.")
 
-@task
-def wrapper(cmd_and_fp: List[str], asset_dir: Path, asset_type: str):
-    """
-    placeholder for refactor
-    """
-    fp = to_fp(cmd_and_fp=cmd_and_fp)
-    asset_fp = copy_to_assets_dir(fp=fp, assets_dir=asset_dir)
-    loc_elt = gen_assets_entry( asset_type=asset_type, path=asset_fp)
-    return loc_elt
 
 @task
-def gen_assets_entry(
+def move_to_assets(
+    cmd_and_fp: List[str],
+    asset_dir: Path,
+    asset_type: str,
+    input_fp: Path,
+    metadata: Dict = None,
+):
+    """
+    extracts the asset location from list
+    moves that file to assets dir
+    generates
+    placeholder for refactor
+    """
+    logger = prefect.context.get("logger")
+    fp = _to_fp(cmd_and_fp=cmd_and_fp)
+    logger.info(f"Trying to move {fp}")
+    asset_fp = _move_to_assets_dir(fp=fp, assets_dir=asset_dir, dname=input_fp.stem)
+    loc_elt = _gen_assets_entry(asset_type=asset_type, path=asset_fp, metadata=metadata)
+    return loc_elt
+
+
+def _gen_assets_entry(
     path: Path, asset_type: str, metadata: Dict[str, str] = None
 ) -> Dict[str, str]:
     """
     asset type can be one of:
 
-    Thumbnail
     averagedVolume
     keyImage
     keyThumbnail
@@ -293,7 +307,6 @@ def gen_assets_entry(
     used to build the callback for API
     """
     valid_typs = [
-        "Thumbnail",
         "averagedVolume",
         "keyImage",
         "keyThumbnail",
@@ -310,12 +323,15 @@ def gen_assets_entry(
         asset = {asset_type: path.as_posix()}
     return asset
 
+
 @task
 def make_assets_dir(input_dir: str) -> Path:
     """
     input_dir comes in the form RMLEMHedwigQA/Projects/Lab/PI/
     want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
     """
+    if not "Projects" in input_dir:
+        raise signals.FAIL(f"Input directory {input_dir} does not contain Projects")
     input_dir = input_dir.replace("/Projects/", "/Assets/")
     if not input_dir.endswith("/"):
         input_dir = input_dir + "/"
@@ -326,27 +342,29 @@ def make_assets_dir(input_dir: str) -> Path:
     return assets_dir
 
 
-@task
-def copy_to_assets_dir(fp: Path, assets_dir: Path) -> Path:
+def _move_to_assets_dir(fp: Path, assets_dir: Path, dname: str) -> Path:
     """
-    copy desired outputs to the assets (reported output) dir
-    eg copy /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/SARsCoV2_1/keyMov_SARsCoV2_1.mp4
+    Move desired outputs to the assets (reported output) dir
+    eg copy /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/keyMov_SARsCoV2_1.mp4
     to
     /mnt/ai-fas12/RMLEMHedwigQA/Assets/Lab/Pi/SARsCoV2_1/keyMov_SARsCoV2_1.mp4
-    {mount_point}/{input_dir_as_asset}
-    eg temp_dir = /gs1/home/macmenaminpe/tmp/tmpgfcvuqz0/SARsCoV2_1
-    want to copy /gs1/home/macmenaminpe/tmp/tmpgfcvuqz0 (ie temp_dir.parent)
-    (note keep SARsCoV2_1) to assets_dir
+    {mount_point}/{dname}/keyMov_SARsCoV2_1.mp4
+    (note dname SARsCoV2_1) in assets_dir
     """
-    # full_fp = Path(f"{Config.proj_dir}
-    # want to remove the temp path, up until the tg name dir
-    tempdir_no_tg_name = fp.parent.parent
-    # eg SARsCoV2_1/keyMov_SARsCoV2_1.mp4
-    name_dir_fp = tempdir_no_tg_name.relative_to(fp)
-    dest = Path(f"{assets_dir}/{name_dir_fp}")
-    shutil.copytree(fp, dest)
+    logger = prefect.context.get("logger")
+    assets_sub_dir = Path(f"{assets_dir}/{dname}")
+    assets_sub_dir.mkdir(exist_ok=True)
+    dest = Path(f"{assets_sub_dir}/{fp.name}")
+    logger.info(f"Trying to move {fp} to {dest}")
+    if fp.is_dir():
+        if dest.exists():
+            shutil.rmtree(dest)
+        shutil.copytree(fp, dest)
+    else:
+        shutil.copyfile(fp, dest)
     # API doesn't want to know about mount_point
     return dest.relative_to(Config.mount_point)
+
 
 @task
 def generate_callback_body(
