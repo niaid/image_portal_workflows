@@ -367,7 +367,7 @@ def make_assets_dir(input_dir: str) -> Path:
     input_dir = input_dir.replace("/Projects/", "/Assets/")
     if not input_dir.endswith("/"):
         input_dir = input_dir + "/"
-    assets_dir = Path(f"{Config.mount_point}{input_dir}")
+    assets_dir = Path(f"{Config.mount_point}/{input_dir}/")
     logger = prefect.context.get("logger")
     logger.info(f"making assets dir for {input_dir} at {assets_dir.as_posix()}")
     assets_dir.mkdir(parents=True, exist_ok=True)

@@ -19,13 +19,13 @@ from image_portal_workflows.utils import utils
 @pytest.fixture
 def hpc_env(monkeypatch):
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
-    monkeypatch.setattr(Config, "proj_dir", "/home/macmenaminpe/data/")
-    monkeypatch.setattr(Config, "mount_point", "/home/macmenaminpe/")
+    monkeypatch.setattr(Config, "proj_dir", f"{os.getcwd()}/")
+    monkeypatch.setattr(Config, "mount_point", f"{os.getcwd()}")
     monkeypatch.setattr(Config, "tmp_dir", "/tmp/")
 
     @task
     def _create_brt_command(adoc_fp: Path) -> str:
-        s = f"cp {Config.proj_dir}/brt_run_keep/2013-1220-dA30_5-BSC-1_10*.mrc {adoc_fp.parent}"
+        s = f"cp {Config.proj_dir}test/input_files/brt_outputs/*.mrc {adoc_fp.parent}"
         prefect.context.get("logger").info(f"MOCKED {s}")
         return s
 
@@ -48,7 +48,7 @@ def test_dm4_conv(hpc_env):
         TargetNumberOfBeads="20",
         LocalAlignments="0",
         THICKNESS="30",
-        input_dir="/brt_run/Projects/single_mrc/",
+        input_dir="test/input_files/brt_inputs/Projects",
         token="the_token",
         sample_id="the_sample_id",
         callback_url="https://ptsv2.com/t/",
