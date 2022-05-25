@@ -3,6 +3,7 @@ import os
 import shutil
 import json
 import prefect
+import glob
 from typing import List, Dict, Optional
 from pathlib import Path
 from prefect import task, context
@@ -14,6 +15,37 @@ from prefect.triggers import all_finished
 from image_portal_workflows.config import Config
 
 logger = context.get("logger")
+
+
+@task
+def create_brt_command(adoc_fp: Path) -> str:
+    cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1"
+    logger = prefect.context.get("logger")
+    logger.info(cmd)
+    return cmd
+    # to short test
+    # return "ls"
+
+
+@task
+def list_input_dir(input_dir_fp: Path) -> List[Path]:
+    """
+    discover the contents of the input_dir AKA "Sample"
+    note, only lists mrc files currently. TODO(?)
+    include .st files TODO
+    note, only processing first file ATM (test)
+    """
+    logger = prefect.context.get("logger")
+    logger.info(f"trying to list {input_dir_fp}")
+    mrc_files = glob.glob(f"{input_dir_fp}/*.mrc")
+    if len(mrc_files) == 0:
+        raise signals.FAIL(f"Unable to find any input files in dir: {input_dir_fp}")
+    mrc_fps = [Path(f) for f in mrc_files]
+    # TESTING IGNORE
+    # mrc_fps = [Path(f"/home/macmenaminpe/data/brt_run/Projects/ABC2/2013-1220-dA30_5-BSC-1_10.mrc")]
+    logger = prefect.context.get("logger")
+    logger.info(f"Found {mrc_fps}")
+    return mrc_fps
 
 
 @task

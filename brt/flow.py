@@ -3,7 +3,6 @@ import json
 import subprocess
 import re
 import math
-import glob
 from typing import List, Dict
 
 from pathlib import Path
@@ -53,35 +52,12 @@ def copy_template(working_dir: Path, template_name: str) -> Path:
 
 
 @task
-def list_input_dir(input_dir_fp: Path) -> List[Path]:
-    """
-    discover the contents of the input_dir AKA "Sample"
-    note, only lists mrc files currently. TODO(?)
-    include .st files TODO
-    note, only processing first file ATM (test)
-    """
-    logger = prefect.context.get("logger")
-    logger.info(f"trying to list {input_dir_fp}")
-    mrc_files = glob.glob(f"{input_dir_fp}/*.mrc")
-    if len(mrc_files) == 0:
-        raise signals.FAIL(f"Unable to find any input files in dir: {input_dir_fp}")
-    mrc_fps = [Path(f) for f in mrc_files]
-    # TESTING IGNORE
-    mrc_fps = [Path(f"/home/macmenaminpe/data/brt_run/Projects/ABC2/2013-1220-dA30_5-BSC-1_10.mrc")]
-    logger = prefect.context.get("logger")
-    logger.info(f"Found {mrc_fps}")
-    return mrc_fps
-
-
-@task
 def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
     """
     copies files (tomograms/mrc files) into working_dir
     returns Path of copied file
     """
-    # TESTING IGNORE
-    fp = Path(f"/home/macmenaminpe/data/brt_run/Projects/ABC2/{fname.name}")
-    # fp = shutil.copyfile(src=fname.as_posix(), dst=f"{working_dir}/{fname.name}")
+    fp = shutil.copyfile(src=fname.as_posix(), dst=f"{working_dir}/{fname.name}")
     return Path(fp)
 
 
@@ -160,16 +136,6 @@ def update_adoc(
 
 
 @task
-def create_brt_command(adoc_fp: Path) -> str:
-    cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1"
-    logger = prefect.context.get("logger")
-    logger.info(cmd)
-    #return cmd
-    # to short test
-    return "ls"
-
-
-@task
 def gen_dimension_command(tg_fp: Path) -> str:
     command = f"header -s {tg_fp.parent}/{tg_fp.stem}_ali.mrc"
     a = subprocess.run(command, shell=True, check=True, capture_output=True)
@@ -192,6 +158,10 @@ def check_brt_run_ok(tg_fp: Path):
     rec_file = Path(f"{tg_fp.parent}/{tg_fp.stem}_rec.mrc")
     full_rec_file = Path(f"{tg_fp.parent}/{tg_fp.stem}_full_rec.mrc")
     ali_file = Path(f"{tg_fp.parent}/{tg_fp.stem}_ali.mrc")
+    prefect.context.get("logger").info(
+        f"checking that dir {tg_fp.parent} contains ok BRT run"
+    )
+
     for _file in [rec_file, full_rec_file, ali_file]:
         if not _file.exists():
             raise signals.FAIL(f"File {_file} does not exist. BRT run failure.")
@@ -406,8 +376,9 @@ def parse_min_max_file(l: List) -> Dict[str, str]:
         return json.load(_file)
 
 
-# with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
-with Flow("brt_flow") as f:
+# if __name__ == "__main__":
+
+with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     # This block of params map are for adoc file specfication.
     # Note the ugly names, these parameters are lifted verbatim from
     # https://bio3d.colorado.edu/imod/doc/directives.html where possible.
@@ -432,7 +403,7 @@ with Flow("brt_flow") as f:
     sample_id = Parameter("sample_id")()
     # a single input_dir will have n tomograms
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
-    fnames = list_input_dir(input_dir_fp=input_dir_fp)
+    fnames = utils.list_input_dir(input_dir_fp=input_dir_fp)
     temp_dirs = make_work_dir.map(fnames)
     adoc_fps = copy_template.map(
         working_dir=temp_dirs, template_name=unmapped(adoc_template)
@@ -455,7 +426,7 @@ with Flow("brt_flow") as f:
     tomogram_fps = copy_tg_to_working_dir.map(fname=fnames, working_dir=temp_dirs)
 
     # START BRT (Batchruntomo) - long running process.
-    brt_commands = create_brt_command.map(adoc_fp=updated_adocs)
+    brt_commands = utils.create_brt_command.map(adoc_fp=updated_adocs)
     brts = shell_task.map(
         command=brt_commands,
         upstream_tasks=[tomogram_fps],
@@ -538,19 +509,13 @@ with Flow("brt_flow") as f:
     # END RECONSTR MOVIE
 
     # START PYRAMID GEN
-    mrc2nifti_cmds = gen_mrc2nifti_cmd.map(
-        fp=tomogram_fps, upstream_tasks=[brts_ok]
-    )
-    mrc2niftis = shell_task.map(
-        command=mrc2nifti_cmds, to_echo=unmapped("mrc2nifti")
-    )
+    mrc2nifti_cmds = gen_mrc2nifti_cmd.map(fp=tomogram_fps, upstream_tasks=[brts_ok])
+    mrc2niftis = shell_task.map(command=mrc2nifti_cmds, to_echo=unmapped("mrc2nifti"))
     pyramid_cmds_and_pyramid_fps = gen_pyramid_cmd.map(
         fp=tomogram_fps, upstream_tasks=[mrc2niftis]
     )
     pyramid_cmds = utils.to_command.map(pyramid_cmds_and_pyramid_fps)
-    gen_pyramids = shell_task.map(
-        command=pyramid_cmds, to_echo=unmapped("gen pyramid")
-    )
+    gen_pyramids = shell_task.map(command=pyramid_cmds, to_echo=unmapped("gen pyramid"))
     min_max_cmds_and_out_fps = gen_min_max_cmd.map(
         fp=tomogram_fps, upstream_tasks=[mrc2niftis]
     )
@@ -588,9 +553,7 @@ with Flow("brt_flow") as f:
         asset_type=unmapped("tiltMovie"),
         upstream_tasks=[mpegs],
     )
-    files_elts = utils.add_assets.map(
-        assets_list=files_elts, new_asset=tiltMovie_elts
-    )
+    files_elts = utils.add_assets.map(assets_list=files_elts, new_asset=tiltMovie_elts)
 
     # averagedVolume
     averagedVolume_elts = utils.move_to_assets.map(
@@ -622,9 +585,7 @@ with Flow("brt_flow") as f:
         asset_type=unmapped("recMovie"),
         upstream_tasks=[ffmpeg_rcs],
     )
-    files_elts = utils.add_assets.map(
-        assets_list=files_elts, new_asset=recMovie_elts
-    )
+    files_elts = utils.add_assets.map(assets_list=files_elts, new_asset=recMovie_elts)
 
     # element neuroglancerPrecomputed
     ng_elts = utils.move_to_assets.map(
@@ -648,25 +609,5 @@ with Flow("brt_flow") as f:
             ng_elts,
         ],
     )
-# utils.print_t.map(min_maxs)
 
-
-result = f.run(
-    adoc_template="dirTemplate",
-    dual="0",
-    montage="0",
-    gold="15",
-    focus="0",
-    bfocus="0",
-    fiducialless="1",
-    trackingMethod=None,
-    TwoSurfaces="0",
-    TargetNumberOfBeads="20",
-    LocalAlignments="0",
-    THICKNESS="30",
-    input_dir="/brt_run/Projects/ABC2/",
-    token="the_token",
-    sample_id="the_sample_id",
-    callback_url="https://ptsv2.com/t/",
-)
 # print(json.dumps(result.result[files_elts]))
