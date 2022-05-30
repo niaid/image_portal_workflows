@@ -1,11 +1,8 @@
 from pathlib import Path
+from typing import List
+import prefect
 from prefect import Flow, task, Parameter, unmapped, context
-from prefect.tasks.docker.containers import (
-    CreateContainer,
-    StartContainer,
-    WaitOnContainer,
-    GetContainerLogs,
-)
+from image_portal_workflows.shell_task_echo import ShellTaskEcho
 from prefect.engine import signals
 
 
@@ -13,191 +10,141 @@ from image_portal_workflows.config import Config
 from image_portal_workflows.utils import utils
 
 logger = context.get("logger")
-
-
-class Container_Dm2mrc(CreateContainer):
-    """ """
-
-    def run(self, input_dir: Path, fp: Path, output_fp: Path):
-        logger.info(f"Dm2mrc mounting {input_dir} to /io")
-        f_in = f"/io/{fp.name}"
-        f_out = f"/io/{output_fp.name}"
-        logger.info(f"trying to convert {f_in} to {f_out}")
-        return super().run(
-            image_name="imod",
-            volumes=[f"{input_dir}:/io"],
-            host_config={"binds": [input_dir.as_posix() + ":/io"]},
-            command=[Config.dm2mrc_loc, f_in, f_out],
-        )
-
-
-class Container_gm_convert(CreateContainer):
-    gm = "/usr/bin/gm"
-    sharpen = "2"
-    # docker run
-    # -v $(pwd)/test/input_files/:/io
-    # graphicsmagick gm convert
-    # -size 300x300 "/io/20210525_1416_A000_G000.jpeg"
-    # -resize 300x300 -sharpen 2 -quality 70 "/io/20210525_1416_A000_G000_sm.jpeg"
-
-    def run(self, input_dir: Path, fp: Path, output_fp: Path, size: str):
-        logger.info(f"gm_convert mounting {input_dir} to /io")
-        f_in = f"/io/{fp.name}"
-        f_out = f"/io/{output_fp.name}"
-        logger.info(f"trying to convert {f_in} to {f_out}")
-        if size == "sm":
-            scaler = Config.size_sm
-        elif size == "lg":
-            scaler = Config.size_lg
-        else:
-            raise signals.FAIL(f"Thumbnail must be either sm or lg, not {size}")
-        return super().run(
-            image_name="graphicsmagick",
-            volumes=[f"{input_dir}:/io"],
-            host_config={"binds": [input_dir.as_posix() + ":/io"]},
-            command=[
-                Container_gm_convert.gm,
-                "convert",
-                "-size",
-                scaler,
-                f_in,
-                "-resize",
-                scaler,
-                "-sharpen",
-                "2",
-                "-quality",
-                "70",
-                f_out,
-            ],
-        )
-
-
-class Container_Mrc2tif(CreateContainer):
-    def run(self, input_dir: Path, fp: Path, output_fp: Path):
-        logger.info(f"Mrc2tiff mounting {input_dir} to /io")
-        f_in = f"/io/{fp.name}"
-        f_out = f"/io/{output_fp.name}"
-        logger.info(f"trying to convert {f_in} to {f_out}")
-        return super().run(
-            image_name="imod",
-            volumes=[f"{input_dir}:/io"],
-            host_config={"binds": [input_dir.as_posix() + ":/io"]},
-            command=[
-                Config.mrc2tif_loc,
-                "-j",
-                f_in,
-                f_out,
-            ],
-        )
-
-
-create_mrc = Container_Dm2mrc()
-create_jpeg = Container_Mrc2tif()
-create_thumb = Container_gm_convert()
-
-startDM = StartContainer()
-startMRC = StartContainer()
-startGM = StartContainer()
-startGMlg = StartContainer()
-waitDM = WaitOnContainer()
-waitMRC = WaitOnContainer()
-waitGMlg = WaitOnContainer()
-waitGM = WaitOnContainer()
+shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
 
 # get_logs = GetContainerLogs(trigger=always_run)
+@task
+def create_dm2mrc_command(dm_fp: Path, output_fp: Path) -> str:
+    cmd = f"{Config.dm2mrc_loc} {dm_fp} {output_fp}"
+    prefect.context.get("logger").info(f"Generated cmd {cmd}")
+    return cmd
+
+
+@task
+def create_jpeg_cmd(mrc_fp: Path, output_fp: Path) -> str:
+    cmd = f"{Config.mrc2tif_loc} -j {mrc_fp} {output_fp}"
+    prefect.context.get("logger").info(f"Generated cmd {cmd}")
+    return cmd
+
+
+@task
+def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
+    # gm convert
+    # -size 300x300 "/io/20210525_1416_A000_G000.jpeg"
+    # -resize 300x300 -sharpen 2 -quality 70 "/io/20210525_1416_A000_G000_sm.jpeg"
+    if size == "sm":
+        scaler = Config.size_sm
+    elif size == "lg":
+        scaler = Config.size_lg
+    else:
+        raise signals.FAIL(f"Thumbnail must be either sm or lg, not {size}")
+    cmd = f"gm convert -size {scaler} {fp_in} -resize 300x300 -sharpen 2 -quality 70 {fp_out}"
+    prefect.context.get("logger").info(f"Generated cmd {cmd}")
+    return cmd
+
+
+@task
+def join_list(list1: List[Path], list2: List[Path]) -> List[Path]:
+    return list1 + list2
 
 
 with Flow(
     "dm_to_jpeg", state_handlers=[utils.notify_api_completion, utils.notify_api_running]
 ) as flow:
+    """
+     [dm4 and dm3 inputs] ---> [mrc intermediary files] ---> [jpeg outputs]    -->
+                                                             [add jpeg inputs] -->
+     --> ALL scaled into sizes "sm" and "lg" 
+     """
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
-    callback_url = Parameter("callback_url")
-    token = Parameter("token")
+    callback_url = Parameter("callback_url")()
+    token = Parameter("token")()
     sample_id = Parameter("sample_id")()
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
-    # job = init_job(input_dir=input_dir)
+
+    # create a temp space to work
+    temp_dir = utils.make_work_dir()
+
+    # [dm4 and dm3 inputs]
     dm_fps = utils.list_files(input_dir_fp, ["dm4", "dm3"])
-    dm_fps = utils.run_single_file(input_fps=dm_fps, fp_to_check=file_name)
-    output_dir_fp = utils.gen_output_dir(input_dir=input_dir)
-    copied = utils.copy_inputs_to_outputs_dir(
-        input_dir_fp=input_dir_fp, output_dir_fp=output_dir_fp
+
+    # dm* to mrc conversion
+    mrc_fps = utils.gen_output_fp.map(
+        input_fp=dm_fps, working_dir=unmapped(temp_dir), output_ext=unmapped(".mrc")
+    )
+    dm2mrc_commands = create_dm2mrc_command.map(dm_fp=dm_fps, output_fp=mrc_fps)
+    dm2mrcs = shell_task.map(
+        command=dm2mrc_commands, to_echo=unmapped("running dm2mrc commands")
     )
 
-    #    # dm* to mrc conversion
-    mrc_locs = utils.gen_output_fname.map(input_fp=dm_fps, output_ext=unmapped(".mrc"))
-    mrc_ids = create_mrc.map(
-        input_dir=unmapped(output_dir_fp),
-        fp=dm_fps,
-        output_fp=mrc_locs,
+    # mrc is intermed format, to jpeg conversion
+    jpeg_fps = utils.gen_output_fp.map(input_fp=mrc_fps, output_ext=unmapped(".jpeg"))
+    jpeg_commands = create_jpeg_cmd.map(mrc_fp=mrc_fps, output_fp=jpeg_fps)
+    jpegs = shell_task.map(
+        command=jpeg_commands,
+        to_echo=unmapped("running jpeg commands"),
     )
-    mrc_starts = startDM.map(mrc_ids)
-    mrc_statuses = waitDM.map(mrc_ids)
 
-    # mrc to jpeg conversion
-    jpeg_locs = utils.gen_output_fname.map(
-        input_fp=mrc_locs, output_ext=unmapped(".jpeg")
+    # need to scale the newly created jpegs
+    jpeg_fps_sm_fps = utils.gen_output_fp.map(
+        input_fp=jpeg_fps, upstream_tasks=[jpegs], output_ext=unmapped("_SM.jpeg")
     )
-    jpeg_container_ids = create_jpeg.map(
-        input_dir=unmapped(output_dir_fp),
-        fp=mrc_locs,
-        output_fp=jpeg_locs,
-        upstream_tasks=[mrc_statuses, mrc_starts],
+    jpeg_fps_sm_cmds = create_gm_cmd.map(
+        fp_in=jpeg_fps, fp_out=jpeg_fps_sm_fps, size=unmapped("sm")
     )
-    jpeg_container_starts = startMRC.map(jpeg_container_ids)
-    jpeg_status_codes = waitMRC.map(jpeg_container_ids)
+    jpeg_fps_sms = shell_task.map(command=jpeg_fps_sm_cmds)
 
-    # check input_dir for any tif / tiff files
-    tiff_locs = utils.list_files(
-        input_dir=output_dir_fp,
-        exts=["tif", "tiff", "jpeg", "png"],
-        upstream_tasks=[jpeg_status_codes],
-    )
-    jpeg_locs = jpeg_locs + tiff_locs
 
-    # size down jpegs for small thumbs
-    small_thumb_locs = utils.gen_output_fname.map(
-        input_fp=jpeg_locs, output_ext=unmapped("_SM.jpeg")
+    # need to scale the newly created jpegs
+    jpeg_fps_lg_fps = utils.gen_output_fp.map(
+        input_fp=jpeg_fps, upstream_tasks=[jpegs], output_ext=unmapped("_LG.jpeg")
     )
-    thumb_container_ids_sm = create_thumb.map(
-        input_dir=unmapped(output_dir_fp),
-        fp=jpeg_locs,
-        output_fp=small_thumb_locs,
+    jpeg_fps_lg_cmds = create_gm_cmd.map(
+        fp_in=jpeg_fps, fp_out=jpeg_fps_lg_fps, size=unmapped("lg")
+    )
+    jpeg_fps_lgs = shell_task.map(command=jpeg_fps_lg_cmds)
+    # an input dir can also contain tif / tiff / jpeg or png files
+
+    # other inputs need to be converted too. Hopefully there's no naming overlaps
+    other_input_fps = utils.list_files(
+        input_dir=input_dir_fp, exts=["tif", "tiff", "jpeg", "png"]
+    )
+    # files in input dir, need to use working_dir to path
+    other_input_sm_fps = utils.gen_output_fp.map(
+        input_fp=other_input_fps,
+        output_ext=unmapped("_SM.jpeg"),
+        working_dir=unmapped(temp_dir),
+    )
+    other_input_gm_sm_cmds = create_gm_cmd.map(
+        fp_in=other_input_fps,
+        fp_out=other_input_sm_fps,
         size=unmapped("sm"),
     )
-    thumb_container_starts_sm = startGM.map(thumb_container_ids_sm)
-    thumb_status_codes_sm = waitGM.map(thumb_container_ids_sm)
-    #    logs = get_logs.map(
-    #        container_id=thumb_container_ids_sm, upstream_tasks=[thumb_status_codes_sm]
-    #    )
-    # utils.print_t.map(logs)
+    gm_cmd_in_dirs = shell_task.map(command=other_input_gm_sm_cmds)
 
-    # size dow jpegs for large thumbs
-    large_thumb_locs = utils.gen_output_fname.map(
-        input_fp=jpeg_locs, output_ext=unmapped("_LG.jpeg")
+    # large thumbs
+    other_input_lg_fps = utils.gen_output_fp.map(
+        input_fp=other_input_fps,
+        output_ext=unmapped("_LG.jpeg"),
+        working_dir=unmapped(temp_dir),
     )
-    thumb_container_ids_lg = create_thumb.map(
-        input_dir=unmapped(output_dir_fp),
-        fp=jpeg_locs,
-        output_fp=large_thumb_locs,
-        size=unmapped("lg"),
-    )
-    thumb_container_starts_lg = startGMlg.map(thumb_container_ids_lg)
-    thumb_status_codes_lg = waitGMlg.map(
-        thumb_container_ids_lg, upstream_tasks=[thumb_container_starts_lg]
-    )
+    other_input_lg_cmds = create_gm_cmd.map(fp_in=other_input_fps,
+            fp_out=other_input_lg_fps,
+            size=unmapped("lg"))
+    other_input_lgs = shell_task.map(command=other_input_lg_cmds)
+    # finished with other input conversion.
 
-    callback_files = utils.generate_callback_body(
-        token,
-        callback_url,
-        input_dir,
-        jpeg_locs,
-        large_thumb_locs,
-        small_thumb_locs,
-        upstream_tasks=[thumb_container_starts_sm, thumb_container_starts_lg],
-    )
-
-    utils.clean_up_outputs_dir(assets_dir=output_dir_fp, to_keep=callback_files)
-
-# logs = logs(_id, upstream_tasks=[status_code])
+#
+#    callback_files = utils.generate_callback_body(
+#        token,
+#        callback_url,
+#        input_dir,
+#        jpeg_locs,
+#        large_thumb_locs,
+#        small_thumb_locs,
+#        upstream_tasks=[thumb_container_starts_sm, thumb_container_starts_lg],
+#    )
+#
+#    utils.clean_up_outputs_dir(assets_dir=output_dir_fp, to_keep=callback_files)

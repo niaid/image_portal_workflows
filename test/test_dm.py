@@ -16,7 +16,7 @@ import os
 @pytest.fixture
 def mock_nfs_mount(monkeypatch):
     monkeypatch.setattr(Config, "proj_dir", os.getcwd())
-    monkeypatch.setattr(Config, "assets_dir", os.getcwd() + "/assets")
+    monkeypatch.setattr(Config, "tmp_dir", os.getcwd() + "/tmp")
 
 
 def test_dm4_conv(mock_nfs_mount):
