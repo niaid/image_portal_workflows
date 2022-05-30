@@ -7,7 +7,6 @@ from typing import List, Dict
 
 from pathlib import Path
 import shutil
-import tempfile
 import prefect
 from jinja2 import Environment, FileSystemLoader
 from prefect import task, Flow, Parameter, unmapped, flatten
@@ -22,20 +21,6 @@ from image_portal_workflows.config import Config
 
 shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
-
-@task
-def make_work_dir(fname) -> Path:
-    """
-    a temporary dir to house all files in the form:
-    {Config.tmp_dir}{fname.stem}.
-    eg: /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/tomogram_fname/
-    Will be rm'd upon completion.
-    """
-    working_dir = Path(tempfile.mkdtemp(dir=f"{Config.tmp_dir}"))
-    prefect.context.get("logger").info(
-        f"created working_dir {working_dir} for {fname.as_posix()}"
-    )
-    return Path(working_dir)
 
 
 @task
@@ -404,7 +389,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     # a single input_dir will have n tomograms
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
     fnames = utils.list_input_dir(input_dir_fp=input_dir_fp)
-    temp_dirs = make_work_dir.map(fnames)
+    temp_dirs = utils.make_work_dir.map(fnames)
     adoc_fps = copy_template.map(
         working_dir=temp_dirs, template_name=unmapped(adoc_template)
     )

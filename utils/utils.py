@@ -1,3 +1,4 @@
+import tempfile
 import requests
 import os
 import shutil
@@ -15,6 +16,22 @@ from prefect.triggers import all_finished
 from image_portal_workflows.config import Config
 
 logger = context.get("logger")
+
+@task
+def make_work_dir(fname: Path=None) -> Path:
+    """
+    a temporary dir to house all files in the form:
+    {Config.tmp_dir}{fname.stem}.
+    eg: /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/tomogram_fname/
+    Will be rm'd upon completion.
+    """
+    working_dir = Path(tempfile.mkdtemp(dir=f"{Config.tmp_dir}"))
+    if fname:
+        msg = f"created working_dir {working_dir} for {fname.as_posix()}"
+    else:
+        msg = f"No file name given for dir creation"
+    prefect.context.get("logger").info(msg)
+    return Path(working_dir)
 
 
 @task
@@ -97,12 +114,12 @@ def list_files(input_dir: Path, exts: List[str]) -> List[Path]:
     _files = list()
     for ext in exts:
         _files.extend(input_dir.glob(f"*.{ext}"))
-    _file_names = [Path(_file.name) for _file in _files]
+    # _file_names = [Path(_file.name) for _file in _files]
     logger.info("Found files:")
-    logger.info(_file_names)
+    logger.info(_files)
     #    if not _files:
     #        raise ValueError(f"{input_dir} contains no files with extension {ext}")
-    return _file_names
+    return _files
 
 
 # class Job:
@@ -115,6 +132,20 @@ def list_files(input_dir: Path, exts: List[str]) -> List[Path]:
 #    ATM."""
 #    return Job(input_dir=input_dir)
 
+@task
+def gen_output_fp(input_fp: Path, output_ext: str, working_dir: Path=None) -> Path:
+    """
+    cat working_dir to input_fp.name, but swap the extension to output_ext
+    the reason for having a working_dir default to None is sometimes the output
+    dir is not the same as the input dir, and working_dir is used to define output
+    in this case.
+    """
+    if working_dir:
+        output_fp = f"{working_dir.as_posix()}/{input_fp.stem}{output_ext}"
+    else:
+        output_fp = f"{input_fp.parent}/{input_fp.stem}{output_ext}"
+    prefect.context.get("logger").info( f"Using dir: {working_dir}, file: {input_fp}, ext: {output_ext} creating output_fp {output_fp}")
+    return Path(output_fp)
 
 @task
 def gen_output_fname(input_fp: Path, output_ext) -> Path:
