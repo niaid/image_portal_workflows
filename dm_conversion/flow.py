@@ -56,7 +56,9 @@ def dump_to_json(elt):
 
 
 with Flow(
-    "dm_to_jpeg", state_handlers=[utils.notify_api_completion, utils.notify_api_running]
+    "dm_to_jpeg",
+    state_handlers=[utils.notify_api_completion, utils.notify_api_running],
+    executor=Config.SLURM_EXECUTOR,
 ) as flow:
     """
     [dm4 and dm3 inputs] ---> [mrc intermediary files] ---> [jpeg outputs]    -->
