@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import List
 import prefect
@@ -49,14 +50,19 @@ def join_list(list1: List[Path], list2: List[Path]) -> List[Path]:
     return list1 + list2
 
 
+@task
+def dump_to_json(elt):
+    print(json.dumps(elt))
+
+
 with Flow(
     "dm_to_jpeg", state_handlers=[utils.notify_api_completion, utils.notify_api_running]
 ) as flow:
     """
-     [dm4 and dm3 inputs] ---> [mrc intermediary files] ---> [jpeg outputs]    -->
-                                                             [add jpeg inputs] -->
-     --> ALL scaled into sizes "sm" and "lg" 
-     """
+    [dm4 and dm3 inputs] ---> [mrc intermediary files] ---> [jpeg outputs]    -->
+                                                            [add jpeg inputs] -->
+    --> ALL scaled into sizes "sm" and "lg"
+    """
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url")()
@@ -67,6 +73,8 @@ with Flow(
     # create a temp space to work
     temp_dir = utils.make_work_dir()
 
+    # create an assets_dir (to copy required outputs into)
+    assets_dir = utils.make_assets_dir(input_dir=input_dir_fp)
     # [dm4 and dm3 inputs]
     dm_fps = utils.list_files(input_dir_fp, ["dm4", "dm3"])
 
@@ -95,7 +103,6 @@ with Flow(
         fp_in=jpeg_fps, fp_out=jpeg_fps_sm_fps, size=unmapped("sm")
     )
     jpeg_fps_sms = shell_task.map(command=jpeg_fps_sm_cmds)
-
 
     # need to scale the newly created jpegs
     jpeg_fps_lg_fps = utils.gen_output_fp.map(
@@ -130,13 +137,19 @@ with Flow(
         output_ext=unmapped("_LG.jpeg"),
         working_dir=unmapped(temp_dir),
     )
-    other_input_lg_cmds = create_gm_cmd.map(fp_in=other_input_fps,
-            fp_out=other_input_lg_fps,
-            size=unmapped("lg"))
+    other_input_lg_cmds = create_gm_cmd.map(
+        fp_in=other_input_fps, fp_out=other_input_lg_fps, size=unmapped("lg")
+    )
     other_input_lgs = shell_task.map(command=other_input_lg_cmds)
+
+    wrapper_elts = utils.generate_callback_files.map(input_fname=dm_fps)
+    kts = utils.add_assets_entry.map(
+        base_elt=wrapper_elts, path=jpeg_fps_sm_fps, asset_type=unmapped("keyThumbnail")
+    )
+    dump_to_json.map(wrapper_elts, upstream_tasks=[kts])
+
     # finished with other input conversion.
 
-#
 #    callback_files = utils.generate_callback_body(
 #        token,
 #        callback_url,

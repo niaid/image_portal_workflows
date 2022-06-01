@@ -117,8 +117,8 @@ def list_files(input_dir: Path, exts: List[str]) -> List[Path]:
     # _file_names = [Path(_file.name) for _file in _files]
     logger.info("Found files:")
     logger.info(_files)
-    #    if not _files:
-    #        raise ValueError(f"{input_dir} contains no files with extension {ext}")
+    if not _files:
+        raise ValueError(f"{input_dir} contains no files with extension {ext}")
     return _files
 
 
@@ -353,6 +353,40 @@ def move_to_assets(
     return loc_elt
 
 
+@task
+def add_assets_entry(
+        base_elt: Dict, path: Path, asset_type: str, metadata: Dict[str, str] = None
+) -> None:
+    """
+    asset type can be one of:
+
+    averagedVolume
+    keyImage
+    keyThumbnail
+    recMovie
+    tiltMovie
+    volume
+    neuroglancerPrecomputed
+
+    used to build the callback for API
+    """
+    valid_typs = [
+        "averagedVolume",
+        "keyImage",
+        "keyThumbnail",
+        "recMovie",
+        "tiltMovie",
+        "volume",
+        "neuroglancerPrecomputed",
+    ]
+    if asset_type not in valid_typs:
+        raise ValueError(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
+    if metadata:
+        asset = {asset_type: path.as_posix(), "metadata": metadata}
+    else:
+        asset = {asset_type: path.as_posix()}
+    base_elt["assets"].append(asset)
+
 def _gen_assets_entry(
     path: Path, asset_type: str, metadata: Dict[str, str] = None
 ) -> Dict[str, str]:
@@ -388,19 +422,16 @@ def _gen_assets_entry(
 
 
 @task
-def make_assets_dir(input_dir: str) -> Path:
+def make_assets_dir(input_dir: Path) -> Path:
     """
-    input_dir comes in the form RMLEMHedwigQA/Projects/Lab/PI/
+    input_dir comes in the form {mount_point}/RMLEMHedwigQA/Projects/Lab/PI/
     want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
     """
-    if not "Projects" in input_dir:
+    if not "Projects" in input_dir.as_posix():
         raise signals.FAIL(f"Input directory {input_dir} does not contain Projects")
-    input_dir = input_dir.replace("/Projects/", "/Assets/")
-    if not input_dir.endswith("/"):
-        input_dir = input_dir + "/"
-    assets_dir = Path(f"{Config.mount_point}/{input_dir}/")
-    logger = prefect.context.get("logger")
-    logger.info(f"making assets dir for {input_dir} at {assets_dir.as_posix()}")
+    assets_dir_as_str = input_dir.as_posix().replace("/Projects/", "/Assets/")
+    assets_dir = Path(assets_dir_as_str)
+    prefect.context.get("logger").info(f"making assets dir for {input_dir} at {assets_dir.as_posix()}")
     assets_dir.mkdir(parents=True, exist_ok=True)
     return assets_dir
 
