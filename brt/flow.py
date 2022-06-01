@@ -103,14 +103,14 @@ def update_adoc(
     }
 
     # junk above for now.
-    vals = {
-        "basename": name,
-        "bead_size": 10,
-        "light_beads": 0,
-        "tilt_thickness": 256,
-        "montage": 0,
-        "dataset_dir": str(adoc_fp.parent),
-    }
+#    vals = {
+#        "basename": name,
+#        "bead_size": 10,
+#        "light_beads": 0,
+#        "tilt_thickness": 256,
+#        "montage": 0,
+#        "dataset_dir": str(adoc_fp.parent),
+#    }
     output = template.render(vals)
     adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
     with open(adoc_loc, "w") as _file:
