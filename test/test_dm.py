@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from prefect.engine import signals
 from prefect.tasks.prefect import create_flow_run
+from prefect.executors import LocalExecutor
 
 sys.path.append("..")
 from image_portal_workflows.config import Config
@@ -17,11 +18,12 @@ import os
 def mock_nfs_mount(monkeypatch):
     monkeypatch.setattr(Config, "proj_dir", os.getcwd())
     monkeypatch.setattr(Config, "tmp_dir", os.getcwd() + "/tmp")
+    monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
 
 
 def test_dm4_conv(mock_nfs_mount):
     result = flow.run(
-        input_dir="/test/input_files/",
+        input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
         token="the_token",
         sample_id="the_sample_id",
         callback_url="https://ptsv2.com/t/",
