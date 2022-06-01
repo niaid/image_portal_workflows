@@ -117,8 +117,6 @@ def list_files(input_dir: Path, exts: List[str]) -> List[Path]:
     # _file_names = [Path(_file.name) for _file in _files]
     logger.info("Found files:")
     logger.info(_files)
-    if not _files:
-        raise ValueError(f"{input_dir} contains no files with extension {ext}")
     return _files
 
 
