@@ -9,7 +9,6 @@ from prefect.executors import LocalExecutor
 
 sys.path.append("..")
 from image_portal_workflows.config import Config
-from image_portal_workflows.dm_conversion.flow import flow
 from image_portal_workflows.utils.utils import _add_outputs, _gen_callback_file_list
 import os
 
@@ -25,6 +24,8 @@ def mock_nfs_mount(monkeypatch):
 
 
 def test_dm4_conv(mock_nfs_mount):
+    from image_portal_workflows.dm_conversion.flow import flow
+
     result = flow.run(
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
         token="the_token",
@@ -35,6 +36,8 @@ def test_dm4_conv(mock_nfs_mount):
 
 
 def test_input_fname(mock_nfs_mount):
+    from image_portal_workflows.dm_conversion.flow import flow
+
     flow.run(
         input_dir="/test/input_files/",
         file_name="20210525_1416_A000_G000.dm4",
@@ -45,6 +48,8 @@ def test_input_fname(mock_nfs_mount):
 
 
 def test_single_file_not_found_gens_exception(mock_nfs_mount):
+    from image_portal_workflows.dm_conversion.flow import flow
+
     state = flow.run(
         input_dir="/test/input_files/",
         file_name="does_not_exist",

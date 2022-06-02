@@ -63,6 +63,7 @@ with Flow(
     """
     [dm4 and dm3 inputs] ---> [mrc intermediary files] ---> [jpeg outputs]    -->
                                                             [add jpeg inputs] -->
+
     --> ALL scaled into sizes "sm" and "lg"
     """
     input_dir = Parameter("input_dir")
@@ -132,7 +133,7 @@ with Flow(
         fp_out=other_input_sm_fps,
         size=unmapped("sm"),
     )
-    gm_cmd_in_dirs = shell_task.map(command=other_input_gm_sm_cmds)
+    other_sm_gms = shell_task.map(command=other_input_gm_sm_cmds)
 
     # large thumbs
     other_input_lg_fps = utils.gen_output_fp.map(
@@ -162,7 +163,7 @@ with Flow(
     dm_sm_thumbs = utils.add_assets_entry.map(
         base_elt=dm_primary_file_elts,
         path=jpeg_fps_sm_asset_fps,
-        asset_type=unmapped("keyThumbnail"),
+        asset_type=unmapped("thumbnail"),
     )
     # finished small thumbnails
 
@@ -175,25 +176,49 @@ with Flow(
     )
     dm_lg_thumbs = utils.add_assets_entry.map(
         base_elt=dm_primary_file_elts,
-        path=jpeg_fps_sm_asset_fps,
+        path=jpeg_fps_lg_asset_fps,
         asset_type=unmapped("keyImage"),
     )
     # finished large thumbnails
 
-    # this will become the POST bit.
-    dumps = dump_to_json.map(dm_primary_file_elts, upstream_tasks=[dm_sm_thumbs, dm_lg_thumbs])
+    # any other input that wasn't dm4
+    other_primary_file_elts = utils.generate_callback_files.map(
+        input_fname=other_input_fps
+    )
 
+    # small thumbnails - other inputs
+    other_assets_sm_fps = utils._move_to_assets_dir.map(
+        fp=other_input_sm_fps,
+        assets_dir=unmapped(assets_dir),
+        prim_fp=other_input_fps,
+        upstream_tasks=[other_sm_gms],
+    )
+    other_sm_thumbs = utils.add_assets_entry.map(
+        base_elt=other_primary_file_elts,
+        path=other_assets_sm_fps,
+        asset_type=unmapped("thumbnail"),
+    )
+    # finished small thumbnails - other inputs
 
+    # other inputs, large thumbs
+    other_assets_lg_fps = utils._move_to_assets_dir.map(
+        fp=other_input_lg_fps,
+        assets_dir=unmapped(assets_dir),
+        prim_fp=other_input_fps,
+        upstream_tasks=[other_input_lgs],
+    )
+    other_lg_thumbs = utils.add_assets_entry.map(
+        base_elt=other_primary_file_elts,
+        path=other_assets_lg_fps,
+        asset_type=unmapped("keyImage"),
+    )
     # finished with other input conversion.
 
-#    callback_files = utils.generate_callback_body(
-#        token,
-#        callback_url,
-#        input_dir,
-#        jpeg_locs,
-#        large_thumb_locs,
-#        small_thumb_locs,
-#        upstream_tasks=[thumb_container_starts_sm, thumb_container_starts_lg],
-#    )
-#
-#    utils.clean_up_outputs_dir(assets_dir=output_dir_fp, to_keep=callback_files)
+    all_assets = join_list(dm_primary_file_elts, other_primary_file_elts)
+
+    utils.send_callback_body(
+        token=token,
+        callback_url=callback_url,
+        files_elts=all_assets,
+        upstream_tasks=[dm_sm_thumbs, dm_lg_thumbs, other_lg_thumbs, other_sm_thumbs],
+    )
