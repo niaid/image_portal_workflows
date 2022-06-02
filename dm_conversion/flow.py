@@ -95,6 +95,7 @@ with Flow(
     jpegs = shell_task.map(
         command=jpeg_commands,
         to_echo=unmapped("running jpeg commands"),
+        upstream_tasks=[dm2mrcs],
     )
 
     # need to scale the newly created jpegs
@@ -143,12 +144,45 @@ with Flow(
         fp_in=other_input_fps, fp_out=other_input_lg_fps, size=unmapped("lg")
     )
     other_input_lgs = shell_task.map(command=other_input_lg_cmds)
+    # At this point computation of the workflow is complete.
+    # now need to copy subset of files to "Assets" dir
+    # and
+    # create a datastructure containing each of locations of the files.
 
-    wrapper_elts = utils.generate_callback_files.map(input_fname=dm_fps)
-    kts = utils.add_assets_entry.map(
-        base_elt=wrapper_elts, path=jpeg_fps_sm_fps, asset_type=unmapped("keyThumbnail")
+    # dm3/dm4 type inputs (ie inputs we converted to jpegs)
+    dm_primary_file_elts = utils.generate_callback_files.map(input_fname=dm_fps)
+
+    # small thumbnails
+    jpeg_fps_sm_asset_fps = utils._move_to_assets_dir.map(
+        fp=jpeg_fps_sm_fps,
+        assets_dir=unmapped(assets_dir),
+        prim_fp=dm_fps,
+        upstream_tasks=[jpeg_fps_sms],
     )
-    dump_to_json.map(wrapper_elts, upstream_tasks=[kts])
+    dm_sm_thumbs = utils.add_assets_entry.map(
+        base_elt=dm_primary_file_elts,
+        path=jpeg_fps_sm_asset_fps,
+        asset_type=unmapped("keyThumbnail"),
+    )
+    # finished small thumbnails
+
+    # large thumbnails
+    jpeg_fps_lg_asset_fps = utils._move_to_assets_dir.map(
+        fp=jpeg_fps_lg_fps,
+        assets_dir=unmapped(assets_dir),
+        prim_fp=dm_fps,
+        upstream_tasks=[jpeg_fps_lgs],
+    )
+    dm_lg_thumbs = utils.add_assets_entry.map(
+        base_elt=dm_primary_file_elts,
+        path=jpeg_fps_sm_asset_fps,
+        asset_type=unmapped("keyImage"),
+    )
+    # finished large thumbnails
+
+    # this will become the POST bit.
+    dumps = dump_to_json.map(dm_primary_file_elts, upstream_tasks=[dm_sm_thumbs, dm_lg_thumbs])
+
 
     # finished with other input conversion.
 
