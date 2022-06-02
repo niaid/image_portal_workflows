@@ -76,7 +76,7 @@ def add_assets(assets_list: Dict, new_asset: Dict[str, str]) -> Dict:
 @task
 def generate_callback_files(input_fname: Path, input_fname_b: Path = None) -> Dict:
     """
-    creates the base part callback, to which assets can be added.
+    creates a single primaryFilePath element, to which assets can be appended.
     TODO:
     input_fname_b is optional, sometimes the input can be a pair of files.
     eg:
@@ -379,10 +379,11 @@ def add_assets_entry(
     ]
     if asset_type not in valid_typs:
         raise ValueError(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
+    fp_no_mount_point = path.relative_to(Config.mount_point)
     if metadata:
-        asset = {asset_type: path.as_posix(), "metadata": metadata}
+        asset = {asset_type: fp_no_mount_point.as_posix(), "metadata": metadata}
     else:
-        asset = {asset_type: path.as_posix()}
+        asset = {asset_type: fp_no_mount_point.as_posix()}
     base_elt["assets"].append(asset)
 
 def _gen_assets_entry(
@@ -433,8 +434,8 @@ def make_assets_dir(input_dir: Path) -> Path:
     assets_dir.mkdir(parents=True, exist_ok=True)
     return assets_dir
 
-
-def _move_to_assets_dir(fp: Path, assets_dir: Path, dname: str) -> Path:
+@task
+def _move_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path) -> Path:
     """
     Move desired outputs to the assets (reported output) dir
     eg copy /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/keyMov_SARsCoV2_1.mp4
@@ -444,7 +445,7 @@ def _move_to_assets_dir(fp: Path, assets_dir: Path, dname: str) -> Path:
     (note dname SARsCoV2_1) in assets_dir
     """
     logger = prefect.context.get("logger")
-    assets_sub_dir = Path(f"{assets_dir}/{dname}")
+    assets_sub_dir = Path(f"{assets_dir}/{prim_fp.stem}")
     assets_sub_dir.mkdir(exist_ok=True)
     dest = Path(f"{assets_sub_dir}/{fp.name}")
     logger.info(f"Trying to move {fp} to {dest}")
@@ -455,7 +456,7 @@ def _move_to_assets_dir(fp: Path, assets_dir: Path, dname: str) -> Path:
     else:
         shutil.copyfile(fp, dest)
     # API doesn't want to know about mount_point
-    return dest.relative_to(Config.mount_point)
+    return dest
 
 
 @task
