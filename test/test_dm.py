@@ -16,9 +16,12 @@ import os
 
 @pytest.fixture
 def mock_nfs_mount(monkeypatch):
+    monkeypatch.setattr(Config, "mount_point", os.getcwd() + "/test/input_files")
     monkeypatch.setattr(Config, "proj_dir", os.getcwd())
     monkeypatch.setattr(Config, "tmp_dir", os.getcwd() + "/tmp")
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
+    monkeypatch.setattr(Config, "dm2mrc_loc", "/usr/local/IMOD/bin/dm2mrc")
+    monkeypatch.setattr(Config, "mrc2tif_loc", "/usr/local/IMOD/bin/mrc2tif")
 
 
 def test_dm4_conv(mock_nfs_mount):
