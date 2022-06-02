@@ -17,8 +17,9 @@ from image_portal_workflows.config import Config
 
 logger = context.get("logger")
 
+
 @task
-def make_work_dir(fname: Path=None) -> Path:
+def make_work_dir(fname: Path = None) -> Path:
     """
     a temporary dir to house all files in the form:
     {Config.tmp_dir}{fname.stem}.
@@ -130,8 +131,9 @@ def list_files(input_dir: Path, exts: List[str]) -> List[Path]:
 #    ATM."""
 #    return Job(input_dir=input_dir)
 
+
 @task
-def gen_output_fp(input_fp: Path, output_ext: str, working_dir: Path=None) -> Path:
+def gen_output_fp(input_fp: Path, output_ext: str, working_dir: Path = None) -> Path:
     """
     cat working_dir to input_fp.name, but swap the extension to output_ext
     the reason for having a working_dir default to None is sometimes the output
@@ -142,8 +144,11 @@ def gen_output_fp(input_fp: Path, output_ext: str, working_dir: Path=None) -> Pa
         output_fp = f"{working_dir.as_posix()}/{input_fp.stem}{output_ext}"
     else:
         output_fp = f"{input_fp.parent}/{input_fp.stem}{output_ext}"
-    prefect.context.get("logger").info( f"Using dir: {working_dir}, file: {input_fp}, ext: {output_ext} creating output_fp {output_fp}")
+    prefect.context.get("logger").info(
+        f"Using dir: {working_dir}, file: {input_fp}, ext: {output_ext} creating output_fp {output_fp}"
+    )
     return Path(output_fp)
+
 
 @task
 def gen_output_fname(input_fp: Path, output_ext) -> Path:
@@ -353,7 +358,7 @@ def move_to_assets(
 
 @task
 def add_assets_entry(
-        base_elt: Dict, path: Path, asset_type: str, metadata: Dict[str, str] = None
+    base_elt: Dict, path: Path, asset_type: str, metadata: Dict[str, str] = None
 ) -> None:
     """
     asset type can be one of:
@@ -371,6 +376,7 @@ def add_assets_entry(
     valid_typs = [
         "averagedVolume",
         "keyImage",
+        "thumbnail",
         "keyThumbnail",
         "recMovie",
         "tiltMovie",
@@ -385,6 +391,7 @@ def add_assets_entry(
     else:
         asset = {asset_type: fp_no_mount_point.as_posix()}
     base_elt["assets"].append(asset)
+
 
 def _gen_assets_entry(
     path: Path, asset_type: str, metadata: Dict[str, str] = None
@@ -430,9 +437,12 @@ def make_assets_dir(input_dir: Path) -> Path:
         raise signals.FAIL(f"Input directory {input_dir} does not contain Projects")
     assets_dir_as_str = input_dir.as_posix().replace("/Projects/", "/Assets/")
     assets_dir = Path(assets_dir_as_str)
-    prefect.context.get("logger").info(f"making assets dir for {input_dir} at {assets_dir.as_posix()}")
+    prefect.context.get("logger").info(
+        f"making assets dir for {input_dir} at {assets_dir.as_posix()}"
+    )
     assets_dir.mkdir(parents=True, exist_ok=True)
     return assets_dir
+
 
 @task
 def _move_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path) -> Path:
@@ -455,21 +465,16 @@ def _move_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path) -> Path:
         shutil.copytree(fp, dest)
     else:
         shutil.copyfile(fp, dest)
-    # API doesn't want to know about mount_point
     return dest
 
 
 @task
-def generate_callback_body(
+def send_callback_body(
     token: str,
     callback_url: str,
-    input_dir: str,
-    inputs: List[Path],
-    jpeg_locs: List[Path],
-    small_thumb_locs: List[Path],
-):
+    files_elts: List[Dict],
+) -> None:
     """
-    TODO, this should be **kwargs, with the type keying.
     Upon completion of file conversion a callback is made to the calling
     API specifying the locations of files, along with metadata about the files.
     the body of the callback should look something like this:
@@ -495,16 +500,7 @@ def generate_callback_body(
         ]
     }
     """
-    if not input_dir.endswith("/"):
-        input_dir = input_dir + "/"
-    files = _gen_callback_file_list(dname=input_dir, inputs=inputs)
-    files = _add_outputs(
-        dname=input_dir, files=files, outputs=jpeg_locs, _type="keyImage"
-    )
-    files = _add_outputs(
-        dname=input_dir, files=files, outputs=small_thumb_locs, _type="thumbnail"
-    )
-    data = {"files": files}
+    data = {"files": files_elts}
     headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
     response = requests.post(callback_url, headers=headers, data=json.dumps(data))
     logger.info(response.url)
@@ -512,4 +508,3 @@ def generate_callback_body(
     logger.info(json.dumps(data))
     logger.info(response.text)
     logger.info(response.headers)
-    return files
