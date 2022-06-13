@@ -360,7 +360,7 @@ def _clean_subdir(subdir: str, fp: Path) -> Path:
 @task
 def add_assets_entry(
     base_elt: Dict, path: Path, asset_type: str, metadata: Dict[str, str] = None
-) -> None:
+) -> Dict:
     """
     asset type can be one of:
 
@@ -391,7 +391,8 @@ def add_assets_entry(
         asset = {asset_type: fp_no_mount_point.as_posix(), "metadata": metadata}
     else:
         asset = {asset_type: fp_no_mount_point.as_posix()}
-    base_elt["assets"].append(asset)
+    return asset
+    # base_elt["assets"].append(asset)
 
 
 def _gen_assets_entry(
