@@ -269,8 +269,9 @@ def gen_output_dir(input_dir: str) -> Path:
 
 @task
 def get_input_dir(input_dir: str) -> Path:
-    """Does nothing more than concat the POSTed input file path to the
-    mount point.
+    """
+    Concat the POSTed input file path to the mount point.
+    returns Path obj
     """
     input_path = Path(Config.proj_dir + input_dir)
     logger.info(f"Input path is {input_path}")
@@ -317,43 +318,43 @@ def _clean_subdir(subdir: str, fp: Path) -> Path:
         return fp
 
 
-@task
-def to_command(cmd_and_fp: List[str]) -> str:
-    return cmd_and_fp[0]
+#@task
+#def to_command(cmd_and_fp: List[str]) -> str:
+#    return cmd_and_fp[0]
+#
 
+#def _to_fp(cmd_and_fp: List[str]) -> Optional[Path]:
+#    """
+#    checks that an output file exists,
+#    returns a Path for that file.
+#    """
+#    path = Path(cmd_and_fp[1])
+#    if path.exists():
+#        return path
+#    else:
+#        raise signals.FAIL(f"File {cmd_and_fp[1]} does not exist.")
+#
 
-def _to_fp(cmd_and_fp: List[str]) -> Optional[Path]:
-    """
-    checks that an output file exists,
-    returns a Path for that file.
-    """
-    path = Path(cmd_and_fp[1])
-    if path.exists():
-        return path
-    else:
-        raise signals.FAIL(f"File {cmd_and_fp[1]} does not exist.")
-
-
-@task
-def move_to_assets(
-    cmd_and_fp: List[str],
-    asset_dir: Path,
-    asset_type: str,
-    input_fp: Path,
-    metadata: Dict = None,
-):
-    """
-    extracts the asset location from list
-    moves that file to assets dir
-    generates
-    placeholder for refactor
-    """
-    logger = prefect.context.get("logger")
-    fp = _to_fp(cmd_and_fp=cmd_and_fp)
-    logger.info(f"Trying to move {fp}")
-    asset_fp = _move_to_assets_dir(fp=fp, assets_dir=asset_dir, dname=input_fp.stem)
-    loc_elt = _gen_assets_entry(asset_type=asset_type, path=asset_fp, metadata=metadata)
-    return loc_elt
+#@task
+#def move_to_assets(
+#    cmd_and_fp: List[str],
+#    asset_dir: Path,
+#    asset_type: str,
+#    input_fp: Path,
+#    metadata: Dict = None,
+#):
+#    """
+#    extracts the asset location from list
+#    moves that file to assets dir
+#    generates
+#    placeholder for refactor
+#    """
+#    logger = prefect.context.get("logger")
+#    fp = _to_fp(cmd_and_fp=cmd_and_fp)
+#    logger.info(f"Trying to move {fp}")
+#    asset_fp = _move_to_assets_dir(fp=fp, assets_dir=asset_dir, dname=input_fp.stem)
+#    loc_elt = _gen_assets_entry(asset_type=asset_type, path=asset_fp, metadata=metadata)
+#    return loc_elt
 
 
 @task
@@ -458,7 +459,7 @@ def _move_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path) -> Path:
     assets_sub_dir = Path(f"{assets_dir}/{prim_fp.stem}")
     assets_sub_dir.mkdir(exist_ok=True)
     dest = Path(f"{assets_sub_dir}/{fp.name}")
-    logger.info(f"Trying to move {fp} to {dest}")
+    logger.info(f"Trying to copy {fp} to {dest}")
     if fp.is_dir():
         if dest.exists():
             shutil.rmtree(dest)
