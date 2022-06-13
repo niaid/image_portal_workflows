@@ -40,7 +40,7 @@ def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
         scaler = Config.size_lg
     else:
         raise signals.FAIL(f"Thumbnail must be either sm or lg, not {size}")
-    cmd = f"gm convert -size {scaler} {fp_in} -resize 300x300 -sharpen 2 -quality 70 {fp_out}"
+    cmd = f"gm convert -size {scaler} {fp_in} -resize {scaler} -sharpen 2 -quality 70 {fp_out}"
     prefect.context.get("logger").info(f"Generated cmd {cmd}")
     return cmd
 

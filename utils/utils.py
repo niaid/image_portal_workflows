@@ -386,13 +386,13 @@ def add_assets_entry(
     ]
     if asset_type not in valid_typs:
         raise ValueError(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
-    fp_no_mount_point = path.relative_to(Config.mount_point)
+    fp_no_mount_point = path.relative_to(Config.assets_dir)
     if metadata:
-        asset = {asset_type: fp_no_mount_point.as_posix(), "metadata": metadata}
+        asset = {"type": asset_type, "path": fp_no_mount_point.as_posix(), "metadata": metadata}
     else:
-        asset = {asset_type: fp_no_mount_point.as_posix()}
-    return asset
-    # base_elt["assets"].append(asset)
+        asset = {"type": asset_type, "path": fp_no_mount_point.as_posix()}
+    base_elt["assets"].append(asset)
+    return base_elt
 
 
 def _gen_assets_entry(
