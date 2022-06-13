@@ -192,18 +192,19 @@ def gen_mrc2tiff(fp: Path) -> str:
 
 
 @task
-def gen_gm_convert(fp: Path, middle_i: str) -> List[str]:
+def gen_gm_convert(tomogram_fp: Path, middle_i: str, fp_out: Path) -> str:
     """
     generates the keyThumbnail
+    fname_in and fname_out both derived from tomogram fp
+    MIDDLE_I might always be an int
     gm convert -size 300x300 path/BASENAME_ali.{MIDDLE_I}.jpg -resize 300x300 -sharpen 2 -quality 70 path/keyimg_BASENAME_s.jpg
     """
-    middle_i_fname = f"{fp.parent}/{fp.stem}_ali.{middle_i}.jpg"
-    thumbnail_fp = f"{fp.parent}/keyimg_{fp.stem}_s.jpg"
-    cmd = f"gm convert -size 300x300 {middle_i_fname} -resize 300x300 \
-            -sharpen 2 -quality 70 {thumbnail_fp}"
-    logger = prefect.context.get("logger")
-    logger.info(cmd)
-    return [cmd, thumbnail_fp]
+    fname_in = f"{tomogram_fp.parent}/{tomogram_fp.stem}_ali.{middle_i}.jpg"
+    # fname_out = f"{fp.parent}/keyimg_{fp.stem}_s.jpg"
+    cmd = f"gm convert -size 300x300 {fname_in} -resize 300x300 \
+            -sharpen 2 -quality 70 {fp_out}"
+    prefect.context.get("logger").info(cmd)
+    return cmd
 
 
 @task
@@ -221,19 +222,18 @@ def calc_middle_i(z_dim: str) -> str:
 
 
 @task
-def gen_ffmpeg_cmd(fp: Path) -> List[str]:
+def gen_ffmpeg_cmd(fp: Path, fp_out: Path) -> str:
     """
     generates the tilt moveie
     ffmpeg -f image2 -framerate 4 -i ${BASENAME}_ali.%03d.jpg -vcodec \
             libx264 -pix_fmt yuv420p -s 1024,1024 tiltMov_${BASENAME}.mp4
     """
     input_fp = f"{fp.parent}/{fp.stem}_ali.%03d.jpg"
-    out_fp = f"{fp.parent}/tiltMov_{fp.stem}.mp4"
+    # out_fp = f"{fp.parent}/tiltMov_{fp.stem}.mp4"
     cmd = f"ffmpeg -y -f image2 -framerate 4 -i {input_fp} -vcodec \
-            libx264 -pix_fmt yuv420p -s 1024,1024 {out_fp}"
-    logger = prefect.context.get("logger")
-    logger.info(f"ffmpeg command: {cmd}")
-    return [cmd, out_fp]
+            libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
+    prefect.context.get("logger").info(f"ffmpeg command: {cmd}")
+    return cmd
 
 
 # "_rc" denotes ReConstruction movie related funcs
@@ -259,29 +259,27 @@ def gen_clip_rc_cmds(fp: Path, z_dim) -> List[str]:
 
 
 @task
-def newstack_fl_rc_cmd(fp: Path) -> List[str]:
+def newstack_fl_rc_cmd(fp: Path) -> str:
     """
     newstack -float 3 path/BASENAME_ave* path/ave_BASENAME.mrc
     """
     fp_in = f"{fp.parent}/{fp.stem}_ave*"
     fp_out = f"{fp.parent}/ave_{fp.stem}.mrc"
     cmd = f"sleep 10 && newstack -float 3 {fp_in} {fp_out}"
-    logger = prefect.context.get("logger")
-    logger.info(f"reconstruction newstack_fl_rc_cmd {cmd}")
-    return [cmd, fp_out]
+    prefect.context.get("logger").info(f"reconstruction newstack_fl_rc_cmd {cmd}")
+    return cmd
 
 
 @task
-def gen_binvol_rc_cmd(fp: Path) -> List[str]:
+def gen_binvol_rc_cmd(fp: Path, fp_out: Path) -> str:
     """
     binvol -binning 2 path/ave_BASENAME.mrc path/avebin8_BASENAME.mrc
     """
     fp_in = f"{fp.parent}/ave_{fp.stem}.mrc"
-    fp_out = f"{fp.parent}/avebin8_{fp.stem}.mrc"
+    # fp_out = f"{fp.parent}/avebin8_{fp.stem}.mrc"
     cmd = f"binvol -binning 2 {fp_in} {fp_out}"
-    logger = prefect.context.get("logger")
-    logger.info(f"reconstruction binvol command: {cmd}")
-    return [cmd, fp_out]
+    prefect.context.get("logger").info(f"reconstruction binvol command: {cmd}")
+    return cmd
 
 
 @task
@@ -298,19 +296,19 @@ def gen_mrc2tiff_rc_cmd(fp: Path) -> str:
 
 
 @task
-def gen_ffmpeg_rc_cmd(fp: Path) -> List[str]:
+def gen_ffmpeg_rc_cmd(fp: Path, fp_out:Path) -> str:
     """
     TODO - 3 or 4?
     ffmpeg -f image2 -framerate 8 -i path/BASENAME_mp4.%03d.jpg -vcodec \
             libx264 -pix_fmt yuv420p -s 1024,1024 path/keyMov_BASENAME.mp4
     """
     fp_in = f"{fp.parent}/{fp.stem}_mp4.%03d.jpg"
-    fp_out = f"{fp.parent}/keyMov_{fp.stem}.mp4"
+    # fp_out = f"{fp.parent}/keyMov_{fp.stem}.mp4"
     cmd = f"ffmpeg -f image2 -framerate 8 -y -i {fp_in} -vcodec \
             libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
     logger = prefect.context.get("logger")
     logger.info(f"reconstruction ffmpeg command: {cmd}")
-    return [cmd, fp_out]
+    return cmd
 
 
 @task
@@ -443,17 +441,22 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     middle_is = calc_middle_i.map(z_dim=z_dims)
 
     # key_imgs are an output/asset - location needs to be reported.
-    gm_cmds_and_thumbnail_locs = gen_gm_convert.map(
-        fp=tomogram_fps, middle_i=middle_is, upstream_tasks=[mrc2tiffs]
+    thumbs_sm_fps = utils.gen_output_fp.map(
+        input_fp=tomogram_fps, upstream_tasks=[mrc2tiffs], output_ext=unmapped("_SM.jpeg")
     )
-    gm_cmds = utils.to_command.map(cmd_and_fp=gm_cmds_and_thumbnail_locs)
-    gms = shell_task.map(command=gm_cmds, to_echo=unmapped("gm thumbnail commands"))
+    gm_cmds_sm = gen_gm_convert.map(
+        tomogram_fp=tomogram_fps, middle_i=middle_is, fp_out=thumbs_sm_fps, upstream_tasks=[mrc2tiffs]
+    )
+    gms_sm = shell_task.map(command=gm_cmds_sm, to_echo=unmapped("gm small thumbnail commands"))
 
-    mpeg_cmds_and_tiltMovie_fps = gen_ffmpeg_cmd.map(
-        fp=tomogram_fps, upstream_tasks=[mrc2tiffs]
+    # START TILT MOVIE GENERATION - every tg => 1 movie
+    tiltMovie_fps = utils.gen_output_fp.map(
+        input_fp=tomogram_fps, upstream_tasks=[mrc2tiffs], output_ext=unmapped("_tiltMov.mp4")
     )
-    mpeg_cmds = utils.to_command.map(mpeg_cmds_and_tiltMovie_fps)
-    mpegs = shell_task.map(command=mpeg_cmds, to_echo=unmapped("ffmpeg comands"))
+    tiltMovie_cmds = gen_ffmpeg_cmd.map(
+        fp=tomogram_fps, fp_out=tiltMovie_fps, upstream_tasks=[mrc2tiffs]
+    )
+    mpegs = shell_task.map(command=tiltMovie_cmds, to_echo=unmapped("tiltMovie comands"))
     # END TILT MOVIE GENERATION
 
     # START RECONSTR MOVIE GENERATION:
@@ -464,30 +467,36 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     clips = shell_task.map(
         command=flatten(clip_cmds), to_echo=unmapped("rc clip commands")
     )
-    ns_float_rc_cmds_and_ave_vol_fps = newstack_fl_rc_cmd.map(
+    # # #
+    ns_float_rc_cmds = newstack_fl_rc_cmd.map(
         fp=tomogram_fps, upstream_tasks=[clips]
     )
-    ns_float_rc_cmds = utils.to_command.map(ns_float_rc_cmds_and_ave_vol_fps)
+    # ns_float_rc_cmds = utils.to_command.map(ns_float_rc_cmds_and_ave_vol_fps)
     ns_float_rcs = shell_task.map(
         command=ns_float_rc_cmds, to_echo=unmapped("rc float commands")
     )
-    bin_vol_cmds_and_avebin8_fps = gen_binvol_rc_cmd.map(
-        fp=tomogram_fps, upstream_tasks=[ns_float_rcs]
-    )
-    bin_vol_cmds = utils.to_command.map(bin_vol_cmds_and_avebin8_fps)
+    # # # 
+
+    # # #
+    avebin8_fps = utils.gen_output_fp.map(input_fp=tomogram_fps,
+            output_ext=unmapped("_avebin8.mrc"))
+    # bin_vol_cmds_and_avebin8_fps = gen_binvol_rc_cmd.map(fp=tomogram_fps, upstream_tasks=[ns_float_rcs])
+    bin_vol_cmds = gen_binvol_rc_cmd.map(fp=tomogram_fps, fp_out=avebin8_fps, upstream_tasks=[ns_float_rcs])
     bin_vols = shell_task.map(
         command=bin_vol_cmds, to_echo=unmapped("bin vols commands")
     )
+    # # #
     mrc2tiff_rc_cmds = gen_mrc2tiff_rc_cmd.map(
         fp=tomogram_fps, upstream_tasks=[bin_vols]
     )
     mrc2tiff_rcs = shell_task.map(
         command=mrc2tiff_rc_cmds, to_echo=unmapped("mrc2tiff_rcs commands")
     )
-    ffmpeg_rc_cmds_and_ffmpeg_rc_fps = gen_ffmpeg_rc_cmd.map(
-        fp=tomogram_fps, upstream_tasks=[mrc2tiff_rcs]
+    # # #
+    mpegs_rc_fps = utils.gen_output_fp.map(input_fp=tomogram_fps, output_ext=unmapped("_keyMov.mp4"))
+    ffmpeg_rc_cmds = gen_ffmpeg_rc_cmd.map(
+        fp=tomogram_fps, fp_out=mpegs_rc_fps, upstream_tasks=[mrc2tiff_rcs]
     )
-    ffmpeg_rc_cmds = utils.to_command.map(ffmpeg_rc_cmds_and_ffmpeg_rc_fps)
     ffmpeg_rcs = shell_task.map(
         command=ffmpeg_rc_cmds, to_echo=unmapped("ffmpeg_rc_cmds commands")
     )
@@ -511,88 +520,88 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     )
     # END PYRAMID
 
-    #        # create assets directory
-    assets_dir = utils.make_assets_dir(input_dir=input_dir)
-
-    # generate callback body
-    files_elts = utils.generate_callback_files.map(input_fname=tomogram_fps)
-
-    # keyThumbnail
-    keyThumbnail_elts = utils.move_to_assets.map(
-        cmd_and_fp=gm_cmds_and_thumbnail_locs,
-        asset_dir=unmapped(assets_dir),
-        input_fp=tomogram_fps,
-        asset_type=unmapped("keyThumbnail"),
-        upstream_tasks=[gms],
-    )
-
-    files_elts = utils.add_assets.map(
-        assets_list=files_elts, new_asset=keyThumbnail_elts
-    )
-
-    # tiltMovie
-    tiltMovie_elts = utils.move_to_assets.map(
-        cmd_and_fp=mpeg_cmds_and_tiltMovie_fps,
-        asset_dir=unmapped(assets_dir),
-        input_fp=tomogram_fps,
-        asset_type=unmapped("tiltMovie"),
-        upstream_tasks=[mpegs],
-    )
-    files_elts = utils.add_assets.map(assets_list=files_elts, new_asset=tiltMovie_elts)
-
-    # averagedVolume
-    averagedVolume_elts = utils.move_to_assets.map(
-        cmd_and_fp=ns_float_rc_cmds_and_ave_vol_fps,
-        asset_dir=unmapped(assets_dir),
-        input_fp=tomogram_fps,
-        asset_type=unmapped("averagedVolume"),
-        upstream_tasks=[ns_float_rcs],
-    )
-    files_elts = utils.add_assets.map(
-        assets_list=files_elts, new_asset=averagedVolume_elts
-    )
-
-    # volume
-    volume_elts = utils.move_to_assets.map(
-        cmd_and_fp=bin_vol_cmds_and_avebin8_fps,
-        asset_dir=unmapped(assets_dir),
-        input_fp=tomogram_fps,
-        asset_type=unmapped("volume"),
-        upstream_tasks=[bin_vols],
-    )
-    files_elts = utils.add_assets.map(assets_list=files_elts, new_asset=volume_elts)
-
-    # recMovie
-    recMovie_elts = utils.move_to_assets.map(
-        cmd_and_fp=ffmpeg_rc_cmds_and_ffmpeg_rc_fps,
-        asset_dir=unmapped(assets_dir),
-        input_fp=tomogram_fps,
-        asset_type=unmapped("recMovie"),
-        upstream_tasks=[ffmpeg_rcs],
-    )
-    files_elts = utils.add_assets.map(assets_list=files_elts, new_asset=recMovie_elts)
-
-    # element neuroglancerPrecomputed
-    ng_elts = utils.move_to_assets.map(
-        cmd_and_fp=pyramid_cmds_and_pyramid_fps,
-        asset_dir=unmapped(assets_dir),
-        input_fp=tomogram_fps,
-        asset_type=unmapped("neuroglancerPrecomputed"),
-        upstream_tasks=[gen_pyramids],
-        metadata=metadatas,
-    )
-    ng_elts = utils.add_assets.map(assets_list=files_elts, new_asset=ng_elts)
-
-    utils.print_t.map(
-        files_elts,
-        upstream_tasks=[
-            keyThumbnail_elts,
-            tiltMovie_elts,
-            averagedVolume_elts,
-            volume_elts,
-            recMovie_elts,
-            ng_elts,
-        ],
-    )
+#    # create assets directory
+#    assets_dir = utils.make_assets_dir(input_dir=input_dir_fp)
+#
+#    # generate callback body
+#    files_elts = utils.generate_callback_files.map(input_fname=tomogram_fps)
+#
+#    # keyThumbnail
+#    keyThumbnail_fps = utils._move_to_assets_dir.map(
+#        fp=thumbs_sm_fps,
+#        assets_dir=unmapped(assets_dir),
+#        prim_fp=tomogram_fps,
+#        upstream_tasks=[gms_sm],
+#    )
+#    sm_thumbs = utils.add_assets_entry.map(
+#        base_elt=files_elts,
+#        path=keyThumbnail_fps,
+#        asset_type=unmapped("thumbnail"),
+#    )
+#
+#    # tiltMovie
+#    tiltMovie_elts = utils._move_to_assets_dir.map(
+#        cmd_and_fp=mpeg_cmds_and_tiltMovie_fps,
+#        asset_dirs=unmapped(assets_dir),
+#        input_fp=tomogram_fps,
+#        asset_type=unmapped("tiltMovie"),
+#        upstream_tasks=[mpegs],
+#    )
+#    files_elts = utils.add_assets.map(assets_list=files_elts, new_asset=tiltMovie_elts)
+#
+#    # averagedVolume
+#    averagedVolume_elts = utils.move_to_assets.map(
+#        cmd_and_fp=ns_float_rc_cmds_and_ave_vol_fps,
+#        asset_dir=unmapped(assets_dir),
+#        input_fp=tomogram_fps,
+#        asset_type=unmapped("averagedVolume"),
+#        upstream_tasks=[ns_float_rcs],
+#    )
+#    files_elts = utils.add_assets.map(
+#        assets_list=files_elts, new_asset=averagedVolume_elts
+#    )
+#
+#    # volume
+#    volume_elts = utils.move_to_assets.map(
+#        cmd_and_fp=bin_vol_cmds_and_avebin8_fps,
+#        asset_dir=unmapped(assets_dir),
+#        input_fp=tomogram_fps,
+#        asset_type=unmapped("volume"),
+#        upstream_tasks=[bin_vols],
+#    )
+#    files_elts = utils.add_assets.map(assets_list=files_elts, new_asset=volume_elts)
+#
+#    # recMovie
+#    recMovie_elts = utils.move_to_assets.map(
+#        cmd_and_fp=ffmpeg_rc_cmds_and_ffmpeg_rc_fps,
+#        asset_dir=unmapped(assets_dir),
+#        input_fp=tomogram_fps,
+#        asset_type=unmapped("recMovie"),
+#        upstream_tasks=[ffmpeg_rcs],
+#    )
+#    files_elts = utils.add_assets.map(assets_list=files_elts, new_asset=recMovie_elts)
+#
+#    # element neuroglancerPrecomputed
+#    ng_elts = utils.move_to_assets.map(
+#        cmd_and_fp=pyramid_cmds_and_pyramid_fps,
+#        asset_dir=unmapped(assets_dir),
+#        input_fp=tomogram_fps,
+#        asset_type=unmapped("neuroglancerPrecomputed"),
+#        upstream_tasks=[gen_pyramids],
+#        metadata=metadatas,
+#    )
+#    ng_elts = utils.add_assets.map(assets_list=files_elts, new_asset=ng_elts)
+#
+#    utils.print_t.map(
+#        files_elts,
+#        upstream_tasks=[
+#            keyThumbnail_elts,
+#            tiltMovie_elts,
+#            averagedVolume_elts,
+#            volume_elts,
+#            recMovie_elts,
+#            ng_elts,
+#        ],
+#    )
 
 # print(json.dumps(result.result[files_elts]))
