@@ -46,6 +46,9 @@ def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
 
 
 @task
+def join_list_2(elt) -> List[Path]:
+    return list1 + list2
+@task
 def join_list(list1: List[Path], list2: List[Path]) -> List[Path]:
     return list1 + list2
 
@@ -145,6 +148,9 @@ with Flow(
         fp_in=other_input_fps, fp_out=other_input_lg_fps, size=unmapped("lg")
     )
     other_input_lgs = shell_task.map(command=other_input_lg_cmds)
+
+
+
     # At this point computation of the workflow is complete.
     # now need to copy subset of files to "Assets" dir
     # and
@@ -160,8 +166,8 @@ with Flow(
         prim_fp=dm_fps,
         upstream_tasks=[jpeg_fps_sms],
     )
-    dm_sm_thumbs = utils.add_assets_entry.map(
-        base_elt=dm_primary_file_elts,
+    with_dm_sm_thumbs = utils.add_assets_entry.map(
+            base_elt=dm_primary_file_elts,
         path=jpeg_fps_sm_asset_fps,
         asset_type=unmapped("thumbnail"),
     )
@@ -174,51 +180,49 @@ with Flow(
         prim_fp=dm_fps,
         upstream_tasks=[jpeg_fps_lgs],
     )
-    dm_lg_thumbs = utils.add_assets_entry.map(
-        base_elt=dm_primary_file_elts,
+    with_dm_lg_thumbs = utils.add_assets_entry.map(
+            base_elt=with_dm_sm_thumbs,
         path=jpeg_fps_lg_asset_fps,
         asset_type=unmapped("keyImage"),
     )
     # finished large thumbnails
 
-    # any other input that wasn't dm4
-    other_primary_file_elts = utils.generate_callback_files.map(
-        input_fname=other_input_fps
-    )
+#     # any other input that wasn't dm4
+#     other_primary_file_elts = utils.generate_callback_files.map(
+#         input_fname=other_input_fps
+#     )
 
-    # small thumbnails - other inputs
-    other_assets_sm_fps = utils._move_to_assets_dir.map(
-        fp=other_input_sm_fps,
-        assets_dir=unmapped(assets_dir),
-        prim_fp=other_input_fps,
-        upstream_tasks=[other_sm_gms],
-    )
-    other_sm_thumbs = utils.add_assets_entry.map(
-        base_elt=other_primary_file_elts,
-        path=other_assets_sm_fps,
-        asset_type=unmapped("thumbnail"),
-    )
-    # finished small thumbnails - other inputs
-
-    # other inputs, large thumbs
-    other_assets_lg_fps = utils._move_to_assets_dir.map(
-        fp=other_input_lg_fps,
-        assets_dir=unmapped(assets_dir),
-        prim_fp=other_input_fps,
-        upstream_tasks=[other_input_lgs],
-    )
-    other_lg_thumbs = utils.add_assets_entry.map(
-        base_elt=other_primary_file_elts,
-        path=other_assets_lg_fps,
-        asset_type=unmapped("keyImage"),
-    )
-    # finished with other input conversion.
-
-    all_assets = join_list(dm_primary_file_elts, other_primary_file_elts)
+#    # small thumbnails - other inputs
+#    other_assets_sm_fps = utils._move_to_assets_dir.map(
+#        fp=other_input_sm_fps,
+#        assets_dir=unmapped(assets_dir),
+#        prim_fp=other_input_fps,
+#        upstream_tasks=[other_sm_gms],
+#    )
+#    other_sm_thumbs = utils.add_assets_entry.map(
+#        path=other_assets_sm_fps,
+#        asset_type=unmapped("thumbnail"),
+#    )
+#    # finished small thumbnails - other inputs
+#
+#    # other inputs, large thumbs
+#    other_assets_lg_fps = utils._move_to_assets_dir.map(
+#        fp=other_input_lg_fps,
+#        assets_dir=unmapped(assets_dir),
+#        prim_fp=other_input_fps,
+#        upstream_tasks=[other_input_lgs],
+#    )
+#    other_lg_thumbs = utils.add_assets_entry.map(
+#        path=other_assets_lg_fps,
+#        asset_type=unmapped("keyImage"),
+#    )
+#    # finished with other input conversion.
+#
+#    all_assets = join_list(dm_primary_file_elts, other_primary_file_elts)
 
     utils.send_callback_body(
         token=token,
         callback_url=callback_url,
-        files_elts=all_assets,
-        upstream_tasks=[dm_sm_thumbs, dm_lg_thumbs, other_lg_thumbs, other_sm_thumbs],
+        files_elts=with_dm_lg_thumbs,
+        upstream_tasks=[with_dm_sm_thumbs, with_dm_lg_thumbs],
     )
