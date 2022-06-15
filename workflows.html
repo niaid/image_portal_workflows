@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
     <title>Workflows &#8212; Image Portal Workflows  documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
@@ -12,6 +12,7 @@
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -33,13 +34,13 @@
           <div class="body" role="main">
             
   <section id="workflows">
-<h1>Workflows<a class="headerlink" href="#workflows" title="Permalink to this headline">¶</a></h1>
+<h1>Workflows<a class="headerlink" href="#workflows" title="Permalink to this heading">¶</a></h1>
 <p>TomoJS 3D pipeline for tomographic reconstruction.</p>
 <p>The term “batch run tomo[gram]” is abbreviated BRT.</p>
 <section id="processes">
-<h2>Processes<a class="headerlink" href="#processes" title="Permalink to this headline">¶</a></h2>
+<h2>Processes<a class="headerlink" href="#processes" title="Permalink to this heading">¶</a></h2>
 <section id="generate-brt-directive-file">
-<h3>Generate BRT Directive File<a class="headerlink" href="#generate-brt-directive-file" title="Permalink to this headline">¶</a></h3>
+<h3>Generate BRT Directive File<a class="headerlink" href="#generate-brt-directive-file" title="Permalink to this heading">¶</a></h3>
 <dl class="simple">
 <dt>Description:</dt><dd><p>Generate a configuration file of parameter for BRT process.</p>
 </dd>
@@ -69,7 +70,7 @@ should be made. Inside the curly brackets is a suggested parameter name for the 
 The other directive files can be defined as parameters it the batch directive file provided on the command line.</p>
 </section>
 <section id="batchruntomo-brt">
-<h3>BatchRunTomo (BRT)<a class="headerlink" href="#batchruntomo-brt" title="Permalink to this headline">¶</a></h3>
+<h3>BatchRunTomo (BRT)<a class="headerlink" href="#batchruntomo-brt" title="Permalink to this heading">¶</a></h3>
 <dl class="simple">
 <dt>Description:</dt><dd><p>Perform computational expensive operations of processing an acquired tomography tilt-series and reconstructing a 3D
 volume. The process consists of numerous step to prepare, align, and perform 3d reconstruction from the tilt series
@@ -100,7 +101,7 @@ the final “.” is considered the <cite>BASENAME</cite>.</p></li>
 temporary and log files are created during this process.</p>
 </section>
 <section id="generate-tilt-movie">
-<h3>Generate tilt movie<a class="headerlink" href="#generate-tilt-movie" title="Permalink to this headline">¶</a></h3>
+<h3>Generate tilt movie<a class="headerlink" href="#generate-tilt-movie" title="Permalink to this heading">¶</a></h3>
 <dl class="simple">
 <dt>Description:</dt><dd><p>Convert a MRC file of the aligned tilt series into a movie for easy viewing.</p>
 </dd>
@@ -128,7 +129,7 @@ ffmpeg -f image2 -framerate 4 -i ${BASENAME}_ali.%03d.jpg -vcodec libx264 -pix_f
 </div>
 </section>
 <section id="generate-reconstruction-movie">
-<h3>Generate reconstruction movie<a class="headerlink" href="#generate-reconstruction-movie" title="Permalink to this headline">¶</a></h3>
+<h3>Generate reconstruction movie<a class="headerlink" href="#generate-reconstruction-movie" title="Permalink to this heading">¶</a></h3>
 <dl class="simple">
 <dt>Description:</dt><dd><p>Convert a MRC file of the reconstructed 3D volume into a movie for easy viewing.</p>
 </dd>
@@ -153,7 +154,7 @@ ffmpeg -f image2 -framerate 8 -i WORKDIR/hedwig/BASENAME_mp4.%04d.jpg -vcodec li
 </div>
 </section>
 <section id="generate-neuroglancer-pyramid">
-<h3>Generate Neuroglancer Pyramid<a class="headerlink" href="#generate-neuroglancer-pyramid" title="Permalink to this headline">¶</a></h3>
+<h3>Generate Neuroglancer Pyramid<a class="headerlink" href="#generate-neuroglancer-pyramid" title="Permalink to this heading">¶</a></h3>
 <dl>
 <dt>Descriptions:</dt><dd><p>Generates a <a class="reference external" href="https://github.com/google/neuroglancer">Neuroglancer</a> <a class="reference external" href="https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/volume.md">precomputed</a> pyramid from an MRC file of a 3D volume. This does not work for tilt series, or other
 non-volumetric files.</p>
@@ -229,7 +230,7 @@ NIAID <a class="reference external" href="https://github.com/niaid/tomojs-pytool
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -246,7 +247,7 @@ NIAID <a class="reference external" href="https://github.com/niaid/tomojs-pytool
       &copy;2021, NIAID.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.5.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

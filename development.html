@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
     <title>Development &#8212; Image Portal Workflows  documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
@@ -12,6 +12,7 @@
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -34,18 +35,18 @@
           <div class="body" role="main">
             
   <section id="development">
-<h1>Development<a class="headerlink" href="#development" title="Permalink to this headline">¶</a></h1>
+<h1>Development<a class="headerlink" href="#development" title="Permalink to this heading">¶</a></h1>
 <p>The docs related to development and testing are contained in this section.</p>
 <section id="prerequisites">
-<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading">¶</a></h2>
 <p>Please read before cloning.</p>
 <section id="github-com">
-<h3>Github.com<a class="headerlink" href="#github-com" title="Permalink to this headline">¶</a></h3>
+<h3>Github.com<a class="headerlink" href="#github-com" title="Permalink to this heading">¶</a></h3>
 <p>The repository is located in the NIAID Github.com enterprise organization. Having a github.com account which is a member
 of the NIAID organization is required.</p>
 </section>
 <section id="git-lfs">
-<h3>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this headline">¶</a></h3>
+<h3>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this heading">¶</a></h3>
 <p>Git <a class="reference external" href="https://git-lfs.github.com">Large File Storage</a> (LFS) is used to store larger files in the repository such as
 test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
 be installed on the system and set up on the users account. The <a class="reference external" href="https://git-lfs.github.com">tool’s documentation</a>
@@ -55,16 +56,16 @@ transparent with operation such as cloning, adding files, and changing branches.
 be stored in Git LFS.</p>
 </section>
 <section id="flake8">
-<h3>Flake8<a class="headerlink" href="#flake8" title="Permalink to this headline">¶</a></h3>
+<h3>Flake8<a class="headerlink" href="#flake8" title="Permalink to this heading">¶</a></h3>
 <p><a class="reference external" href="https://pypi.org/project/flake8/">Flake8</a> is a CLI utility used to enforce style and do linting.</p>
 </section>
 <section id="black">
-<h3>Black<a class="headerlink" href="#black" title="Permalink to this headline">¶</a></h3>
+<h3>Black<a class="headerlink" href="#black" title="Permalink to this heading">¶</a></h3>
 <p><a class="reference external" href="https://pypi.org/project/black/">Black</a> is a CLI utility that enforces a standard formatting on Python which helps with code consistancy.</p>
 </section>
 </section>
 <section id="pull-requests">
-<h2>Pull Requests<a class="headerlink" href="#pull-requests" title="Permalink to this headline">¶</a></h2>
+<h2>Pull Requests<a class="headerlink" href="#pull-requests" title="Permalink to this heading">¶</a></h2>
 <p>To contribute to the project first ensure your fork is in good shape, and then the generate a Pull Request (PR) to the <cite>niaid</cite> fork. Below is an outline an of the kind of steps that could be followed. More thorough documentation can be found here: <a class="reference external" href="https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request">https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request</a></p>
 <ul>
 <li><p>Fork niaid repo into your gh account using the web interface.</p></li>
@@ -115,11 +116,11 @@ upstream      git@github.com:niaid/image_portal_workflows.git (push)
 </ul>
 </section>
 <section id="testing">
-<h2>Testing<a class="headerlink" href="#testing" title="Permalink to this headline">¶</a></h2>
+<h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading">¶</a></h2>
 <p>TODO</p>
 </section>
 <section id="sphinx-documentation">
-<h2>Sphinx Documentation<a class="headerlink" href="#sphinx-documentation" title="Permalink to this headline">¶</a></h2>
+<h2>Sphinx Documentation<a class="headerlink" href="#sphinx-documentation" title="Permalink to this heading">¶</a></h2>
 <p><a class="reference external" href="https://www.sphinx-doc.org/">Sphinx</a> documentation as automatically rendered and pushed the the gh-pages branch. The
 API is documented in Sphinx from the the Python docstring automatically for the public module methods and select private
 methods.</p>
@@ -173,7 +174,7 @@ methods.</p>
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -190,7 +191,7 @@ methods.</p>
       &copy;2021, NIAID.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.5.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
