@@ -48,12 +48,23 @@ def test_input_fname(mock_nfs_mount):
     )
 
 
+def test_single_file_no_ext_not_found_gens_exception(mock_nfs_mount):
+    from image_portal_workflows.dm_conversion.flow import flow
+
+    state = flow.run(
+        input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
+        file_name="file_with_no_ext",
+        token="the_token",
+        sample_id="the_sample_id",
+        callback_url="https://ptsv2.com/t/",
+    )
+    assert state.is_failed()
 def test_single_file_not_found_gens_exception(mock_nfs_mount):
     from image_portal_workflows.dm_conversion.flow import flow
 
     state = flow.run(
-        input_dir="/test/input_files/",
-        file_name="does_not_exist",
+        input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
+        file_name="does_not_exist.test",
         token="the_token",
         sample_id="the_sample_id",
         callback_url="https://ptsv2.com/t/",

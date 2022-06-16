@@ -107,29 +107,32 @@ def _add_outputs(
 
 
 @task
-def list_files(input_dir: Path, exts: List[str]) -> List[Path]:
+def list_files(input_dir: Path, exts: List[str], single_file: str=None) -> List[Path]:
     """
-    workflows have to find which inputs to run on, inputs are defined as all
-    files within a directory.
+    List all files within input_dir with spefified extension.
+    if a specific file is requested that file is returned only.
+    This allows workflows run on single files rather than entire dirs (default).
+    Note, if no files are found does NOT raise exception. Function can be called
+    multiple times, sometimes there will be no files of that extension.
     """
     _files = list()
-    for ext in exts:
-        _files.extend(input_dir.glob(f"*.{ext}"))
+    if single_file:
+        raise signals.FAIL(f"Expected file: {single_file}, not found in input_dir")
+        fp = Path(f"{input_dir}/{single_file}")
+        ext = fp.suffix.strip('.')
+        if ext in exts:
+            if not fp.exists():
+                raise signals.FAIL(f"Expected file: {single_file}, not found in input_dir")
+            else:
+                _files.append(fp)
+    else:
+        for ext in exts:
+            _files.extend(input_dir.glob(f"*.{ext}"))
     # _file_names = [Path(_file.name) for _file in _files]
     logger.info("Found files:")
     logger.info(_files)
     return _files
 
-
-# class Job:
-#    def __init__(self, input_dir):
-#        self.output_dir = Path(Config.assets_dir + input_dir)
-#        self.input_dir = Path(Config.proj_dir + input_dir)
-# @task
-# def init_job(input_dir: Path) -> Job:
-#    """not clear if this class is needed - seems to only be used to house input_dir
-#    ATM."""
-#    return Job(input_dir=input_dir)
 
 
 @task
