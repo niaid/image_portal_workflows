@@ -59,6 +59,8 @@ def test_single_file_no_ext_not_found_gens_exception(mock_nfs_mount):
         callback_url="https://ptsv2.com/t/",
     )
     assert state.is_failed()
+
+
 def test_single_file_not_found_gens_exception(mock_nfs_mount):
     from image_portal_workflows.dm_conversion.flow import flow
 

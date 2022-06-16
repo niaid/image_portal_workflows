@@ -107,7 +107,7 @@ def _add_outputs(
 
 
 @task
-def list_files(input_dir: Path, exts: List[str], single_file: str=None) -> List[Path]:
+def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
     """
     List all files within input_dir with spefified extension.
     if a specific file is requested that file is returned only.
@@ -117,12 +117,13 @@ def list_files(input_dir: Path, exts: List[str], single_file: str=None) -> List[
     """
     _files = list()
     if single_file:
-        raise signals.FAIL(f"Expected file: {single_file}, not found in input_dir")
         fp = Path(f"{input_dir}/{single_file}")
-        ext = fp.suffix.strip('.')
+        ext = fp.suffix.strip(".")
         if ext in exts:
             if not fp.exists():
-                raise signals.FAIL(f"Expected file: {single_file}, not found in input_dir")
+                raise signals.FAIL(
+                    f"Expected file: {single_file}, not found in input_dir"
+                )
             else:
                 _files.append(fp)
     else:
@@ -132,7 +133,6 @@ def list_files(input_dir: Path, exts: List[str], single_file: str=None) -> List[
     logger.info("Found files:")
     logger.info(_files)
     return _files
-
 
 
 @task
@@ -321,12 +321,12 @@ def _clean_subdir(subdir: str, fp: Path) -> Path:
         return fp
 
 
-#@task
-#def to_command(cmd_and_fp: List[str]) -> str:
+# @task
+# def to_command(cmd_and_fp: List[str]) -> str:
 #    return cmd_and_fp[0]
 #
 
-#def _to_fp(cmd_and_fp: List[str]) -> Optional[Path]:
+# def _to_fp(cmd_and_fp: List[str]) -> Optional[Path]:
 #    """
 #    checks that an output file exists,
 #    returns a Path for that file.
@@ -338,14 +338,14 @@ def _clean_subdir(subdir: str, fp: Path) -> Path:
 #        raise signals.FAIL(f"File {cmd_and_fp[1]} does not exist.")
 #
 
-#@task
-#def move_to_assets(
+# @task
+# def move_to_assets(
 #    cmd_and_fp: List[str],
 #    asset_dir: Path,
 #    asset_type: str,
 #    input_fp: Path,
 #    metadata: Dict = None,
-#):
+# ):
 #    """
 #    extracts the asset location from list
 #    moves that file to assets dir
@@ -391,7 +391,11 @@ def add_assets_entry(
         raise ValueError(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
     fp_no_mount_point = path.relative_to(Config.assets_dir)
     if metadata:
-        asset = {"type": asset_type, "path": fp_no_mount_point.as_posix(), "metadata": metadata}
+        asset = {
+            "type": asset_type,
+            "path": fp_no_mount_point.as_posix(),
+            "metadata": metadata,
+        }
     else:
         asset = {"type": asset_type, "path": fp_no_mount_point.as_posix()}
     base_elt["assets"].append(asset)
