@@ -48,11 +48,14 @@ def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
 def join_list_2(elt) -> List[Path]:
     return list1 + list2
 
+
 @task
 def check_inputs_ok(fps: List[Path]) -> None:
     for fp in fps:
         if not fp.exists():
             raise signals.FAIL(f"Input dir does not contain {fp}")
+
+
 @task
 def join_list(list1: List[Path], list2: List[Path]) -> List[Path]:
     return list1 + list2
@@ -90,7 +93,9 @@ with Flow(
     dm_fps = utils.list_files(input_dir_fp, ["dm4", "dm3"], single_file=file_name)
     # other inputs need to be converted too. Hopefully there's no naming overlaps
     other_input_fps = utils.list_files(
-        input_dir=input_dir_fp, exts=["tif", "tiff", "jpeg", "png"], single_file=file_name
+        input_dir=input_dir_fp,
+        exts=["tif", "tiff", "jpeg", "png"],
+        single_file=file_name,
     )
     # cat all files into single list, check they exist
     all_fps = join_list(dm_fps, other_input_fps)
