@@ -14,7 +14,6 @@ logger = context.get("logger")
 shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
 
-# get_logs = GetContainerLogs(trigger=always_run)
 @task
 def create_dm2mrc_command(dm_fp: Path, output_fp: Path) -> str:
     cmd = f"{Config.dm2mrc_loc} {dm_fp} {output_fp}"
@@ -49,7 +48,11 @@ def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
 def join_list_2(elt) -> List[Path]:
     return list1 + list2
 
-
+@task
+def check_inputs_ok(fps: List[Path]) -> None:
+    for fp in fps:
+        if not fp.exists():
+            raise signals.FAIL(f"Input dir does not contain {fp}")
 @task
 def join_list(list1: List[Path], list2: List[Path]) -> List[Path]:
     return list1 + list2
@@ -84,7 +87,14 @@ with Flow(
     # create an assets_dir (to copy required outputs into)
     assets_dir = utils.make_assets_dir(input_dir=input_dir_fp)
     # [dm4 and dm3 inputs]
-    dm_fps = utils.list_files(input_dir_fp, ["dm4", "dm3"])
+    dm_fps = utils.list_files(input_dir_fp, ["dm4", "dm3"], single_file=file_name)
+    # other inputs need to be converted too. Hopefully there's no naming overlaps
+    other_input_fps = utils.list_files(
+        input_dir=input_dir_fp, exts=["tif", "tiff", "jpeg", "png"], single_file=file_name
+    )
+    # cat all files into single list, check they exist
+    all_fps = join_list(dm_fps, other_input_fps)
+    check_inputs_ok(all_fps)
 
     # dm* to mrc conversion
     mrc_fps = utils.gen_output_fp.map(
@@ -123,10 +133,6 @@ with Flow(
     jpeg_fps_lgs = shell_task.map(command=jpeg_fps_lg_cmds)
     # an input dir can also contain tif / tiff / jpeg or png files
 
-    # other inputs need to be converted too. Hopefully there's no naming overlaps
-    other_input_fps = utils.list_files(
-        input_dir=input_dir_fp, exts=["tif", "tiff", "jpeg", "png"]
-    )
     # files in input dir, need to use working_dir to path
     other_input_sm_fps = utils.gen_output_fp.map(
         input_fp=other_input_fps,
