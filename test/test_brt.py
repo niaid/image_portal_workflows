@@ -20,6 +20,7 @@ from image_portal_workflows.utils import utils
 def hpc_env(monkeypatch):
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
     monkeypatch.setattr(Config, "proj_dir", f"{os.getcwd()}/")
+    monkeypatch.setattr(Config, "assets_dir", os.getcwd())
     monkeypatch.setattr(Config, "mount_point", f"{os.getcwd()}")
     monkeypatch.setattr(Config, "tmp_dir", "/tmp/")
 
