@@ -26,8 +26,8 @@ class Config:
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
     tmp_dir = "/gs1/Scratch/macmenaminpe_scratch/"
     mount_point = "/mnt/ai-fas12/"
-    proj_dir = f"{mount_point}/RMLEMHedwigQA/dev/Projects"
-    assets_dir = f"{mount_point}/RMLEMHedwigQA/dev/Assets"
+    proj_dir = f"{mount_point}/RMLEMHedwigDev/Projects"
+    assets_dir = f"{mount_point}/RMLEMHedwigDev/Assets"
     # repo_dir = os.path.join(os.path.dirname(__file__), "..")
     repo_dir = Path(os.path.dirname(__file__))
     template_dir = Path(f"{repo_dir.as_posix()}/templates")
