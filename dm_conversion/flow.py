@@ -45,18 +45,6 @@ def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
 
 
 @task
-def join_list_2(elt) -> List[Path]:
-    return list1 + list2
-
-
-@task
-def check_inputs_ok(fps: List[Path]) -> None:
-    for fp in fps:
-        if not fp.exists():
-            raise signals.FAIL(f"Input dir does not contain {fp}")
-
-
-@task
 def join_list(list1: List[Path], list2: List[Path]) -> List[Path]:
     return list1 + list2
 
@@ -99,7 +87,7 @@ with Flow(
     )
     # cat all files into single list, check they exist
     all_fps = join_list(dm_fps, other_input_fps)
-    check_inputs_ok(all_fps)
+    utils.check_inputs_ok(all_fps)
 
     # dm* to mrc conversion
     mrc_fps = utils.gen_output_fp.map(
@@ -168,10 +156,10 @@ with Flow(
     # create a datastructure containing each of locations of the files.
 
     # dm3/dm4 type inputs (ie inputs we converted to jpegs)
-    dm_primary_file_elts = utils.generate_callback_files.map(input_fname=dm_fps)
+    dm_primary_file_elts = utils.gen_callback_elt.map(input_fname=dm_fps)
 
     # small thumbnails
-    jpeg_fps_sm_asset_fps = utils._move_to_assets_dir.map(
+    jpeg_fps_sm_asset_fps = utils.copy_to_assets_dir.map(
         fp=jpeg_fps_sm_fps,
         assets_dir=unmapped(assets_dir),
         prim_fp=dm_fps,
@@ -185,7 +173,7 @@ with Flow(
     # finished small thumbnails
 
     # large thumbnails
-    jpeg_fps_lg_asset_fps = utils._move_to_assets_dir.map(
+    jpeg_fps_lg_asset_fps = utils.copy_to_assets_dir.map(
         fp=jpeg_fps_lg_fps,
         assets_dir=unmapped(assets_dir),
         prim_fp=dm_fps,
@@ -199,12 +187,10 @@ with Flow(
     # finished large thumbnails
 
     # any other input that wasn't dm4
-    other_primary_file_elts = utils.generate_callback_files.map(
-        input_fname=other_input_fps
-    )
+    other_primary_file_elts = utils.gen_callback_elt.map(input_fname=other_input_fps)
 
     # small thumbnails - other inputs
-    other_assets_sm_fps = utils._move_to_assets_dir.map(
+    other_assets_sm_fps = utils.copy_to_assets_dir.map(
         fp=other_input_sm_fps,
         assets_dir=unmapped(assets_dir),
         prim_fp=other_input_fps,
@@ -218,7 +204,7 @@ with Flow(
     # finished small thumbnails - other inputs
 
     # other inputs, large thumbs
-    other_assets_lg_fps = utils._move_to_assets_dir.map(
+    other_assets_lg_fps = utils.copy_to_assets_dir.map(
         fp=other_input_lg_fps,
         assets_dir=unmapped(assets_dir),
         prim_fp=other_input_fps,

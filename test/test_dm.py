@@ -8,13 +8,13 @@ from prefect.tasks.prefect import create_flow_run
 from prefect.executors import LocalExecutor
 
 sys.path.append("..")
-from image_portal_workflows.config import Config
-from image_portal_workflows.utils.utils import _add_outputs, _gen_callback_file_list
 import os
 
 
 @pytest.fixture
 def mock_nfs_mount(monkeypatch):
+    from image_portal_workflows.config import Config
+
     monkeypatch.setattr(Config, "mount_point", os.getcwd() + "/test/input_files")
     monkeypatch.setattr(Config, "proj_dir", os.getcwd())
     monkeypatch.setattr(Config, "assets_dir", os.getcwd())
@@ -22,6 +22,7 @@ def mock_nfs_mount(monkeypatch):
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
     monkeypatch.setattr(Config, "dm2mrc_loc", "/usr/local/IMOD/bin/dm2mrc")
     monkeypatch.setattr(Config, "mrc2tif_loc", "/usr/local/IMOD/bin/mrc2tif")
+    # from image_portal_workflows.utils.utils import _add_outputs, _gen_callback_file_list
 
 
 def test_dm4_conv(mock_nfs_mount):
@@ -74,18 +75,18 @@ def test_single_file_not_found_gens_exception(mock_nfs_mount):
     assert state.is_failed()
 
 
-def test_inputs_to_outputs():
-    dname = "Lab/PI/Myproject/MySession/Sample1/"
-    input_files = [Path("a.txt"), Path("b.txt"), Path("c.txt")]
-    output_files_a = [Path("a.axt"), Path("b.axt"), Path("c.axt")]
-    output_files_b = [Path("a.bxt"), Path("b.bxt"), Path("c.bxt")]
-    _files = _gen_callback_file_list(dname=dname, inputs=input_files)
-    _files = _add_outputs(
-        dname=dname, files=_files, outputs=output_files_a, _type="type_axt"
-    )
-    _files = _add_outputs(
-        dname=dname, files=_files, outputs=output_files_b, _type="type_bxt"
-    )
-
-    assert len(_files) == 3
-    print(json.dumps(_files))
+# def test_inputs_to_outputs():
+#     dname = "Lab/PI/Myproject/MySession/Sample1/"
+#     input_files = [Path("a.txt"), Path("b.txt"), Path("c.txt")]
+#     output_files_a = [Path("a.axt"), Path("b.axt"), Path("c.axt")]
+#     output_files_b = [Path("a.bxt"), Path("b.bxt"), Path("c.bxt")]
+#     _files = _gen_callback_file_list(dname=dname, inputs=input_files)
+#     _files = _add_outputs(
+#         dname=dname, files=_files, outputs=output_files_a, _type="type_axt"
+#     )
+#     _files = _add_outputs(
+#         dname=dname, files=_files, outputs=output_files_b, _type="type_bxt"
+#     )
+#
+#     assert len(_files) == 3
+#     print(json.dumps(_files))
