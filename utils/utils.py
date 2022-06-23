@@ -12,10 +12,19 @@ from prefect import Flow, task, context
 from prefect.engine.state import State
 from prefect.engine import signals
 
-from prefect.triggers import all_finished
 from image_portal_workflows.config import Config
 
 logger = context.get("logger")
+
+
+@task
+def check_inputs_ok(fps: List[Path]) -> None:
+    if not fps:
+        raise signals.FAIL(f"Input dir does not contain anything to process.")
+    for fp in fps:
+        if not fp.exists():
+            raise signals.FAIL(f"Input dir does not contain {fp}")
+    prefect.context.get("logger").info("fiiles ok")
 
 
 @task
@@ -75,7 +84,7 @@ def add_assets(assets_list: Dict, new_asset: Dict[str, str]) -> Dict:
 
 
 @task
-def generate_callback_files(input_fname: Path, input_fname_b: Path = None) -> Dict:
+def gen_callback_elt(input_fname: Path, input_fname_b: Path = None) -> Dict:
     """
     creates a single primaryFilePath element, to which assets can be appended.
     TODO:
@@ -94,16 +103,16 @@ def generate_callback_files(input_fname: Path, input_fname_b: Path = None) -> Di
     return dict(primaryFilePath=primaryFilePath.as_posix(), title=title, assets=list())
 
 
-def _add_outputs(
-    dname: str, files: List[Dict], outputs: List[Path], _type: str
-) -> List[Dict]:
-    """
-    converts a list of Paths to a data structure used to create JSON for
-    the callback
-    """
-    for i, elt in enumerate(files):
-        elt["assets"].append({"type": _type, "path": dname + outputs[i].as_posix()})
-    return files
+# def _add_outputs(
+#    dname: str, files: List[Dict], outputs: List[Path], _type: str
+# ) -> List[Dict]:
+#    """
+#    converts a list of Paths to a data structure used to create JSON for
+#    the callback
+#    """
+#    for i, elt in enumerate(files):
+#        elt["assets"].append({"type": _type, "path": dname + outputs[i].as_posix()})
+#    return files
 
 
 @task
@@ -178,20 +187,20 @@ def run_single_file(input_fps: List[Path], fp_to_check: str) -> List[Path]:
     raise signals.FAIL(f"Expecting file: {fp_to_check}, not found in input_dir")
 
 
-def _gen_callback_file_list(dname: str, inputs: List[Path]) -> List[Dict]:
-    """
-    converts a list of Paths to a datastructure used to create JSON for
-    the callback
-    """
-    files = list()
-    for _file in inputs:
-        elt = {
-            "primaryFilePath": dname + _file.as_posix(),
-            "title": _file.stem,
-            "assets": list(),
-        }
-        files.append(elt)
-    return files
+# def _gen_callback_file_list(dname: str, inputs: List[Path]) -> List[Dict]:
+#    """
+#    converts a list of Paths to a datastructure used to create JSON for
+#    the callback
+#    """
+#    files = list()
+#    for _file in inputs:
+#        elt = {
+#            "primaryFilePath": dname + _file.as_posix(),
+#            "title": _file.stem,
+#            "assets": list(),
+#        }
+#        files.append(elt)
+#    return files
 
 
 def notify_api_running(flow: Flow, old_state, new_state) -> State:
@@ -242,23 +251,6 @@ def notify_api_completion(flow: Flow, old_state, new_state) -> State:
 
 
 @task
-def copy_inputs_to_outputs_dir(input_dir_fp: Path, output_dir_fp: Path):
-    """
-    inputs are found in {nfs_dir}/Projects/Lab/PI/Proj_name/Session_name/Sample_name/
-    outputs are placed in {nfs_dir}/Assets/Lab/PI/Proj_name/Session_name/Sample_name/
-    Copies inputs, as defined as files with the appropriate extensions, from input dir
-    to output_dir (where they will be processed).
-    """
-    fps = list()
-    for ext in Config.two_d_input_exts:
-        fps = input_dir_fp.glob(f"*.{ext}")
-        for fp in fps:
-            full_fp = f"{fp}"
-            logger.info(f"coping {full_fp} to {output_dir_fp}")
-            shutil.copy(full_fp, output_dir_fp)
-
-
-@task
 def gen_output_dir(input_dir: str) -> Path:
     """The output directory, ie the place outputs are written to mirrors
     input_dir, except rather than the path getting rooted "{nfs_dir}/Projects/...", outputs
@@ -282,24 +274,6 @@ def get_input_dir(input_dir: str) -> Path:
 
 
 @task
-def clean_up_outputs_dir(assets_dir: Path, to_keep: List[Dict], trigger=all_finished):
-    """uses the files datastructure that's used in the callback to
-    list any files that are reported as assets. If the file is not
-    reported it's considered not needed, and deleted.
-    """
-    _fnames_to_keep = list()
-    for elt in to_keep:
-        assets = elt["assets"]
-        for asset in assets:
-            fp = Path(asset["path"])
-            _fnames_to_keep.append(fp.name)
-    for i in assets_dir.glob("*"):
-        if i.name not in _fnames_to_keep:
-            logger.info(f"Cleaning up {i.as_posix()}")
-            os.remove(i)
-
-
-@task
 def print_t(t):
     """dumb function to print stuff..."""
     logger.info("++++++++++++++++++++++++++++++++++++++++")
@@ -319,45 +293,6 @@ def _clean_subdir(subdir: str, fp: Path) -> Path:
         return fp
     except ValueError:
         return fp
-
-
-# @task
-# def to_command(cmd_and_fp: List[str]) -> str:
-#    return cmd_and_fp[0]
-#
-
-# def _to_fp(cmd_and_fp: List[str]) -> Optional[Path]:
-#    """
-#    checks that an output file exists,
-#    returns a Path for that file.
-#    """
-#    path = Path(cmd_and_fp[1])
-#    if path.exists():
-#        return path
-#    else:
-#        raise signals.FAIL(f"File {cmd_and_fp[1]} does not exist.")
-#
-
-# @task
-# def move_to_assets(
-#    cmd_and_fp: List[str],
-#    asset_dir: Path,
-#    asset_type: str,
-#    input_fp: Path,
-#    metadata: Dict = None,
-# ):
-#    """
-#    extracts the asset location from list
-#    moves that file to assets dir
-#    generates
-#    placeholder for refactor
-#    """
-#    logger = prefect.context.get("logger")
-#    fp = _to_fp(cmd_and_fp=cmd_and_fp)
-#    logger.info(f"Trying to move {fp}")
-#    asset_fp = _move_to_assets_dir(fp=fp, assets_dir=asset_dir, dname=input_fp.stem)
-#    loc_elt = _gen_assets_entry(asset_type=asset_type, path=asset_fp, metadata=metadata)
-#    return loc_elt
 
 
 @task
@@ -402,38 +337,38 @@ def add_assets_entry(
     return base_elt
 
 
-def _gen_assets_entry(
-    path: Path, asset_type: str, metadata: Dict[str, str] = None
-) -> Dict[str, str]:
-    """
-    asset type can be one of:
-
-    averagedVolume
-    keyImage
-    keyThumbnail
-    recMovie
-    tiltMovie
-    volume
-    neuroglancerPrecomputed
-
-    used to build the callback for API
-    """
-    valid_typs = [
-        "averagedVolume",
-        "keyImage",
-        "keyThumbnail",
-        "recMovie",
-        "tiltMovie",
-        "volume",
-        "neuroglancerPrecomputed",
-    ]
-    if asset_type not in valid_typs:
-        raise ValueError(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
-    if metadata:
-        asset = {asset_type: path.as_posix(), "metadata": metadata}
-    else:
-        asset = {asset_type: path.as_posix()}
-    return asset
+# def _gen_assets_entry(
+#    path: Path, asset_type: str, metadata: Dict[str, str] = None
+# ) -> Dict[str, str]:
+#    """
+#    asset type can be one of:
+#
+#    averagedVolume
+#    keyImage
+#    keyThumbnail
+#    recMovie
+#    tiltMovie
+#    volume
+#    neuroglancerPrecomputed
+#
+#    used to build the callback for API
+#    """
+#    valid_typs = [
+#        "averagedVolume",
+#        "keyImage",
+#        "keyThumbnail",
+#        "recMovie",
+#        "tiltMovie",
+#        "volume",
+#        "neuroglancerPrecomputed",
+#    ]
+#    if asset_type not in valid_typs:
+#        raise ValueError(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
+#    if metadata:
+#        asset = {asset_type: path.as_posix(), "metadata": metadata}
+#    else:
+#        asset = {asset_type: path.as_posix()}
+#    return asset
 
 
 @task
@@ -443,7 +378,9 @@ def make_assets_dir(input_dir: Path) -> Path:
     want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
     """
     if not "Projects" in input_dir.as_posix():
-        raise signals.FAIL(f"Input directory {input_dir} does not contain Projects")
+        raise signals.FAIL(
+            f"Input directory {input_dir} does not look correct, it must contain the string 'Projects'."
+        )
     assets_dir_as_str = input_dir.as_posix().replace("/Projects/", "/Assets/")
     assets_dir = Path(assets_dir_as_str)
     prefect.context.get("logger").info(
@@ -454,10 +391,12 @@ def make_assets_dir(input_dir: Path) -> Path:
 
 
 @task
-def _move_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path) -> Path:
+def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path) -> Path:
     """
-    Move desired outputs to the assets (reported output) dir
-    eg copy /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/keyMov_SARsCoV2_1.mp4
+    Copy fp to the assets (reported output) dir
+    Note, assets are expected to exist in a subdir defined by the input
+    file name, eg:
+    copy /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/keyMov_SARsCoV2_1.mp4
     to
     /mnt/ai-fas12/RMLEMHedwigQA/Assets/Lab/Pi/SARsCoV2_1/keyMov_SARsCoV2_1.mp4
     {mount_point}/{dname}/keyMov_SARsCoV2_1.mp4

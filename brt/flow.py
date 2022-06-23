@@ -61,7 +61,10 @@ def update_adoc(
     LocalAlignments: str,
     THICKNESS: str,
 ) -> Path:
-    """updates the adoc file with input params,"""
+    """
+    Uses jinja templating to update the adoc file with input params.
+    Some of these parameters are derived programatically.
+    """
     file_loader = FileSystemLoader(str(adoc_fp.parent))
     env = Environment(loader=file_loader)
     template = env.get_template(adoc_fp.name)
@@ -114,8 +117,7 @@ def update_adoc(
     adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
     with open(adoc_loc, "w") as _file:
         print(output, file=_file)
-    logger = prefect.context.get("logger")
-    logger.info(f"generated {adoc_loc}")
+    prefect.context.get("logger").info(f"generated {adoc_loc}")
     return adoc_loc
 
 
@@ -199,7 +201,6 @@ def gen_gm_convert(tomogram_fp: Path, middle_i: str, fp_out: Path) -> str:
     gm convert -size 300x300 path/BASENAME_ali.{MIDDLE_I}.jpg -resize 300x300 -sharpen 2 -quality 70 path/keyimg_BASENAME_s.jpg
     """
     fname_in = f"{tomogram_fp.parent}/{tomogram_fp.stem}_ali.{middle_i}.jpg"
-    # fname_out = f"{fp.parent}/keyimg_{fp.stem}_s.jpg"
     cmd = f"gm convert -size 300x300 {fname_in} -resize 300x300 \
             -sharpen 2 -quality 70 {fp_out}"
     prefect.context.get("logger").info(cmd)
@@ -228,7 +229,6 @@ def gen_ffmpeg_cmd(fp: Path, fp_out: Path) -> str:
             libx264 -pix_fmt yuv420p -s 1024,1024 tiltMov_${BASENAME}.mp4
     """
     input_fp = f"{fp.parent}/{fp.stem}_ali.%03d.jpg"
-    # out_fp = f"{fp.parent}/tiltMov_{fp.stem}.mp4"
     cmd = f"ffmpeg -y -f image2 -framerate 4 -i {input_fp} -vcodec \
             libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
     prefect.context.get("logger").info(f"ffmpeg command: {cmd}")
@@ -263,7 +263,6 @@ def newstack_fl_rc_cmd(fp: Path, fp_out: Path) -> str:
     newstack -float 3 path/BASENAME_ave* path/ave_BASENAME.mrc
     """
     fp_in = f"{fp.parent}/{fp.stem}_ave*"
-    # fp_out = f"{fp.parent}/ave_{fp.stem}.mrc"
     cmd = f"sleep 10 && newstack -float 3 {fp_in} {fp_out}"
     prefect.context.get("logger").info(f"reconstruction newstack_fl_rc_cmd {cmd}")
     return cmd
@@ -275,7 +274,6 @@ def gen_binvol_rc_cmd(fp: Path, fp_out: Path) -> str:
     binvol -binning 2 path/ave_BASENAME.mrc path/avebin8_BASENAME.mrc
     """
     fp_in = f"{fp.parent}/{fp.stem}_ave.mrc"
-    # fp_out = f"{fp.parent}/avebin8_{fp.stem}.mrc"
     cmd = f"binvol -binning 2 {fp_in} {fp_out}"
     prefect.context.get("logger").info(f"reconstruction binvol command: {cmd}")
     return cmd
@@ -302,7 +300,6 @@ def gen_ffmpeg_rc_cmd(fp: Path, fp_out: Path) -> str:
             libx264 -pix_fmt yuv420p -s 1024,1024 path/keyMov_BASENAME.mp4
     """
     fp_in = f"{fp.parent}/{fp.stem}_mp4.%03d.jpg"
-    # fp_out = f"{fp.parent}/keyMov_{fp.stem}.mp4"
     cmd = f"ffmpeg -f image2 -framerate 8 -y -i {fp_in} -vcodec \
             libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
     logger = prefect.context.get("logger")
@@ -348,7 +345,6 @@ def gen_min_max_cmd(fp: Path, out_fp: Path) -> str:
     """
     mrc_visual_min_max {basename}.nii --mad 5 --output-json mrc2ngpc-output.json
     """
-    # out_fp = f"{fp.parent}/mrc2ngpc-output.json"
     cmd = f"mrc_visual_min_max {fp.parent}/{fp.stem}.nii --mad 5 \
             --output-json {out_fp}"
     logger = prefect.context.get("logger")
@@ -358,6 +354,10 @@ def gen_min_max_cmd(fp: Path, out_fp: Path) -> str:
 
 @task
 def parse_min_max_file(fp: Path) -> Dict[str, str]:
+    """
+    min max command is run as a subprocess and dumped to a file.
+    This file needs to be parsed.
+    """
     with open(fp, "r") as _file:
         return json.load(_file)
 
@@ -390,7 +390,8 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     # a single input_dir will have n tomograms
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
     fnames = utils.list_input_dir(input_dir_fp=input_dir_fp)
-    temp_dirs = utils.make_work_dir.map(fnames)
+    fnames_ok = utils.check_inputs_ok(fnames)
+    temp_dirs = utils.make_work_dir.map(fnames, upstream_tasks=[unmapped(fnames_ok)])
     adoc_fps = copy_template.map(
         working_dir=temp_dirs, template_name=unmapped(adoc_template)
     )
@@ -533,7 +534,6 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     pyramid_cmds = gen_pyramid_cmd.map(
         fp=tomogram_fps, outdir=ng_fps, upstream_tasks=[mrc2niftis]
     )
-    # pyramid_cmds = utils.to_command.map(pyramid_cmds_and_pyramid_fps)
     gen_pyramids = shell_task.map(command=pyramid_cmds, to_echo=unmapped("gen pyramid"))
     ##
 
@@ -551,15 +551,15 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     # create assets directory
     assets_dir = utils.make_assets_dir(input_dir=input_dir_fp)
 
-    # the way this works is we generate a base element, and then tack
+    # We generate a base element, and then tack
     # on asset elements. Every time we tack on an element we change the
-    # name, otherwise there are Slurm / dask errors.
+    # base elemnt name. This awkward logic avoids Slurm / dask errors.
 
     # generate base element
-    callback_base_elts = utils.generate_callback_files.map(input_fname=tomogram_fps)
+    callback_base_elts = utils.gen_callback_elt.map(input_fname=tomogram_fps)
 
     # thumnails (small thumbs)
-    thumbnail_fps = utils._move_to_assets_dir.map(
+    thumbnail_fps = utils.copy_to_assets_dir.map(
         fp=thumbs_sm_fps,
         assets_dir=unmapped(assets_dir),
         prim_fp=tomogram_fps,
@@ -572,7 +572,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     )
 
     # tiltMovie
-    tiltMovie_asset_fps = utils._move_to_assets_dir.map(
+    tiltMovie_asset_fps = utils.copy_to_assets_dir.map(
         fp=tiltMovie_fps,
         assets_dir=unmapped(assets_dir),
         prim_fp=tomogram_fps,
@@ -585,7 +585,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     )
 
     # averagedVolume
-    averagedVolume_asset_fps = utils._move_to_assets_dir.map(
+    averagedVolume_asset_fps = utils.copy_to_assets_dir.map(
         fp=ns_float_rc_fps,
         assets_dir=unmapped(assets_dir),
         prim_fp=tomogram_fps,
@@ -598,7 +598,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     )
 
     # volume
-    volume_asset_fps = utils._move_to_assets_dir.map(
+    volume_asset_fps = utils.copy_to_assets_dir.map(
         fp=avebin8_fps,
         assets_dir=unmapped(assets_dir),
         prim_fp=tomogram_fps,
@@ -611,7 +611,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     )
 
     # recMovie
-    recMovie_asset_fps = utils._move_to_assets_dir.map(
+    recMovie_asset_fps = utils.copy_to_assets_dir.map(
         fp=mpegs_rc_fps,
         assets_dir=unmapped(assets_dir),
         prim_fp=tomogram_fps,
@@ -624,7 +624,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     )
 
     # neuroglancerPrecomputed
-    ng_asset_fps = utils._move_to_assets_dir.map(
+    ng_asset_fps = utils.copy_to_assets_dir.map(
         fp=ng_fps,
         assets_dir=unmapped(assets_dir),
         prim_fp=tomogram_fps,
