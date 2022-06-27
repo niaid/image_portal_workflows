@@ -387,9 +387,12 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     callback_url = Parameter("callback_url")()
     token = Parameter("token")()
     sample_id = Parameter("sample_id")()
+    file_name = Parameter("file_name", default=None)
     # a single input_dir will have n tomograms
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
-    fnames = utils.list_input_dir(input_dir_fp=input_dir_fp)
+    fnames = utils.list_files(
+        input_dir=input_dir_fp, exts=["mrc", "st"], single_file=file_name
+    )
     fnames_ok = utils.check_inputs_ok(fnames)
     temp_dirs = utils.make_work_dir.map(fnames, upstream_tasks=[unmapped(fnames_ok)])
     adoc_fps = copy_template.map(

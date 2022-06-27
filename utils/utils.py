@@ -50,29 +50,25 @@ def create_brt_command(adoc_fp: Path) -> str:
     logger = prefect.context.get("logger")
     logger.info(cmd)
     return cmd
-    # to short test
-    # return "ls"
 
 
-@task
-def list_input_dir(input_dir_fp: Path) -> List[Path]:
-    """
-    discover the contents of the input_dir AKA "Sample"
-    note, only lists mrc files currently. TODO(?)
-    include .st files TODO
-    note, only processing first file ATM (test)
-    """
-    logger = prefect.context.get("logger")
-    logger.info(f"trying to list {input_dir_fp}")
-    mrc_files = glob.glob(f"{input_dir_fp}/*.mrc")
-    if len(mrc_files) == 0:
-        raise signals.FAIL(f"Unable to find any input files in dir: {input_dir_fp}")
-    mrc_fps = [Path(f) for f in mrc_files]
-    # TESTING IGNORE
-    # mrc_fps = [Path(f"/home/macmenaminpe/data/brt_run/Projects/ABC2/2013-1220-dA30_5-BSC-1_10.mrc")]
-    logger = prefect.context.get("logger")
-    logger.info(f"Found {mrc_fps}")
-    return mrc_fps
+# @task
+# def list_input_dir(input_dir_fp: Path) -> List[Path]:
+#    """
+#    discover the contents of the input_dir AKA "Sample"
+#    note, only lists mrc files currently. TODO(?)
+#    include .st files TODO
+#    note, only processing first file ATM (test)
+#    """
+#    logger = prefect.context.get("logger")
+#    logger.info(f"trying to list {input_dir_fp}")
+#    mrc_files = glob.glob(f"{input_dir_fp}/*.mrc")
+#    if len(mrc_files) == 0:
+#        raise signals.FAIL(f"Unable to find any input files in dir: {input_dir_fp}")
+#    mrc_fps = [Path(f) for f in mrc_files]
+#    logger = prefect.context.get("logger")
+#    logger.info(f"Found {mrc_fps}")
+#    return mrc_fps
 
 
 @task
@@ -101,18 +97,6 @@ def gen_callback_elt(input_fname: Path, input_fname_b: Path = None) -> Dict:
     title = input_fname.stem  # working for now.
     primaryFilePath = _clean_subdir(subdir=Config.proj_dir, fp=input_fname)
     return dict(primaryFilePath=primaryFilePath.as_posix(), title=title, assets=list())
-
-
-# def _add_outputs(
-#    dname: str, files: List[Dict], outputs: List[Path], _type: str
-# ) -> List[Dict]:
-#    """
-#    converts a list of Paths to a data structure used to create JSON for
-#    the callback
-#    """
-#    for i, elt in enumerate(files):
-#        elt["assets"].append({"type": _type, "path": dname + outputs[i].as_posix()})
-#    return files
 
 
 @task
