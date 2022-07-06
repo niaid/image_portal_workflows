@@ -93,7 +93,7 @@ def update_adoc(
             f"Unable to resolve SurfacesToAnalyze, TwoSurfaces \
                 is set to {TwoSurfaces}, and should be 0 or 1"
         )
-    rpa_thickness = int(THICKNESS) * 1.5
+    rpa_thickness = int(int(THICKNESS) * 1.5)
 
     vals = {
         "name": name,
