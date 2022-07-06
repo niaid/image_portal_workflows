@@ -42,8 +42,17 @@ def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
     copies files (tomograms/mrc files) into working_dir
     returns Path of copied file
     """
-    fp = shutil.copyfile(src=fname.as_posix(), dst=f"{working_dir}/{fname.name}")
-    return Path(fp)
+    fp_loc = shutil.copyfile(src=fname.as_posix(), dst=f"{working_dir}/{fname.name}")
+    fp = Path(fp_loc)
+    if fp.exists():
+        return Path(fp)
+    else:
+        fp_1 = Path(f"{fp.parent}/{fp.stem}a{fp.suffix}")
+        fp_2 = Path(f"{fp.parent}/{fp.stem}b{fp.suffix}")
+        if fp_1.exists() and fp_2.exists():
+            return fp
+        else:
+            raise signals.FAIL(f"Files missing. {fp_1},{fp_2}. BRT run failure.")
 
 
 @task
