@@ -9,7 +9,8 @@ from pathlib import Path
 import shutil
 import prefect
 from jinja2 import Environment, FileSystemLoader
-from prefect import task, Flow, Parameter, unmapped, flatten
+from prefect import task, Flow, Parameter, unmapped, flatten, case
+from prefect.tasks.control_flow import merge
 from prefect.engine import signals
 
 # from prefect.tasks.shell import ShellTask
@@ -362,6 +363,40 @@ def parse_min_max_file(fp: Path) -> Dict[str, str]:
         return json.load(_file)
 
 
+@task
+def list_paired_files(fnames: List[Path]) -> List[Path]:
+    """if the input is a paired/dual axis shot, we can trucate the a|b off
+    the filename, and use that string from this point on.
+    We need to ensure there are only paired inputs in this list.
+    """
+    maybes = list()
+    pairs = list()
+    # paired_fnames = [fname.stem for fname in fps]
+    for fname in fnames:
+        if fname.stem.endswith("a"):
+            # remove the last char of fname (keep extension)
+            fname_no_a = f"{fname.parent}/{fname.stem[:-1]}{fname.suffix}"
+            maybes.append(fname_no_a)
+    for fname in fnames:
+        if fname.stem.endswith("b"):
+            fname_no_b = f"{fname.parent}/{fname.stem[:-1]}{fname.suffix}"
+            if fname_no_b in maybes:
+                pairs.append(Path(fname_no_b))
+    return pairs
+
+
+@task
+def check_inputs_paired(fps: List[Path]):
+    fnames = [fname.stem for fname in fps]
+    for fname in fnames:
+        if fname.endswith("a"):
+            # remove the last char, cat on a 'b' and lookup.
+            pair_name = fname[:-1] + "b"
+            if pair_name in fnames:
+                return True
+    return False
+
+
 # if __name__ == "__main__":
 
 with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
@@ -393,14 +428,26 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     fnames = utils.list_files(
         input_dir=input_dir_fp, exts=["mrc", "st"], single_file=file_name
     )
+
     fnames_ok = utils.check_inputs_ok(fnames)
-    temp_dirs = utils.make_work_dir.map(fnames, upstream_tasks=[unmapped(fnames_ok)])
+
+    # check if inputs are paired (only - bool)
+    inputs_paired = check_inputs_paired(fnames)
+    with case(inputs_paired, True):
+        fnames_p = list_paired_files(fnames=fnames)
+    with case(inputs_paired, False):
+        fnames_np = fnames
+    fnames_fin = merge(fnames_p, fnames_np)
+
+    temp_dirs = utils.make_work_dir.map(
+        fnames_fin, upstream_tasks=[unmapped(fnames_ok)]
+    )
     adoc_fps = copy_template.map(
         working_dir=temp_dirs, template_name=unmapped(adoc_template)
     )
     updated_adocs = update_adoc.map(
         adoc_fp=adoc_fps,
-        tg_fp=fnames,
+        tg_fp=fnames_fin,
         dual=unmapped(dual),
         montage=unmapped(montage),
         gold=unmapped(gold),
@@ -413,7 +460,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
         LocalAlignments=unmapped(LocalAlignments),
         THICKNESS=unmapped(THICKNESS),
     )
-    tomogram_fps = copy_tg_to_working_dir.map(fname=fnames, working_dir=temp_dirs)
+    tomogram_fps = copy_tg_to_working_dir.map(fname=fnames_fin, working_dir=temp_dirs)
 
     # START BRT (Batchruntomo) - long running process.
     brt_commands = utils.create_brt_command.map(adoc_fp=updated_adocs)
