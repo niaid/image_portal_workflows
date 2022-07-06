@@ -82,7 +82,7 @@ def update_adoc(
 
     name = tg_fp.stem
     stackext = tg_fp.suffix
-    currentBStackExt = "mrc"  # TODO - should be a tupple of fps
+    currentBStackExt = tg_fp.suffix  # TODO - assumes both files are same ext
     datasetDirectory = adoc_fp.parent
     if TwoSurfaces == "0":
         SurfacesToAnalyze = 1
@@ -445,12 +445,12 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     inputs_paired = check_inputs_paired(fnames)
     with case(inputs_paired, True):
         fnames_p = list_paired_files(fnames=fnames)
-        dual_c = 1
+        dual_on = 1
     with case(inputs_paired, False):
         fnames_np = fnames
-        dual_c = 0
+        dual_off = 0
     fnames_fin = merge(fnames_p, fnames_np)
-    dual_computed = merge(dual_c, dual_c)
+    dual_computed = merge(dual_on, dual_off)
 
     temp_dirs = utils.make_work_dir.map(
         fnames_fin, upstream_tasks=[unmapped(fnames_ok)]
