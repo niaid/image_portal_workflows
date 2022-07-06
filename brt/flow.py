@@ -414,7 +414,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     # Note the ugly names, these parameters are lifted verbatim from
     # https://bio3d.colorado.edu/imod/doc/directives.html where possible.
     # (there are two thickness args, these are not verbatim.)
-    dual = Parameter("dual")
+    # dual = Parameter("dual")
     montage = Parameter("montage")
     gold = Parameter("gold")
     focus = Parameter("focus")
@@ -445,9 +445,12 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     inputs_paired = check_inputs_paired(fnames)
     with case(inputs_paired, True):
         fnames_p = list_paired_files(fnames=fnames)
+        dual_c = 1
     with case(inputs_paired, False):
         fnames_np = fnames
+        dual_c = 0
     fnames_fin = merge(fnames_p, fnames_np)
+    dual_computed = merge(dual_c, dual_c)
 
     temp_dirs = utils.make_work_dir.map(
         fnames_fin, upstream_tasks=[unmapped(fnames_ok)]
@@ -458,7 +461,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     updated_adocs = update_adoc.map(
         adoc_fp=adoc_fps,
         tg_fp=fnames_fin,
-        dual=unmapped(dual),
+        dual=unmapped(dual_computed),
         montage=unmapped(montage),
         gold=unmapped(gold),
         focus=unmapped(focus),
