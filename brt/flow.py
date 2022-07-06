@@ -81,8 +81,8 @@ def update_adoc(
     template = env.get_template(adoc_fp.name)
 
     name = tg_fp.stem
-    stackext = tg_fp.suffix
-    currentBStackExt = tg_fp.suffix  # TODO - assumes both files are same ext
+    stackext = tg_fp.suffix[1:]
+    currentBStackExt = tg_fp.suffix[1:]  # TODO - assumes both files are same ext
     datasetDirectory = adoc_fp.parent
     if TwoSurfaces == "0":
         SurfacesToAnalyze = 1
