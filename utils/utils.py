@@ -1,4 +1,6 @@
 import tempfile
+import re
+import re
 import requests
 import os
 import shutil
@@ -18,13 +20,23 @@ logger = context.get("logger")
 
 
 @task
-def check_inputs_ok(fps: List[Path]) -> None:
+def check_inputs_ok(fps: List[Path]) -> List[Path]:
+    """
+    ensures there's at least one file that is going to be processed.
+    escapes bad chars that occur in input file names
+    """
     if not fps:
         raise signals.FAIL(f"Input dir does not contain anything to process.")
     for fp in fps:
         if not fp.exists():
             raise signals.FAIL(f"Input dir does not contain {fp}")
     prefect.context.get("logger").info("fiiles ok")
+
+
+@task
+def sanitize_file_names(fps: List[Path]) -> List[Path]:
+    escaped_files = [Path(escape_str(_file.as_posix())) for _file in fps]
+    return escaped_files
 
 
 @task
@@ -99,6 +111,20 @@ def gen_callback_elt(input_fname: Path, input_fname_b: Path = None) -> Dict:
     return dict(primaryFilePath=primaryFilePath.as_posix(), title=title, assets=list())
 
 
+def _esc_char(match):
+    return "\\" + match.group(0)
+
+
+def tr_str(name):
+    _to_esc = re.compile(r"\s|[]()[]")
+    return _to_esc.sub("_", name)
+
+
+def escape_str(name):
+    _to_esc = re.compile(r"\s|[]()[]")
+    return _to_esc.sub(_esc_char, name)
+
+
 @task
 def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
     """
@@ -122,7 +148,6 @@ def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> Lis
     else:
         for ext in exts:
             _files.extend(input_dir.glob(f"*.{ext}"))
-    # _file_names = [Path(_file.name) for _file in _files]
     logger.info("Found files:")
     logger.info(_files)
     return _files
@@ -136,10 +161,11 @@ def gen_output_fp(input_fp: Path, output_ext: str, working_dir: Path = None) -> 
     dir is not the same as the input dir, and working_dir is used to define output
     in this case.
     """
+    stem_name = tr_str(input_fp.stem)
     if working_dir:
-        output_fp = f"{working_dir.as_posix()}/{input_fp.stem}{output_ext}"
+        output_fp = f"{working_dir.as_posix()}/{stem_name}{output_ext}"
     else:
-        output_fp = f"{input_fp.parent}/{input_fp.stem}{output_ext}"
+        output_fp = f"{input_fp.parent}/{stem_name}{output_ext}"
     prefect.context.get("logger").info(
         f"Using dir: {working_dir}, file: {input_fp}, ext: {output_ext} creating output_fp {output_fp}"
     )
