@@ -89,11 +89,18 @@ with Flow(
     all_fps = join_list(dm_fps, other_input_fps)
     utils.check_inputs_ok(all_fps)
 
+    # sanitize input file names
+    # use sanitized inputs when need to use input data only
+    # (else use the orig fnames, and gen_output_fp will translate bad chars.
+    dm_fps_sanitized = utils.sanitize_file_names(dm_fps)
+    other_input_fps_sanitized = utils.sanitize_file_names(other_input_fps)
     # dm* to mrc conversion
     mrc_fps = utils.gen_output_fp.map(
         input_fp=dm_fps, working_dir=unmapped(temp_dir), output_ext=unmapped(".mrc")
     )
-    dm2mrc_commands = create_dm2mrc_command.map(dm_fp=dm_fps, output_fp=mrc_fps)
+    dm2mrc_commands = create_dm2mrc_command.map(
+        dm_fp=dm_fps_sanitized, output_fp=mrc_fps
+    )
     dm2mrcs = shell_task.map(
         command=dm2mrc_commands, to_echo=unmapped("running dm2mrc commands")
     )
@@ -133,7 +140,7 @@ with Flow(
         working_dir=unmapped(temp_dir),
     )
     other_input_gm_sm_cmds = create_gm_cmd.map(
-        fp_in=other_input_fps,
+        fp_in=other_input_fps_sanitized,
         fp_out=other_input_sm_fps,
         size=unmapped("sm"),
     )
@@ -146,7 +153,7 @@ with Flow(
         working_dir=unmapped(temp_dir),
     )
     other_input_lg_cmds = create_gm_cmd.map(
-        fp_in=other_input_fps, fp_out=other_input_lg_fps, size=unmapped("lg")
+        fp_in=other_input_fps_sanitized, fp_out=other_input_lg_fps, size=unmapped("lg")
     )
     other_input_lgs = shell_task.map(command=other_input_lg_cmds)
 
