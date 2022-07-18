@@ -21,6 +21,7 @@ class Config:
     xfalign_loc = "/opt/rml/imod/bin/xfalign"
     xftoxg_loc = "/opt/rml/imod/bin/xftoxg"
     newstack_loc = "/opt/rml/imod/newstack"
+    convert_loc = "/usr/bin/convert"
 
     size_lg = "1024x1024"
     size_sm = "300x300"
