@@ -8,6 +8,7 @@ from prefect.tasks.control_flow import merge
 from image_portal_workflows.config import Config
 from image_portal_workflows.shell_task_echo import ShellTaskEcho
 from image_portal_workflows.utils import utils
+from image_portal_workflows.utils import neuroglancer as ng
 
 shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
@@ -312,3 +313,24 @@ with Flow(
         to_echo="running key small image",
         upstream_tasks=[keyimg],
     )
+
+    # START PYRAMID GEN
+    mrc2nifti_cmd = ng.gen_mrc2nifti_cmd(fp=norm_mrc_fp, upstream_tasks=[newstack_norm])
+    mrc2nifti = shell_task(command=mrc2nifti_cmd, to_echo="mrc2nifti")
+
+    ##
+    ng_fp = ng.gen_pyramid_outdir(fp=norm_mrc_fp)
+    pyramid_cmd = ng.gen_pyramid_cmd(
+        fp=norm_mrc_fp, outdir=ng_fp, upstream_tasks=[mrc2nifti]
+    )
+    gen_pyramid = shell_task(command=pyramid_cmd, to_echo="gen pyramid")
+    ##
+
+    ##
+    min_max_fp = utils.gen_output_fp(input_fp=norm_mrc_fp, output_ext="_min_max.json")
+    min_max_cmd = ng.gen_min_max_cmd(
+        fp=norm_mrc_fp, out_fp=min_max_fp, upstream_tasks=[mrc2nifti]
+    )
+    min_max = shell_task(command=min_max_cmd, to_echo="Min max")
+    metadata = ng.parse_min_max_file(fp=min_max_fp, upstream_tasks=[min_max])
+    # END PYRAMID
