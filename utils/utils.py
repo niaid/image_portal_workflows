@@ -256,6 +256,7 @@ def notify_api_completion(flow: Flow, old_state, new_state) -> State:
         response = requests.post(
             callback_url, headers=headers, data=json.dumps({"status": status})
         )
+        logger.info(f"Pipeline status is:{status}")
         logger.info(response.text)
     return new_state
 
