@@ -246,7 +246,7 @@ def notify_api_completion(flow: Flow, old_state, new_state) -> State:
         if new_state.is_successful():
             status = "success"
         else:
-            status = "fail"
+            status = "error"
         callback_url = prefect.context.parameters.get("callback_url")
         token = prefect.context.parameters.get("token")
         headers = {
