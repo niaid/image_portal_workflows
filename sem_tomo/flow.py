@@ -334,3 +334,50 @@ with Flow(
     min_max = shell_task(command=min_max_cmd, to_echo="Min max")
     metadata = ng.parse_min_max_file(fp=min_max_fp, upstream_tasks=[min_max])
     # END PYRAMID
+
+    # generate base element
+    callback_base_elt = utils.gen_callback_elt(input_fname=norm_mrc_fp)
+
+    # thumnails (small thumbs)
+    thumbnail_fp = utils.copy_to_assets_dir(
+        fp=keyimg_sm_fp,
+        assets_dir=assets_dir,
+        prim_fp=norm_mrc_fp,
+        upstream_tasks=[keyimg_sm],
+    )
+    callback_with_thumb = utils.add_assets_entry(
+        base_elt=callback_base_elt,
+        path=thumbnail_fp,
+        asset_type="thumbnail",
+    )
+
+    # keyimg
+    keyimg_fp_asset = utils.copy_to_assets_dir(
+        fp=keyimg_fp,
+        assets_dir=assets_dir,
+        prim_fp=norm_mrc_fp,
+        upstream_tasks=[keyimg],
+    )
+    callback_with_keyimg = utils.add_assets_entry(
+        base_elt=callback_with_thumb,
+        path=keyimg_fp_asset,
+        asset_type="keyImage",
+    )
+
+    # neuroglancerPrecomputed
+    ng_asset_fp = utils.copy_to_assets_dir(
+        fp=ng_fp,
+        assets_dir=assets_dir,
+        prim_fp=norm_mrc_fp,
+        upstream_tasks=[gen_pyramid, metadata],
+    )
+    callback_with_neuroglancer = utils.add_assets_entry(
+        base_elt=callback_with_keyimg,
+        path=ng_asset_fp,
+        asset_type="neuroglancerPrecomputed",
+        metadata=metadata,
+    )
+
+    utils.send_callback_body(
+        token=token, callback_url=callback_url, files_elts=callback_with_neuroglancer
+    )
