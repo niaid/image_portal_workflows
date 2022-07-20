@@ -38,7 +38,7 @@ def test_dm4_conv(hpc_env):
 
     result = f.run(
         adoc_template="dirTemplate",
-        dual="0",
+        # dual="0",
         montage="0",
         gold="15",
         focus="0",

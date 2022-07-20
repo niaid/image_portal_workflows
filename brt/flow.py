@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import json
 import subprocess
 import re
 import math
@@ -9,7 +8,8 @@ from pathlib import Path
 import shutil
 import prefect
 from jinja2 import Environment, FileSystemLoader
-from prefect import task, Flow, Parameter, unmapped, flatten
+from prefect import task, Flow, Parameter, unmapped, flatten, case
+from prefect.tasks.control_flow import merge
 from prefect.engine import signals
 
 # from prefect.tasks.shell import ShellTask
@@ -42,8 +42,18 @@ def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
     copies files (tomograms/mrc files) into working_dir
     returns Path of copied file
     """
-    fp = shutil.copyfile(src=fname.as_posix(), dst=f"{working_dir}/{fname.name}")
-    return Path(fp)
+    new_loc = Path(f"{working_dir}/{fname.name}")
+    if fname.exists():
+        shutil.copyfile(src=fname.as_posix(), dst=new_loc)
+    else:
+        fp_1 = Path(f"{fname.parent}/{fname.stem}a{fname.suffix}")
+        fp_2 = Path(f"{fname.parent}/{fname.stem}b{fname.suffix}")
+        if fp_1.exists() and fp_2.exists():
+            shutil.copyfile(src=fp_1.as_posix(), dst=f"{working_dir}/{fp_1.name}")
+            shutil.copyfile(src=fp_2.as_posix(), dst=f"{working_dir}/{fp_2.name}")
+        else:
+            raise signals.FAIL(f"Files missing. {fp_1},{fp_2}. BRT run failure.")
+    return new_loc
 
 
 @task
@@ -71,8 +81,8 @@ def update_adoc(
     template = env.get_template(adoc_fp.name)
 
     name = tg_fp.stem
-    stackext = tg_fp.suffix
-    currentBStackExt = "mrc"  # TODO - should be a tupple of fps
+    stackext = tg_fp.suffix[1:]
+    currentBStackExt = tg_fp.suffix[1:]  # TODO - assumes both files are same ext
     datasetDirectory = adoc_fp.parent
     if TwoSurfaces == "0":
         SurfacesToAnalyze = 1
@@ -83,7 +93,7 @@ def update_adoc(
             f"Unable to resolve SurfacesToAnalyze, TwoSurfaces \
                 is set to {TwoSurfaces}, and should be 0 or 1"
         )
-    rpa_thickness = int(THICKNESS) * 1.5
+    rpa_thickness = int(int(THICKNESS) * 1.5)
 
     vals = {
         "name": name,
@@ -308,6 +318,40 @@ def gen_ffmpeg_rc_cmd(fp: Path, fp_out: Path) -> str:
     return cmd
 
 
+@task
+def list_paired_files(fnames: List[Path]) -> List[Path]:
+    """if the input is a paired/dual axis shot, we can trucate the a|b off
+    the filename, and use that string from this point on.
+    We need to ensure there are only paired inputs in this list.
+    """
+    maybes = list()
+    pairs = list()
+    # paired_fnames = [fname.stem for fname in fps]
+    for fname in fnames:
+        if fname.stem.endswith("a"):
+            # remove the last char of fname (keep extension)
+            fname_no_a = f"{fname.parent}/{fname.stem[:-1]}{fname.suffix}"
+            maybes.append(fname_no_a)
+    for fname in fnames:
+        if fname.stem.endswith("b"):
+            fname_no_b = f"{fname.parent}/{fname.stem[:-1]}{fname.suffix}"
+            if fname_no_b in maybes:
+                pairs.append(Path(fname_no_b))
+    return pairs
+
+
+@task
+def check_inputs_paired(fps: List[Path]):
+    fnames = [fname.stem for fname in fps]
+    for fname in fnames:
+        if fname.endswith("a"):
+            # remove the last char, cat on a 'b' and lookup.
+            pair_name = fname[:-1] + "b"
+            if pair_name in fnames:
+                return True
+    return False
+
+
 # if __name__ == "__main__":
 
 with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
@@ -315,7 +359,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     # Note the ugly names, these parameters are lifted verbatim from
     # https://bio3d.colorado.edu/imod/doc/directives.html where possible.
     # (there are two thickness args, these are not verbatim.)
-    dual = Parameter("dual")
+    # dual = Parameter("dual")
     montage = Parameter("montage")
     gold = Parameter("gold")
     focus = Parameter("focus")
@@ -339,15 +383,30 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     fnames = utils.list_files(
         input_dir=input_dir_fp, exts=["mrc", "st"], single_file=file_name
     )
+
     fnames_ok = utils.check_inputs_ok(fnames)
-    temp_dirs = utils.make_work_dir.map(fnames, upstream_tasks=[unmapped(fnames_ok)])
+
+    # check if inputs are paired (only - bool)
+    inputs_paired = check_inputs_paired(fnames)
+    with case(inputs_paired, True):
+        fnames_p = list_paired_files(fnames=fnames)
+        dual_on = 1
+    with case(inputs_paired, False):
+        fnames_np = fnames
+        dual_off = 0
+    fnames_fin = merge(fnames_p, fnames_np)
+    dual_computed = merge(dual_on, dual_off)
+
+    temp_dirs = utils.make_work_dir.map(
+        fnames_fin, upstream_tasks=[unmapped(fnames_ok)]
+    )
     adoc_fps = copy_template.map(
         working_dir=temp_dirs, template_name=unmapped(adoc_template)
     )
     updated_adocs = update_adoc.map(
         adoc_fp=adoc_fps,
-        tg_fp=fnames,
-        dual=unmapped(dual),
+        tg_fp=fnames_fin,
+        dual=unmapped(dual_computed),
         montage=unmapped(montage),
         gold=unmapped(gold),
         focus=unmapped(focus),
@@ -359,7 +418,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
         LocalAlignments=unmapped(LocalAlignments),
         THICKNESS=unmapped(THICKNESS),
     )
-    tomogram_fps = copy_tg_to_working_dir.map(fname=fnames, working_dir=temp_dirs)
+    tomogram_fps = copy_tg_to_working_dir.map(fname=fnames_fin, working_dir=temp_dirs)
 
     # START BRT (Batchruntomo) - long running process.
     brt_commands = utils.create_brt_command.map(adoc_fp=updated_adocs)
