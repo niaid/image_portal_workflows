@@ -20,7 +20,7 @@ class Config:
     tif2mrc_loc = "/opt/rml/imod/bin/tif2mrc"
     xfalign_loc = "/opt/rml/imod/bin/xfalign"
     xftoxg_loc = "/opt/rml/imod/bin/xftoxg"
-    newstack_loc = "/opt/rml/imod/newstack"
+    newstack_loc = "/opt/rml/imod/bin/newstack"
     convert_loc = "/usr/bin/convert"
 
     size_lg = "1024x1024"
