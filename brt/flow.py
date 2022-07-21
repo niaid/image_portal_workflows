@@ -204,6 +204,19 @@ def gen_mrc2tiff(fp: Path) -> str:
 
 
 @task
+def gen_copy_keyimages(tomogram_fp: Path, middle_i: str, fp_out: Path) -> str:
+    """
+    generates the keyImage (by copying image i to keyImage.jpeg)
+    fname_in and fname_out both derived from tomogram fp
+    MIDDLE_I might always be an int
+    cp path/BASENAME_ali.{MIDDLE_I}.jpg path/BASENAME_keyimg.jpg
+    """
+    fname_in = f"{tomogram_fp.parent}/{tomogram_fp.stem}_ali.{middle_i}.jpg"
+    cmd = f"cp {fname_in} {fp_out}"
+    prefect.context.get("logger").info(cmd)
+    return cmd
+
+@task
 def gen_gm_convert(tomogram_fp: Path, middle_i: str, fp_out: Path) -> str:
     """
     generates the keyThumbnail
@@ -453,6 +466,23 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     middle_is = calc_middle_i.map(z_dim=z_dims)
 
     # key_imgs are an output/asset - location needs to be reported.
+    key_img_fps = utils.gen_output_fp.map(
+        input_fp=tomogram_fps,
+        upstream_tasks=[mrc2tiffs],
+        output_ext=unmapped("_keyImg.jpeg"),
+    )
+
+    cp_keyimage_cmds = gen_copy_keyimages.map(
+        tomogram_fp=tomogram_fps,
+        middle_i=middle_is,
+        fp_out=key_img_fps,
+        upstream_tasks=[mrc2tiffs],
+    )
+    cp_keyImages = shell_task.map(
+        command=cp_keyimage_cmds, to_echo=unmapped("copying keyImages")
+    )
+
+
     thumbs_sm_fps = utils.gen_output_fp.map(
         input_fp=tomogram_fps,
         upstream_tasks=[mrc2tiffs],
@@ -566,6 +596,19 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     # generate base element
     callback_base_elts = utils.gen_callback_elt.map(input_fname=tomogram_fps)
 
+    # key images
+    key_img_asset_fps = utils.copy_to_assets_dir.map(
+        fp=key_img_fps,
+        assets_dir=unmapped(assets_dir),
+        prim_fp=tomogram_fps,
+        upstream_tasks=[cp_keyImages],
+    )
+    callback_with_keyImages = utils.add_assets_entry.map(
+        base_elt=callback_base_elts,
+        path=key_img_asset_fps,
+        asset_type=unmapped("keyImage"),
+    )
+
     # thumnails (small thumbs)
     thumbnail_fps = utils.copy_to_assets_dir.map(
         fp=thumbs_sm_fps,
@@ -574,7 +617,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
         upstream_tasks=[gms_sm],
     )
     callback_with_thumbs = utils.add_assets_entry.map(
-        base_elt=callback_base_elts,
+        base_elt=callback_with_keyImages,
         path=thumbnail_fps,
         asset_type=unmapped("thumbnail"),
     )
