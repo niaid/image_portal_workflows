@@ -64,23 +64,6 @@ def create_brt_command(adoc_fp: Path) -> str:
     return cmd
 
 
-# @task
-# def list_input_dir(input_dir_fp: Path) -> List[Path]:
-#    """
-#    discover the contents of the input_dir AKA "Sample"
-#    note, only lists mrc files currently. TODO(?)
-#    include .st files TODO
-#    note, only processing first file ATM (test)
-#    """
-#    logger = prefect.context.get("logger")
-#    logger.info(f"trying to list {input_dir_fp}")
-#    mrc_files = glob.glob(f"{input_dir_fp}/*.mrc")
-#    if len(mrc_files) == 0:
-#        raise signals.FAIL(f"Unable to find any input files in dir: {input_dir_fp}")
-#    mrc_fps = [Path(f) for f in mrc_files]
-#    logger = prefect.context.get("logger")
-#    logger.info(f"Found {mrc_fps}")
-#    return mrc_fps
 
 
 @task
@@ -154,6 +137,21 @@ def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> Lis
 
 
 @task
+def list_dirs(input_dir_fp: Path) -> List[Path]:
+    """
+    Lists subdirs of directory input_dir
+    Some pipelines, eg SEM, store image stacks in dirs (rather than
+    single files.
+    """
+    logger = prefect.context.get("logger")
+    logger.info(f"trying to list {input_dir_fp}")
+    dirs = [Path(x) for x in input_dir_fp.iterdir() if x.is_dir()]
+    if len(dirs) == 0:
+        raise signals.FAIL(f"Unable to find any subdirs in dir: {input_dir_fp}")
+    logger.info(f"Found {dirs}")
+    return dirs
+
+@task
 def gen_output_fp(input_fp: Path, output_ext: str, working_dir: Path = None) -> Path:
     """
     cat working_dir to input_fp.name, but swap the extension to output_ext
@@ -196,21 +194,6 @@ def run_single_file(input_fps: List[Path], fp_to_check: str) -> List[Path]:
             return [Path(fp_to_check)]
     raise signals.FAIL(f"Expecting file: {fp_to_check}, not found in input_dir")
 
-
-# def _gen_callback_file_list(dname: str, inputs: List[Path]) -> List[Dict]:
-#    """
-#    converts a list of Paths to a datastructure used to create JSON for
-#    the callback
-#    """
-#    files = list()
-#    for _file in inputs:
-#        elt = {
-#            "primaryFilePath": dname + _file.as_posix(),
-#            "title": _file.stem,
-#            "assets": list(),
-#        }
-#        files.append(elt)
-#    return files
 
 
 def notify_api_running(flow: Flow, old_state, new_state) -> State:
@@ -348,40 +331,6 @@ def add_assets_entry(
     return base_elt
 
 
-# def _gen_assets_entry(
-#    path: Path, asset_type: str, metadata: Dict[str, str] = None
-# ) -> Dict[str, str]:
-#    """
-#    asset type can be one of:
-#
-#    averagedVolume
-#    keyImage
-#    keyThumbnail
-#    recMovie
-#    tiltMovie
-#    volume
-#    neuroglancerPrecomputed
-#
-#    used to build the callback for API
-#    """
-#    valid_typs = [
-#        "averagedVolume",
-#        "keyImage",
-#        "keyThumbnail",
-#        "recMovie",
-#        "tiltMovie",
-#        "volume",
-#        "neuroglancerPrecomputed",
-#    ]
-#    if asset_type not in valid_typs:
-#        raise ValueError(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
-#    if metadata:
-#        asset = {asset_type: path.as_posix(), "metadata": metadata}
-#    else:
-#        asset = {asset_type: path.as_posix()}
-#    return asset
-
-
 @task
 def make_assets_dir(input_dir: Path) -> Path:
     """
@@ -402,7 +351,7 @@ def make_assets_dir(input_dir: Path) -> Path:
 
 
 @task
-def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path) -> Path:
+def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path=None) -> Path:
     """
     Copy fp to the assets (reported output) dir
     Note, assets are expected to exist in a subdir defined by the input
@@ -414,7 +363,10 @@ def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path) -> Path:
     (note dname SARsCoV2_1) in assets_dir
     """
     logger = prefect.context.get("logger")
-    assets_sub_dir = Path(f"{assets_dir}/{prim_fp.stem}")
+    if prim_fp is not None:
+        assets_sub_dir = Path(f"{assets_dir}/{prim_fp.stem}")
+    else:
+        assets_sub_dir = assets_dir
     assets_sub_dir.mkdir(exist_ok=True)
     dest = Path(f"{assets_sub_dir}/{fp.name}")
     logger.info(f"Trying to copy {fp} to {dest}")

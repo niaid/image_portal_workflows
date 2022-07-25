@@ -2,7 +2,7 @@ import math
 from typing import List
 import prefect
 from pathlib import Path
-from prefect import Flow, task, Parameter, case
+from prefect import Flow, task, Parameter, case, unmapped
 from prefect.engine import signals
 from prefect.tasks.control_flow import merge
 from image_portal_workflows.config import Config
@@ -181,201 +181,202 @@ with Flow(
 
     # dir to read from.
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
+    input_dir_fps = utils.list_dirs(input_dir_fp=input_dir_fp)
 
     # dir in which to do work in
-    work_dir = utils.make_work_dir()
+    work_dirs = utils.make_work_dir.map(input_dir_fps)
 
     # outputs dir, to move results to.
-    assets_dir = utils.make_assets_dir(input_dir=input_dir_fp)
+    assets_dirs = utils.make_assets_dir.map(input_dir=input_dir_fps)
 
     # input files to work on.
-    tif_fps = utils.list_files(input_dir_fp, ["tif"], single_file=file_name)
+    tif_fps = utils.list_files.map(input_dir=input_dir_fps, exts=unmapped(["tif"]))
     # check there's something relevent in the input dir (raises exp)
-    utils.check_inputs_ok(tif_fps)
+    utils.check_inputs_ok.map(tif_fps)
 
     # gen source.mrc file
-    source_mrc_fp = utils.gen_output_fp(
-        working_dir=work_dir,
-        input_fp=Path("source"),
-        output_ext=".mrc",
+    source_mrc_fps = utils.gen_output_fp.map(
+        working_dir=work_dirs,
+        input_fp=unmapped(Path("source")),
+        output_ext=unmapped(".mrc"),
     )
-    source_mrc_command = gen_tif_mrc_command(
-        input_dir=input_dir_fp, fp_out=source_mrc_fp
+    source_mrc_commands = gen_tif_mrc_command.map(
+        input_dir=input_dir_fps, fp_out=source_mrc_fps
     )
-    source_mrc = shell_task(command=source_mrc_command, to_echo="running source.mrc")
+    source_mrcs = shell_task.map(command=source_mrc_commands, to_echo=unmapped("running source.mrc"))
 
     # using source.mrc gen align.xf
-    xf_fp = utils.gen_output_fp(
-        working_dir=work_dir,
-        input_fp=Path("align"),
-        output_ext=".xf",
+    xf_fps = utils.gen_output_fp.map(
+        working_dir=work_dirs,
+        input_fp=unmapped(Path("align")),
+        output_ext=unmapped(".xf"),
     )
-    xf_command = gen_xfalign_comand(fp_in=source_mrc_fp, fp_out=xf_fp)
-    xf_align = shell_task(
-        command=xf_command, to_echo="running xf_align", upstream_tasks=[source_mrc]
+    xf_commands = gen_xfalign_comand.map(fp_in=source_mrc_fps, fp_out=xf_fps)
+    xf_aligns = shell_task.map(
+        command=xf_commands, to_echo=unmapped("running xf_align"), upstream_tasks=[source_mrcs]
     )
 
     # using align.xf create align.xg
-    xg_fp = utils.gen_output_fp(
-        working_dir=work_dir,
-        input_fp=Path("align"),
-        output_ext=".xg",
+    xg_fps = utils.gen_output_fp.map(
+        working_dir=work_dirs,
+        input_fp=unmapped(Path("align")),
+        output_ext=unmapped(".xg"),
     )
-    xg_command = gen_xftoxg_comand(fp_in=xf_fp, fp_out=xg_fp)
-    xg = shell_task(
-        command=xg_command, to_echo="running xftoxg", upstream_tasks=[xf_align]
+    xg_commands = gen_xftoxg_comand.map(fp_in=xf_fps, fp_out=xg_fps)
+    xgs = shell_task.map(
+        command=xg_commands, to_echo=unmapped("running xftoxg"), upstream_tasks=[xf_aligns]
     )
 
     # using align.xg create align.mrc
-    mrc_align_fp = utils.gen_output_fp(
-        working_dir=work_dir,
-        input_fp=Path("align"),
-        output_ext=".mrc",
+    mrc_align_fps = utils.gen_output_fp.map(
+        working_dir=work_dirs,
+        input_fp=unmapped(Path("align")),
+        output_ext=unmapped(".mrc")
     )
-    mrc_align_command = gen_newstack_align_command(
-        align_xg=xg_fp, source_mrc=source_mrc_fp, align_mrc=mrc_align_fp
+    mrc_align_commands = gen_newstack_align_command.map(
+        align_xg=xg_fps, source_mrc=source_mrc_fps, align_mrc=mrc_align_fps
     )
-    mrc_align = shell_task(
-        command=mrc_align_command, to_echo="running newstack align", upstream_tasks=[xg]
+    mrc_aligns = shell_task.map(
+        command=mrc_align_commands, to_echo=unmapped("running newstack align"), upstream_tasks=[xgs]
     )
 
     use_tilt = check_tilt(tilt_parameter)
     with case(use_tilt, True):
         # create stretch file using tilt_parameter
         # this only gets exec if tilt_parameter is not None
-        stretch_fp = utils.gen_output_fp(
-            working_dir=work_dir, input_fp=Path("stretch"), output_ext=".xf"
+        stretch_fps = utils.gen_output_fp.map(
+            working_dir=work_dirs, input_fp=unmapped(Path("stretch")), output_ext=unmapped(".xf")
         )
-        stretch = create_stretch_file(tilt=tilt_parameter, fp_out=stretch_fp)
+        stretchs = create_stretch_file.map(tilt=unmapped(tilt_parameter), fp_out=stretch_fps)
 
-        corrected_fp = utils.gen_output_fp(
-            working_dir=work_dir, input_fp=Path("corrected"), output_ext=".mrc"
+        corrected_fps = utils.gen_output_fp.map(
+            working_dir=work_dirs, input_fp=unmapped(Path("corrected")), output_ext=unmapped(".mrc")
         )
-        newstack_cor_cmd = gen_newstack_corr_command(
-            stretch_fp=stretch_fp, aligned_fp=mrc_align_fp, fp_out=corrected_fp
+        newstack_cor_cmds = gen_newstack_corr_command.map(
+            stretch_fp=stretch_fps, aligned_fp=mrc_align_fps, fp_out=corrected_fps
         )
-        newstack_cor = shell_task(
-            command=newstack_cor_cmd,
-            to_echo="running newstack corrected",
-            upstream_tasks=[mrc_align, stretch],
+        newstack_cors = shell_task.map(
+            command=newstack_cor_cmds,
+            to_echo=unmapped("running newstack corrected"),
+            upstream_tasks=[mrc_aligns, stretchs],
         )
     with case(use_tilt, False):
         # again, see https://docs.prefect.io/core/idioms/conditional.html
-        align_fp = mrc_align_fp
+        align_fps = mrc_align_fps
 
     # the normalized step uses corrected_fp if tilt is specified
     # else it uses align_fp
-    norm_input_fp = merge(corrected_fp, align_fp)
+    norm_input_fps = merge(corrected_fps, align_fps)
 
     # newstack normalized,
-    basename = gen_basename(fps=tif_fps)
-    norm_mrc_fp = utils.gen_output_fp(
-        working_dir=work_dir, input_fp=basename, output_ext=".mrc"
+    basenames = gen_basename.map(fps=tif_fps)
+    norm_mrc_fps = utils.gen_output_fp.map(
+        working_dir=work_dirs, input_fp=basenames, output_ext=unmapped(".mrc")
     )
-    newstack_norm_cmd = gen_newstack_norm_command(
-        fp_in=norm_input_fp, fp_out=norm_mrc_fp
+    newstack_norm_cmds = gen_newstack_norm_command.map(
+        fp_in=norm_input_fps, fp_out=norm_mrc_fps
     )
-    newstack_norm = shell_task(
-        command=newstack_norm_cmd,
-        to_echo="running newstack normalized",
-        upstream_tasks=[newstack_cor],
+    newstack_norms = shell_task.map(
+        command=newstack_norm_cmds,
+        to_echo=unmapped("running newstack normalized"),
+        upstream_tasks=[newstack_cors],
     )
 
     # newstack mid, gen mid.mrc
-    mid_mrc_fp = utils.gen_output_fp(
-        working_dir=work_dir, input_fp=Path("mid"), output_ext=".mrc"
+    mid_mrc_fps = utils.gen_output_fp.map(
+        working_dir=work_dirs, input_fp=unmapped(Path("mid")), output_ext=unmapped(".mrc")
     )
-    newstack_mid_cmd = gen_newstack_mid_mrc_command(
-        fps=tif_fps, fp_in=norm_mrc_fp, fp_out=mid_mrc_fp
+    newstack_mid_cmds = gen_newstack_mid_mrc_command.map(
+        fps=tif_fps, fp_in=norm_mrc_fps, fp_out=mid_mrc_fps
     )
-    mid_mrc = shell_task(
-        command=newstack_mid_cmd,
-        to_echo="running newstack mid",
-        upstream_tasks=[newstack_norm],
+    mid_mrc = shell_task.map(
+        command=newstack_mid_cmds,
+        to_echo=unmapped("running newstack mid"),
+        upstream_tasks=[newstack_norms],
     )
 
     # generate keyimg
-    keyimg_fp = utils.gen_output_fp(
-        working_dir=work_dir, input_fp=basename, output_ext="_keyimg.jpg"
+    keyimg_fps = utils.gen_output_fp.map(
+        working_dir=work_dirs, input_fp=basenames, output_ext=unmapped("_keyimg.jpg")
     )
-    keyimg_cmd = gen_keyimg_cmd(basename_mrc_fp=mid_mrc_fp, fp_out=keyimg_fp)
-    keyimg = shell_task(
-        command=keyimg_cmd, to_echo="running key image", upstream_tasks=[mid_mrc]
+    keyimg_cmds = gen_keyimg_cmd.map(basename_mrc_fp=mid_mrc_fps, fp_out=keyimg_fps)
+    keyimgs = shell_task.map(
+        command=keyimg_cmds, to_echo=unmapped("running key image"), upstream_tasks=[mid_mrc]
     )
 
-    # generate keyimg small (thumbnail)
-    keyimg_sm_fp = utils.gen_output_fp(
-        working_dir=work_dir, input_fp=basename, output_ext="_keyimg_sm.jpg"
+   # generate keyimg small (thumbnail)
+    keyimg_sm_fps = utils.gen_output_fp.map(
+        working_dir=work_dirs, input_fp=basenames, output_ext=unmapped("_keyimg_sm.jpg")
     )
-    keyimg_sm_cmd = gen_keyimg_small_cmd(keyimg_fp=keyimg_fp, keyimg_sm_fp=keyimg_sm_fp)
-    keyimg_sm = shell_task(
-        command=keyimg_sm_cmd,
-        to_echo="running key small image",
-        upstream_tasks=[keyimg],
+    keyimg_sm_cmds = gen_keyimg_small_cmd.map(keyimg_fp=keyimg_fps, keyimg_sm_fp=keyimg_sm_fps)
+    keyimg_sms = shell_task.map(
+        command=keyimg_sm_cmds,
+        to_echo=unmapped("running key small image"),
+        upstream_tasks=[keyimgs],
     )
 
     # START PYRAMID GEN
-    mrc2nifti_cmd = ng.gen_mrc2nifti_cmd(fp=norm_mrc_fp, upstream_tasks=[newstack_norm])
-    mrc2nifti = shell_task(command=mrc2nifti_cmd, to_echo="mrc2nifti")
+    mrc2nifti_cmds = ng.gen_mrc2nifti_cmd.map(fp=norm_mrc_fps, upstream_tasks=[newstack_norms])
+    mrc2niftis = shell_task.map(command=mrc2nifti_cmds, to_echo=unmapped("mrc2nifti"))
 
     ##
-    ng_fp = ng.gen_pyramid_outdir(fp=norm_mrc_fp)
-    pyramid_cmd = ng.gen_pyramid_cmd(
-        fp=norm_mrc_fp, outdir=ng_fp, upstream_tasks=[mrc2nifti]
+    ng_fps = ng.gen_pyramid_outdir.map(fp=norm_mrc_fps)
+    pyramid_cmds = ng.gen_pyramid_cmd.map(
+        fp=norm_mrc_fps, outdir=ng_fps, upstream_tasks=[mrc2niftis]
     )
-    gen_pyramid = shell_task(command=pyramid_cmd, to_echo="gen pyramid")
+    gen_pyramids = shell_task.map(command=pyramid_cmds, to_echo=unmapped("gen pyramid"))
     ##
 
     ##
-    min_max_fp = utils.gen_output_fp(input_fp=norm_mrc_fp, output_ext="_min_max.json")
-    min_max_cmd = ng.gen_min_max_cmd(
-        fp=norm_mrc_fp, out_fp=min_max_fp, upstream_tasks=[mrc2nifti]
+    min_max_fps = utils.gen_output_fp.map(input_fp=norm_mrc_fps, output_ext=unmapped("_min_max.json"))
+    min_max_cmds = ng.gen_min_max_cmd.map(
+        fp=norm_mrc_fps, out_fp=min_max_fps, upstream_tasks=[mrc2niftis]
     )
-    min_max = shell_task(command=min_max_cmd, to_echo="Min max")
-    metadata = ng.parse_min_max_file(fp=min_max_fp, upstream_tasks=[min_max])
+    min_maxs = shell_task.map(command=min_max_cmds, to_echo=unmapped("Min max"))
+    metadatas = ng.parse_min_max_file.map(fp=min_max_fps, upstream_tasks=[min_maxs])
     # END PYRAMID
-
+#
     # generate base element
-    callback_base_elt = utils.gen_callback_elt(input_fname=norm_mrc_fp)
+    callback_base_elts = utils.gen_callback_elt.map(input_fname=input_dir_fps)
 
     # thumnails (small thumbs)
-    thumbnail_fp = utils.copy_to_assets_dir(
-        fp=keyimg_sm_fp,
-        assets_dir=assets_dir,
-        prim_fp=norm_mrc_fp,
-        upstream_tasks=[keyimg_sm],
+    thumbnail_fps = utils.copy_to_assets_dir.map(
+        fp=keyimg_sm_fps,
+        assets_dir=assets_dirs,
+        # prim_fp=norm_mrc_fps,
+        upstream_tasks=[keyimg_sms],
     )
-    callback_with_thumb = utils.add_assets_entry(
-        base_elt=callback_base_elt,
-        path=thumbnail_fp,
-        asset_type="thumbnail",
+    callback_with_thumbs = utils.add_assets_entry.map(
+        base_elt=callback_base_elts,
+        path=thumbnail_fps,
+        asset_type=unmapped("thumbnail"),
     )
 
     # keyimg
-    keyimg_fp_asset = utils.copy_to_assets_dir(
-        fp=keyimg_fp,
-        assets_dir=assets_dir,
-        prim_fp=norm_mrc_fp,
-        upstream_tasks=[keyimg],
+    keyimg_fp_assets = utils.copy_to_assets_dir.map(
+        fp=keyimg_fps,
+        assets_dir=assets_dirs,
+        # prim_fp=norm_mrc_fps,
+        upstream_tasks=[keyimgs],
     )
-    callback_with_keyimg = utils.add_assets_entry(
-        base_elt=callback_with_thumb,
-        path=keyimg_fp_asset,
-        asset_type="keyImage",
+    callback_with_keyimgs = utils.add_assets_entry.map(
+        base_elt=callback_with_thumbs,
+        path=keyimg_fp_assets,
+        asset_type=unmapped("keyImage"),
     )
 
     # neuroglancerPrecomputed
-    ng_asset_fp = utils.copy_to_assets_dir(
-        fp=ng_fp,
-        assets_dir=assets_dir,
-        prim_fp=norm_mrc_fp,
-        upstream_tasks=[gen_pyramid, metadata],
+    ng_asset_fps = utils.copy_to_assets_dir.map(
+        fp=ng_fps,
+        assets_dir=assets_dirs,
+        # prim_fp=norm_mrc_fps,
+        upstream_tasks=[gen_pyramids, metadatas],
     )
-    callback_with_neuroglancer = utils.add_assets_entry(
-        base_elt=callback_with_keyimg,
-        path=ng_asset_fp,
-        asset_type="neuroglancerPrecomputed",
-        metadata=metadata,
+    callback_with_neuroglancer = utils.add_assets_entry.map(
+        base_elt=callback_with_keyimgs,
+        path=ng_asset_fps,
+        asset_type=unmapped("neuroglancerPrecomputed"),
+        metadata=metadatas,
     )
 
     utils.send_callback_body(
