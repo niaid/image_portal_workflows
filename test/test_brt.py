@@ -37,8 +37,7 @@ def test_dm4_conv(hpc_env):
     from image_portal_workflows.brt.flow import f
 
     result = f.run(
-        adoc_template="dirTemplate",
-        # dual="0",
+        adoc_template="plastic_brt",
         montage="0",
         gold="15",
         focus="0",
