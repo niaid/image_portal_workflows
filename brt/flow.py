@@ -60,7 +60,7 @@ def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
 def update_adoc(
     adoc_fp: Path,
     tg_fp: Path,
-    dual: str,
+    dual_p: bool,
     montage: str,
     gold: str,
     focus: str,
@@ -81,8 +81,12 @@ def update_adoc(
     template = env.get_template(adoc_fp.name)
 
     name = tg_fp.stem
+    dual = 0
+    currentBStackExt = None
     stackext = tg_fp.suffix[1:]
-    currentBStackExt = tg_fp.suffix[1:]  # TODO - assumes both files are same ext
+    if dual_p:
+        dual = 1
+        currentBStackExt = tg_fp.suffix[1:]  # TODO - assumes both files are same ext
     datasetDirectory = adoc_fp.parent
     if TwoSurfaces == "0":
         SurfacesToAnalyze = 1
@@ -355,14 +359,20 @@ def list_paired_files(fnames: List[Path]) -> List[Path]:
 
 @task
 def check_inputs_paired(fps: List[Path]):
+    """
+    asks if there are ANY paired inputs in a dir.
+    If there are, will return True, else False
+    """
     fnames = [fname.stem for fname in fps]
+    inputs_paired = False
     for fname in fnames:
         if fname.endswith("a"):
             # remove the last char, cat on a 'b' and lookup.
             pair_name = fname[:-1] + "b"
             if pair_name in fnames:
-                return True
-    return False
+                inputs_paired = True
+    prefect.context.get("logger").info(f"Are inputs paired? {inputs_paired}.")
+    return inputs_paired
 
 
 # if __name__ == "__main__":
@@ -403,12 +413,9 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     inputs_paired = check_inputs_paired(fnames)
     with case(inputs_paired, True):
         fnames_p = list_paired_files(fnames=fnames)
-        dual_on = 1
     with case(inputs_paired, False):
         fnames_np = fnames
-        dual_off = 0
     fnames_fin = merge(fnames_p, fnames_np)
-    dual_computed = merge(dual_on, dual_off)
 
     temp_dirs = utils.make_work_dir.map(
         fnames_fin, upstream_tasks=[unmapped(fnames_ok)]
@@ -419,7 +426,7 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     updated_adocs = update_adoc.map(
         adoc_fp=adoc_fps,
         tg_fp=fnames_fin,
-        dual=unmapped(dual_computed),
+        dual_p=unmapped(inputs_paired),
         montage=unmapped(montage),
         gold=unmapped(gold),
         focus=unmapped(focus),
