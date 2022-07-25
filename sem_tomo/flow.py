@@ -193,6 +193,9 @@ with Flow(
     tif_fps = utils.list_files.map(input_dir=input_dir_fps, exts=unmapped(["tif"]))
     # check there's something relevent in the input dir (raises exp)
     utils.check_inputs_ok.map(tif_fps)
+    # escape bad chars in file names
+    # only used for first step - gen_output_fp will translate to underscores
+    # tif_fps_escaped= utils.sanitize_file_names.map(tif_fps)
 
     # gen source.mrc file
     source_mrc_fps = utils.gen_output_fp.map(
@@ -203,7 +206,9 @@ with Flow(
     source_mrc_commands = gen_tif_mrc_command.map(
         input_dir=input_dir_fps, fp_out=source_mrc_fps
     )
-    source_mrcs = shell_task.map(command=source_mrc_commands, to_echo=unmapped("running source.mrc"))
+    source_mrcs = shell_task.map(
+        command=source_mrc_commands, to_echo=unmapped("running source.mrc")
+    )
 
     # using source.mrc gen align.xf
     xf_fps = utils.gen_output_fp.map(
@@ -213,7 +218,9 @@ with Flow(
     )
     xf_commands = gen_xfalign_comand.map(fp_in=source_mrc_fps, fp_out=xf_fps)
     xf_aligns = shell_task.map(
-        command=xf_commands, to_echo=unmapped("running xf_align"), upstream_tasks=[source_mrcs]
+        command=xf_commands,
+        to_echo=unmapped("running xf_align"),
+        upstream_tasks=[source_mrcs],
     )
 
     # using align.xf create align.xg
@@ -224,20 +231,24 @@ with Flow(
     )
     xg_commands = gen_xftoxg_comand.map(fp_in=xf_fps, fp_out=xg_fps)
     xgs = shell_task.map(
-        command=xg_commands, to_echo=unmapped("running xftoxg"), upstream_tasks=[xf_aligns]
+        command=xg_commands,
+        to_echo=unmapped("running xftoxg"),
+        upstream_tasks=[xf_aligns],
     )
 
     # using align.xg create align.mrc
     mrc_align_fps = utils.gen_output_fp.map(
         working_dir=work_dirs,
         input_fp=unmapped(Path("align")),
-        output_ext=unmapped(".mrc")
+        output_ext=unmapped(".mrc"),
     )
     mrc_align_commands = gen_newstack_align_command.map(
         align_xg=xg_fps, source_mrc=source_mrc_fps, align_mrc=mrc_align_fps
     )
     mrc_aligns = shell_task.map(
-        command=mrc_align_commands, to_echo=unmapped("running newstack align"), upstream_tasks=[xgs]
+        command=mrc_align_commands,
+        to_echo=unmapped("running newstack align"),
+        upstream_tasks=[xgs],
     )
 
     use_tilt = check_tilt(tilt_parameter)
@@ -245,12 +256,18 @@ with Flow(
         # create stretch file using tilt_parameter
         # this only gets exec if tilt_parameter is not None
         stretch_fps = utils.gen_output_fp.map(
-            working_dir=work_dirs, input_fp=unmapped(Path("stretch")), output_ext=unmapped(".xf")
+            working_dir=work_dirs,
+            input_fp=unmapped(Path("stretch")),
+            output_ext=unmapped(".xf"),
         )
-        stretchs = create_stretch_file.map(tilt=unmapped(tilt_parameter), fp_out=stretch_fps)
+        stretchs = create_stretch_file.map(
+            tilt=unmapped(tilt_parameter), fp_out=stretch_fps
+        )
 
         corrected_fps = utils.gen_output_fp.map(
-            working_dir=work_dirs, input_fp=unmapped(Path("corrected")), output_ext=unmapped(".mrc")
+            working_dir=work_dirs,
+            input_fp=unmapped(Path("corrected")),
+            output_ext=unmapped(".mrc"),
         )
         newstack_cor_cmds = gen_newstack_corr_command.map(
             stretch_fp=stretch_fps, aligned_fp=mrc_align_fps, fp_out=corrected_fps
@@ -284,7 +301,9 @@ with Flow(
 
     # newstack mid, gen mid.mrc
     mid_mrc_fps = utils.gen_output_fp.map(
-        working_dir=work_dirs, input_fp=unmapped(Path("mid")), output_ext=unmapped(".mrc")
+        working_dir=work_dirs,
+        input_fp=unmapped(Path("mid")),
+        output_ext=unmapped(".mrc"),
     )
     newstack_mid_cmds = gen_newstack_mid_mrc_command.map(
         fps=tif_fps, fp_in=norm_mrc_fps, fp_out=mid_mrc_fps
@@ -301,14 +320,18 @@ with Flow(
     )
     keyimg_cmds = gen_keyimg_cmd.map(basename_mrc_fp=mid_mrc_fps, fp_out=keyimg_fps)
     keyimgs = shell_task.map(
-        command=keyimg_cmds, to_echo=unmapped("running key image"), upstream_tasks=[mid_mrc]
+        command=keyimg_cmds,
+        to_echo=unmapped("running key image"),
+        upstream_tasks=[mid_mrc],
     )
 
-   # generate keyimg small (thumbnail)
+    # generate keyimg small (thumbnail)
     keyimg_sm_fps = utils.gen_output_fp.map(
         working_dir=work_dirs, input_fp=basenames, output_ext=unmapped("_keyimg_sm.jpg")
     )
-    keyimg_sm_cmds = gen_keyimg_small_cmd.map(keyimg_fp=keyimg_fps, keyimg_sm_fp=keyimg_sm_fps)
+    keyimg_sm_cmds = gen_keyimg_small_cmd.map(
+        keyimg_fp=keyimg_fps, keyimg_sm_fp=keyimg_sm_fps
+    )
     keyimg_sms = shell_task.map(
         command=keyimg_sm_cmds,
         to_echo=unmapped("running key small image"),
@@ -316,7 +339,9 @@ with Flow(
     )
 
     # START PYRAMID GEN
-    mrc2nifti_cmds = ng.gen_mrc2nifti_cmd.map(fp=norm_mrc_fps, upstream_tasks=[newstack_norms])
+    mrc2nifti_cmds = ng.gen_mrc2nifti_cmd.map(
+        fp=norm_mrc_fps, upstream_tasks=[newstack_norms]
+    )
     mrc2niftis = shell_task.map(command=mrc2nifti_cmds, to_echo=unmapped("mrc2nifti"))
 
     ##
@@ -328,14 +353,16 @@ with Flow(
     ##
 
     ##
-    min_max_fps = utils.gen_output_fp.map(input_fp=norm_mrc_fps, output_ext=unmapped("_min_max.json"))
+    min_max_fps = utils.gen_output_fp.map(
+        input_fp=norm_mrc_fps, output_ext=unmapped("_min_max.json")
+    )
     min_max_cmds = ng.gen_min_max_cmd.map(
         fp=norm_mrc_fps, out_fp=min_max_fps, upstream_tasks=[mrc2niftis]
     )
     min_maxs = shell_task.map(command=min_max_cmds, to_echo=unmapped("Min max"))
     metadatas = ng.parse_min_max_file.map(fp=min_max_fps, upstream_tasks=[min_maxs])
     # END PYRAMID
-#
+    #
     # generate base element
     callback_base_elts = utils.gen_callback_elt.map(input_fname=input_dir_fps)
 

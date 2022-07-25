@@ -64,8 +64,6 @@ def create_brt_command(adoc_fp: Path) -> str:
     return cmd
 
 
-
-
 @task
 def add_assets(assets_list: Dict, new_asset: Dict[str, str]) -> Dict:
     logger = context.get("logger")
@@ -151,6 +149,7 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
     logger.info(f"Found {dirs}")
     return dirs
 
+
 @task
 def gen_output_fp(input_fp: Path, output_ext: str, working_dir: Path = None) -> Path:
     """
@@ -193,7 +192,6 @@ def run_single_file(input_fps: List[Path], fp_to_check: str) -> List[Path]:
         if _fp.name == fp_to_check:
             return [Path(fp_to_check)]
     raise signals.FAIL(f"Expecting file: {fp_to_check}, not found in input_dir")
-
 
 
 def notify_api_running(flow: Flow, old_state, new_state) -> State:
@@ -351,7 +349,7 @@ def make_assets_dir(input_dir: Path) -> Path:
 
 
 @task
-def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path=None) -> Path:
+def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path = None) -> Path:
     """
     Copy fp to the assets (reported output) dir
     Note, assets are expected to exist in a subdir defined by the input
