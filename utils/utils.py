@@ -30,12 +30,12 @@ def check_inputs_ok(fps: List[Path]) -> List[Path]:
     for fp in fps:
         if not fp.exists():
             raise signals.FAIL(f"Input dir does not contain {fp}")
-    prefect.context.get("logger").info("fiiles ok")
+    prefect.context.get("logger").info("files ok")
 
 
 @task
 def sanitize_file_names(fps: List[Path]) -> List[Path]:
-    escaped_files = [Path(escape_str(_file.as_posix())) for _file in fps]
+    escaped_files = [Path(_escape_str(_file.as_posix())) for _file in fps]
     return escaped_files
 
 
@@ -96,12 +96,12 @@ def _esc_char(match):
     return "\\" + match.group(0)
 
 
-def tr_str(name):
+def _tr_str(name):
     _to_esc = re.compile(r"\s|[]()[]")
     return _to_esc.sub("_", name)
 
 
-def escape_str(name):
+def _escape_str(name):
     _to_esc = re.compile(r"\s|[]()[]")
     return _to_esc.sub(_esc_char, name)
 
@@ -158,7 +158,7 @@ def gen_output_fp(input_fp: Path, output_ext: str, working_dir: Path = None) -> 
     dir is not the same as the input dir, and working_dir is used to define output
     in this case.
     """
-    stem_name = tr_str(input_fp.stem)
+    stem_name = _tr_str(input_fp.stem)
     if working_dir:
         output_fp = f"{working_dir.as_posix()}/{stem_name}{output_ext}"
     else:
