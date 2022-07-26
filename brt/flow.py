@@ -157,13 +157,13 @@ def check_brt_run_ok(tg_fp: Path):
     BASENAME_ali.mrc
     """
     rec_file = Path(f"{tg_fp.parent}/{tg_fp.stem}_rec.mrc")
-    full_rec_file = Path(f"{tg_fp.parent}/{tg_fp.stem}_full_rec.mrc")
+    # full_rec_file = Path(f"{tg_fp.parent}/{tg_fp.stem}_full_rec.mrc")
     ali_file = Path(f"{tg_fp.parent}/{tg_fp.stem}_ali.mrc")
     prefect.context.get("logger").info(
         f"checking that dir {tg_fp.parent} contains ok BRT run"
     )
 
-    for _file in [rec_file, full_rec_file, ali_file]:
+    for _file in [rec_file, ali_file]:
         if not _file.exists():
             raise signals.FAIL(f"File {_file} does not exist. BRT run failure.")
 
