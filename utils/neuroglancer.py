@@ -11,16 +11,16 @@ def gen_mrc2nifti_cmd(fp: Path) -> str:
     """
     mrc2nifti path/{basename}_full_rec.mrc path/{basename}.nii
     """
-    full_rec_mrc_fp = Path(f"{fp.parent}/{fp.stem}_full_rec.mrc")
+    rec_mrc_fp = Path(f"{fp.parent}/{fp.stem}_rec.mrc")
     base_mrc_fp = Path(f"{fp.parent}/{fp.stem}.mrc")
-    if full_rec_mrc_fp.exists():
-        mrc_fp = full_rec_mrc_fp
+    if rec_mrc_fp.exists():
+        mrc_fp = rec_mrc_fp
     elif base_mrc_fp.exists():
         mrc_fp = base_mrc_fp
     else:
         raise signals.FAIL(
             f"unable to find input for nifti generation. \
-                {full_rec_mrc_fp} nor {base_mrc_fp}."
+                {rec_mrc_fp} nor {base_mrc_fp}."
         )
     cmd = f"mrc2nifti {mrc_fp} {fp.parent}/{fp.stem}.nii"
     logger = prefect.context.get("logger")
