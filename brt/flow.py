@@ -220,6 +220,7 @@ def gen_copy_keyimages(tomogram_fp: Path, middle_i: str, fp_out: Path) -> str:
     prefect.context.get("logger").info(cmd)
     return cmd
 
+
 @task
 def gen_gm_convert(tomogram_fp: Path, middle_i: str, fp_out: Path) -> str:
     """
@@ -377,12 +378,16 @@ def check_inputs_paired(fps: List[Path]):
 
 # if __name__ == "__main__":
 
-with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
+with Flow(
+    "brt_flow",
+    executor=Config.SLURM_EXECUTOR,
+    state_handlers=[utils.notify_api_completion, utils.notify_api_running],
+) as f:
+
     # This block of params map are for adoc file specfication.
     # Note the ugly names, these parameters are lifted verbatim from
     # https://bio3d.colorado.edu/imod/doc/directives.html where possible.
     # (there are two thickness args, these are not verbatim.)
-    # dual = Parameter("dual")
     montage = Parameter("montage")
     gold = Parameter("gold")
     focus = Parameter("focus")
@@ -488,7 +493,6 @@ with Flow("brt_flow", executor=Config.SLURM_EXECUTOR) as f:
     cp_keyImages = shell_task.map(
         command=cp_keyimage_cmds, to_echo=unmapped("copying keyImages")
     )
-
 
     thumbs_sm_fps = utils.gen_output_fp.map(
         input_fp=tomogram_fps,
