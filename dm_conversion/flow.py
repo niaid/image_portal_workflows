@@ -78,11 +78,13 @@ with Flow(
     # create an assets_dir (to copy required outputs into)
     assets_dir = utils.make_assets_dir(input_dir=input_dir_fp)
     # [dm4 and dm3 inputs]
-    dm_fps = utils.list_files(input_dir_fp, ["dm4", "dm3"], single_file=file_name)
+    dm_fps = utils.list_files(
+        input_dir_fp, ["DM4", "DM3", "dm4", "dm3"], single_file=file_name
+    )
     # other inputs need to be converted too. Hopefully there's no naming overlaps
     other_input_fps = utils.list_files(
         input_dir=input_dir_fp,
-        exts=["tif", "tiff", "jpeg", "png"],
+        exts=["TIF", "TIFF", "JPEG", "PNG", "tif", "tiff", "jpeg", "png"],
         single_file=file_name,
     )
     # cat all files into single list, check they exist
