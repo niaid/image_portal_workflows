@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from os import environ
 import subprocess
 import re
 import math
@@ -403,8 +404,9 @@ with Flow(
     adoc_template = Parameter("adoc_template")
     input_dir = Parameter("input_dir")
     callback_url = Parameter("callback_url")()
+    # defines the environment to be used. Eg dev|qa|prod
+    environment = Parameter("environment")()
     token = Parameter("token")()
-    sample_id = Parameter("sample_id")()
     file_name = Parameter("file_name", default=None)
     # a single input_dir will have n tomograms
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)

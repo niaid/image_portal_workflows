@@ -32,7 +32,7 @@ def test_sem(mock_nfs_mount):
         input_dir="/test/input_files/sem_inputs/Projects/",
         tilt_parameter="30.2",
         token="the_token",
-        sample_id="the_sample_id",
+        environment="dev",
         callback_url="https://ptsv2.com/t/",
     )
     assert result.is_successful()
