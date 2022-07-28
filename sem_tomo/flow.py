@@ -191,7 +191,9 @@ with Flow(
     assets_dirs = utils.make_assets_dir.map(input_dir=input_dir_fps)
 
     # input files to work on.
-    tif_fps = utils.list_files.map(input_dir=input_dir_fps, exts=unmapped(["tif"]))
+    tif_fps = utils.list_files.map(
+        input_dir=input_dir_fps, exts=unmapped(["TIFF", "tiff", "TIF", "tif"])
+    )
     # check there's something relevent in the input dir (raises exp)
     utils.check_inputs_ok.map(tif_fps)
     # escape bad chars in file names

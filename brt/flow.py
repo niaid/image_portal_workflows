@@ -411,7 +411,7 @@ with Flow(
     # a single input_dir will have n tomograms
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
     fnames = utils.list_files(
-        input_dir=input_dir_fp, exts=["mrc", "st"], single_file=file_name
+        input_dir=input_dir_fp, exts=["MRC", "ST", "mrc", "st"], single_file=file_name
     )
 
     fnames_ok = utils.check_inputs_ok(fnames)
