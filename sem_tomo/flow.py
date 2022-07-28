@@ -74,10 +74,10 @@ def create_stretch_file(tilt: str, fp_out: Path) -> None:
     """
     # math.cos expects radians, convert to degrees first.
     prefect.context.get("logger").info(f"creating stretch file.")
-    tilt_parameter = 1 / math.cos(math.degrees(float(tilt)))
+    tilt_angle = 1 / math.cos(math.degrees(float(tilt)))
     fp_out.touch()
     with open(fp_out.as_posix(), "w") as _file:
-        _file.write(f"1 0 0 {tilt_parameter} 0 0")
+        _file.write(f"1 0 0 {tilt_angle} 0 0")
 
 
 @task
@@ -178,7 +178,7 @@ with Flow(
     callback_url = Parameter("callback_url")()
     token = Parameter("token")()
     environment = Parameter("environment")()
-    tilt_parameter = Parameter("tilt_parameter", default=None)()
+    tilt_angle = Parameter("tilt_angle", default=None)()
 
     # dir to read from.
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
@@ -252,7 +252,7 @@ with Flow(
         upstream_tasks=[xgs],
     )
 
-    use_tilt = check_tilt(tilt_parameter)
+    use_tilt = check_tilt(tilt_angle)
     with case(use_tilt, True):
         # create stretch file using tilt_parameter
         # this only gets exec if tilt_parameter is not None
@@ -262,7 +262,7 @@ with Flow(
             output_ext=unmapped(".xf"),
         )
         stretchs = create_stretch_file.map(
-            tilt=unmapped(tilt_parameter), fp_out=stretch_fps
+            tilt=unmapped(tilt_angle), fp_out=stretch_fps
         )
 
         corrected_fps = utils.gen_output_fp.map(
