@@ -69,7 +69,7 @@ with Flow(
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url")()
     token = Parameter("token")()
-    sample_id = Parameter("sample_id")()
+    environment = Parameter("environment")()
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
 
     # create a temp space to work

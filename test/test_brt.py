@@ -50,7 +50,7 @@ def test_dm4_conv(hpc_env):
         THICKNESS="30",
         input_dir="test/input_files/brt_inputs/Projects",
         token="the_token",
-        sample_id="the_sample_id",
+        environment="dev",
         callback_url="https://ptsv2.com/t/",
     )
     assert result.is_successful()

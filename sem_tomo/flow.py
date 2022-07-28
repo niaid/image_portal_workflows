@@ -1,5 +1,6 @@
 import math
 from typing import List
+from jinja2 import environment
 import prefect
 from pathlib import Path
 from prefect import Flow, task, Parameter, case, unmapped
@@ -176,7 +177,7 @@ with Flow(
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url")()
     token = Parameter("token")()
-    sample_id = Parameter("sample_id")()
+    environment = Parameter("environment")()
     tilt_parameter = Parameter("tilt_parameter", default=None)()
 
     # dir to read from.
