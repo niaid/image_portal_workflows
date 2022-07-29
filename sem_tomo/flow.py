@@ -146,6 +146,11 @@ def gen_basename(fps: List[Path]) -> Path:
     """
     For BASENAME, name of the first found tiff file in the stack,
     no extension, trailing digits, dashes, and underscores trimmed.
+    TODO - Forrest asks: Can we use the dir name as the basename
+    eg a sample will look like
+    sample_dir/thing_a, sample_dir/thing_b
+    use thing_a and thing_b as basenames
+    TODO
     """
     return Path(fps[0].stem)
 
@@ -154,6 +159,7 @@ def gen_basename(fps: List[Path]) -> Path:
 def check_tilt(s):
     """
     janky.
+    sometimes the XY dims need to be stretched, this accomodates this
     function to try to cast a str to a float. This is to fit with prefect's
     https://docs.prefect.io/core/idioms/conditional.html conditional flow.
     """
@@ -183,12 +189,13 @@ with Flow(
     # dir to read from.
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
     input_dir_fps = utils.list_dirs(input_dir_fp=input_dir_fp)
+    input_dir_fps_escaped = utils.sanitize_file_names(fps=input_dir_fps)
 
     # dir in which to do work in
     work_dirs = utils.make_work_dir.map(input_dir_fps)
 
     # outputs dir, to move results to.
-    assets_dirs = utils.make_assets_dir.map(input_dir=input_dir_fps)
+    assets_dirs = utils.make_assets_dir.map(input_dir=input_dir_fps_escaped)
 
     # input files to work on.
     tif_fps = utils.list_files.map(
@@ -207,7 +214,7 @@ with Flow(
         output_ext=unmapped(".mrc"),
     )
     source_mrc_commands = gen_tif_mrc_command.map(
-        input_dir=input_dir_fps, fp_out=source_mrc_fps
+        input_dir=input_dir_fps_escaped, fp_out=source_mrc_fps
     )
     source_mrcs = shell_task.map(
         command=source_mrc_commands, to_echo=unmapped("running source.mrc")
@@ -258,6 +265,8 @@ with Flow(
     with case(use_tilt, True):
         # create stretch file using tilt_parameter
         # this only gets exec if tilt_parameter is not None
+        # if tilt_angle is spec'd, copy corrected.mrc to Assets
+        # else copy align_mrc file
         stretch_fps = utils.gen_output_fp.map(
             working_dir=work_dirs,
             input_fp=unmapped(Path("stretch")),
@@ -366,6 +375,17 @@ with Flow(
     metadatas = ng.parse_min_max_file.map(fp=min_max_fps, upstream_tasks=[min_maxs])
     # END PYRAMID
     #
+
+
+    # copy over the mrc file used to Assets dir, as might be useful.
+    # Note, this is not reported to API!
+    # setting newstack_norms as upstream isn't exactly correct, but
+    # it's a merged value, and newstack_norms is first usage.
+    utils.copy_to_assets_dir.map(
+        fp=norm_input_fps,
+        assets_dir=assets_dirs,
+        upstream_tasks=[newstack_norms],
+    )
     # generate base element
     callback_base_elts = utils.gen_callback_elt.map(input_fname=input_dir_fps)
 
