@@ -195,7 +195,7 @@ with Flow(
     work_dirs = utils.make_work_dir.map(input_dir_fps)
 
     # outputs dir, to move results to.
-    assets_dirs = utils.make_assets_dir.map(input_dir=input_dir_fps_escaped)
+    assets_dirs = utils.make_assets_dir.map(input_dir=input_dir_fps)
 
     # input files to work on.
     tif_fps = utils.list_files.map(
