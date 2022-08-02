@@ -10,9 +10,15 @@ import os
 def mock_nfs_mount(monkeypatch):
     from image_portal_workflows.config import Config
 
+    def _mock_proj_dir(env: str) -> str:
+        return os.getcwd()
+
+    def _mock_assets_dir(env: str) -> str:
+        return os.getcwd()
+
     monkeypatch.setattr(Config, "mount_point", os.getcwd() + "/test/input_files")
-    monkeypatch.setattr(Config, "proj_dir", os.getcwd())
-    monkeypatch.setattr(Config, "assets_dir", os.getcwd())
+    monkeypatch.setattr(Config, "proj_dir", _mock_proj_dir)
+    monkeypatch.setattr(Config, "assets_dir", _mock_assets_dir)
     monkeypatch.setattr(Config, "tmp_dir", os.getcwd() + "/tmp")
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
     monkeypatch.setattr(Config, "xfalign_loc", "/usr/local/IMOD/bin/xfalign")

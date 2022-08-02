@@ -187,7 +187,7 @@ with Flow(
     tilt_angle = Parameter("tilt_angle", default=None)()
 
     # dir to read from.
-    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
+    input_dir_fp = utils.get_input_dir(input_dir=input_dir, env=environment)
     input_dir_fps = utils.list_dirs(input_dir_fp=input_dir_fp)
     input_dir_fps_escaped = utils.sanitize_file_names(fps=input_dir_fps)
 
@@ -376,7 +376,6 @@ with Flow(
     # END PYRAMID
     #
 
-
     # copy over the mrc file used to Assets dir, as might be useful.
     # Note, this is not reported to API!
     # setting newstack_norms as upstream isn't exactly correct, but
@@ -387,7 +386,9 @@ with Flow(
         upstream_tasks=[newstack_norms],
     )
     # generate base element
-    callback_base_elts = utils.gen_callback_elt.map(input_fname=input_dir_fps)
+    callback_base_elts = utils.gen_callback_elt.map(
+        env=environment, input_fname=input_dir_fps
+    )
 
     # thumnails (small thumbs)
     thumbnail_fps = utils.copy_to_assets_dir.map(
@@ -397,6 +398,7 @@ with Flow(
         upstream_tasks=[keyimg_sms],
     )
     callback_with_thumbs = utils.add_assets_entry.map(
+        env=environment,
         base_elt=callback_base_elts,
         path=thumbnail_fps,
         asset_type=unmapped("thumbnail"),
@@ -410,6 +412,7 @@ with Flow(
         upstream_tasks=[keyimgs],
     )
     callback_with_keyimgs = utils.add_assets_entry.map(
+        env=environment,
         base_elt=callback_with_thumbs,
         path=keyimg_fp_assets,
         asset_type=unmapped("keyImage"),
@@ -423,6 +426,7 @@ with Flow(
         upstream_tasks=[gen_pyramids, metadatas],
     )
     callback_with_neuroglancer = utils.add_assets_entry.map(
+        env=environment,
         base_elt=callback_with_keyimgs,
         path=ng_asset_fps,
         asset_type=unmapped("neuroglancerPrecomputed"),

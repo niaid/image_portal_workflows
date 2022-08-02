@@ -22,6 +22,12 @@ class Config:
     xftoxg_loc = "/opt/rml/imod/bin/xftoxg"
     newstack_loc = "/opt/rml/imod/bin/newstack"
     convert_loc = "/usr/bin/convert"
+    # environment where the app gets run - used for share selection
+    env_to_share = {
+        "dev": "RMLEMHedwigDev",
+        "qa": "RMLEMHedwigQA",
+        "prod": "RMLEMHedwigProd",
+    }
 
     size_lg = "1024x1024"
     size_sm = "300x300"
@@ -32,8 +38,30 @@ class Config:
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
     tmp_dir = "/gs1/Scratch/macmenaminpe_scratch/"
     mount_point = "/mnt/ai-fas12/"
-    proj_dir = f"{mount_point}/RMLEMHedwigDev/Projects"
-    assets_dir = f"{mount_point}/RMLEMHedwigDev/Assets"
+
+    @staticmethod
+    def _share_name(env: str) -> str:
+        """
+        gets the path of the location of input based on environment
+        """
+        val = Config.env_to_share.get(env)
+        if not val:
+            raise ValueError(
+                f"Environment {env} not in valid environments: \
+                    {Config.env_to_share.keys()}"
+            )
+        return val
+
+    @staticmethod
+    def proj_dir(env: str) -> str:
+        share = Config._share_name(env=env)
+        return f"{Config.mount_point}/{share}/Projects/"
+
+    @staticmethod
+    def assets_dir(env: str) -> str:
+        share = Config._share_name(env=env)
+        return f"{Config.mount_point}/{share}/Assets"
+
     # repo_dir = os.path.join(os.path.dirname(__file__), "..")
     repo_dir = Path(os.path.dirname(__file__))
     template_dir = Path(f"{repo_dir.as_posix()}/templates")

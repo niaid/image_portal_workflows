@@ -18,22 +18,28 @@ from image_portal_workflows.utils import utils
 
 @pytest.fixture
 def hpc_env(monkeypatch):
+    def _mock_proj_dir(env: str) -> str:
+        return os.getcwd()
+
+    def _mock_assets_dir(env: str) -> str:
+        return os.getcwd()
+
+    monkeypatch.setattr(Config, "proj_dir", _mock_proj_dir)
+    monkeypatch.setattr(Config, "assets_dir", _mock_assets_dir)
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
-    monkeypatch.setattr(Config, "proj_dir", f"{os.getcwd()}/")
-    monkeypatch.setattr(Config, "assets_dir", os.getcwd())
     monkeypatch.setattr(Config, "mount_point", f"{os.getcwd()}")
     monkeypatch.setattr(Config, "tmp_dir", "/tmp/")
 
     @task
     def _create_brt_command(adoc_fp: Path) -> str:
-        s = f"cp {Config.proj_dir}test/input_files/brt_outputs/*.mrc {adoc_fp.parent}"
+        s = f"cp {os.getcwd()}/test/input_files/brt_outputs/*.mrc {adoc_fp.parent}"
         prefect.context.get("logger").info(f"MOCKED {s}")
         return s
 
     monkeypatch.setattr(utils, "create_brt_command", _create_brt_command)
 
 
-def test_dm4_conv(hpc_env):
+def test_brt(hpc_env):
     from image_portal_workflows.brt.flow import f
 
     result = f.run(
@@ -48,7 +54,7 @@ def test_dm4_conv(hpc_env):
         TargetNumberOfBeads="20",
         LocalAlignments="0",
         THICKNESS="30",
-        input_dir="test/input_files/brt_inputs/Projects",
+        input_dir="test/input_files/brt_inputs/Projects/",
         token="the_token",
         environment="dev",
         callback_url="https://ptsv2.com/t/",
