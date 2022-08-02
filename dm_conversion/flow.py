@@ -70,7 +70,7 @@ with Flow(
     callback_url = Parameter("callback_url")()
     token = Parameter("token")()
     environment = Parameter("environment")()
-    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
+    input_dir_fp = utils.get_input_dir(input_dir=input_dir, env=environment)
 
     # create a temp space to work
     temp_dir = utils.make_work_dir()
@@ -165,7 +165,9 @@ with Flow(
     # create a datastructure containing each of locations of the files.
 
     # dm3/dm4 type inputs (ie inputs we converted to jpegs)
-    dm_primary_file_elts = utils.gen_callback_elt.map(input_fname=dm_fps)
+    dm_primary_file_elts = utils.gen_callback_elt.map(
+        env=environment, input_fname=dm_fps
+    )
 
     # small thumbnails
     jpeg_fps_sm_asset_fps = utils.copy_to_assets_dir.map(
@@ -175,6 +177,7 @@ with Flow(
         upstream_tasks=[jpeg_fps_sms],
     )
     with_dm_sm_thumbs = utils.add_assets_entry.map(
+        env=environment,
         base_elt=dm_primary_file_elts,
         path=jpeg_fps_sm_asset_fps,
         asset_type=unmapped("thumbnail"),
@@ -189,6 +192,7 @@ with Flow(
         upstream_tasks=[jpeg_fps_lgs],
     )
     with_dm_lg_thumbs = utils.add_assets_entry.map(
+        env=environment,
         base_elt=with_dm_sm_thumbs,
         path=jpeg_fps_lg_asset_fps,
         asset_type=unmapped("keyImage"),
@@ -196,7 +200,9 @@ with Flow(
     # finished large thumbnails
 
     # any other input that wasn't dm4
-    other_primary_file_elts = utils.gen_callback_elt.map(input_fname=other_input_fps)
+    other_primary_file_elts = utils.gen_callback_elt.map(
+        env=environment, input_fname=other_input_fps
+    )
 
     # small thumbnails - other inputs
     other_assets_sm_fps = utils.copy_to_assets_dir.map(
@@ -206,6 +212,7 @@ with Flow(
         upstream_tasks=[other_sm_gms],
     )
     other_with_sm_thumbs = utils.add_assets_entry.map(
+        env=environment,
         base_elt=other_primary_file_elts,
         path=other_assets_sm_fps,
         asset_type=unmapped("thumbnail"),
@@ -220,6 +227,7 @@ with Flow(
         upstream_tasks=[other_input_lgs],
     )
     other_with_lg_thumbs = utils.add_assets_entry.map(
+        env=environment,
         base_elt=other_with_sm_thumbs,
         path=other_assets_lg_fps,
         asset_type=unmapped("keyImage"),
