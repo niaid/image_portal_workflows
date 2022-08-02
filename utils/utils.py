@@ -73,7 +73,7 @@ def add_assets(assets_list: Dict, new_asset: Dict[str, str]) -> Dict:
 
 
 @task
-def gen_callback_elt(input_fname: Path, input_fname_b: Path = None) -> Dict:
+def gen_callback_elt(env: str, input_fname: Path, input_fname_b: Path = None) -> Dict:
     """
     creates a single primaryFilePath element, to which assets can be appended.
     TODO:
@@ -88,7 +88,8 @@ def gen_callback_elt(input_fname: Path, input_fname_b: Path = None) -> Dict:
     ]
     """
     title = input_fname.stem  # working for now.
-    primaryFilePath = _clean_subdir(subdir=Config.proj_dir, fp=input_fname)
+    proj_dir = Config.proj_dir(env=env)
+    primaryFilePath = input_fname.relative_to(proj_dir)
     return dict(primaryFilePath=primaryFilePath.as_posix(), title=title, assets=list())
 
 
@@ -243,24 +244,17 @@ def notify_api_completion(flow: Flow, old_state, new_state) -> State:
 
 
 @task
-def gen_output_dir(input_dir: str) -> Path:
-    """The output directory, ie the place outputs are written to mirrors
-    input_dir, except rather than the path getting rooted "{nfs_dir}/Projects/...", outputs
-    are rooted in "{nfs_dir}/Assets/...".
-    """
-    output_path = Path(Config.assets_dir + input_dir)
-    logger.info(f"Output path is {output_path}")
-    os.makedirs(output_path.as_posix(), exist_ok=True)
-    return output_path
-
-
-@task
-def get_input_dir(input_dir: str) -> Path:
+def get_input_dir(input_dir: str, env: str) -> Path:
     """
     Concat the POSTed input file path to the mount point.
     returns Path obj
     """
-    input_path = Path(Config.proj_dir + input_dir)
+    if not input_dir.endswith("/"):
+        input_dir = input_dir + "/"
+    if not input_dir.startswith("/"):
+        input_dir = "/" + input_dir
+    input_path_str = Config.proj_dir(env=env) + input_dir
+    input_path = Path(input_path_str)
     logger.info(f"Input path is {input_path}")
     return input_path
 
@@ -272,24 +266,13 @@ def print_t(t):
     logger.info(t)
 
 
-def _clean_subdir(subdir: str, fp: Path) -> Path:
-    """
-    gets rid of a leading subdir from from path
-    eg /to/junk/the/path/fname -> /the/path/fname
-    note - path.relative_to raises a ValueError if it
-    does not contain the subpath, thus the strange looking try.
-    """
-    try:
-        if fp.relative_to(subdir):
-            fp = fp.relative_to(Config.proj_dir)
-        return fp
-    except ValueError:
-        return fp
-
-
 @task
 def add_assets_entry(
-    base_elt: Dict, path: Path, asset_type: str, metadata: Dict[str, str] = None
+    env: str,
+    base_elt: Dict,
+    path: Path,
+    asset_type: str,
+    metadata: Dict[str, str] = None,
 ) -> Dict:
     """
     asset type can be one of:
@@ -316,7 +299,7 @@ def add_assets_entry(
     ]
     if asset_type not in valid_typs:
         raise ValueError(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
-    fp_no_mount_point = path.relative_to(Config.assets_dir)
+    fp_no_mount_point = path.relative_to(Config.assets_dir(env=env))
     if metadata:
         asset = {
             "type": asset_type,
