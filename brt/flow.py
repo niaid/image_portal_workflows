@@ -608,7 +608,7 @@ with Flow(
 
     # generate base element
     callback_base_elts = utils.gen_callback_elt.map(
-        env=environment, input_fname=fnames_fin
+        env=unmapped(environment), input_fname=fnames_fin
     )
 
     # key images
