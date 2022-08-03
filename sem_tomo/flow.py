@@ -387,7 +387,7 @@ with Flow(
     )
     # generate base element
     callback_base_elts = utils.gen_callback_elt.map(
-        env=environment, input_fname=input_dir_fps
+        env=unmapped(environment), input_fname=input_dir_fps
     )
 
     # thumnails (small thumbs)

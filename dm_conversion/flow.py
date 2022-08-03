@@ -166,7 +166,7 @@ with Flow(
 
     # dm3/dm4 type inputs (ie inputs we converted to jpegs)
     dm_primary_file_elts = utils.gen_callback_elt.map(
-        env=environment, input_fname=dm_fps
+        env=unmapped(environment), input_fname=dm_fps
     )
 
     # small thumbnails
