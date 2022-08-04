@@ -398,7 +398,7 @@ with Flow(
         upstream_tasks=[keyimg_sms],
     )
     callback_with_thumbs = utils.add_assets_entry.map(
-        env=environment,
+        env=unmapped(environment),
         base_elt=callback_base_elts,
         path=thumbnail_fps,
         asset_type=unmapped("thumbnail"),
@@ -412,7 +412,7 @@ with Flow(
         upstream_tasks=[keyimgs],
     )
     callback_with_keyimgs = utils.add_assets_entry.map(
-        env=environment,
+        env=unmapped(environment),
         base_elt=callback_with_thumbs,
         path=keyimg_fp_assets,
         asset_type=unmapped("keyImage"),
@@ -426,7 +426,7 @@ with Flow(
         upstream_tasks=[gen_pyramids, metadatas],
     )
     callback_with_neuroglancer = utils.add_assets_entry.map(
-        env=environment,
+        env=unmapped(environment),
         base_elt=callback_with_keyimgs,
         path=ng_asset_fps,
         asset_type=unmapped("neuroglancerPrecomputed"),

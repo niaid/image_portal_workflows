@@ -177,7 +177,7 @@ with Flow(
         upstream_tasks=[jpeg_fps_sms],
     )
     with_dm_sm_thumbs = utils.add_assets_entry.map(
-        env=environment,
+        env=unmapped(environment),
         base_elt=dm_primary_file_elts,
         path=jpeg_fps_sm_asset_fps,
         asset_type=unmapped("thumbnail"),
@@ -192,7 +192,7 @@ with Flow(
         upstream_tasks=[jpeg_fps_lgs],
     )
     with_dm_lg_thumbs = utils.add_assets_entry.map(
-        env=environment,
+        env=unmapped(environment),
         base_elt=with_dm_sm_thumbs,
         path=jpeg_fps_lg_asset_fps,
         asset_type=unmapped("keyImage"),
@@ -212,7 +212,7 @@ with Flow(
         upstream_tasks=[other_sm_gms],
     )
     other_with_sm_thumbs = utils.add_assets_entry.map(
-        env=environment,
+        env=unmapped(environment),
         base_elt=other_primary_file_elts,
         path=other_assets_sm_fps,
         asset_type=unmapped("thumbnail"),
@@ -227,7 +227,7 @@ with Flow(
         upstream_tasks=[other_input_lgs],
     )
     other_with_lg_thumbs = utils.add_assets_entry.map(
-        env=environment,
+        env=unmapped(environment),
         base_elt=other_with_sm_thumbs,
         path=other_assets_lg_fps,
         asset_type=unmapped("keyImage"),
