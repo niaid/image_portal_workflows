@@ -73,7 +73,7 @@ def add_assets(assets_list: Dict, new_asset: Dict[str, str]) -> Dict:
 
 
 @task
-def gen_callback_elt(env: str, input_fname: Path, input_fname_b: Path = None) -> Dict:
+def gen_callback_elt(input_fname: Path, input_fname_b: Path = None) -> Dict:
     """
     creates a single primaryFilePath element, to which assets can be appended.
     TODO:
@@ -88,7 +88,7 @@ def gen_callback_elt(env: str, input_fname: Path, input_fname_b: Path = None) ->
     ]
     """
     title = input_fname.stem  # working for now.
-    proj_dir = Config.proj_dir(env=env)
+    proj_dir = Config.proj_dir(env=get_environment())
     primaryFilePath = input_fname.relative_to(proj_dir)
     return dict(primaryFilePath=primaryFilePath.as_posix(), title=title, assets=list())
 
@@ -243,8 +243,24 @@ def notify_api_completion(flow: Flow, old_state, new_state) -> State:
     return new_state
 
 
+def get_environment() -> str:
+    """
+    The workflows can operate in one of several environments,
+    named HEDWIG_ENV for historical reasons, eg prod, qa or dev.
+    This function looks up that environment.
+    Raises exception if no environment found.
+    """
+    env = os.environ.get("HEDWIG_ENV")
+    if not env:
+        raise RuntimeError(
+            "Unable to look up HEDWIG_ENV. Should \
+                be exported set to one of: [dev, qa, prod]"
+        )
+    return env
+
+
 @task
-def get_input_dir(input_dir: str, env: str) -> Path:
+def get_input_dir(input_dir: str) -> Path:
     """
     Concat the POSTed input file path to the mount point.
     returns Path obj
@@ -253,7 +269,7 @@ def get_input_dir(input_dir: str, env: str) -> Path:
         input_dir = input_dir + "/"
     if not input_dir.startswith("/"):
         input_dir = "/" + input_dir
-    input_path_str = Config.proj_dir(env=env) + input_dir
+    input_path_str = Config.proj_dir(env=get_environment()) + input_dir
     input_path = Path(input_path_str)
     logger.info(f"Input path is {input_path}")
     return input_path
@@ -268,7 +284,6 @@ def print_t(t):
 
 @task
 def add_assets_entry(
-    env: str,
     base_elt: Dict,
     path: Path,
     asset_type: str,
@@ -299,7 +314,7 @@ def add_assets_entry(
     ]
     if asset_type not in valid_typs:
         raise ValueError(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
-    fp_no_mount_point = path.relative_to(Config.assets_dir(env=env))
+    fp_no_mount_point = path.relative_to(Config.assets_dir(env=get_environment()))
     if metadata:
         asset = {
             "type": asset_type,

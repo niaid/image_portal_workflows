@@ -1,7 +1,5 @@
-from typing import List
 import pytest
 import sys
-import tempfile
 import os
 import prefect
 from prefect import task
@@ -56,7 +54,6 @@ def test_brt(hpc_env):
         THICKNESS="30",
         input_dir="test/input_files/brt_inputs/Projects/",
         token="the_token",
-        environment="dev",
         callback_url="https://ptsv2.com/t/",
     )
     assert result.is_successful()

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from os import environ
 import subprocess
 import re
 import math
@@ -10,6 +9,7 @@ import shutil
 import prefect
 from jinja2 import Environment, FileSystemLoader
 from prefect import task, Flow, Parameter, unmapped, flatten, case
+from prefect.run_configs import LocalRun
 from prefect.tasks.control_flow import merge
 from prefect.engine import signals
 
@@ -383,6 +383,7 @@ with Flow(
     "brt_flow",
     executor=Config.SLURM_EXECUTOR,
     state_handlers=[utils.notify_api_completion, utils.notify_api_running],
+    run_config=LocalRun(labels=[utils.get_environment()]),
 ) as f:
 
     # This block of params map are for adoc file specfication.
@@ -404,12 +405,10 @@ with Flow(
     adoc_template = Parameter("adoc_template")
     input_dir = Parameter("input_dir")
     callback_url = Parameter("callback_url")()
-    # defines the environment to be used. Eg dev|qa|prod
-    environment = Parameter("environment")()
     token = Parameter("token")()
     file_name = Parameter("file_name", default=None)
     # a single input_dir will have n tomograms
-    input_dir_fp = utils.get_input_dir(input_dir=input_dir, env=environment)
+    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
     fnames = utils.list_files(
         input_dir=input_dir_fp, exts=["MRC", "ST", "mrc", "st"], single_file=file_name
     )
@@ -607,9 +606,7 @@ with Flow(
     # base elemnt name. This awkward logic avoids Slurm / dask errors.
 
     # generate base element
-    callback_base_elts = utils.gen_callback_elt.map(
-        env=unmapped(environment), input_fname=fnames_fin
-    )
+    callback_base_elts = utils.gen_callback_elt.map(input_fname=fnames_fin)
 
     # key images
     key_img_asset_fps = utils.copy_to_assets_dir.map(
@@ -619,7 +616,6 @@ with Flow(
         upstream_tasks=[cp_keyImages],
     )
     callback_with_keyImages = utils.add_assets_entry.map(
-        env=unmapped(environment),
         base_elt=callback_base_elts,
         path=key_img_asset_fps,
         asset_type=unmapped("keyImage"),
@@ -633,7 +629,6 @@ with Flow(
         upstream_tasks=[gms_sm],
     )
     callback_with_thumbs = utils.add_assets_entry.map(
-        env=unmapped(environment),
         base_elt=callback_with_keyImages,
         path=thumbnail_fps,
         asset_type=unmapped("thumbnail"),
@@ -647,7 +642,6 @@ with Flow(
         upstream_tasks=[mpegs],
     )
     callback_with_tiltMovie = utils.add_assets_entry.map(
-        env=unmapped(environment),
         base_elt=callback_base_elts,
         path=tiltMovie_asset_fps,
         asset_type=unmapped("tiltMovie"),
@@ -661,7 +655,6 @@ with Flow(
         upstream_tasks=[ns_float_rcs],
     )
     callback_with_ave_vol = utils.add_assets_entry.map(
-        env=unmapped(environment),
         base_elt=callback_with_tiltMovie,
         path=averagedVolume_asset_fps,
         asset_type=unmapped("averagedVolume"),
@@ -675,7 +668,6 @@ with Flow(
         upstream_tasks=[bin_vols],
     )
     callback_with_bin_vols = utils.add_assets_entry.map(
-        env=unmapped(environment),
         base_elt=callback_with_ave_vol,
         path=volume_asset_fps,
         asset_type=unmapped("volume"),
@@ -689,7 +681,6 @@ with Flow(
         upstream_tasks=[ffmpeg_rcs],
     )
     callback_with_recMovie = utils.add_assets_entry.map(
-        env=unmapped(environment),
         base_elt=callback_with_bin_vols,
         path=volume_asset_fps,
         asset_type=unmapped("recMovie"),
@@ -703,7 +694,6 @@ with Flow(
         upstream_tasks=[gen_pyramids, metadatas],
     )
     callback_with_neuroglancer = utils.add_assets_entry.map(
-        env=unmapped(environment),
         base_elt=callback_with_recMovie,
         path=ng_asset_fps,
         asset_type=unmapped("neuroglancerPrecomputed"),

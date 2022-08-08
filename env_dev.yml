@@ -1,0 +1,7 @@
+name: hedwig_dev
+dependencies:
+  - pip:
+      - --find-links https://github.com/niaid/tomojs-pytools/releases/tag/v0.6
+      - --requirement requirements.txt
+variables:
+  HEDWIG_ENV: dev

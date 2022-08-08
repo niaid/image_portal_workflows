@@ -37,7 +37,6 @@ def test_dm4_conv(mock_nfs_mount):
     result = flow.run(
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
         token="the_token",
-        environment="dev",
         callback_url="https://ptsv2.com/t/",
     )
     assert result.is_successful()
@@ -50,7 +49,6 @@ def test_input_fname(mock_nfs_mount):
         input_dir="/test/input_files/",
         file_name="20210525_1416_A000_G000.dm4",
         token="the_token",
-        environment="dev",
         callback_url="https://ptsv2.com/t/",
     )
 
@@ -62,7 +60,6 @@ def test_single_file_no_ext_not_found_gens_exception(mock_nfs_mount):
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
         file_name="file_with_no_ext",
         token="the_token",
-        environment="dev",
         callback_url="https://ptsv2.com/t/",
     )
     assert state.is_failed()
@@ -75,7 +72,6 @@ def test_single_file_not_found_gens_exception(mock_nfs_mount):
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
         file_name="does_not_exist.test",
         token="the_token",
-        environment="dev",
         callback_url="https://ptsv2.com/t/",
     )
     assert state.is_failed()
