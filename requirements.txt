@@ -1,5 +1,4 @@
-prefect
-sphinx_rtd_theme
-sphinx-autodoc-typehints
-pytest
+prefect==1.*
+dask
+distributed
 dask-jobqueue

@@ -1,9 +1,9 @@
 import math
 from typing import List
-from jinja2 import environment
 import prefect
 from pathlib import Path
 from prefect import Flow, task, Parameter, case, unmapped
+from prefect.run_configs import LocalRun
 from prefect.engine import signals
 from prefect.tasks.control_flow import merge
 from image_portal_workflows.config import Config
@@ -174,20 +174,26 @@ def check_tilt(s):
         raise signals.FAIL(f"This should not happen :-/ \n {oe}")
 
 
+@task
+def swap_list(l: List[Path]) -> List[Path]:
+    """silly func - hack to get upstream within merge"""
+    return l
+
+
 with Flow(
     "sem_tomo",
     state_handlers=[utils.notify_api_completion, utils.notify_api_running],
     executor=Config.SLURM_EXECUTOR,
+    run_config=LocalRun(labels=[utils.get_environment()]),
 ) as flow:
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url")()
     token = Parameter("token")()
-    environment = Parameter("environment")()
     tilt_angle = Parameter("tilt_angle", default=None)()
 
     # dir to read from.
-    input_dir_fp = utils.get_input_dir(input_dir=input_dir, env=environment)
+    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
     input_dir_fps = utils.list_dirs(input_dir_fp=input_dir_fp)
     input_dir_fps_escaped = utils.sanitize_file_names(fps=input_dir_fps)
 
@@ -291,7 +297,7 @@ with Flow(
         )
     with case(use_tilt, False):
         # again, see https://docs.prefect.io/core/idioms/conditional.html
-        align_fps = mrc_align_fps
+        align_fps = swap_list(mrc_align_fps, upstream_tasks=[mrc_aligns])
 
     # the normalized step uses corrected_fp if tilt is specified
     # else it uses align_fp
@@ -386,9 +392,7 @@ with Flow(
         upstream_tasks=[newstack_norms],
     )
     # generate base element
-    callback_base_elts = utils.gen_callback_elt.map(
-        env=unmapped(environment), input_fname=input_dir_fps
-    )
+    callback_base_elts = utils.gen_callback_elt.map(input_fname=input_dir_fps)
 
     # thumnails (small thumbs)
     thumbnail_fps = utils.copy_to_assets_dir.map(
@@ -398,7 +402,6 @@ with Flow(
         upstream_tasks=[keyimg_sms],
     )
     callback_with_thumbs = utils.add_assets_entry.map(
-        env=unmapped(environment),
         base_elt=callback_base_elts,
         path=thumbnail_fps,
         asset_type=unmapped("thumbnail"),
@@ -412,7 +415,6 @@ with Flow(
         upstream_tasks=[keyimgs],
     )
     callback_with_keyimgs = utils.add_assets_entry.map(
-        env=unmapped(environment),
         base_elt=callback_with_thumbs,
         path=keyimg_fp_assets,
         asset_type=unmapped("keyImage"),
@@ -426,7 +428,6 @@ with Flow(
         upstream_tasks=[gen_pyramids, metadatas],
     )
     callback_with_neuroglancer = utils.add_assets_entry.map(
-        env=unmapped(environment),
         base_elt=callback_with_keyimgs,
         path=ng_asset_fps,
         asset_type=unmapped("neuroglancerPrecomputed"),
