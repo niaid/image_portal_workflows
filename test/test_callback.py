@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import tempfile
 from image_portal_workflows.config import Config
@@ -7,8 +8,14 @@ import pytest
 
 @pytest.fixture
 def mock_fs(monkeypatch):
-    monkeypatch.setattr(Config, "proj_dir", "/tmp/RMLEMHedwigQA/Projects")
-    monkeypatch.setattr(Config, "assets_dir", "/tmp/RMLEMHedwigQA/Assets")
+    def _mock_proj_dir(env: str) -> str:
+        return "/tmp/Projects"
+
+    def _mock_assets_dir(env: str) -> str:
+        return "/tmp/Assets"
+
+    monkeypatch.setattr(Config, "proj_dir", _mock_proj_dir)
+    monkeypatch.setattr(Config, "assets_dir", _mock_assets_dir)
     monkeypatch.setattr(Config, "tmp_dir", "/tmp/")
     monkeypatch.setattr(Config, "mount_point", "/tmp/")
 
@@ -18,10 +25,10 @@ def test_make_work_dir_to_fp_copy_to_assets_dir(mock_fs):
     # __wrapped__ jumps past decorator
     from image_portal_workflows.utils import utils
 
-    project_dir_fp = Path("/tmp/RMLEMHedwigQA/Projects/Lab/PI/")
+    project_dir_fp = Path(Config.proj_dir("dev") + "/Lab/PI/")
     assets_dir = utils.make_assets_dir.__wrapped__(input_dir=project_dir_fp)
     # check dir exists
-    assert assets_dir.as_posix() == "/tmp/RMLEMHedwigQA/Assets/Lab/PI"
+    assert assets_dir.as_posix() == Config.assets_dir("dev") + "/Lab/PI"
     # make temp workspace
     working_dir = utils.make_work_dir.__wrapped__(fname=Path("test_fn"))
     dummy_tg = Path(f"{project_dir_fp}/tg_name.mrc")
@@ -30,10 +37,7 @@ def test_make_work_dir_to_fp_copy_to_assets_dir(mock_fs):
     asset_fp = utils.copy_to_assets_dir.__wrapped__(
         prim_fp=dummy_tg, fp=dummy_asset, assets_dir=assets_dir
     )
-    assert (
-        asset_fp.as_posix()
-        == "/tmp/RMLEMHedwigQA/Assets/Lab/PI/tg_name/tg_name_ave.jpeg"
-    )
+    assert asset_fp.as_posix() == "/tmp/Assets/Lab/PI/tg_name/tg_name_ave.jpeg"
     cb = utils.gen_callback_elt.__wrapped__(input_fname=dummy_tg)
     # print(dummy_tg.as_posix())
     # print(json.dumps(cb))
@@ -56,7 +60,7 @@ def test_make_work_dir_to_fp_copy_to_assets_dir(mock_fs):
         == '{"primaryFilePath": "Lab/PI/tg_name.mrc", "title": "tg_name", "assets": [{"type": "thumbnail", "path": "Lab/PI/tg_name/tg_name_ave.jpeg"}]}'
     )
 
-    ng_dir = Path(f"{Config.assets_dir}/blah/dir_name")
+    ng_dir = Path(f"{assets_dir.as_posix()}/blah/dir_name")
     metadata = {"the": "metadata"}
     cb_with_ng = utils.add_assets_entry.__wrapped__(
         base_elt=cb_with_jpg,
@@ -67,7 +71,7 @@ def test_make_work_dir_to_fp_copy_to_assets_dir(mock_fs):
     print(json.dumps(cb_with_ng, indent=4))
     assert (
         json.dumps(cb_with_ng)
-        == '{"primaryFilePath": "Lab/PI/tg_name.mrc", "title": "tg_name", "assets": [{"type": "thumbnail", "path": "Lab/PI/tg_name/tg_name_ave.jpeg"}, {"type": "neuroglancerPrecomputed", "path": "blah/dir_name", "metadata": {"the": "metadata"}}]}'
+        == '{"primaryFilePath": "Lab/PI/tg_name.mrc", "title": "tg_name", "assets": [{"type": "thumbnail", "path": "Lab/PI/tg_name/tg_name_ave.jpeg"}, {"type": "neuroglancerPrecomputed", "path": "Lab/PI/blah/dir_name", "metadata": {"the": "metadata"}}]}'
     )
 
 
