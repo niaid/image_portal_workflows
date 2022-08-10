@@ -1,4 +1,6 @@
+pytest
 prefect==1.*
 dask
 distributed
 dask-jobqueue
+tomojs-pytools
