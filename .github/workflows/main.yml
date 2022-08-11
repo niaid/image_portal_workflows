@@ -57,7 +57,7 @@ jobs:
       - name: Install dependencies
         run: |
           IMOD=imod_4.11.11_RHEL7-64_CUDA10.1.sh
-          wget https://bio3d.colorado.edu/imod/AMD64-RHEL5/${IMOD} &&  sh ${IMOD} -yes &&  rm -f ${IMOD}
+          wget https://bio3d.colorado.edu/imod/AMD64-RHEL5/${IMOD} &&  sudo sh ${IMOD} -yes &&  rm -f ${IMOD}
           /usr/local/IMOD/bin/dm2mrc -h
           python -m pip install --upgrade pip
           pip install -e . -r requirements.txt --find-links https://github.com/niaid/tomojs-pytools/releases/tag/v0.6
