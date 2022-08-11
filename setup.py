@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+
+from setuptools import setup, find_packages
+
+with open("requirements.txt", "r") as fp:
+    requirements = list(filter(bool, (line.strip() for line in fp)))
+
+setup(
+    name="em_workflows",
+    author="Philip MacMenamin",
+    author_email="bioinformatics@niaid.nih.gov",
+    description="Workflows for Microscopy related file processing.",
+    url="https://www.niaid.nih.gov/research/bioinformatics-computational-biosciences-branch",
+    license="BSD 3-Clause.",
+    classifiers=[
+        # The version is <1.0, and there may be API incompatibilities from minor version to minor version
+        "Development Status :: Pre Alpha",
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: BSD 3-Clause.",
+        "Operating System :: OS Independent",
+    ],
+    python_requires=">=3.7",
+    install_requires=requirements,
+    packages=find_packages(include=['em_workflows', 'em_workflows.*'])
+)
