@@ -6,10 +6,10 @@ from prefect import Flow, task, Parameter, case, unmapped
 from prefect.run_configs import LocalRun
 from prefect.engine import signals
 from prefect.tasks.control_flow import merge
-from image_portal_workflows.config import Config
-from image_portal_workflows.shell_task_echo import ShellTaskEcho
-from image_portal_workflows.utils import utils
-from image_portal_workflows.utils import neuroglancer as ng
+from em_workflows.config import Config
+from em_workflows.shell_task_echo import ShellTaskEcho
+from em_workflows.utils import utils
+from em_workflows.utils import neuroglancer as ng
 
 shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
