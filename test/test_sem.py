@@ -8,7 +8,7 @@ import os
 
 @pytest.fixture
 def mock_nfs_mount(monkeypatch):
-    from image_portal_workflows.config import Config
+    from em_workflows.config import Config
 
     def _mock_proj_dir(env: str) -> str:
         return os.getcwd()
@@ -28,11 +28,9 @@ def mock_nfs_mount(monkeypatch):
     monkeypatch.setattr(Config, "newstack_loc", "/usr/local/IMOD/bin/newstack")
     monkeypatch.setattr(Config, "convert_loc", "/usr/bin/convert")
 
-    # from image_portal_workflows.utils.utils import _add_outputs, _gen_callback_file_list
-
 
 def test_sem(mock_nfs_mount):
-    from image_portal_workflows.sem_tomo.flow import flow
+    from em_workflows.sem_tomo.flow import flow
 
     result = flow.run(
         input_dir="/test/input_files/sem_inputs/Projects/",
