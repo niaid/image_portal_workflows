@@ -14,7 +14,7 @@ from prefect import Flow, task, context
 from prefect.engine.state import State
 from prefect.engine import signals
 
-from image_portal_workflows.config import Config
+from em_workflows.config import Config
 
 logger = context.get("logger")
 

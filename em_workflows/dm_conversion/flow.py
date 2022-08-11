@@ -4,12 +4,12 @@ from typing import List
 import prefect
 from prefect import Flow, task, Parameter, unmapped, context
 from prefect.run_configs import LocalRun
-from image_portal_workflows.shell_task_echo import ShellTaskEcho
+from em_workflows.shell_task_echo import ShellTaskEcho
 from prefect.engine import signals
 
 
-from image_portal_workflows.config import Config
-from image_portal_workflows.utils import utils
+from em_workflows.config import Config
+from em_workflows.utils import utils
 
 logger = context.get("logger")
 shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)

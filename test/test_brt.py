@@ -8,10 +8,8 @@ from prefect.executors import LocalExecutor
 
 sys.path.append("..")
 
-from image_portal_workflows.config import Config
-from image_portal_workflows.utils import utils
-
-# from image_portal_workflows.brt import flow
+from em_workflows.config import Config
+from em_workflows.utils import utils
 
 
 @pytest.fixture
@@ -38,7 +36,7 @@ def hpc_env(monkeypatch):
 
 
 def test_brt(hpc_env):
-    from image_portal_workflows.brt.flow import f
+    from em_workflows.brt.flow import f
 
     result = f.run(
         adoc_template="plastic_brt",

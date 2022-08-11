@@ -13,7 +13,7 @@ import os
 
 @pytest.fixture
 def mock_nfs_mount(monkeypatch):
-    from image_portal_workflows.config import Config
+    from em_workflows.config import Config
 
     def _mock_proj_dir(env: str) -> str:
         return os.getcwd()
@@ -28,11 +28,10 @@ def mock_nfs_mount(monkeypatch):
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
     monkeypatch.setattr(Config, "dm2mrc_loc", "/usr/local/IMOD/bin/dm2mrc")
     monkeypatch.setattr(Config, "mrc2tif_loc", "/usr/local/IMOD/bin/mrc2tif")
-    # from image_portal_workflows.utils.utils import _add_outputs, _gen_callback_file_list
 
 
 def test_dm4_conv(mock_nfs_mount):
-    from image_portal_workflows.dm_conversion.flow import flow
+    from em_workflows.dm_conversion.flow import flow
 
     result = flow.run(
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
@@ -43,7 +42,7 @@ def test_dm4_conv(mock_nfs_mount):
 
 
 def test_input_fname(mock_nfs_mount):
-    from image_portal_workflows.dm_conversion.flow import flow
+    from em_workflows.dm_conversion.flow import flow
 
     flow.run(
         input_dir="/test/input_files/",
@@ -54,7 +53,7 @@ def test_input_fname(mock_nfs_mount):
 
 
 def test_single_file_no_ext_not_found_gens_exception(mock_nfs_mount):
-    from image_portal_workflows.dm_conversion.flow import flow
+    from em_workflows.dm_conversion.flow import flow
 
     state = flow.run(
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
@@ -66,7 +65,7 @@ def test_single_file_no_ext_not_found_gens_exception(mock_nfs_mount):
 
 
 def test_single_file_not_found_gens_exception(mock_nfs_mount):
-    from image_portal_workflows.dm_conversion.flow import flow
+    from em_workflows.dm_conversion.flow import flow
 
     state = flow.run(
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
