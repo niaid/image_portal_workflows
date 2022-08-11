@@ -57,8 +57,8 @@ jobs:
       - name: Install dependencies
         run: |
           IMOD=imod_4.11.11_RHEL7-64_CUDA10.1.sh
-          IMOD_DIR=/usr/local/IMOD
-          PATH=$IMOD_DIR/bin:$PATH
+          export IMOD_DIR=/usr/local/IMOD
+          export PATH=$IMOD_DIR/bin:$PATH
           wget https://bio3d.colorado.edu/imod/AMD64-RHEL5/${IMOD} &&  sudo sh ${IMOD} -yes &&  rm -f ${IMOD}
           /usr/local/IMOD/bin/dm2mrc -h
           python -m pip install --upgrade pip
