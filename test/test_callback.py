@@ -1,8 +1,7 @@
 import json
-import os
 from pathlib import Path
 import tempfile
-from image_portal_workflows.config import Config
+from em_workflows.config import Config
 import pytest
 
 
@@ -23,7 +22,7 @@ def mock_fs(monkeypatch):
 def test_make_work_dir_to_fp_copy_to_assets_dir(mock_fs):
     # create the place where outputs will go.
     # __wrapped__ jumps past decorator
-    from image_portal_workflows.utils import utils
+    from em_workflows.utils import utils
 
     project_dir_fp = Path(Config.proj_dir("dev") + "/Lab/PI/")
     assets_dir = utils.make_assets_dir.__wrapped__(input_dir=project_dir_fp)
@@ -76,7 +75,7 @@ def test_make_work_dir_to_fp_copy_to_assets_dir(mock_fs):
 
 
 def test_inputs_paired():
-    from image_portal_workflows.brt.flow import check_inputs_paired
+    from em_workflows.brt.flow import check_inputs_paired
 
     fps = [Path("/tmp/fnamea.mrc"), Path("/tmp/fnameb.mrc"), Path("thing")]
     assert check_inputs_paired.__wrapped__(fps=fps) is True
@@ -90,7 +89,7 @@ def test_inputs_paired():
 
 
 def test_paired_files():
-    from image_portal_workflows.brt.flow import list_paired_files
+    from em_workflows.brt.flow import list_paired_files
 
     fps = [Path("/tmp/fnamea.mrc"), Path("/tmp/fnameb.mrc"), Path("thing")]
     pairs = list_paired_files.__wrapped__(fnames=fps)
@@ -105,7 +104,7 @@ def test_paired_files():
 
 
 def test_gen_mrc2tiff():
-    from image_portal_workflows.brt import flow
+    from em_workflows.brt import flow
 
     fake_mrc_fp = Path("/test/dir/fname.mrc")
     cmd = flow.gen_mrc2tiff.__wrapped__(fp=fake_mrc_fp)
@@ -113,7 +112,7 @@ def test_gen_mrc2tiff():
 
 
 def test_copy_template_and_update_adoc():
-    from image_portal_workflows.brt import flow
+    from em_workflows.brt import flow
 
     with tempfile.TemporaryDirectory() as tmpdirname:
         wd = Path(tmpdirname)
