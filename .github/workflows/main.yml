@@ -56,12 +56,12 @@ jobs:
         #          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          export HEDWIG_ENV=qa
           python -m pip install --upgrade pip
           pip install -e . -r requirements.txt --find-links https://github.com/niaid/tomojs-pytools/releases/tag/v0.6
           sudo apt -y update && sudo apt -y install libgl-dev graphicsmagick
       - name: Running pytest
         run: |
+          export HEDWIG_ENV=qa
           pytest test/test_callback.py
 
         #  docs:
