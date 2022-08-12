@@ -402,7 +402,7 @@ with Flow(
     THICKNESS = Parameter("THICKNESS")
     # end user facing adoc params
 
-    adoc_template = Parameter("adoc_template")
+    adoc_template = Parameter("adoc_template", default="plastic_brt")
     input_dir = Parameter("input_dir")
     callback_url = Parameter("callback_url")()
     token = Parameter("token")()
@@ -642,7 +642,7 @@ with Flow(
         upstream_tasks=[mpegs],
     )
     callback_with_tiltMovie = utils.add_assets_entry.map(
-        base_elt=callback_base_elts,
+        base_elt=callback_with_thumbs,
         path=tiltMovie_asset_fps,
         asset_type=unmapped("tiltMovie"),
     )
@@ -682,7 +682,7 @@ with Flow(
     )
     callback_with_recMovie = utils.add_assets_entry.map(
         base_elt=callback_with_bin_vols,
-        path=volume_asset_fps,
+        path=recMovie_asset_fps,
         asset_type=unmapped("recMovie"),
     )
 

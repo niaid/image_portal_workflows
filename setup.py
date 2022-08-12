@@ -13,7 +13,6 @@ setup(
     url="https://www.niaid.nih.gov/research/bioinformatics-computational-biosciences-branch",
     license="BSD 3-Clause.",
     classifiers=[
-        # The version is <1.0, and there may be API incompatibilities from minor version to minor version
         "Development Status :: Pre Alpha",
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD 3-Clause.",
@@ -21,5 +20,5 @@ setup(
     ],
     python_requires=">=3.7",
     install_requires=requirements,
-    packages=find_packages(include=['em_workflows', 'em_workflows.*'])
+    packages=find_packages(include=["em_workflows", "em_workflows.*"]),
 )
