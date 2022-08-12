@@ -68,7 +68,7 @@ def update_adoc(
     bfocus: str,
     fiducialless: str,
     trackingMethod: str,
-    TwoSurfaces: str,
+    TwoSurfaces: int,
     TargetNumberOfBeads: str,
     LocalAlignments: str,
     THICKNESS: str,
@@ -89,9 +89,9 @@ def update_adoc(
         dual = 1
         currentBStackExt = tg_fp.suffix[1:]  # TODO - assumes both files are same ext
     datasetDirectory = adoc_fp.parent
-    if TwoSurfaces == "0":
+    if TwoSurfaces == 0:
         SurfacesToAnalyze = 1
-    elif TwoSurfaces == "1":
+    elif TwoSurfaces == 1:
         SurfacesToAnalyze = 2
     else:
         raise signals.FAIL(
