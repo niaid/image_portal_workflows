@@ -1,10 +1,10 @@
-setupset.copyarg.name={{ basename }}
+setupset.copyarg.name= 
 setupset.copyarg.dual=0
-setupset.copyarg.gold={{ bead_size ~10}} 
+setupset.copyarg.gold= 
 setupset.copyarg.extract=1
 setupset.copyarg.bextract=0
 setupset.copyarg.defocus= 0
-setupset.copyarg.pixel={{ pixel_size }} 
+setupset.copyarg.pixel= 
 setupset.copyarg.rotation = 
 #setupset.copyarg.brotation =
 #setupset.copyarg.ctfnoise=
