@@ -1,8 +1,5 @@
 import pytest
-import sys
 from prefect.executors import LocalExecutor
-
-sys.path.append("..")
 import os
 
 

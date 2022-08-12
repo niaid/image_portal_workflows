@@ -6,8 +6,6 @@ from prefect import task
 from pathlib import Path
 from prefect.executors import LocalExecutor
 
-sys.path.append("..")
-
 from em_workflows.config import Config
 from em_workflows.utils import utils
 
