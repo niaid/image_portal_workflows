@@ -1,13 +1,5 @@
 import pytest
-import sys
-import json
-
-from pathlib import Path
-from prefect.engine import signals
-from prefect.tasks.prefect import create_flow_run
 from prefect.executors import LocalExecutor
-
-sys.path.append("..")
 import os
 
 
@@ -33,12 +25,12 @@ def mock_nfs_mount(monkeypatch):
 def test_dm4_conv(mock_nfs_mount):
     from em_workflows.dm_conversion.flow import flow
 
-    result = flow.run(
+    state = flow.run(
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
         token="the_token",
         callback_url="https://ptsv2.com/t/",
     )
-    assert result.is_successful()
+    assert state.is_successful()
 
 
 def test_input_fname(mock_nfs_mount):
@@ -74,20 +66,3 @@ def test_single_file_not_found_gens_exception(mock_nfs_mount):
         callback_url="https://ptsv2.com/t/",
     )
     assert state.is_failed()
-
-
-# def test_inputs_to_outputs():
-#     dname = "Lab/PI/Myproject/MySession/Sample1/"
-#     input_files = [Path("a.txt"), Path("b.txt"), Path("c.txt")]
-#     output_files_a = [Path("a.axt"), Path("b.axt"), Path("c.axt")]
-#     output_files_b = [Path("a.bxt"), Path("b.bxt"), Path("c.bxt")]
-#     _files = _gen_callback_file_list(dname=dname, inputs=input_files)
-#     _files = _add_outputs(
-#         dname=dname, files=_files, outputs=output_files_a, _type="type_axt"
-#     )
-#     _files = _add_outputs(
-#         dname=dname, files=_files, outputs=output_files_b, _type="type_bxt"
-#     )
-#
-#     assert len(_files) == 3
-#     print(json.dumps(_files))
