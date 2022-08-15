@@ -62,19 +62,20 @@ def update_adoc(
     adoc_fp: Path,
     tg_fp: Path,
     dual_p: bool,
-    montage: str,
-    gold: str,
-    focus: str,
-    bfocus: str,
-    fiducialless: str,
-    trackingMethod: str,
+    montage: int,
+    gold: int,
+    focus: int,
+    bfocus: int,
+    fiducialless: int,
+    trackingMethod: int,
     TwoSurfaces: int,
-    TargetNumberOfBeads: str,
-    LocalAlignments: str,
-    THICKNESS: str,
+    TargetNumberOfBeads: int,
+    LocalAlignments: int,
+    THICKNESS: int,
 ) -> Path:
     """
     Uses jinja templating to update the adoc file with input params.
+    dual_p is calculated by inputs_paired() and is used to define `dual`
     Some of these parameters are derived programatically.
     """
     file_loader = FileSystemLoader(str(adoc_fp.parent))
@@ -89,9 +90,9 @@ def update_adoc(
         dual = 1
         currentBStackExt = tg_fp.suffix[1:]  # TODO - assumes both files are same ext
     datasetDirectory = adoc_fp.parent
-    if TwoSurfaces == 0:
+    if int(TwoSurfaces) == 0:
         SurfacesToAnalyze = 1
-    elif TwoSurfaces == 1:
+    elif int(TwoSurfaces) == 1:
         SurfacesToAnalyze = 2
     else:
         raise signals.FAIL(
