@@ -42,11 +42,22 @@ def gen_pyramid_outdir(fp: Path) -> Path:
 @task
 def gen_pyramid_cmd(fp: Path, outdir: Path) -> str:
     """
-    volume-to-precomputed-pyramid --downscaling-method=average --no-gzip --flat path/basename.nii path/neuro-basename
+    volume-to-precomputed-pyramid --downscaling-method=average --flat path/basename.nii path/neuro-basename
     """
-    cmd = f"volume-to-precomputed-pyramid --downscaling-method=average --no-gzip \
+    cmd = f"volume-to-precomputed-pyramid --downscaling-method=average \
             --flat {fp.parent}/{fp.stem}.nii {outdir}"
     prefect.context.get("logger").info(f"pyramid command: {cmd}")
+    return cmd
+
+
+@task
+def gen_archive_pyramid_cmd(working_dir: Path, archive_name: Path) -> str:
+    """
+    cd working_dir && zip  --compression-method store  -r archive_name  ./* && cd -
+    """
+    cmd = f"cd {working_dir} && zip --compression-method store -r {archive_name} ./* && cd -"
+    logger = prefect.context.get("logger")
+    logger.info(f"gen_min_max_cmd command: {cmd}")
     return cmd
 
 
