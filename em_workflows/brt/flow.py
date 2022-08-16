@@ -586,6 +586,20 @@ with Flow(
         fp=tomogram_fps, outdir=ng_fps, upstream_tasks=[mrc2niftis]
     )
     gen_pyramids = shell_task.map(command=pyramid_cmds, to_echo=unmapped("gen pyramid"))
+
+    # create single archive containing pyramid dirs
+    # eg cd working_dir && zip  --compression-method store  -r archive_name  ./*
+    pyramid_archive_fps = utils.gen_output_fp.map(
+        input_fp=tomogram_fps, output_ext=unmapped(".zip")
+    )
+    archive_pyramid_cmds = ng.gen_archive_pyramid_cmd.map(
+        working_dir=ng_fps, archive_name=pyramid_archive_fps
+    )
+    gen_archives = shell_task.map(
+        command=archive_pyramid_cmds,
+        to_echo=unmapped("gen pyramid archives"),
+        upstream_tasks=[gen_pyramids]
+    )
     ##
 
     ##
@@ -689,10 +703,10 @@ with Flow(
 
     # neuroglancerPrecomputed
     ng_asset_fps = utils.copy_to_assets_dir.map(
-        fp=ng_fps,
+        fp=pyramid_archive_fps,
         assets_dir=unmapped(assets_dir),
         prim_fp=tomogram_fps,
-        upstream_tasks=[gen_pyramids, metadatas],
+        upstream_tasks=[gen_archives, metadatas],
     )
     callback_with_neuroglancer = utils.add_assets_entry.map(
         base_elt=callback_with_recMovie,
