@@ -13,8 +13,54 @@ Please read before cloning.
 Github.com
 ==========
 
-The repository is located in the NIAID Github.com enterprise organization. Having a github.com account which is a member
-of the NIAID organization is required.
+The repository is located in the NIAID Github.com enterprise organization. Having a github.com account which is a member of the NIAID organization is required.
+
+HPC Set up
+==========
+
+Workflows are currently run on RML HPC ("BigSky").
+
+
+
+There are three environments currently on BigSky: (`dev`, `qa`, `prod`).
+They were set up as follows:
+
+- Obtain and set up Miniconda (to allow setting up of venvs) e.g.::
+
+  wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.11.0-Linux-x86_64.sh
+
+- Set up venvs per environment.::
+
+  python3 -m venv code/hedwig_venv_dev
+  cd code/hedwig_venv_dev/
+  conda deactivate
+  source ./bin/activate
+  git clone git@github.com:niaid/image_portal_workflows.git
+  cd image_portal_workflows/
+  pip3 install -r requirements.txt --find-links https://github.com/niaid/tomojs-pytools/releases/tag/v1.0
+  # ensure PYTHONPATH isn't set!
+  unset  PYTHONPATH
+  # ensure HEDWIG_ENV is set!
+  export HEDWIG_ENV=dev
+  # start an agent specific to this env (project), note agent label "dev".
+  prefect agent local start -l qa --key the_key
+  prefect create project "RML_QA"
+  cd em_workflows
+  # register each of the workflows, for example:
+  prefect register --project "RML_DEV" -p dm_conversion/
+  prefect register --project "RML_DEV" -p brt/
+  # ...etc per workflow
+  # (The workflow needs to be registered every time the source is updated.)
+
+
+- Note, although unused above, BigSky also has Spack available, e.g.::
+
+  $ source /gs1/apps/user/rmlspack/share/spack/setup-env.sh
+  $ spack load -r python@3.8.6/eg2vaag
+  $ python -V
+  Python 3.8.6
+  $ spack unload -a
+
 
 Git LFS
 =======
