@@ -42,8 +42,49 @@
 <p>Please read before cloning.</p>
 <section id="github-com">
 <h3>Github.com<a class="headerlink" href="#github-com" title="Permalink to this heading">¶</a></h3>
-<p>The repository is located in the NIAID Github.com enterprise organization. Having a github.com account which is a member
-of the NIAID organization is required.</p>
+<p>The repository is located in the NIAID Github.com enterprise organization. Having a github.com account which is a member of the NIAID organization is required.</p>
+</section>
+<section id="hpc-set-up">
+<h3>HPC Set up<a class="headerlink" href="#hpc-set-up" title="Permalink to this heading">¶</a></h3>
+<p>Workflows are currently run on RML HPC (“BigSky”).</p>
+<p>There are three environments currently on BigSky: (<cite>dev</cite>, <cite>qa</cite>, <cite>prod</cite>).
+They were set up as follows:</p>
+<ul>
+<li><p>Obtain and set up Miniconda (to allow setting up of venvs) e.g.:</p>
+<p>wget <a class="reference external" href="https://repo.anaconda.com/miniconda/Miniconda3-py39_4.11.0-Linux-x86_64.sh">https://repo.anaconda.com/miniconda/Miniconda3-py39_4.11.0-Linux-x86_64.sh</a></p>
+</li>
+<li><p>Set up venvs per environment.:</p>
+<p>python3 -m venv code/hedwig_venv_dev
+cd code/hedwig_venv_dev/
+conda deactivate
+source ./bin/activate
+git clone <a class="reference external" href="mailto:git&#37;&#52;&#48;github&#46;com">git<span>&#64;</span>github<span>&#46;</span>com</a>:niaid/image_portal_workflows.git
+cd image_portal_workflows/
+pip3 install -r requirements.txt –find-links <a class="reference external" href="https://github.com/niaid/tomojs-pytools/releases/tag/v1.0">https://github.com/niaid/tomojs-pytools/releases/tag/v1.0</a>
+# ensure PYTHONPATH isn’t set!
+unset  PYTHONPATH
+# ensure HEDWIG_ENV is set!
+export HEDWIG_ENV=dev
+# start an agent specific to this env (project), note agent label “dev”.
+prefect agent local start -l qa –key the_key
+prefect create project “RML_QA”
+cd em_workflows
+# register each of the workflows, for example:
+prefect register –project “RML_DEV” -p dm_conversion/
+prefect register –project “RML_DEV” -p brt/
+# …etc per workflow
+# (The workflow needs to be registered every time the source is updated.)</p>
+</li>
+<li><p>Note, although unused above, BigSky also has Spack available, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ source /gs1/apps/user/rmlspack/share/spack/setup-env.sh
+$ spack load -r python@3.8.6/eg2vaag
+$ python -V
+</pre></div>
+</div>
+<p>Python 3.8.6
+$ spack unload -a</p>
+</li>
+</ul>
 </section>
 <section id="git-lfs">
 <h3>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this heading">¶</a></h3>
