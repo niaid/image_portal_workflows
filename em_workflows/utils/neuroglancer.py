@@ -88,19 +88,20 @@ def parse_min_max_file(fp: Path) -> Dict[str, str]:
     Round min and floor: down, round max and limit: up.
     """
     with open(fp, "r") as _file:
-        kv = json.load(_file)
-    _floor = kv["neuroglancerPrecomputedFloor"]
-    _limit = kv["neuroglancerPrecomputedLimit"]
-    _min = kv["neuroglancerPrecomputedMin"]
-    _max = kv["neuroglancerPrecomputedMax"]
+        metadata = json.load(_file)
+        # kv = json.load(_file)
+#    _floor = kv["neuroglancerPrecomputedFloor"]
+#    _limit = kv["neuroglancerPrecomputedLimit"]
+#    _min = kv["neuroglancerPrecomputedMin"]
+#    _max = kv["neuroglancerPrecomputedMax"]
 #    _floor = kv.find("neuroglancerPrecomputedFloor")
 #    _limit = kv.find("neuroglancerPrecomputedLimit")
 #    _min = kv.find("neuroglancerPrecomputedMin")
 #    _max = kv.find("neuroglancerPrecomputedMax")
-    metadata = {
-            "neuroglancerPrecomputedFloor": str(math.floor(_floor)),
-            "neuroglancerPrecomputedMin": str(math.floor(_min)),
-            "neuroglancerPrecomputedLimit": str(math.ceil(_limit)),
-            "neuroglancerPrecomputedMax": str(math.ceil(_max)),
-        }
+#    metadata = {
+#            "neuroglancerPrecomputedFloor": str(math.floor(_floor)),
+#            "neuroglancerPrecomputedMin": str(math.floor(_min)),
+#            "neuroglancerPrecomputedLimit": str(math.ceil(_limit)),
+#            "neuroglancerPrecomputedMax": str(math.ceil(_max)),
+#        }
     return metadata
