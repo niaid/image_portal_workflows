@@ -1,4 +1,5 @@
 from typing import Dict
+import math
 import shutil
 import json
 from pathlib import Path
@@ -55,7 +56,7 @@ def gen_archive_pyramid_cmd(working_dir: Path, archive_name: Path) -> str:
     """
     cd working_dir && zip  --compression-method store  -r archive_name  ./* && cd -
     """
-    cmd = f"cd {working_dir} && zip --compression-method store -r {archive_name} ./* && cd -"
+    cmd = f"cd {working_dir} && zip -q --compression-method store -r {archive_name} ./* && cd -"
     logger = prefect.context.get("logger")
     logger.info(f"gen_min_max_cmd command: {cmd}")
     return cmd
@@ -78,6 +79,28 @@ def parse_min_max_file(fp: Path) -> Dict[str, str]:
     """
     min max command is run as a subprocess and dumped to a file.
     This file needs to be parsed.
+    Should be four keys:
+        neuroglancerPrecomputedMin,
+        neuroglancerPrecomputedMax,
+        neuroglancerPrecomputedFloor,
+        neuroglancerPrecomputedLimit
+    Values should be ints.
+    Round min and floor: down, round max and limit: up.
     """
     with open(fp, "r") as _file:
-        return json.load(_file)
+        kv = json.load(_file)
+    _floor = kv["neuroglancerPrecomputedFloor"]
+    _limit = kv["neuroglancerPrecomputedLimit"]
+    _min = kv["neuroglancerPrecomputedMin"]
+    _max = kv["neuroglancerPrecomputedMax"]
+#    _floor = kv.find("neuroglancerPrecomputedFloor")
+#    _limit = kv.find("neuroglancerPrecomputedLimit")
+#    _min = kv.find("neuroglancerPrecomputedMin")
+#    _max = kv.find("neuroglancerPrecomputedMax")
+    metadata = {
+            "neuroglancerPrecomputedFloor": str(math.floor(_floor)),
+            "neuroglancerPrecomputedMin": str(math.floor(_min)),
+            "neuroglancerPrecomputedLimit": str(math.ceil(_limit)),
+            "neuroglancerPrecomputedMax": str(math.ceil(_max)),
+        }
+    return metadata

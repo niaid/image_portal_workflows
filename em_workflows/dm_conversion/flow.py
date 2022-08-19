@@ -229,6 +229,7 @@ with Flow(
 
     all_assets = join_list(with_dm_lg_thumbs, other_with_lg_thumbs)
 
-    utils.send_callback_body(
+    cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=all_assets
     )
+    # utils.cleanup_workdir(wd=temp_dir, upstream_tasks=[cb])
