@@ -434,6 +434,8 @@ with Flow(
         metadata=metadatas,
     )
 
-    utils.send_callback_body(
+    cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=callback_with_neuroglancer
     )
+
+    # utils.cleanup_workdir.map(wd=work_dirs, upstream_tasks=[cb])

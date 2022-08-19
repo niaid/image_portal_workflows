@@ -6,7 +6,8 @@ import os
 import shutil
 import json
 import prefect
-import glob
+import datetime
+import time
 from typing import List, Dict, Optional
 from pathlib import Path
 from prefect import task, context
@@ -17,6 +18,16 @@ from prefect.engine import signals
 from em_workflows.config import Config
 
 logger = context.get("logger")
+
+# @task(max_retries=3, retry_delay=datetime.timedelta(seconds=10))
+@task
+def cleanup_workdir(wd: Path):
+    """
+    working_dir isn't needed after run, so rm.
+    """
+    prefect.context.get("logger").info(f"Trying to remove {wd}")
+    time.sleep(5)
+    shutil.rmtree(wd)
 
 
 @task
@@ -284,10 +295,7 @@ def print_t(t):
 
 @task
 def add_assets_entry(
-    base_elt: Dict,
-    path: Path,
-    asset_type: str,
-    metadata: Dict[str, str] = None,
+    base_elt: Dict, path: Path, asset_type: str, metadata: Dict[str,str] = None
 ) -> Dict:
     """
     asset type can be one of:
@@ -301,6 +309,7 @@ def add_assets_entry(
     neuroglancerPrecomputed
 
     used to build the callback for API
+    metadata is used in conjunction with neuroglancer only
     """
     valid_typs = [
         "averagedVolume",

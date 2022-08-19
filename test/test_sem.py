@@ -16,7 +16,7 @@ def mock_nfs_mount(monkeypatch):
     monkeypatch.setattr(Config, "mount_point", os.getcwd() + "/test/input_files")
     monkeypatch.setattr(Config, "proj_dir", _mock_proj_dir)
     monkeypatch.setattr(Config, "assets_dir", _mock_assets_dir)
-    monkeypatch.setattr(Config, "tmp_dir", os.getcwd() + "/tmp")
+    monkeypatch.setattr(Config, "tmp_dir", "/tmp")
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
     monkeypatch.setattr(Config, "xfalign_loc", "/usr/local/IMOD/bin/xfalign")
     monkeypatch.setattr(Config, "tif2mrc_loc", "/usr/local/IMOD/bin/tif2mrc")

@@ -598,7 +598,7 @@ with Flow(
     gen_archives = shell_task.map(
         command=archive_pyramid_cmds,
         to_echo=unmapped("gen pyramid archives"),
-        upstream_tasks=[gen_pyramids]
+        upstream_tasks=[gen_pyramids],
     )
     ##
 
@@ -715,8 +715,9 @@ with Flow(
         metadata=metadatas,
     )
 
-    utils.send_callback_body(
+    cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=callback_with_neuroglancer
     )
 
+    # utils.cleanup_workdir.map(wd=temp_dirs, upstream_tasks=[cb])
 # print(json.dumps(result.result[files_elts]))
