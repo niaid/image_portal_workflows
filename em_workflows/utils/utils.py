@@ -6,9 +6,9 @@ import os
 import shutil
 import json
 import prefect
+import logging
 import datetime
-import time
-from typing import List, Dict, Optional
+from typing import List, Dict, Tuple
 from pathlib import Path
 from prefect import task, context
 from prefect import Flow, task, context
@@ -17,21 +17,18 @@ from prefect.engine import signals
 
 from em_workflows.config import Config
 
-logger = context.get("logger")
 
-# @task(max_retries=3, retry_delay=datetime.timedelta(seconds=10))
-@task
+@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10))
 def cleanup_workdir(wd: Path):
     """
     working_dir isn't needed after run, so rm.
     """
-    prefect.context.get("logger").info(f"Trying to remove {wd}")
-    time.sleep(5)
+    # log(f"Trying to remove {wd}")
     shutil.rmtree(wd)
 
 
 @task
-def check_inputs_ok(fps: List[Path]) -> List[Path]:
+def check_inputs_ok(fps: List[Path]) -> None:
     """
     ensures there's at least one file that is going to be processed.
     escapes bad chars that occur in input file names
@@ -41,7 +38,7 @@ def check_inputs_ok(fps: List[Path]) -> List[Path]:
     for fp in fps:
         if not fp.exists():
             raise signals.FAIL(f"Input dir does not contain {fp}")
-    prefect.context.get("logger").info("files ok")
+    log("files ok")
 
 
 @task
@@ -50,8 +47,7 @@ def sanitize_file_names(fps: List[Path]) -> List[Path]:
     return escaped_files
 
 
-@task
-def make_work_dir(fname: Path = None) -> Path:
+def _make_work_dir(fname: Path = None) -> Path:
     """
     a temporary dir to house all files in the form:
     {Config.tmp_dir}{fname.stem}.
@@ -63,22 +59,19 @@ def make_work_dir(fname: Path = None) -> Path:
         msg = f"created working_dir {working_dir} for {fname.as_posix()}"
     else:
         msg = f"No file name given for dir creation"
-    prefect.context.get("logger").info(msg)
     return Path(working_dir)
 
 
 @task
 def create_brt_command(adoc_fp: Path) -> str:
     cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1"
-    logger = prefect.context.get("logger")
-    logger.info(cmd)
+    log(cmd)
     return cmd
 
 
 @task
 def add_assets(assets_list: Dict, new_asset: Dict[str, str]) -> Dict:
-    logger = context.get("logger")
-    logger.info(f"Trying to add asset {new_asset}")
+    log(f"Trying to add asset {new_asset}")
     assets_list.get("assets").append(new_asset)
     return assets_list
 
@@ -118,6 +111,60 @@ def _escape_str(name):
     return _to_esc.sub(_esc_char, name)
 
 
+def _init_log(working_dir: Path) -> None:
+    log_fp = Path(working_dir, Path("log.txt"))
+    # we are going to clobber previous logs - rm if want to keep
+    # if log_fp.exists():
+    #    log_fp.unlink()
+    # the getLogger function uses the (fairly) unique input_dir to look up.
+    logger = logging.getLogger(context.parameters["input_dir"])
+    logger.setLevel("INFO")
+
+    if not logger.handlers:
+        handler = logging.FileHandler(log_fp, encoding="utf-8")
+        logger.addHandler(handler)
+
+        # Formatter can be whatever you want
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d_%H:%M:%S",
+        )
+        handler.setFormatter(formatter)
+
+
+def abbreviate_list(l: List[str]) -> str:
+    """
+    Abbreviates a long list displaying only first and last elt,
+    if for example you want give an idea of what commands are running.
+    go from:
+    [This, is, a, long, list, that, goes, on, and, on] ->
+    to:
+    This
+    ..
+    on
+    """
+    # this generates huge numbers of commands -
+    abbrv = "\n" + l[0] + "\n..\n" + l[-1]
+    return abbrv
+
+
+def log(msg):
+    # log_name is defined by the dir_name (all wfs are associated with an input_dir
+    logger = logging.getLogger(context.parameters["input_dir"])
+    logger.info(msg)
+    context.logger.info(msg)
+
+
+@task
+def cp_logs_to_assets(working_dir: Path, assets_dir: Path) -> None:
+    print(f"looking in {working_dir}")
+    print(f"copyiung to {assets_dir}")
+    for _log in working_dir.glob("*.log"):
+        print(f"found {_log}")
+        print(f"going to copy to {assets_dir}")
+        shutil.copy(_log, assets_dir)
+
+
 @task
 def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
     """
@@ -128,6 +175,7 @@ def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> Lis
     multiple times, sometimes there will be no files of that extension.
     """
     _files = list()
+    log(f"Looking for *.{exts} in {input_dir}")
     if single_file:
         fp = Path(f"{input_dir}/{single_file}")
         ext = fp.suffix.strip(".")
@@ -141,8 +189,8 @@ def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> Lis
     else:
         for ext in exts:
             _files.extend(input_dir.glob(f"*.{ext}"))
-    logger.info("Found files:")
-    logger.info(_files)
+    log("found files")
+    log(_files)
     return _files
 
 
@@ -153,12 +201,11 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
     Some pipelines, eg SEM, store image stacks in dirs (rather than
     single files.
     """
-    logger = prefect.context.get("logger")
-    logger.info(f"trying to list {input_dir_fp}")
+    log(f"trying to list {input_dir_fp}")
     dirs = [Path(x) for x in input_dir_fp.iterdir() if x.is_dir()]
     if len(dirs) == 0:
         raise signals.FAIL(f"Unable to find any subdirs in dir: {input_dir_fp}")
-    logger.info(f"Found {dirs}")
+    log(f"Found {dirs}")
     return dirs
 
 
@@ -175,9 +222,9 @@ def gen_output_fp(input_fp: Path, output_ext: str, working_dir: Path = None) -> 
         output_fp = f"{working_dir.as_posix()}/{stem_name}{output_ext}"
     else:
         output_fp = f"{input_fp.parent}/{stem_name}{output_ext}"
-    prefect.context.get("logger").info(
-        f"Using dir: {working_dir}, file: {input_fp}, ext: {output_ext} creating output_fp {output_fp}"
-    )
+
+    msg = f"Using dir: {working_dir}, file: {input_fp}, ext: {output_ext} creating output_fp {output_fp}"
+    log(msg=msg)
     return Path(output_fp)
 
 
@@ -187,7 +234,7 @@ def gen_output_fname(input_fp: Path, output_ext) -> Path:
     Each file is generated using the input file name, without extension,
     with a new extension."""
     output_fp = Path(f"{input_fp.stem}{output_ext}")
-    logger.info(f"input: {input_fp} output: {output_fp}")
+    log(f"input: {input_fp} output: {output_fp}")
     return output_fp
 
 
@@ -220,7 +267,7 @@ def notify_api_running(flow: Flow, old_state, new_state) -> State:
         response = requests.post(
             callback_url, headers=headers, data=json.dumps({"status": "running"})
         )
-        logger.info(response.text)
+        log(response.text)
     return new_state
 
 
@@ -249,8 +296,8 @@ def notify_api_completion(flow: Flow, old_state, new_state) -> State:
         response = requests.post(
             callback_url, headers=headers, data=json.dumps({"status": status})
         )
-        logger.info(f"Pipeline status is:{status}")
-        logger.info(response.text)
+        log(f"Pipeline status is:{status}")
+        log(response.text)
     return new_state
 
 
@@ -274,6 +321,8 @@ def get_environment() -> str:
 def get_input_dir(input_dir: str) -> Path:
     """
     Concat the POSTed input file path to the mount point.
+    create working dir
+    set up logger
     returns Path obj
     """
     if not input_dir.endswith("/"):
@@ -281,21 +330,29 @@ def get_input_dir(input_dir: str) -> Path:
     if not input_dir.startswith("/"):
         input_dir = "/" + input_dir
     input_path_str = Config.proj_dir(env=get_environment()) + input_dir
-    input_path = Path(input_path_str)
-    logger.info(f"Input path is {input_path}")
-    return input_path
+    return Path(input_path_str)
+
+
+@task
+def set_up_work_env(input_fp: Path) -> Path:
+    """note input"""
+    # create a temp space to work
+    working_dir = _make_work_dir()
+    _init_log(working_dir=working_dir)
+    log(f"Working dir for {input_fp} is {working_dir}.")
+    return working_dir
 
 
 @task
 def print_t(t):
     """dumb function to print stuff..."""
-    logger.info("++++++++++++++++++++++++++++++++++++++++")
-    logger.info(t)
+    log("++++++++++++++++++++++++++++++++++++++++")
+    log(t)
 
 
 @task
 def add_assets_entry(
-    base_elt: Dict, path: Path, asset_type: str, metadata: Dict[str,str] = None
+    base_elt: Dict, path: Path, asset_type: str, metadata: Dict[str, str] = None
 ) -> Dict:
     """
     asset type can be one of:
@@ -337,20 +394,22 @@ def add_assets_entry(
 
 
 @task
-def make_assets_dir(input_dir: Path) -> Path:
+def make_assets_dir(input_dir: Path, subdir_name: Path = None) -> Path:
     """
     input_dir comes in the form {mount_point}/RMLEMHedwigQA/Projects/Lab/PI/
     want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
+    Sometimes you don't want to create a subdir based on a file name. (eg fibsem)
     """
     if not "Projects" in input_dir.as_posix():
         raise signals.FAIL(
             f"Input directory {input_dir} does not look correct, it must contain the string 'Projects'."
         )
     assets_dir_as_str = input_dir.as_posix().replace("/Projects/", "/Assets/")
-    assets_dir = Path(assets_dir_as_str)
-    prefect.context.get("logger").info(
-        f"making assets dir for {input_dir} at {assets_dir.as_posix()}"
-    )
+    if subdir_name:
+        assets_dir = Path(assets_dir_as_str + subdir_name.stem)
+    else:
+        assets_dir = Path(assets_dir_as_str)
+    log(f"making assets dir for {input_dir} at {assets_dir.as_posix()}")
     assets_dir.mkdir(parents=True, exist_ok=True)
     return assets_dir
 
@@ -359,22 +418,24 @@ def make_assets_dir(input_dir: Path) -> Path:
 def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path = None) -> Path:
     """
     Copy fp to the assets (reported output) dir
-    Note, assets are expected to exist in a subdir defined by the input
+    fp is the Path to be copied.
+    assets_dir is the root dir (the input_dir with s/Projects/Assets/)
+    If prim_fp is passed, assets will be copied to a subdir defined by the input
     file name, eg:
     copy /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/keyMov_SARsCoV2_1.mp4
     to
     /mnt/ai-fas12/RMLEMHedwigQA/Assets/Lab/Pi/SARsCoV2_1/keyMov_SARsCoV2_1.mp4
     {mount_point}/{dname}/keyMov_SARsCoV2_1.mp4
-    (note dname SARsCoV2_1) in assets_dir
+    (note "SARsCoV2_1" in assets_dir)
+    If prim_fp is not used, no such subdir is created.
     """
-    logger = prefect.context.get("logger")
     if prim_fp is not None:
         assets_sub_dir = Path(f"{assets_dir}/{prim_fp.stem}")
     else:
         assets_sub_dir = assets_dir
     assets_sub_dir.mkdir(exist_ok=True)
     dest = Path(f"{assets_sub_dir}/{fp.name}")
-    logger.info(f"Trying to copy {fp} to {dest}")
+    log(f"Trying to copy {fp} to {dest}")
     if fp.is_dir():
         if dest.exists():
             shutil.rmtree(dest)
@@ -419,8 +480,8 @@ def send_callback_body(
     data = {"files": files_elts}
     headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
     response = requests.post(callback_url, headers=headers, data=json.dumps(data))
-    logger.info(response.url)
-    logger.info(response.status_code)
-    logger.info(json.dumps(data))
-    logger.info(response.text)
-    logger.info(response.headers)
+    log(response.url)
+    log(response.status_code)
+    log(json.dumps(data))
+    log(response.text)
+    log(response.headers)

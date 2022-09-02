@@ -6,7 +6,6 @@ from typing import List
 
 from pathlib import Path
 import shutil
-import prefect
 from jinja2 import Environment, FileSystemLoader
 from prefect import task, Flow, Parameter, unmapped, flatten, case
 from prefect.run_configs import LocalRun
@@ -31,8 +30,7 @@ def copy_template(working_dir: Path, template_name: str) -> Path:
     """
     adoc_fp = f"{working_dir}/{template_name}.adoc"
     template_fp = f"{Config.template_dir}/{template_name}.adoc"
-    logger = prefect.context.get("logger")
-    logger.info(f"trying to copy {template_fp} to {adoc_fp}")
+    utils.log(f"trying to copy {template_fp} to {adoc_fp}")
     shutil.copyfile(template_fp, adoc_fp)
     return Path(adoc_fp)
 
@@ -134,19 +132,18 @@ def update_adoc(
     adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
     with open(adoc_loc, "w") as _file:
         print(output, file=_file)
-    prefect.context.get("logger").info(f"generated {adoc_loc}")
+    utils.log(f"generated {adoc_loc}")
     return adoc_loc
 
 
 @task
 def gen_dimension_command(tg_fp: Path) -> str:
-    command = f"header -s {tg_fp.parent}/{tg_fp.stem}_ali.mrc"
+    command = f"header -s {tg_fp.parent}/{tg_fp.stem}_ali.mrc &> {tg_fp.parent}/header_gen_dim.log"
     a = subprocess.run(command, shell=True, check=True, capture_output=True)
     outputs = a.stdout
     xyz_dim = re.split(" +(\d+)", str(outputs))
     z_dim = xyz_dim[5]
-    logger = prefect.context.get("logger")
-    logger.info(f"z_dim: {z_dim:}")
+    utils.log(f"z_dim: {z_dim:}")
     return z_dim
 
 
@@ -161,9 +158,7 @@ def check_brt_run_ok(tg_fp: Path):
     rec_file = Path(f"{tg_fp.parent}/{tg_fp.stem}_rec.mrc")
     # full_rec_file = Path(f"{tg_fp.parent}/{tg_fp.stem}_full_rec.mrc")
     ali_file = Path(f"{tg_fp.parent}/{tg_fp.stem}_ali.mrc")
-    prefect.context.get("logger").info(
-        f"checking that dir {tg_fp.parent} contains ok BRT run"
-    )
+    utils.log(f"checking that dir {tg_fp.parent} contains ok BRT run")
 
     for _file in [rec_file, ali_file]:
         if not _file.exists():
@@ -178,10 +173,9 @@ def gen_ns_cmnds(fp: Path, z_dim) -> List[str]:
     cmds = list()
     for i in range(1, int(z_dim)):
         cmds.append(
-            f"newstack -secs {i}-{i} {fp.parent}/{fp.stem}_ali*.mrc {fp.parent}/{fp.stem}.mrc"
+            f"newstack -secs {i}-{i} {fp.parent}/{fp.stem}_ali*.mrc {fp.parent}/{fp.stem}.mrc &>> {fp.parent}/newstack_mid_pt.log"
         )
-    logger = prefect.context.get("logger")
-    logger.info(cmds)
+    utils.log(utils.abbreviate_list(cmds))
     return cmds
 
 
@@ -192,9 +186,8 @@ def gen_ns_float(fp: Path) -> str:
     """
     in_fp = f"{fp.parent}/{fp.stem}_ali*.mrc"
     out_fp = f"{fp.parent}/ali_{fp.stem}.mrc"
-    cmd = f"newstack -float 3 {in_fp} {out_fp}"
-    logger = prefect.context.get("logger")
-    logger.info(cmd)
+    cmd = f"newstack -float 3 {in_fp} {out_fp} &> {fp.parent}/newstack_float.log"
+    utils.log(cmd)
     return cmd
 
 
@@ -203,9 +196,8 @@ def gen_mrc2tiff(fp: Path) -> str:
     """mrc2tif -j -C 0,255 path/ali_BASENAME.mrc path/BASENAME_ali"""
     in_fp = f"{fp.parent}/ali_{fp.stem}.mrc"
     out_fp = f"{fp.parent}/{fp.stem}_ali"
-    cmd = f"mrc2tif -j -C 0,255 {in_fp} {out_fp}"
-    logger = prefect.context.get("logger")
-    logger.info(cmd)
+    cmd = f"mrc2tif -j -C 0,255 {in_fp} {out_fp} 2> {fp.parent}/mrc2tif_align.log"
+    utils.log(cmd)
     return cmd
 
 
@@ -219,7 +211,7 @@ def gen_copy_keyimages(tomogram_fp: Path, middle_i: str, fp_out: Path) -> str:
     """
     fname_in = f"{tomogram_fp.parent}/{tomogram_fp.stem}_ali.{middle_i}.jpg"
     cmd = f"cp {fname_in} {fp_out}"
-    prefect.context.get("logger").info(cmd)
+    utils.log(cmd)
     return cmd
 
 
@@ -232,9 +224,8 @@ def gen_gm_convert(tomogram_fp: Path, middle_i: str, fp_out: Path) -> str:
     gm convert -size 300x300 path/BASENAME_ali.{MIDDLE_I}.jpg -resize 300x300 -sharpen 2 -quality 70 path/keyimg_BASENAME_s.jpg
     """
     fname_in = f"{tomogram_fp.parent}/{tomogram_fp.stem}_ali.{middle_i}.jpg"
-    cmd = f"gm convert -size 300x300 {fname_in} -resize 300x300 \
-            -sharpen 2 -quality 70 {fp_out}"
-    prefect.context.get("logger").info(cmd)
+    cmd = f"gm convert -size 300x300 {fname_in} -resize 300x300 -sharpen 2 -quality 70 {fp_out} &> {tomogram_fp.parent}/gm_convert_thumb.log"
+    utils.log(cmd)
     return cmd
 
 
@@ -247,8 +238,7 @@ def calc_middle_i(z_dim: str) -> str:
     """
     fl = math.floor(int(z_dim) / 2)
     fl_padded = str(fl).rjust(3, "0")
-    logger = prefect.context.get("logger")
-    logger.info(f"middle i: {fl_padded}")
+    utils.log(f"middle i: {fl_padded}")
     return fl_padded
 
 
@@ -260,9 +250,8 @@ def gen_ffmpeg_cmd(fp: Path, fp_out: Path) -> str:
             libx264 -pix_fmt yuv420p -s 1024,1024 tiltMov_${BASENAME}.mp4
     """
     input_fp = f"{fp.parent}/{fp.stem}_ali.%03d.jpg"
-    cmd = f"ffmpeg -y -f image2 -framerate 4 -i {input_fp} -vcodec \
-            libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
-    prefect.context.get("logger").info(f"ffmpeg command: {cmd}")
+    cmd = f"ffmpeg -y -f image2 -framerate 4 -i {input_fp} -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out} &> {fp.parent}/ffmpeg_tilt.log"
+    utils.log(f"ffmpeg command: {cmd}")
     return cmd
 
 
@@ -281,10 +270,10 @@ def gen_clip_rc_cmds(fp: Path, z_dim) -> List[str]:
         izmax = i + 2
         in_fp = f"{fp.parent}/{fp.stem}_rec.mrc"
         out_fp = f"{fp.parent}/{fp.stem}_ave{str(i)}.mrc"
-        cmd = f"clip avg -2d -iz {str(izmin)}-{str(izmax)} -m 1 {in_fp} {out_fp}"
+        cmd = f"clip avg -2d -iz {str(izmin)}-{str(izmax)} -m 1 {in_fp} {out_fp} 2>> {fp.parent}/clip_avg.error.log"
         cmds.append(cmd)
-    logger = prefect.context.get("logger")
-    logger.info(f"reconstruction clip_cmds : {cmds}")
+    utils.log(f"reconstruction clip_cmds")
+    utils.log(utils.abbreviate_list(cmds))
     return cmds
 
 
@@ -294,8 +283,8 @@ def newstack_fl_rc_cmd(fp: Path, fp_out: Path) -> str:
     newstack -float 3 path/BASENAME_ave* path/ave_BASENAME.mrc
     """
     fp_in = f"{fp.parent}/{fp.stem}_ave*"
-    cmd = f"sleep 10 && newstack -float 3 {fp_in} {fp_out}"
-    prefect.context.get("logger").info(f"reconstruction newstack_fl_rc_cmd {cmd}")
+    cmd = f"newstack -float 3 {fp_in} {fp_out} &> {fp.parent}/newstack_float.log"
+    utils.log(f"reconstruction newstack_fl_rc_cmd {cmd}")
     return cmd
 
 
@@ -305,8 +294,8 @@ def gen_binvol_rc_cmd(fp: Path, fp_out: Path) -> str:
     binvol -binning 2 path/ave_BASENAME.mrc path/avebin8_BASENAME.mrc
     """
     fp_in = f"{fp.parent}/{fp.stem}_ave.mrc"
-    cmd = f"binvol -binning 2 {fp_in} {fp_out}"
-    prefect.context.get("logger").info(f"reconstruction binvol command: {cmd}")
+    cmd = f"binvol -binning 2 {fp_in} {fp_out} &> {fp.parent}/binvol.log"
+    utils.log(f"reconstruction binvol command: {cmd}")
     return cmd
 
 
@@ -317,9 +306,8 @@ def gen_mrc2tiff_rc_cmd(fp: Path) -> str:
     """
     fp_in = f"{fp.parent}/{fp.stem}_ave.mrc"
     fp_out = f"{fp.parent}/{fp.stem}_mp4"
-    cmd = f"mrc2tif -j -C 100,255 {fp_in} {fp_out}"
-    logger = prefect.context.get("logger")
-    logger.info(f"mrc2tiff command: {cmd}")
+    cmd = f"mrc2tif -j -C 100,255 {fp_in} {fp_out} 2> {fp.parent}/mrc2tif.log"
+    utils.log(f"mrc2tiff command: {cmd}")
     return cmd
 
 
@@ -331,10 +319,8 @@ def gen_ffmpeg_rc_cmd(fp: Path, fp_out: Path) -> str:
             libx264 -pix_fmt yuv420p -s 1024,1024 path/keyMov_BASENAME.mp4
     """
     fp_in = f"{fp.parent}/{fp.stem}_mp4.%03d.jpg"
-    cmd = f"ffmpeg -f image2 -framerate 8 -y -i {fp_in} -vcodec \
-            libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out}"
-    logger = prefect.context.get("logger")
-    logger.info(f"reconstruction ffmpeg command: {cmd}")
+    cmd = f"ffmpeg -f image2 -framerate 8 -y -i {fp_in} -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out} &> {fp.parent}/ffmpeg_recon.log"
+    utils.log(f"reconstruction ffmpeg command: {cmd}")
     return cmd
 
 
@@ -374,7 +360,7 @@ def check_inputs_paired(fps: List[Path]):
             pair_name = fname[:-1] + "b"
             if pair_name in fnames:
                 inputs_paired = True
-    prefect.context.get("logger").info(f"Are inputs paired? {inputs_paired}.")
+    utils.log(f"Are inputs paired? {inputs_paired}.")
     return inputs_paired
 
 
@@ -410,6 +396,7 @@ with Flow(
     file_name = Parameter("file_name", default=None)
     # a single input_dir will have n tomograms
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
+    # input_dir_fp = utils.get_input_dir(input_dir=input_dir)
     fnames = utils.list_files(
         input_dir=input_dir_fp, exts=["MRC", "ST", "mrc", "st"], single_file=file_name
     )
@@ -424,11 +411,11 @@ with Flow(
         fnames_np = fnames
     fnames_fin = merge(fnames_p, fnames_np)
 
-    temp_dirs = utils.make_work_dir.map(
+    working_dirs = utils.set_up_work_env.map(
         fnames_fin, upstream_tasks=[unmapped(fnames_ok)]
     )
     adoc_fps = copy_template.map(
-        working_dir=temp_dirs, template_name=unmapped(adoc_template)
+        working_dir=working_dirs, template_name=unmapped(adoc_template)
     )
     updated_adocs = update_adoc.map(
         adoc_fp=adoc_fps,
@@ -445,14 +432,16 @@ with Flow(
         LocalAlignments=unmapped(LocalAlignments),
         THICKNESS=unmapped(THICKNESS),
     )
-    tomogram_fps = copy_tg_to_working_dir.map(fname=fnames_fin, working_dir=temp_dirs)
+    # why do we need to copy these?
+    tomogram_fps = copy_tg_to_working_dir.map(
+        fname=fnames_fin, working_dir=working_dirs
+    )
 
     # START BRT (Batchruntomo) - long running process.
     brt_commands = utils.create_brt_command.map(adoc_fp=updated_adocs)
     brts = shell_task.map(
         command=brt_commands,
         upstream_tasks=[tomogram_fps],
-        to_echo=unmapped("BRT commands"),
     )
     brts_ok = check_brt_run_ok.map(tg_fp=tomogram_fps, upstream_tasks=[brts])
     # END BRT, check files for success (else fail here)
@@ -467,16 +456,11 @@ with Flow(
     newstacks = shell_task.map(
         command=flatten(newstack_cmds),
         upstream_tasks=[brts_ok],
-        to_echo=unmapped("newstack tilt"),
     )
     ns_float_cmds = gen_ns_float.map(fp=tomogram_fps, upstream_tasks=[newstacks])
-    ns_floats = shell_task.map(
-        command=ns_float_cmds, to_echo=unmapped("ns_floats commands")
-    )
+    ns_floats = shell_task.map(command=ns_float_cmds)
     mrc2tiff_cmds = gen_mrc2tiff.map(fp=tomogram_fps, upstream_tasks=[ns_floats])
-    mrc2tiffs = shell_task.map(
-        command=mrc2tiff_cmds, to_echo=unmapped("mrc2tiff commands")
-    )
+    mrc2tiffs = shell_task.map(command=mrc2tiff_cmds)
     middle_is = calc_middle_i.map(z_dim=z_dims)
 
     # key_imgs are an output/asset - location needs to be reported.
@@ -492,9 +476,7 @@ with Flow(
         fp_out=key_img_fps,
         upstream_tasks=[mrc2tiffs],
     )
-    cp_keyImages = shell_task.map(
-        command=cp_keyimage_cmds, to_echo=unmapped("copying keyImages")
-    )
+    cp_keyImages = shell_task.map(command=cp_keyimage_cmds)
 
     thumbs_sm_fps = utils.gen_output_fp.map(
         input_fp=tomogram_fps,
@@ -507,9 +489,7 @@ with Flow(
         fp_out=thumbs_sm_fps,
         upstream_tasks=[mrc2tiffs],
     )
-    gms_sm = shell_task.map(
-        command=gm_cmds_sm, to_echo=unmapped("gm small thumbnail commands")
-    )
+    gms_sm = shell_task.map(command=gm_cmds_sm)
 
     # START TILT MOVIE GENERATION - every tg => 1 movie
     tiltMovie_fps = utils.gen_output_fp.map(
@@ -520,9 +500,7 @@ with Flow(
     tiltMovie_cmds = gen_ffmpeg_cmd.map(
         fp=tomogram_fps, fp_out=tiltMovie_fps, upstream_tasks=[mrc2tiffs]
     )
-    mpegs = shell_task.map(
-        command=tiltMovie_cmds, to_echo=unmapped("tiltMovie comands")
-    )
+    mpegs = shell_task.map(command=tiltMovie_cmds)
     # END TILT MOVIE GENERATION
 
     # START RECONSTR MOVIE GENERATION:
@@ -530,9 +508,7 @@ with Flow(
     clip_cmds = gen_clip_rc_cmds.map(
         fp=tomogram_fps, z_dim=z_dims, upstream_tasks=[brts_ok]
     )
-    clips = shell_task.map(
-        command=flatten(clip_cmds), to_echo=unmapped("rc clip commands")
-    )
+    clips = shell_task.map(command=flatten(clip_cmds))
     # # #
     ns_float_rc_fps = utils.gen_output_fp.map(
         input_fp=tomogram_fps, output_ext=unmapped("_ave.mrc")
@@ -541,9 +517,7 @@ with Flow(
         fp=tomogram_fps, fp_out=ns_float_rc_fps, upstream_tasks=[clips]
     )
     # ns_float_rc_cmds = utils.to_command.map(ns_float_rc_cmds_and_ave_vol_fps)
-    ns_float_rcs = shell_task.map(
-        command=ns_float_rc_cmds, to_echo=unmapped("rc float commands")
-    )
+    ns_float_rcs = shell_task.map(command=ns_float_rc_cmds)
     # # #
 
     # # #
@@ -554,16 +528,12 @@ with Flow(
     bin_vol_cmds = gen_binvol_rc_cmd.map(
         fp=tomogram_fps, fp_out=avebin8_fps, upstream_tasks=[ns_float_rcs]
     )
-    bin_vols = shell_task.map(
-        command=bin_vol_cmds, to_echo=unmapped("bin vols commands")
-    )
-    # # #
+    bin_vols = shell_task.map(command=bin_vol_cmds)
+    # # .error#
     mrc2tiff_rc_cmds = gen_mrc2tiff_rc_cmd.map(
         fp=tomogram_fps, upstream_tasks=[bin_vols]
     )
-    mrc2tiff_rcs = shell_task.map(
-        command=mrc2tiff_rc_cmds, to_echo=unmapped("mrc2tiff_rcs commands")
-    )
+    mrc2tiff_rcs = shell_task.map(command=mrc2tiff_rc_cmds)
     # # #
     mpegs_rc_fps = utils.gen_output_fp.map(
         input_fp=tomogram_fps, output_ext=unmapped("_keyMov.mp4")
@@ -571,21 +541,19 @@ with Flow(
     ffmpeg_rc_cmds = gen_ffmpeg_rc_cmd.map(
         fp=tomogram_fps, fp_out=mpegs_rc_fps, upstream_tasks=[mrc2tiff_rcs]
     )
-    ffmpeg_rcs = shell_task.map(
-        command=ffmpeg_rc_cmds, to_echo=unmapped("ffmpeg_rc_cmds commands")
-    )
+    ffmpeg_rcs = shell_task.map(command=ffmpeg_rc_cmds)
     # END RECONSTR MOVIE
 
     # START PYRAMID GEN
     mrc2nifti_cmds = ng.gen_mrc2nifti_cmd.map(fp=tomogram_fps, upstream_tasks=[brts_ok])
-    mrc2niftis = shell_task.map(command=mrc2nifti_cmds, to_echo=unmapped("mrc2nifti"))
+    mrc2niftis = shell_task.map(command=mrc2nifti_cmds)
 
     ##
     ng_fps = ng.gen_pyramid_outdir.map(fp=tomogram_fps)
     pyramid_cmds = ng.gen_pyramid_cmd.map(
         fp=tomogram_fps, outdir=ng_fps, upstream_tasks=[mrc2niftis]
     )
-    gen_pyramids = shell_task.map(command=pyramid_cmds, to_echo=unmapped("gen pyramid"))
+    gen_pyramids = shell_task.map(command=pyramid_cmds)
 
     # create single archive containing pyramid dirs
     # eg cd working_dir && zip  --compression-method store  -r archive_name  ./*
@@ -597,7 +565,6 @@ with Flow(
     )
     gen_archives = shell_task.map(
         command=archive_pyramid_cmds,
-        to_echo=unmapped("gen pyramid archives"),
         upstream_tasks=[gen_pyramids],
     )
     ##
@@ -609,12 +576,14 @@ with Flow(
     min_max_cmds = ng.gen_min_max_cmd.map(
         fp=tomogram_fps, out_fp=min_max_fps, upstream_tasks=[mrc2niftis]
     )
-    min_maxs = shell_task.map(command=min_max_cmds, to_echo=unmapped("Min max"))
+    min_maxs = shell_task.map(command=min_max_cmds)
     metadatas = ng.parse_min_max_file.map(fp=min_max_fps, upstream_tasks=[min_maxs])
     # END PYRAMID
 
     # create assets directory
-    assets_dir = utils.make_assets_dir(input_dir=input_dir_fp)
+    assets_dirs = utils.make_assets_dir.map(
+        input_dir=unmapped(input_dir_fp), subdir_name=fnames_fin
+    )
 
     # We generate a base element, and then tack
     # on asset elements. Every time we tack on an element we change the
@@ -626,8 +595,7 @@ with Flow(
     # key images
     key_img_asset_fps = utils.copy_to_assets_dir.map(
         fp=key_img_fps,
-        assets_dir=unmapped(assets_dir),
-        prim_fp=tomogram_fps,
+        assets_dir=assets_dirs,
         upstream_tasks=[cp_keyImages],
     )
     callback_with_keyImages = utils.add_assets_entry.map(
@@ -639,8 +607,7 @@ with Flow(
     # thumnails (small thumbs)
     thumbnail_fps = utils.copy_to_assets_dir.map(
         fp=thumbs_sm_fps,
-        assets_dir=unmapped(assets_dir),
-        prim_fp=tomogram_fps,
+        assets_dir=assets_dirs,
         upstream_tasks=[gms_sm],
     )
     callback_with_thumbs = utils.add_assets_entry.map(
@@ -652,8 +619,7 @@ with Flow(
     # tiltMovie
     tiltMovie_asset_fps = utils.copy_to_assets_dir.map(
         fp=tiltMovie_fps,
-        assets_dir=unmapped(assets_dir),
-        prim_fp=tomogram_fps,
+        assets_dir=assets_dirs,
         upstream_tasks=[mpegs],
     )
     callback_with_tiltMovie = utils.add_assets_entry.map(
@@ -665,8 +631,7 @@ with Flow(
     # averagedVolume
     averagedVolume_asset_fps = utils.copy_to_assets_dir.map(
         fp=ns_float_rc_fps,
-        assets_dir=unmapped(assets_dir),
-        prim_fp=tomogram_fps,
+        assets_dir=assets_dirs,
         upstream_tasks=[ns_float_rcs],
     )
     callback_with_ave_vol = utils.add_assets_entry.map(
@@ -678,8 +643,7 @@ with Flow(
     # volume
     volume_asset_fps = utils.copy_to_assets_dir.map(
         fp=avebin8_fps,
-        assets_dir=unmapped(assets_dir),
-        prim_fp=tomogram_fps,
+        assets_dir=assets_dirs,
         upstream_tasks=[bin_vols],
     )
     callback_with_bin_vols = utils.add_assets_entry.map(
@@ -691,8 +655,7 @@ with Flow(
     # recMovie
     recMovie_asset_fps = utils.copy_to_assets_dir.map(
         fp=mpegs_rc_fps,
-        assets_dir=unmapped(assets_dir),
-        prim_fp=tomogram_fps,
+        assets_dir=assets_dirs,
         upstream_tasks=[ffmpeg_rcs],
     )
     callback_with_recMovie = utils.add_assets_entry.map(
@@ -704,8 +667,7 @@ with Flow(
     # neuroglancerPrecomputed
     ng_asset_fps = utils.copy_to_assets_dir.map(
         fp=pyramid_archive_fps,
-        assets_dir=unmapped(assets_dir),
-        prim_fp=tomogram_fps,
+        assets_dir=assets_dirs,
         upstream_tasks=[gen_archives, metadatas],
     )
     callback_with_neuroglancer = utils.add_assets_entry.map(
@@ -719,5 +681,8 @@ with Flow(
         token=token, callback_url=callback_url, files_elts=callback_with_neuroglancer
     )
 
-    # utils.cleanup_workdir.map(wd=temp_dirs, upstream_tasks=[cb])
+    cp = utils.cp_logs_to_assets.map(
+        working_dir=working_dirs, assets_dir=assets_dirs, upstream_tasks=[unmapped(cb)]
+    )
+    utils.cleanup_workdir.map(wd=working_dirs, upstream_tasks=[unmapped(cp)])
 # print(json.dumps(result.result[files_elts]))

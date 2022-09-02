@@ -23,7 +23,7 @@ def gen_mrc2nifti_cmd(fp: Path) -> str:
             f"unable to find input for nifti generation. \
                 {rec_mrc_fp} nor {base_mrc_fp}."
         )
-    cmd = f"mrc2nifti {mrc_fp} {fp.parent}/{fp.stem}.nii"
+    cmd = f"mrc2nifti {mrc_fp} {fp.parent}/{fp.stem}.nii &> {fp.parent}/mrc2nifti.log"
     logger = prefect.context.get("logger")
     logger.info(f"mrc2nifti command: {cmd}")
     return cmd
@@ -45,8 +45,7 @@ def gen_pyramid_cmd(fp: Path, outdir: Path) -> str:
     """
     volume-to-precomputed-pyramid --downscaling-method=average --flat path/basename.nii path/neuro-basename
     """
-    cmd = f"volume-to-precomputed-pyramid --downscaling-method=average \
-            --flat {fp.parent}/{fp.stem}.nii {outdir}"
+    cmd = f"volume-to-precomputed-pyramid --downscaling-method=average --flat {fp.parent}/{fp.stem}.nii {outdir} &> {fp.parent}/volume_to_precomputed_pyramid.log"
     prefect.context.get("logger").info(f"pyramid command: {cmd}")
     return cmd
 
@@ -67,8 +66,7 @@ def gen_min_max_cmd(fp: Path, out_fp: Path) -> str:
     """
     mrc_visual_min_max {basename}.nii --mad 5 --output-json mrc2ngpc-output.json
     """
-    cmd = f"mrc_visual_min_max {fp.parent}/{fp.stem}.nii --mad 5 \
-            --output-json {out_fp}"
+    cmd = f"mrc_visual_min_max {fp.parent}/{fp.stem}.nii --mad 5 --output-json {out_fp} &> {fp.parent}/mrc_visual_min_max.log"
     logger = prefect.context.get("logger")
     logger.info(f"gen_min_max_cmd command: {cmd}")
     return cmd
@@ -90,18 +88,18 @@ def parse_min_max_file(fp: Path) -> Dict[str, str]:
     with open(fp, "r") as _file:
         metadata = json.load(_file)
         # kv = json.load(_file)
-#    _floor = kv["neuroglancerPrecomputedFloor"]
-#    _limit = kv["neuroglancerPrecomputedLimit"]
-#    _min = kv["neuroglancerPrecomputedMin"]
-#    _max = kv["neuroglancerPrecomputedMax"]
-#    _floor = kv.find("neuroglancerPrecomputedFloor")
-#    _limit = kv.find("neuroglancerPrecomputedLimit")
-#    _min = kv.find("neuroglancerPrecomputedMin")
-#    _max = kv.find("neuroglancerPrecomputedMax")
-#    metadata = {
-#            "neuroglancerPrecomputedFloor": str(math.floor(_floor)),
-#            "neuroglancerPrecomputedMin": str(math.floor(_min)),
-#            "neuroglancerPrecomputedLimit": str(math.ceil(_limit)),
-#            "neuroglancerPrecomputedMax": str(math.ceil(_max)),
-#        }
+    #    _floor = kv["neuroglancerPrecomputedFloor"]
+    #    _limit = kv["neuroglancerPrecomputedLimit"]
+    #    _min = kv["neuroglancerPrecomputedMin"]
+    #    _max = kv["neuroglancerPrecomputedMax"]
+    #    _floor = kv.find("neuroglancerPrecomputedFloor")
+    #    _limit = kv.find("neuroglancerPrecomputedLimit")
+    #    _min = kv.find("neuroglancerPrecomputedMin")
+    #    _max = kv.find("neuroglancerPrecomputedMax")
+    #    metadata = {
+    #            "neuroglancerPrecomputedFloor": str(math.floor(_floor)),
+    #            "neuroglancerPrecomputedMin": str(math.floor(_min)),
+    #            "neuroglancerPrecomputedLimit": str(math.ceil(_limit)),
+    #            "neuroglancerPrecomputedMax": str(math.ceil(_max)),
+    #        }
     return metadata

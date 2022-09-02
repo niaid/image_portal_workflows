@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import List
 import prefect
-from prefect import Flow, task, Parameter, unmapped, context
+from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
 from em_workflows.shell_task_echo import ShellTaskEcho
 from prefect.engine import signals
@@ -11,21 +11,20 @@ from prefect.engine import signals
 from em_workflows.config import Config
 from em_workflows.utils import utils
 
-logger = context.get("logger")
 shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
 
 @task
 def create_dm2mrc_command(dm_fp: Path, output_fp: Path) -> str:
-    cmd = f"{Config.dm2mrc_loc} {dm_fp} {output_fp}"
-    prefect.context.get("logger").info(f"Generated cmd {cmd}")
+    cmd = f"{Config.dm2mrc_loc} {dm_fp} {output_fp} &> {output_fp.parent}/dm2mrc.log"
+    utils.log(f"Generated cmd {cmd}")
     return cmd
 
 
 @task
 def create_jpeg_cmd(mrc_fp: Path, output_fp: Path) -> str:
-    cmd = f"{Config.mrc2tif_loc} -j {mrc_fp} {output_fp}"
-    prefect.context.get("logger").info(f"Generated cmd {cmd}")
+    cmd = f"{Config.mrc2tif_loc} -j {mrc_fp} {output_fp} &> {output_fp.parent}/mrc2tif.log"
+    utils.log(f"Generated cmd {cmd}")
     return cmd
 
 
@@ -41,7 +40,7 @@ def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
     else:
         raise signals.FAIL(f"Thumbnail must be either sm or lg, not {size}")
     cmd = f"gm convert -size {scaler} {fp_in} -resize {scaler} -sharpen 2 -quality 70 {fp_out}"
-    prefect.context.get("logger").info(f"Generated cmd {cmd}")
+    utils.log(f"Generated cmd {cmd}")
     return cmd
 
 
@@ -73,21 +72,22 @@ with Flow(
     token = Parameter("token")()
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
 
-    # create a temp space to work
-    temp_dir = utils.make_work_dir()
-
-    # create an assets_dir (to copy required outputs into)
-    assets_dir = utils.make_assets_dir(input_dir=input_dir_fp)
     # [dm4 and dm3 inputs]
     dm_fps = utils.list_files(
         input_dir_fp, ["DM4", "DM3", "dm4", "dm3"], single_file=file_name
     )
-    # other inputs need to be converted too. Hopefully there's no naming overlaps
+    # one dir per input dm file
+    working_dir_dms = utils.set_up_work_env.map(input_fp=dm_fps)
+
+    # other input types need to be converted too.
+    # Hopefully there's no naming overlaps (eg same_name.jpeg and same_name.dm4)
     other_input_fps = utils.list_files(
         input_dir=input_dir_fp,
         exts=["TIF", "TIFF", "JPEG", "PNG", "tif", "tiff", "jpeg", "png"],
         single_file=file_name,
     )
+    working_dir_others = utils.set_up_work_env.map(input_fp=other_input_fps)
+
     # cat all files into single list, check they exist
     all_fps = join_list(dm_fps, other_input_fps)
     utils.check_inputs_ok(all_fps)
@@ -99,7 +99,7 @@ with Flow(
     other_input_fps_sanitized = utils.sanitize_file_names(other_input_fps)
     # dm* to mrc conversion
     mrc_fps = utils.gen_output_fp.map(
-        input_fp=dm_fps, working_dir=unmapped(temp_dir), output_ext=unmapped(".mrc")
+        input_fp=dm_fps, working_dir=working_dir_dms, output_ext=unmapped(".mrc")
     )
     dm2mrc_commands = create_dm2mrc_command.map(
         dm_fp=dm_fps_sanitized, output_fp=mrc_fps
@@ -140,7 +140,7 @@ with Flow(
     other_input_sm_fps = utils.gen_output_fp.map(
         input_fp=other_input_fps,
         output_ext=unmapped("_SM.jpeg"),
-        working_dir=unmapped(temp_dir),
+        working_dir=working_dir_others,
     )
     other_input_gm_sm_cmds = create_gm_cmd.map(
         fp_in=other_input_fps_sanitized,
@@ -153,7 +153,7 @@ with Flow(
     other_input_lg_fps = utils.gen_output_fp.map(
         input_fp=other_input_fps,
         output_ext=unmapped("_LG.jpeg"),
-        working_dir=unmapped(temp_dir),
+        working_dir=working_dir_others,
     )
     other_input_lg_cmds = create_gm_cmd.map(
         fp_in=other_input_fps_sanitized, fp_out=other_input_lg_fps, size=unmapped("lg")
@@ -168,11 +168,18 @@ with Flow(
     # dm3/dm4 type inputs (ie inputs we converted to jpegs)
     dm_primary_file_elts = utils.gen_callback_elt.map(input_fname=dm_fps)
 
+    # create an assets_dir (to copy required outputs into)
+    assets_dir_dms = utils.make_assets_dir.map(
+        input_dir=unmapped(input_dir_fp), subdir_name=dm_fps
+    )
+    assets_dir_others = utils.make_assets_dir.map(
+        input_dir=unmapped(input_dir_fp), subdir_name=other_input_fps
+    )
+
     # small thumbnails
     jpeg_fps_sm_asset_fps = utils.copy_to_assets_dir.map(
         fp=jpeg_fps_sm_fps,
-        assets_dir=unmapped(assets_dir),
-        prim_fp=dm_fps,
+        assets_dir=assets_dir_dms,
         upstream_tasks=[jpeg_fps_sms],
     )
     with_dm_sm_thumbs = utils.add_assets_entry.map(
@@ -185,8 +192,7 @@ with Flow(
     # large thumbnails
     jpeg_fps_lg_asset_fps = utils.copy_to_assets_dir.map(
         fp=jpeg_fps_lg_fps,
-        assets_dir=unmapped(assets_dir),
-        prim_fp=dm_fps,
+        assets_dir=assets_dir_dms,
         upstream_tasks=[jpeg_fps_lgs],
     )
     with_dm_lg_thumbs = utils.add_assets_entry.map(
@@ -202,8 +208,7 @@ with Flow(
     # small thumbnails - other inputs
     other_assets_sm_fps = utils.copy_to_assets_dir.map(
         fp=other_input_sm_fps,
-        assets_dir=unmapped(assets_dir),
-        prim_fp=other_input_fps,
+        assets_dir=assets_dir_others,
         upstream_tasks=[other_sm_gms],
     )
     other_with_sm_thumbs = utils.add_assets_entry.map(
@@ -216,8 +221,7 @@ with Flow(
     # other inputs, large thumbs
     other_assets_lg_fps = utils.copy_to_assets_dir.map(
         fp=other_input_lg_fps,
-        assets_dir=unmapped(assets_dir),
-        prim_fp=other_input_fps,
+        assets_dir=assets_dir_others,
         upstream_tasks=[other_input_lgs],
     )
     other_with_lg_thumbs = utils.add_assets_entry.map(
@@ -229,7 +233,20 @@ with Flow(
 
     all_assets = join_list(with_dm_lg_thumbs, other_with_lg_thumbs)
 
+    cp_other = utils.cp_logs_to_assets.map(
+        working_dir=working_dir_others,
+        assets_dir=assets_dir_others,
+        upstream_tasks=[unmapped(all_assets)],
+    )
+    cp_dm = utils.cp_logs_to_assets.map(
+        working_dir=working_dir_dms,
+        assets_dir=assets_dir_dms,
+        upstream_tasks=[unmapped(all_assets)],
+    )
+
     cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=all_assets
     )
-    # utils.cleanup_workdir(wd=temp_dir, upstream_tasks=[cb])
+
+    utils.cleanup_workdir.map(wd=working_dir_dms, upstream_tasks=[cp_dm, cp_dm])
+    utils.cleanup_workdir.map(wd=working_dir_others, upstream_tasks=[cp_dm, cp_other])
