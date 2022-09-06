@@ -36,12 +36,13 @@ def test_dm4_conv(mock_nfs_mount):
 def test_input_fname(mock_nfs_mount):
     from em_workflows.dm_conversion.flow import flow
 
-    flow.run(
-        input_dir="/test/input_files/",
+    state = flow.run(
+        input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
         file_name="20210525_1416_A000_G000.dm4",
         token="the_token",
         callback_url="https://ptsv2.com/t/",
     )
+    assert state.is_successful()
 
 
 def test_single_file_no_ext_not_found_gens_exception(mock_nfs_mount):
