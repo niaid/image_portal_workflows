@@ -64,8 +64,8 @@ def _make_work_dir(fname: Path = None) -> Path:
 
 @task
 def create_brt_command(adoc_fp: Path) -> str:
-    cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1"
-    log(cmd)
+    cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1 &> {adoc_fp.parent}.log"
+    log(f"Generated command: {cmd}")
     return cmd
 
 

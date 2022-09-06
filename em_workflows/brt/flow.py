@@ -138,7 +138,7 @@ def update_adoc(
 
 @task
 def gen_dimension_command(tg_fp: Path) -> str:
-    command = f"header -s {tg_fp.parent}/{tg_fp.stem}_ali.mrc &> {tg_fp.parent}/header_gen_dim.log"
+    command = f"header -s {tg_fp.parent}/{tg_fp.stem}_ali.mrc | tee {tg_fp.parent}/header_gen_dim.log"
     a = subprocess.run(command, shell=True, check=True, capture_output=True)
     outputs = a.stdout
     xyz_dim = re.split(" +(\d+)", str(outputs))
