@@ -169,17 +169,13 @@ with Flow(
     dm_primary_file_elts = utils.gen_callback_elt.map(input_fname=dm_fps)
 
     # create an assets_dir (to copy required outputs into)
-    assets_dir_dms = utils.make_assets_dir.map(
-        input_dir=unmapped(input_dir_fp), subdir_name=dm_fps
-    )
-    assets_dir_others = utils.make_assets_dir.map(
-        input_dir=unmapped(input_dir_fp), subdir_name=other_input_fps
-    )
+    assets_dir_dm = utils.make_assets_dir(input_dir=input_dir_fp)
+    assets_dir_other = utils.make_assets_dir(input_dir=input_dir_fp)
 
     # small thumbnails
     jpeg_fps_sm_asset_fps = utils.copy_to_assets_dir.map(
         fp=jpeg_fps_sm_fps,
-        assets_dir=assets_dir_dms,
+        assets_dir=unmapped(assets_dir_dm),
         upstream_tasks=[jpeg_fps_sms],
     )
     with_dm_sm_thumbs = utils.add_assets_entry.map(
@@ -192,7 +188,7 @@ with Flow(
     # large thumbnails
     jpeg_fps_lg_asset_fps = utils.copy_to_assets_dir.map(
         fp=jpeg_fps_lg_fps,
-        assets_dir=assets_dir_dms,
+        assets_dir=unmapped(assets_dir_dm),
         upstream_tasks=[jpeg_fps_lgs],
     )
     with_dm_lg_thumbs = utils.add_assets_entry.map(
@@ -208,7 +204,7 @@ with Flow(
     # small thumbnails - other inputs
     other_assets_sm_fps = utils.copy_to_assets_dir.map(
         fp=other_input_sm_fps,
-        assets_dir=assets_dir_others,
+        assets_dir=unmapped(assets_dir_other),
         upstream_tasks=[other_sm_gms],
     )
     other_with_sm_thumbs = utils.add_assets_entry.map(
@@ -221,7 +217,7 @@ with Flow(
     # other inputs, large thumbs
     other_assets_lg_fps = utils.copy_to_assets_dir.map(
         fp=other_input_lg_fps,
-        assets_dir=assets_dir_others,
+        assets_dir=unmapped(assets_dir_other),
         upstream_tasks=[other_input_lgs],
     )
     other_with_lg_thumbs = utils.add_assets_entry.map(
@@ -235,12 +231,12 @@ with Flow(
 
     cp_other = utils.cp_logs_to_assets.map(
         working_dir=working_dir_others,
-        assets_dir=assets_dir_others,
+        assets_dir=unmapped(assets_dir_other),
         upstream_tasks=[unmapped(all_assets)],
     )
     cp_dm = utils.cp_logs_to_assets.map(
         working_dir=working_dir_dms,
-        assets_dir=assets_dir_dms,
+        assets_dir=unmapped(assets_dir_dm),
         upstream_tasks=[unmapped(all_assets)],
     )
 
