@@ -406,7 +406,7 @@ def make_assets_dir(input_dir: Path, subdir_name: Path = None) -> Path:
         )
     assets_dir_as_str = input_dir.as_posix().replace("/Projects/", "/Assets/")
     if subdir_name:
-        assets_dir = Path(assets_dir_as_str + subdir_name.stem)
+        assets_dir = Path(f"{assets_dir_as_str}/{subdir_name.stem}")
     else:
         assets_dir = Path(assets_dir_as_str)
     log(f"making assets dir for {input_dir} at {assets_dir.as_posix()}")
