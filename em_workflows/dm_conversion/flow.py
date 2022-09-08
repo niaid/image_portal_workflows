@@ -83,7 +83,7 @@ with Flow(
     # Hopefully there's no naming overlaps (eg same_name.jpeg and same_name.dm4)
     other_input_fps = utils.list_files(
         input_dir=input_dir_fp,
-        exts=["TIF", "TIFF", "JPEG", "PNG", "tif", "tiff", "jpeg", "png"],
+        exts=["TIF", "TIFF", "JPEG", "PNG", "tif", "tiff", "jpeg", "png", "jpg"],
         single_file=file_name,
     )
     working_dir_others = utils.set_up_work_env.map(input_fp=other_input_fps)
