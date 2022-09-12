@@ -1,17 +1,40 @@
 import json
 from pathlib import Path
 from typing import List
-import prefect
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
 from em_workflows.shell_task_echo import ShellTaskEcho
 from prefect.engine import signals
-
+from pytools.meta import is_int16
+from pytools.convert import file_to_uint8
 
 from em_workflows.config import Config
 from em_workflows.utils import utils
 
 shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
+
+
+@task
+def convert_if_int16_tiff(fp: Path, working_dir: Path) -> Path:
+    """
+    accepts a tiff Path obj
+    tests if 16 bit
+    if 16 bit convert (write to assets_dir) & return Path
+    else return orig Path
+    """
+    # first check if file extension is .tif or .tiff
+    is_tiff_ext = False
+    if fp.suffix.lower() == ".tiff" or fp.suffix.lower() == ".tif":
+        is_tiff_ext = True
+    if not is_tiff_ext:
+        return fp
+
+    if is_int16(fp):
+        new_fp = Path(f"{working_dir.as_posix()}/{fp.name}")
+        file_to_uint8(in_file_path=fp, out_file_path=str(new_fp))
+        return new_fp
+    else:
+        return fp
 
 
 @task
@@ -83,7 +106,7 @@ with Flow(
     # Hopefully there's no naming overlaps (eg same_name.jpeg and same_name.dm4)
     other_input_fps = utils.list_files(
         input_dir=input_dir_fp,
-        exts=["TIF", "TIFF", "JPEG", "PNG", "tif", "tiff", "jpeg", "png", "jpg"],
+        exts=["TIF", "TIFF", "JPEG", "PNG", "JPG", "tif", "tiff", "jpeg", "png", "jpg"],
         single_file=file_name,
     )
     working_dir_others = utils.set_up_work_env.map(input_fp=other_input_fps)
@@ -92,11 +115,18 @@ with Flow(
     all_fps = join_list(dm_fps, other_input_fps)
     utils.check_inputs_ok(all_fps)
 
+    int16_tiff_converted = convert_if_int16_tiff.map(
+        fp=other_input_fps, working_dir=working_dir_others
+    )
     # sanitize input file names
-    # use sanitized inputs when need to use input data only
-    # (else use the orig fnames, and gen_output_fp will translate bad chars.
+    # sanitized files are the starting point dir, Project files are not touched, need
+    # to use that fname to init pipeline.
+    # ONLY use sanitized inputs when need to use Projects files as inputs directly.
+    # (else use the orig fnames, and gen_output_fp will TRANSLATE bad chars.
     dm_fps_sanitized = utils.sanitize_file_names(dm_fps)
-    other_input_fps_sanitized = utils.sanitize_file_names(other_input_fps)
+    other_input_fps_sanitized = utils.sanitize_file_names(int16_tiff_converted)
+    # have to convert int16 tiff files. Test and swap any int16 files found.
+
     # dm* to mrc conversion
     mrc_fps = utils.gen_output_fp.map(
         input_fp=dm_fps, working_dir=working_dir_dms, output_ext=unmapped(".mrc")
