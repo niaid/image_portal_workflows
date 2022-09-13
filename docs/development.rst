@@ -69,6 +69,31 @@ They were set up as follows:
   # (The workflow needs to be registered every time the source is updated.)
 
 
+- Set up Dask jobqueue::
+
+  cat ~/.config/dask/jobqueue.yaml 
+jobqueue:
+  slurm:
+    name: dask-worker
+
+    # Dask worker options
+    cores: 1                 # Total number of cores per job
+    memory: "10 GB"                # Total amount of memory per job
+    processes: 1                # Number of Python processes per job
+
+    # interface: ens160           # Network interface to use like eth0 or ib0
+    death-timeout: 120           # Number of seconds to wait if a worker can not find a scheduler
+    local-directory: /gs1/home/macmenaminpe/tmp       # Location of fast local storage 
+    extra: []
+
+    # SLURM resource manager options
+    shebang: "#!/usr/bin/env bash"
+    queue: gpu
+    project: null
+    walltime: '10:00:00'
+
+
+
 - Note, although unused above, BigSky also has Spack available, e.g.::
 
   $ source /gs1/apps/user/rmlspack/share/spack/setup-env.sh
