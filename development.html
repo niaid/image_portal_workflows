@@ -53,11 +53,17 @@ They were set up as follows:</p>
 <li><p>Obtain and set up Miniconda (to allow setting up of venvs) e.g.:</p>
 <p>wget <a class="reference external" href="https://repo.anaconda.com/miniconda/Miniconda3-py39_4.11.0-Linux-x86_64.sh">https://repo.anaconda.com/miniconda/Miniconda3-py39_4.11.0-Linux-x86_64.sh</a></p>
 </li>
-<li><p>Set up venvs per environment.:</p>
-<p>python3 -m venv code/hedwig_venv_dev
-cd code/hedwig_venv_dev/
-conda deactivate
-source ./bin/activate
+<li><p>Activate conda to create the virtual environment:</p>
+<p>conda create -n conda_env
+conda activate conda_env
+# create dev for example
+python3 -m venv code/hedwig_venv_dev
+# don’t need the conda env any more…
+conda deactivate</p>
+</li>
+<li><p>Set up dev venv.:</p>
+<p>source ~/code/hedwig_venv_dev/bin/activate
+cd ~/code/hedwig_venv_dev
 git clone <a class="reference external" href="mailto:git&#37;&#52;&#48;github&#46;com">git<span>&#64;</span>github<span>&#46;</span>com</a>:niaid/image_portal_workflows.git
 cd image_portal_workflows/
 pip3 install -r requirements.txt –find-links <a class="reference external" href="https://github.com/niaid/tomojs-pytools/releases/tag/v1.0">https://github.com/niaid/tomojs-pytools/releases/tag/v1.0</a>
@@ -65,16 +71,48 @@ pip3 install -r requirements.txt –find-links <a class="reference external" hre
 unset  PYTHONPATH
 # ensure HEDWIG_ENV is set!
 export HEDWIG_ENV=dev
+# there’s an issue with looking up certs - this fixes it
+export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
 # start an agent specific to this env (project), note agent label “dev”.
 prefect agent local start -l qa –key the_key
+# stop, background, and disown agent - note this will be deamonized.
+&lt;crtl&gt; z
+bg
+disown “%prefect”
 prefect create project “RML_QA”
 cd em_workflows
+pip install -e .
 # register each of the workflows, for example:
-prefect register –project “RML_DEV” -p dm_conversion/
-prefect register –project “RML_DEV” -p brt/
+prefect register –project “RML_DEV” -p em_workflows/dm_conversion/
+prefect register –project “RML_DEV” -p em_workflows/brt/
 # …etc per workflow
 # (The workflow needs to be registered every time the source is updated.)</p>
 </li>
+<li><p>Set up Dask jobqueue:</p>
+<p>cat ~/.config/dask/jobqueue.yaml</p>
+</li>
+</ul>
+<dl>
+<dt>jobqueue:</dt><dd><dl>
+<dt>slurm:</dt><dd><p>name: dask-worker</p>
+<p># Dask worker options
+cores: 1                 # Total number of cores per job
+memory: “10 GB”                # Total amount of memory per job
+processes: 1                # Number of Python processes per job</p>
+<p># interface: ens160           # Network interface to use like eth0 or ib0
+death-timeout: 120           # Number of seconds to wait if a worker can not find a scheduler
+local-directory: /gs1/home/macmenaminpe/tmp       # Location of fast local storage
+extra: []</p>
+<p># SLURM resource manager options
+shebang: “#!/usr/bin/env bash”
+queue: gpu
+project: null
+walltime: ‘10:00:00’</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<ul>
 <li><p>Note, although unused above, BigSky also has Spack available, e.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ source /gs1/apps/user/rmlspack/share/spack/setup-env.sh
 $ spack load -r python@3.8.6/eg2vaag
