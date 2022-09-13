@@ -155,7 +155,7 @@ def log(msg):
     context.logger.info(msg)
 
 
-@task
+@task(trigger=prefect.triggers.always_run)
 def cp_logs_to_assets(working_dir: Path, assets_dir: Path) -> None:
     print(f"looking in {working_dir}")
     print(f"copyiung to {assets_dir}")
