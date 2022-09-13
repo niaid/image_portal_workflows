@@ -29,12 +29,21 @@ They were set up as follows:
 
   wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.11.0-Linux-x86_64.sh
 
-- Set up venvs per environment.::
 
+- Activate conda to create the virtual environment::
+
+  conda create -n conda_env
+  conda activate conda_env
+  # create dev for example
   python3 -m venv code/hedwig_venv_dev
-  cd code/hedwig_venv_dev/
+  # don't need the conda env any more...
   conda deactivate
-  source ./bin/activate
+
+
+- Set up dev venv.::
+
+  source ~/code/hedwig_venv_dev/bin/activate
+  cd ~/code/hedwig_venv_dev
   git clone git@github.com:niaid/image_portal_workflows.git
   cd image_portal_workflows/
   pip3 install -r requirements.txt --find-links https://github.com/niaid/tomojs-pytools/releases/tag/v1.0
@@ -42,13 +51,20 @@ They were set up as follows:
   unset  PYTHONPATH
   # ensure HEDWIG_ENV is set!
   export HEDWIG_ENV=dev
+  # there's an issue with looking up certs - this fixes it
+  export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
   # start an agent specific to this env (project), note agent label "dev".
   prefect agent local start -l qa --key the_key
+  # stop, background, and disown agent - note this will be deamonized.
+  <crtl> z
+  bg
+  disown "%prefect"
   prefect create project "RML_QA"
   cd em_workflows
+  pip install -e .
   # register each of the workflows, for example:
-  prefect register --project "RML_DEV" -p dm_conversion/
-  prefect register --project "RML_DEV" -p brt/
+  prefect register --project "RML_DEV" -p em_workflows/dm_conversion/
+  prefect register --project "RML_DEV" -p em_workflows/brt/
   # ...etc per workflow
   # (The workflow needs to be registered every time the source is updated.)
 
