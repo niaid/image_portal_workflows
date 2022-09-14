@@ -93,7 +93,7 @@ comparam.align.tiltalign.RobustFitting = 1
 runtime.TiltAlignment.any.enableStretching = 1
 
 #Tomogram Positioning
-runtime.Positioning.any.sampleType = 1
+# runtime.Positioning.any.sampleType = 1
 # wf computes - 1.5 * THICKNESS
 runtime.Positioning.any.thickness = {{ rpa_thickness }}
 

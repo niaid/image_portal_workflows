@@ -684,5 +684,5 @@ with Flow(
     cp = utils.cp_logs_to_assets.map(
         working_dir=working_dirs, assets_dir=assets_dirs, upstream_tasks=[unmapped(cb)]
     )
-    utils.cleanup_workdir.map(wd=working_dirs, upstream_tasks=[unmapped(cp)])
+    # utils.cleanup_workdir.map(wd=working_dirs, upstream_tasks=[unmapped(cp)])
 # print(json.dumps(result.result[files_elts]))
