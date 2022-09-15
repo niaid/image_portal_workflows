@@ -269,7 +269,8 @@ def gen_clip_rc_cmds(fp: Path, z_dim) -> List[str]:
         izmin = i - 2
         izmax = i + 2
         in_fp = f"{fp.parent}/{fp.stem}_rec.mrc"
-        out_fp = f"{fp.parent}/{fp.stem}_ave{str(i)}.mrc"
+        padded_val = str(i).zfill(3)
+        out_fp = f"{fp.parent}/{fp.stem}_ave{padded_val}.mrc"
         cmd = f"clip avg -2d -iz {str(izmin)}-{str(izmax)} -m 1 {in_fp} {out_fp} 2>> {fp.parent}/clip_avg.error.log"
         cmds.append(cmd)
     utils.log(f"reconstruction clip_cmds")
