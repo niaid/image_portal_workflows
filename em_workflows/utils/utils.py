@@ -4,21 +4,23 @@ import re
 import requests
 import os
 import shutil
+from distutils import dir_util
 import json
 import prefect
 import logging
 import datetime
-from typing import List, Dict, Tuple
+from typing import List, Dict
 from pathlib import Path
 from prefect import task, context
 from prefect import Flow, task, context
+from prefect.triggers import all_successful, always_run, any_failed
 from prefect.engine.state import State
 from prefect.engine import signals
 
 from em_workflows.config import Config
 
 
-@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10))
+@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=all_successful)
 def cleanup_workdir(wd: Path):
     """
     working_dir isn't needed after run, so rm.
@@ -155,10 +157,17 @@ def log(msg):
     context.logger.info(msg)
 
 
-@task(trigger=prefect.triggers.always_run)
+@task(trigger=any_failed)
+def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
+    dest = f"{assets_dir.as_posix()}/f{working_dir}"
+    print(f"An error occured - will copy {working_dir} to {assets_dir}")
+    dir_util.copy_tree(working_dir.as_posix(), dest)
+
+
+@task(trigger=always_run)
 def cp_logs_to_assets(working_dir: Path, assets_dir: Path) -> None:
     print(f"looking in {working_dir}")
-    print(f"copyiung to {assets_dir}")
+    print(f"copying to {assets_dir}")
     for _log in working_dir.glob("*.log"):
         print(f"found {_log}")
         print(f"going to copy to {assets_dir}")
@@ -445,7 +454,7 @@ def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path = None) -> Path
     return dest
 
 
-@task
+@task(trigger=always_run)
 def send_callback_body(
     token: str,
     callback_url: str,

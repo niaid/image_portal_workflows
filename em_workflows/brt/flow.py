@@ -372,7 +372,7 @@ with Flow(
     executor=Config.SLURM_EXECUTOR,
     state_handlers=[utils.notify_api_completion, utils.notify_api_running],
     run_config=LocalRun(labels=[utils.get_environment()]),
-) as f:
+) as flow:
 
     # This block of params map are for adoc file specfication.
     # Note the ugly names, these parameters are lifted verbatim from
@@ -682,8 +682,12 @@ with Flow(
         token=token, callback_url=callback_url, files_elts=callback_with_neuroglancer
     )
 
-    cp = utils.cp_logs_to_assets.map(
+    copy_logs = utils.cp_logs_to_assets.map(
         working_dir=working_dirs, assets_dir=assets_dirs, upstream_tasks=[unmapped(cb)]
     )
-    # utils.cleanup_workdir.map(wd=working_dirs, upstream_tasks=[unmapped(cp)])
+    cp_wd_on_failure = utils.copy_workdir_on_fail.map(
+        working_dir=working_dirs, assets_dir=assets_dirs, upstream_tasks=[copy_logs]
+    )
+    cleanup = utils.cleanup_workdir.map(wd=working_dirs, upstream_tasks=[copy_logs])
 # print(json.dumps(result.result[files_elts]))
+flow.set_reference_tasks([cleanup])

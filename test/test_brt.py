@@ -26,7 +26,7 @@ def hpc_env(monkeypatch):
 
     @task
     def _create_brt_command(adoc_fp: Path) -> str:
-        s = f"cp {os.getcwd()}/test/input_files/brt_outputs/*.mrc {adoc_fp.parent}"
+        s = f"cp  /home/macmenaminpe/code/image_portal_workflows/test/input_files/brt_outputs/*.mrc {adoc_fp.parent}"
         prefect.context.get("logger").info(f"MOCKED {s}")
         return s
 
@@ -34,9 +34,9 @@ def hpc_env(monkeypatch):
 
 
 def test_brt(hpc_env):
-    from em_workflows.brt.flow import f
+    from em_workflows.brt.flow import flow
 
-    result = f.run(
+    result = flow.run(
         adoc_template="plastic_brt",
         montage=0,
         gold=15,
