@@ -164,7 +164,7 @@ def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
     dir_util.copy_tree(working_dir.as_posix(), dest)
 
 
-@task(trigger=always_run)
+@task
 def cp_logs_to_assets(working_dir: Path, assets_dir: Path) -> None:
     print(f"looking in {working_dir}")
     print(f"copying to {assets_dir}")

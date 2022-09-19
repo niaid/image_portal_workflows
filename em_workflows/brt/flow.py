@@ -678,16 +678,24 @@ with Flow(
         metadata=metadatas,
     )
 
-    cb = utils.send_callback_body(
-        token=token, callback_url=callback_url, files_elts=callback_with_neuroglancer
+    copy_logs = utils.cp_logs_to_assets.map(
+        working_dir=working_dirs,
+        assets_dir=assets_dirs,
+        upstream_tasks=[callback_with_neuroglancer],
+    )
+    # always_run
+    callbacks = utils.send_callback_body(
+        token=token,
+        callback_url=callback_url,
+        files_elts=callback_with_neuroglancer,
+        upstream_tasks=[copy_logs],
     )
 
-    copy_logs = utils.cp_logs_to_assets.map(
-        working_dir=working_dirs, assets_dir=assets_dirs, upstream_tasks=[unmapped(cb)]
-    )
+    # any_failed
     cp_wd_on_failure = utils.copy_workdir_on_fail.map(
         working_dir=working_dirs, assets_dir=assets_dirs, upstream_tasks=[copy_logs]
     )
-    cleanup = utils.cleanup_workdir.map(wd=working_dirs, upstream_tasks=[copy_logs])
+    # all_successful
+    cleanups = utils.cleanup_workdir.map(wd=working_dirs, upstream_tasks=[copy_logs])
 # print(json.dumps(result.result[files_elts]))
-flow.set_reference_tasks([cleanup])
+flow.set_reference_tasks([cleanups])
