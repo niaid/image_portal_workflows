@@ -4,7 +4,6 @@ import re
 import requests
 import os
 import shutil
-from distutils import dir_util
 import json
 import prefect
 import logging
@@ -159,9 +158,10 @@ def log(msg):
 
 @task(trigger=any_failed)
 def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
-    dest = f"{assets_dir.as_posix()}/f{working_dir}"
-    print(f"An error occured - will copy {working_dir} to {assets_dir}")
-    dir_util.copy_tree(working_dir.as_posix(), dest)
+    workd_name = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
+    dest = f"{assets_dir.as_posix()}/f{workd_name}"
+    log(f"An error occured - will copy {working_dir} to {dest}")
+    shutil.copytree(working_dir.as_posix(), dest)
 
 
 @task
