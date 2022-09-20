@@ -454,7 +454,7 @@ def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path = None) -> Path
     return dest
 
 
-@task(trigger=always_run)
+@task
 def send_callback_body(
     token: str,
     callback_url: str,
