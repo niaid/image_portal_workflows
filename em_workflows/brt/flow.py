@@ -63,7 +63,6 @@ def update_adoc(
     montage: int,
     gold: int,
     focus: int,
-    bfocus: int,
     fiducialless: int,
     trackingMethod: int,
     TwoSurfaces: int,
@@ -107,7 +106,6 @@ def update_adoc(
         "montage": montage,
         "gold": gold,
         "focus": focus,
-        "bfocus": bfocus,
         "datasetDirectory": datasetDirectory,
         "fiducialless": fiducialless,
         "trackingMethod": trackingMethod,
@@ -381,7 +379,6 @@ with Flow(
     montage = Parameter("montage")
     gold = Parameter("gold")
     focus = Parameter("focus")
-    bfocus = Parameter("bfocus")
     fiducialless = Parameter("fiducialless")
     trackingMethod = Parameter("trackingMethod")
     TwoSurfaces = Parameter("TwoSurfaces")
@@ -425,7 +422,6 @@ with Flow(
         montage=unmapped(montage),
         gold=unmapped(gold),
         focus=unmapped(focus),
-        bfocus=unmapped(bfocus),
         fiducialless=unmapped(fiducialless),
         trackingMethod=unmapped(trackingMethod),
         TwoSurfaces=unmapped(TwoSurfaces),
