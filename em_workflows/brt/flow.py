@@ -381,7 +381,6 @@ with Flow(
     montage = Parameter("montage")
     gold = Parameter("gold")
     focus = Parameter("focus")
-    bfocus = Parameter("bfocus")
     fiducialless = Parameter("fiducialless")
     trackingMethod = Parameter("trackingMethod")
     TwoSurfaces = Parameter("TwoSurfaces")
