@@ -19,7 +19,7 @@ from prefect.engine import signals
 from em_workflows.config import Config
 
 
-@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=all_successful)
+@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
 def cleanup_workdir(wd: Path):
     """
     working_dir isn't needed after run, so rm.
@@ -159,7 +159,7 @@ def log(msg):
 @task(trigger=any_failed)
 def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
     workd_name = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
-    dest = f"{assets_dir.as_posix()}/f{workd_name}"
+    dest = f"{assets_dir.as_posix()}/{workd_name}"
     log(f"An error occured - will copy {working_dir} to {dest}")
     shutil.copytree(working_dir.as_posix(), dest)
 
@@ -454,7 +454,7 @@ def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path = None) -> Path
     return dest
 
 
-@task
+@task(trigger=always_run)
 def send_callback_body(
     token: str,
     callback_url: str,
