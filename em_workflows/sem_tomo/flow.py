@@ -1,9 +1,8 @@
 import math
 from typing import List
 from pathlib import Path
-from prefect import Flow, task, Parameter, case, unmapped
+from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
-from prefect.engine import signals
 from prefect.tasks.control_flow import merge
 from em_workflows.config import Config
 from em_workflows.shell_task_echo import ShellTaskEcho
@@ -74,8 +73,8 @@ def create_stretch_file(tilt: str, fp_out: Path) -> None:
     Note that tilt angle is specified in degrees.
     """
     # math.cos expects radians, convert to degrees first.
-    utils.log(f"creating stretch file.")
     tilt_angle = 1 / math.cos(math.degrees(float(tilt)))
+    utils.log(f"creating stretch file, tilt_angle: {tilt_angle}.")
     fp_out.touch()
     with open(fp_out.as_posix(), "w") as _file:
         _file.write(f"1 0 0 {tilt_angle} 0 0")
@@ -155,29 +154,6 @@ def gen_basename(fps: List[Path]) -> Path:
     return Path(fps[0].stem)
 
 
-@task
-def check_tilt(s):
-    """
-    janky.
-    sometimes the XY dims need to be stretched, this accomodates this
-    function to try to cast a str to a float. This is to fit with prefect's
-    https://docs.prefect.io/core/idioms/conditional.html conditional flow.
-    """
-    if s is None:
-        return False
-    try:
-        float(s)
-        return True
-    except ValueError as ve:
-        raise signals.FAIL(f"Tilt param expects a float.\n {ve}")
-    except Exception as oe:
-        raise signals.FAIL(f"This should not happen :-/ \n {oe}")
-
-
-@task
-def swap_list(l: List[Path]) -> List[Path]:
-    """silly func - hack to get upstream within merge"""
-    return l
 
 
 with Flow(
@@ -266,41 +242,36 @@ with Flow(
         upstream_tasks=[xgs],
     )
 
-    use_tilt = check_tilt(tilt_angle)
-    with case(use_tilt, True):
-        # create stretch file using tilt_parameter
-        # this only gets exec if tilt_parameter is not None
-        # if tilt_angle is spec'd, copy corrected.mrc to Assets
-        # else copy align_mrc file
-        stretch_fps = utils.gen_output_fp.map(
-            working_dir=work_dirs,
-            input_fp=unmapped(Path("stretch")),
-            output_ext=unmapped(".xf"),
-        )
-        stretchs = create_stretch_file.map(
-            tilt=unmapped(tilt_angle), fp_out=stretch_fps
-        )
+    # create stretch file using tilt_parameter
+    # this only gets exec if tilt_parameter is not None
+    # if tilt_angle is spec'd, copy corrected.mrc to Assets
+    # else copy align_mrc file
+    stretch_fps = utils.gen_output_fp.map(
+        working_dir=work_dirs,
+        input_fp=unmapped(Path("stretch")),
+        output_ext=unmapped(".xf"),
+    )
+    stretchs = create_stretch_file.map(
+        tilt=unmapped(tilt_angle), fp_out=stretch_fps
+    )
 
-        corrected_fps = utils.gen_output_fp.map(
-            working_dir=work_dirs,
-            input_fp=unmapped(Path("corrected")),
-            output_ext=unmapped(".mrc"),
-        )
-        newstack_cor_cmds = gen_newstack_corr_command.map(
-            stretch_fp=stretch_fps, aligned_fp=mrc_align_fps, fp_out=corrected_fps
-        )
-        newstack_cors = shell_task.map(
-            command=newstack_cor_cmds,
-            to_echo=unmapped(newstack_cor_cmds),
-            upstream_tasks=[mrc_aligns, stretchs],
-        )
-    with case(use_tilt, False):
-        # again, see https://docs.prefect.io/core/idioms/conditional.html
-        align_fps = swap_list(mrc_align_fps, upstream_tasks=[mrc_aligns])
+    corrected_fps = utils.gen_output_fp.map(
+        working_dir=work_dirs,
+        input_fp=unmapped(Path("corrected")),
+        output_ext=unmapped(".mrc"),
+    )
+    newstack_cor_cmds = gen_newstack_corr_command.map(
+        stretch_fp=stretch_fps, aligned_fp=mrc_align_fps, fp_out=corrected_fps
+    )
+    newstack_cors = shell_task.map(
+        command=newstack_cor_cmds,
+        to_echo=unmapped(newstack_cor_cmds),
+        upstream_tasks=[mrc_aligns, stretchs],
+    )
 
     # the normalized step uses corrected_fp if tilt is specified
     # else it uses align_fp
-    norm_input_fps = merge(corrected_fps, align_fps)
+    norm_input_fps = merge(corrected_fps, mrc_align_fps)
 
     # newstack normalized,
     basenames = gen_basename.map(fps=tif_fps)
