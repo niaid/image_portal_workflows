@@ -35,9 +35,6 @@ setupset.scanHeader = 1
 setupset.copyarg.focus = {{ focus }}
 {% endif %}
 
-{% if bfocus is not none %}
-setupset.copyarg.bfocus = {{ bfocus }}
-{% endif %}
 # wf computes - required
 setupset.datasetDirectory={{ datasetDirectory }}
 
