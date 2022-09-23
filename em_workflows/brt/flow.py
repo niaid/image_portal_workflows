@@ -11,6 +11,7 @@ from prefect import task, Flow, Parameter, unmapped, flatten, case
 from prefect.run_configs import LocalRun
 from prefect.tasks.control_flow import merge
 from prefect.engine import signals
+from prefect.triggers import any_successful
 
 # from prefect.tasks.shell import ShellTask
 
@@ -145,7 +146,7 @@ def gen_dimension_command(tg_fp: Path) -> str:
     return z_dim
 
 
-@task
+@task(trigger=any_successful)
 def check_brt_run_ok(tg_fp: Path):
     """
     ensures the following files exist:
