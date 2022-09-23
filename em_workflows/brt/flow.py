@@ -694,4 +694,4 @@ with Flow(
     # all_successful
     cleanups = utils.cleanup_workdir.map(wd=working_dirs, upstream_tasks=[copy_logs])
 # print(json.dumps(result.result[files_elts]))
-flow.set_reference_tasks([cleanups])
+flow.set_reference_tasks([brts_ok])

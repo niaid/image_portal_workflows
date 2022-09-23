@@ -41,7 +41,6 @@ def test_brt(hpc_env):
         montage=0,
         gold=15,
         focus=0,
-        bfocus=0,
         fiducialless=1,
         trackingMethod=None,
         TwoSurfaces=0,
