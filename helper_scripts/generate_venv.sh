@@ -11,9 +11,13 @@ if [[ ! ( $HEDWIG_ENV == "dev" || $HEDWIG_ENV == "qa" ) ]]; then
 	exit 1
 fi
 
-VENV_LOC="$HOME/code/hedwig_venv_dev"
+VENV_LOC="$HOME/code/hedwig_venv_$HEDWIG_ENV"
 REPO_LOC=$VENV_LOC/image_portal_workflows
 
+if [[ -d $VENV_LOC ]]; then
+	printf "Virtual env $VENV_LOC already exists. Exiting."
+	exit 1
+fi
 # create a venv
 python3 -m venv $VENV_LOC
 
