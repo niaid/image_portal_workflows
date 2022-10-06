@@ -146,7 +146,7 @@ def gen_dimension_command(tg_fp: Path) -> str:
     return z_dim
 
 
-@task(trigger=any_successful)
+@task
 def check_brt_run_ok(tg_fp: Path):
     """
     ensures the following files exist:
@@ -363,6 +363,13 @@ def check_inputs_paired(fps: List[Path]):
     utils.log(f"Are inputs paired? {inputs_paired}.")
     return inputs_paired
 
+@task
+def do_something_dumb():
+    """
+    doing something dumb because prefect 1 can't handle mapping errors,
+    so not going to map this. Yay. Sob.
+    """
+    utils.log("we're doing something dumb now.")
 
 # if __name__ == "__main__":
 
@@ -681,7 +688,7 @@ with Flow(
         upstream_tasks=[callback_with_neuroglancer],
     )
     # always_run
-    callbacks = utils.send_callback_body(
+    callback = utils.send_callback_body(
         token=token,
         callback_url=callback_url,
         files_elts=callback_with_neuroglancer,
@@ -694,5 +701,7 @@ with Flow(
     )
     # all_successful
     cleanups = utils.cleanup_workdir.map(wd=working_dirs, upstream_tasks=[copy_logs])
-# print(json.dumps(result.result[files_elts]))
-flow.set_reference_tasks([brts_ok])
+
+    # unable to use map to set ref task. Unable to use callback because it's a http post.
+    dumb = do_something_dumb(upstream_tasks=[callback])
+flow.set_reference_tasks([dumb])
