@@ -1,0 +1,11 @@
+[Unit]
+Description=Starts the DEV listener "Agent" which reaches out to workflow API.
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash /home/macmenaminpe/code/venv_test_d/image_portal_workflows/helper_scripts/hedwig_reg_listen.sh dev listen
+
+[Install]
+WantedBy=multi-user.target
+

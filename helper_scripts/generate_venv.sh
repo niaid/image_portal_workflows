@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# creates a virtual env to load the dev workflow source into.
+
+set -xe -o pipefail
+
+HEDWIG_ENV=$1
+if [[ ! ( $HEDWIG_ENV == "dev" || $HEDWIG_ENV == "qa" ) ]]; then
+	echo Environment MUST be set to either "qa" or "dev".
+	echo Eg export HEDWIG_ENV=dev 
+	exit 1
+fi
+
+VENV_LOC="$HOME/code/hedwig_venv_dev"
+REPO_LOC=$VENV_LOC/image_portal_workflows
+
+# create a venv
+python3 -m venv $VENV_LOC
+
+# fire her up
+source $VENV_LOC/bin/activate
+
+# probably wants this...
+python3 -m pip install --upgrade pip
+
+# grab Brad's work
+python -m pip install git+https://github.com/niaid/tomojs-pytools@v1.3
+
+
+# grab or update this repo
+if [[ ! -d "$REPO_LOC" ]]; then
+	git clone git@github.com:niaid/image_portal_workflows.git $REPO_LOC && \
+	pip3 install -r $REPO_LOC/requirements.txt
+else
+	cd $REPO_LOC && git pull origin && cd -
+fi
+
