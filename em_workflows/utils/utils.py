@@ -156,7 +156,7 @@ def log(msg):
     context.logger.info(msg)
 
 
-@task(trigger=any_failed)
+@task
 def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
     workd_name = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
     dest = f"{assets_dir.as_posix()}/{workd_name}"
@@ -454,7 +454,7 @@ def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path = None) -> Path
     return dest
 
 
-@task
+@task(max_retries=3, retry_delay=datetime.timedelta(minutes=1))
 def send_callback_body(
     token: str,
     callback_url: str,
@@ -494,3 +494,7 @@ def send_callback_body(
     log(json.dumps(data))
     log(response.text)
     log(response.headers)
+    if response != 200:
+        msg = f"Bad response code on callback: {response}"
+        log(msg=msg)
+        raise ValueError(msg)

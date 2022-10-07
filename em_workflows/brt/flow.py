@@ -695,7 +695,7 @@ with Flow(
         upstream_tasks=[copy_logs],
     )
 
-    # any_failed
+    # no longer on any_failed - now always run.
     cp_wd_on_failure = utils.copy_workdir_on_fail.map(
         working_dir=working_dirs, assets_dir=assets_dirs, upstream_tasks=[copy_logs]
     )
