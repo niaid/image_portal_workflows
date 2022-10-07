@@ -11,7 +11,7 @@ if [[ ! ( $HEDWIG_ENV == "dev" || $HEDWIG_ENV == "qa" ) ]]; then
 	exit 1
 fi
 
-VENV_LOC="$HOME/code/hedwig_venv_$HEDWIG_ENV"
+VENV_LOC="$HOME/code/hedwig/$HEDWIG_ENV"
 REPO_LOC=$VENV_LOC/image_portal_workflows
 
 if [[ -d $VENV_LOC ]]; then
