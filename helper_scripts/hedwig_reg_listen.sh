@@ -27,7 +27,7 @@ fi
 # see: https://stackoverflow.com/questions/59895/how-do-i-get-the-directory-where-a-bash-script-is-located-from-within-the-script
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-VENV=$SCRIPT_DIR/../$HEDWIG_ENV
+VENV=$SCRIPT_DIR/../../../$HEDWIG_ENV
 WFLOWS=$SCRIPT_DIR/../em_workflows
 PREFECT=$VENV/bin/prefect
 PYTHON=$VENV/bin/python3
