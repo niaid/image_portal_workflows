@@ -34,7 +34,7 @@ python -m pip install git+https://github.com/niaid/tomojs-pytools@v1.3
 # grab or update this repo
 if [[ ! -d "$REPO_LOC" ]]; then
 	git clone git@github.com:niaid/image_portal_workflows.git $REPO_LOC && \
-	pip3 install -r $REPO_LOC/requirements.txt
+	pip3 install -e . -r $REPO_LOC/requirements.txt
 else
 	cd $REPO_LOC && git pull origin && cd -
 fi
