@@ -156,7 +156,7 @@ def log(msg):
     context.logger.info(msg)
 
 
-@task
+@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
 def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
     workd_name = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
     dest = f"{assets_dir.as_posix()}/{workd_name}"
