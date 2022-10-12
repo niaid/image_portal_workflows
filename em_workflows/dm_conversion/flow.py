@@ -264,15 +264,22 @@ with Flow(
         assets_dir=unmapped(assets_dir_other),
         upstream_tasks=[unmapped(all_assets)],
     )
-    cp_dm = utils.cp_logs_to_assets.map(
+    copy_logs = utils.cp_logs_to_assets.map(
         working_dir=working_dir_dms,
         assets_dir=unmapped(assets_dir_dm),
         upstream_tasks=[unmapped(all_assets)],
     )
 
-    cb = utils.send_callback_body(
+    callback = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=all_assets
     )
 
-    utils.cleanup_workdir.map(wd=working_dir_dms, upstream_tasks=[cp_dm, cp_dm])
-    utils.cleanup_workdir.map(wd=working_dir_others, upstream_tasks=[cp_dm, cp_other])
+    cp_wd_to_assets = utils.copy_workdir_on_fail.map(
+        working_dir=working_dir_dms,
+        assets_dir=unmapped(assets_dir_dm),
+        upstream_tasks=[unmapped(all_assets)],
+    )
+    utils.cleanup_workdir.map(wd=working_dir_dms, upstream_tasks=[copy_logs])
+    utils.cleanup_workdir.map(
+        wd=working_dir_others, upstream_tasks=[copy_logs, cp_other]
+    )
