@@ -1,5 +1,5 @@
+from em_workflows.file_path import FilePath
 import tempfile
-import re
 import re
 import requests
 import os
@@ -112,6 +112,29 @@ def _escape_str(name):
     return _to_esc.sub(_esc_char, name)
 
 
+@task
+def init_log(file_path: FilePath) -> None:
+    fp = f"{file_path.working_dir.as_posix()}/log.txt"
+    log_fp = Path(fp)
+    # we are going to clobber previous logs - rm if want to keep
+    # if log_fp.exists():
+    #    log_fp.unlink()
+    # the getLogger function uses the (fairly) unique input_dir to look up.
+    logger = logging.getLogger(context.parameters["input_dir"])
+    logger.setLevel("INFO")
+
+    if not logger.handlers:
+        handler = logging.FileHandler(log_fp, encoding="utf-8")
+        logger.addHandler(handler)
+
+        # Formatter can be whatever you want
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d_%H:%M:%S",
+        )
+        handler.setFormatter(formatter)
+
+
 def _init_log(working_dir: Path) -> None:
     log_fp = Path(working_dir, Path("log.txt"))
     # we are going to clobber previous logs - rm if want to keep
@@ -156,8 +179,9 @@ def log(msg):
     context.logger.info(msg)
 
 
-@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
+@task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
 def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
+    """copies entire contents of working dir to outputs dir"""
     workd_name = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
     dest = f"{assets_dir.as_posix()}/{workd_name}"
     log(f"An error occured - will copy {working_dir} to {dest}")
@@ -494,7 +518,7 @@ def send_callback_body(
     log(json.dumps(data))
     log(response.text)
     log(response.headers)
-    if response != 200:
+    if response.status_code != 404:
         msg = f"Bad response code on callback: {response}"
         log(msg=msg)
         raise ValueError(msg)
