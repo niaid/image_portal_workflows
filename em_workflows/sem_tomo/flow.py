@@ -154,8 +154,6 @@ def gen_basename(fps: List[Path]) -> Path:
     return Path(fps[0].stem)
 
 
-
-
 with Flow(
     "sem_tomo",
     state_handlers=[utils.notify_api_completion, utils.notify_api_running],
@@ -251,9 +249,7 @@ with Flow(
         input_fp=unmapped(Path("stretch")),
         output_ext=unmapped(".xf"),
     )
-    stretchs = create_stretch_file.map(
-        tilt=unmapped(tilt_angle), fp_out=stretch_fps
-    )
+    stretchs = create_stretch_file.map(tilt=unmapped(tilt_angle), fp_out=stretch_fps)
 
     corrected_fps = utils.gen_output_fp.map(
         working_dir=work_dirs,

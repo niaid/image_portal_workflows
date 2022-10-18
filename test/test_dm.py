@@ -1,3 +1,5 @@
+from typing import Dict, List
+from em_workflows.utils import utils
 import pytest
 from prefect.executors import LocalExecutor
 import os
@@ -7,12 +9,18 @@ import os
 def mock_nfs_mount(monkeypatch):
     from em_workflows.config import Config
 
+    def _mock_send_callback(
+        token: str, callback_url: str, files_elts: List[Dict]
+    ) -> None:
+        return
+
     def _mock_proj_dir(env: str) -> str:
         return os.getcwd()
 
     def _mock_assets_dir(env: str) -> str:
-        return os.getcwd()
+        return "/tmp"
 
+    # monkeypatch.setattr(utils, "send_callback_body", _mock_send_callback)
     monkeypatch.setattr(Config, "proj_dir", _mock_proj_dir)
     monkeypatch.setattr(Config, "assets_dir", _mock_assets_dir)
     monkeypatch.setattr(Config, "mount_point", os.getcwd() + "/test/input_files")

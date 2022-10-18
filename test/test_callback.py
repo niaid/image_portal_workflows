@@ -167,7 +167,7 @@ def test_copy_template_and_update_adoc():
             assert "setupset.copyarg.dual = 0" in readfile
 
 
-#def test_metadata_parse():
+# def test_metadata_parse():
 #    # convert json to str
 #    j = json.dumps(
 #        {

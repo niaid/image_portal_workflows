@@ -363,6 +363,7 @@ def check_inputs_paired(fps: List[Path]):
     utils.log(f"Are inputs paired? {inputs_paired}.")
     return inputs_paired
 
+
 @task
 def do_something_dumb():
     """
@@ -370,6 +371,7 @@ def do_something_dumb():
     so not going to map this. Yay. Sob.
     """
     utils.log("we're doing something dumb now.")
+
 
 # if __name__ == "__main__":
 
