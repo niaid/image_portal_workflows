@@ -55,12 +55,12 @@ class Config:
     @staticmethod
     def proj_dir(env: str) -> str:
         share = Config._share_name(env=env)
-        return f"{Config.mount_point}/{share}/Projects/"
+        return f"{Config.mount_point}{share}/Projects/"
 
     @staticmethod
     def assets_dir(env: str) -> str:
         share = Config._share_name(env=env)
-        return f"{Config.mount_point}/{share}/Assets"
+        return f"{Config.mount_point}{share}/Assets"
 
     # repo_dir = os.path.join(os.path.dirname(__file__), "..")
     repo_dir = Path(os.path.dirname(__file__))
