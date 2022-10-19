@@ -44,9 +44,7 @@ if [[ $ACTION == "listen" ]]; then
 	$PYTHON $PREFECT agent local start --label $HEDWIG_ENV --api $NIAID_PREFECT_SERVER
 elif [[ $ACTION == "register" ]]; then
 	printf "\nUsing venv $VENV\nRegister $HEDWIG_ENV Agent\n"
-	printf "$PYTHON $PREFECT register --project "Spaces_$HEDWIG_ENV" --watch --path $WFLOWS/brt/"
-	printf "\n\n"
-	printf "$PYTHON $PREFECT register --project "Spaces_$HEDWIG_ENV" --watch --path $WFLOWS/sem_tomo/"
-	printf "\n\n"
-	printf "$PYTHON $PREFECT register --project "Spaces_$HEDWIG_ENV" --watch --path $WFLOWS/dm_conversion/"
+	$PYTHON $PREFECT register --project Spaces_$HEDWIG_ENV  --path $WFLOWS/brt/
+	$PYTHON $PREFECT register --project Spaces_$HEDWIG_ENV  --path $WFLOWS/sem_tomo/
+	$PYTHON $PREFECT register --project Spaces_$HEDWIG_ENV  --path $WFLOWS/dm_conversion/
 fi
