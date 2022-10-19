@@ -190,9 +190,8 @@ def gen_callback_body(
     #   log(json.dumps(data))
     #   log(response.text)
     #   log(response.headers)
-    if response.status_code != 404:
+    if response.status_code != 204:
         msg = f"Bad response code on callback: {response}"
-        log(msg=msg)
         raise ValueError(msg)
 
 
@@ -263,7 +262,3 @@ with Flow(
 
     cp_wd_to_assets = copy_workdirs.map(fps, upstream_tasks=[scaled_jpegs])
     cleanup = cleanup_workdir.map(fps, upstream_tasks=[cp_wd_to_assets])
-#    utils.cleanup_workdir.map(wd=working_dir_dms, upstream_tasks=[copy_logs])
-#    utils.cleanup_workdir.map(
-#        wd=working_dir_others, upstream_tasks=[copy_logs, cp_other]
-#    )
