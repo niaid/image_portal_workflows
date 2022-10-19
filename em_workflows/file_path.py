@@ -140,8 +140,7 @@ class FilePath:
             raise ValueError(
                 f"Asset type: {asset_type} is not a valid type. {valid_typs}"
             )
-        # fp_no_mount_point = path.relative_to(Config.assets_dir(env=get_environment()))
-        fp_no_mount_point = asset_path
+        fp_no_mount_point = asset_path.relative_to(Config.assets_dir(env=self.environment))
         if metadata:
             asset = {
                 "type": asset_type,
