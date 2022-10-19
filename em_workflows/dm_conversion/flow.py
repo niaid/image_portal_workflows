@@ -187,7 +187,7 @@ def gen_callback_body(
     response = requests.post(callback_url, headers=headers, data=data)
     utils.log(response.url)
     utils.log(response.status_code)
-    utils.log(json.dumps(data))
+    utils.log(data)
     utils.log(response.text)
     utils.log(response.headers)
     if response.status_code != 204:
