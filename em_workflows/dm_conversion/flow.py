@@ -238,9 +238,9 @@ with Flow(
         ],
         single_file=file_name,
     )
-    utils.check_inputs_ok(input_fps)
-    fps = gen_fps(projects_dir=input_dir_fp, fps_in=input_fps)
-    logs = utils.init_log.map(file_path=fps)
+    inputs_ok = utils.check_inputs_ok(input_fps)
+    fps = gen_fps(projects_dir=input_dir_fp, fps_in=input_fps, upstream_tasks=[inputs_ok])
+    # logs = utils.init_log.map(file_path=fps)
 
     tiffs_converted = convert_if_int16_tiff.map(file_path=fps)
 
