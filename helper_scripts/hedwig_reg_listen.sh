@@ -12,7 +12,7 @@ if [[ ! ( $HEDWIG_ENV == "dev" || $HEDWIG_ENV == "qa" || $HEDWIG_ENV == "prod" )
 	exit 1
 fi
 
-export $HEDWIG_ENV
+export HEDWIG_ENV=$HEDWIG_ENV
 
 ACTION=$2
 if [[ ! ( $ACTION == "listen" || $ACTION == "register" ) ]]; then
