@@ -184,7 +184,7 @@ def gen_callback_body(
     data = json.dumps({"files:": elts})
 
     headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
-    response = requests.post(callback_url, headers=headers, data=json.dumps(data))
+    response = requests.post(callback_url, headers=headers, data=data)
     utils.log(response.url)
     utils.log(response.status_code)
     utils.log(json.dumps(data))
