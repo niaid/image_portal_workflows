@@ -518,7 +518,7 @@ def send_callback_body(
     log(json.dumps(data))
     log(response.text)
     log(response.headers)
-    if response.status_code != 404:
+    if response.status_code != 204:
         msg = f"Bad response code on callback: {response}"
         log(msg=msg)
         raise ValueError(msg)
