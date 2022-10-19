@@ -184,10 +184,10 @@ def gen_callback_body(
     data = json.dumps({"files:": elts})
 
     headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
+    utils.log(data)
     response = requests.post(callback_url, headers=headers, data=data)
     utils.log(response.url)
     utils.log(response.status_code)
-    utils.log(data)
     utils.log(response.text)
     utils.log(response.headers)
     if response.status_code != 204:
