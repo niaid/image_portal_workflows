@@ -151,7 +151,7 @@ def gen_callback_body(
     token: str,
     callback_url: str,
     files_elts: List[FilePath],
-) -> None:
+) -> int:
     """
     Upon completion of file conversion a callback is made to the calling
     API specifying the locations of files, along with metadata about the files.
@@ -193,6 +193,7 @@ def gen_callback_body(
     if response.status_code != 204:
         msg = f"Bad response code on callback: {response}"
         raise ValueError(msg)
+    return response.status_code
 
 
 @task
@@ -260,5 +261,5 @@ with Flow(
         upstream_tasks=[scaled_jpegs],
     )
 
-    cp_wd_to_assets = copy_workdirs.map(fps, upstream_tasks=[scaled_jpegs])
-    cleanup = cleanup_workdir.map(fps, upstream_tasks=[cp_wd_to_assets])
+    cp_wd_to_assets = copy_workdirs.map(fps, upstream_tasks=[scaled_jpegs, callback_sent])
+    cleanup = cleanup_workdir.map(fps, upstream_tasks=[cp_wd_to_assets, callback_sent])
