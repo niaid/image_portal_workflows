@@ -185,11 +185,11 @@ def gen_callback_body(
 
     headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
     response = requests.post(callback_url, headers=headers, data=json.dumps(data))
-    #   log(response.url)
-    #   log(response.status_code)
-    #   log(json.dumps(data))
-    #   log(response.text)
-    #   log(response.headers)
+    utils.log(response.url)
+    utils.log(response.status_code)
+    utils.log(json.dumps(data))
+    utils.log(response.text)
+    utils.log(response.headers)
     if response.status_code != 204:
         msg = f"Bad response code on callback: {response}"
         raise ValueError(msg)
