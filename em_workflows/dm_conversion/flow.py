@@ -202,8 +202,8 @@ def pint_obj(fp: FilePath) -> None:
 
 with Flow(
     "dm_to_jpeg",
-    # state_handlers=[utils.notify_api_completion, utils.notify_api_running],
-    # executor=Config.SLURM_EXECUTOR,
+    state_handlers=[utils.notify_api_completion, utils.notify_api_running],
+    executor=Config.SLURM_EXECUTOR,
     run_config=LocalRun(labels=[utils.get_environment()]),
 ) as flow:
     """
