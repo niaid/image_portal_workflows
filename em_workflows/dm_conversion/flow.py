@@ -265,7 +265,7 @@ def get_input_dir(input_dir: str) -> Path:
         input_dir = input_dir + "/"
     if not input_dir.startswith("/"):
         input_dir = "/" + input_dir
-    input_path_str = Config.proj_dir(env=get_environment()) + input_dir
+    input_path_str = Config.assets_dir(env=get_environment()) + input_dir
     return Path(input_path_str)
 
 @task
