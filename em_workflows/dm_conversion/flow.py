@@ -71,8 +71,9 @@ def cleanup_workdir(file_path: FilePath) -> None:
 
 
 @task
-def copy_workdirs(file_path: FilePath) -> None:
-    file_path.copy_workdir_to_assets()
+def copy_workdirs(file_path: FilePath) -> Path:
+    return file_path.copy_workdir_to_assets()
+
 
 
 @task
