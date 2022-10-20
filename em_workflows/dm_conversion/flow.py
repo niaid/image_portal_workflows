@@ -253,13 +253,13 @@ with Flow(
 
     # scale the jpegs, pngs, and tifs
     scaled_jpegs = scale_jpegs.map(fps, upstream_tasks=[mrc_to_jpeg])
+    cp_wd_to_assets = copy_workdirs.map(fps, upstream_tasks=[scaled_jpegs])
 
     callback_sent = gen_callback_body(
         token=token,
         callback_url=callback_url,
         files_elts=fps,
-        upstream_tasks=[scaled_jpegs],
+        upstream_tasks=[cp_wd_to_assets],
     )
 
-    cp_wd_to_assets = copy_workdirs.map(fps, upstream_tasks=[scaled_jpegs, callback_sent])
-    cleanup = cleanup_workdir.map(fps, upstream_tasks=[cp_wd_to_assets, callback_sent])
+    cleanup = cleanup_workdir.map(fps, upstream_tasks=[callback_sent])
