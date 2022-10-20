@@ -263,4 +263,4 @@ with Flow(
         upstream_tasks=[cp_wd_to_assets],
     )
 
-    cleanup = cleanup_workdir.map(fps, upstream_tasks=[callback_sent])
+    cleanup = cleanup_workdir.map(fps, upstream_tasks=[cp_wd_to_assets])
