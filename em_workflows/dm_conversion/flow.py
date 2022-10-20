@@ -2,6 +2,7 @@ import datetime
 import requests
 import json
 from pathlib import Path
+import prefect
 from typing import List, Optional
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
@@ -185,22 +186,82 @@ def gen_callback_body(
     data = json.dumps({"files:": elts})
 
     headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
-    utils.log(data)
+    logger = prefect.context.get("logger")
+    logger.info(data)
     response = requests.post(callback_url, headers=headers, data=data)
-    utils.log(response.url)
-    utils.log(response.status_code)
-    utils.log(response.text)
-    utils.log(response.headers)
+    logger.info(response.url)
+    logger.info(response.status_code)
+    logger.info(response.text)
+    logger.info(response.headers)
     if response.status_code != 204:
         msg = f"Bad response code on callback: {response}"
         raise ValueError(msg)
     return response.status_code
 
+@task
+def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
+    """
+    List all files within input_dir with spefified extension.
+    if a specific file is requested that file is returned only.
+    This allows workflows run on single files rather than entire dirs (default).
+    Note, if no files are found does NOT raise exception. Function can be called
+    multiple times, sometimes there will be no files of that extension.
+    """
+    _files = list()
+    logger = prefect.context.get("logger")
+    logger.info(f"Looking for *.{exts} in {input_dir}")
+    if single_file:
+        fp = Path(f"{input_dir}/{single_file}")
+        ext = fp.suffix.strip(".")
+        if ext in exts:
+            if not fp.exists():
+                raise signals.FAIL(
+                    f"Expected file: {single_file}, not found in input_dir"
+                )
+            else:
+                _files.append(fp)
+    else:
+        for ext in exts:
+            _files.extend(input_dir.glob(f"*.{ext}"))
+    if not _files:
+        raise signals.FAIL(f"Input dir does not contain anything to process.")
+    logger.info("found files")
+    logger.info(_files)
+    return _files
 
 @task
 def pint_obj(fp: FilePath) -> None:
     print("tttt")
 
+def get_environment() -> str:
+    """
+    The workflows can operate in one of several environments,
+    named HEDWIG_ENV for historical reasons, eg prod, qa or dev.
+    This function looks up that environment.
+    Raises exception if no environment found.
+    """
+    env = os.environ.get("HEDWIG_ENV")
+    if not env:
+        raise RuntimeError(
+            "Unable to look up HEDWIG_ENV. Should \
+                be exported set to one of: [dev, qa, prod]"
+        )
+    return env
+
+@task
+def get_input_dir(input_dir: str) -> Path:
+    """
+    Concat the POSTed input file path to the mount point.
+    create working dir
+    set up logger
+    returns Path obj
+    """
+    if not input_dir.endswith("/"):
+        input_dir = input_dir + "/"
+    if not input_dir.startswith("/"):
+        input_dir = "/" + input_dir
+    input_path_str = Config.proj_dir(env=get_environment()) + input_dir
+    return Path(input_path_str)
 
 with Flow(
     "dm_to_jpeg",
@@ -218,9 +279,9 @@ with Flow(
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url")()
     token = Parameter("token")()
-    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
+    input_dir_fp = get_input_dir(input_dir=input_dir)
 
-    input_fps = utils.list_files(
+    input_fps = list_files(
         input_dir_fp,
         [
             "DM4",
@@ -240,8 +301,7 @@ with Flow(
         ],
         single_file=file_name,
     )
-    inputs_ok = utils.check_inputs_ok(input_fps)
-    fps = gen_fps(projects_dir=input_dir_fp, fps_in=input_fps, upstream_tasks=[inputs_ok])
+    fps = gen_fps(projects_dir=input_dir_fp, fps_in=input_fps)
     # logs = utils.init_log.map(file_path=fps)
 
     tiffs_converted = convert_if_int16_tiff.map(file_path=fps)
