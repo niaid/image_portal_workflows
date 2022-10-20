@@ -199,6 +199,7 @@ class FilePath:
         if dest.exists():
             shutil.rmtree(dest)
         shutil.copytree(self.working_dir, dest)
+        return dest
 
     def rm_workdir(self):
         shutil.rmtree(self.working_dir)
