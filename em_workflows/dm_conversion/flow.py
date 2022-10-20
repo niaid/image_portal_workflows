@@ -119,11 +119,11 @@ def scale_jpegs(file_path: FilePath) -> Optional[dict]:
         FilePath.run(cmd_sm, log_sm)
         FilePath.run(cmd_lg, log_lg)
         assets_fp_sm = file_path.copy_to_assets_dir(fp_to_cp=output_sm)
-        assets_fp_sm_no_proj = assets_fp_sm.relative_to(file_path.proj_dir)
-        sm_thmb = {"type":"keyThumbnail", "path": assets_fp_sm_no_proj.as_posix()}
+        assets_fp_sm_no_assets = assets_fp_sm.relative_to(file_path.assets_dir)
+        sm_thmb = {"type":"keyThumbnail", "path": assets_fp_sm_no_assets.as_posix()}
         assets_fp_lg = file_path.copy_to_assets_dir(fp_to_cp=output_lg)
-        assets_fp_lg_no_proj = assets_fp_lg.relative_to(file_path.proj_dir)
-        lg_thmb = {"type":"keyImage", "path": assets_fp_lg_no_proj.as_posix()}
+        assets_fp_lg_no_assets = assets_fp_lg.relative_to(file_path.assets_dir)
+        lg_thmb = {"type":"keyImage", "path": assets_fp_lg_no_assets.as_posix()}
         prim_fp = file_path.prim_fp_elt
         prim_fp["assets"] = [sm_thmb, lg_thmb]
         return prim_fp
@@ -265,7 +265,7 @@ def get_input_dir(input_dir: str) -> Path:
         input_dir = input_dir + "/"
     if not input_dir.startswith("/"):
         input_dir = "/" + input_dir
-    input_path_str = Config.assets_dir(env=get_environment()) + input_dir
+    input_path_str = Config.proj_dir(env=get_environment()) + input_dir
     return Path(input_path_str)
 
 @task
