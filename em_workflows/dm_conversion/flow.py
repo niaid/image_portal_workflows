@@ -1,10 +1,11 @@
+from collections import namedtuple
 import datetime
 import os
 import requests
 import json
 from pathlib import Path
 import prefect
-from typing import List, Optional
+from typing import List, NamedTuple, Optional
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
 from prefect.engine import signals
@@ -15,6 +16,7 @@ from em_workflows.file_path import FilePath
 from em_workflows.config import Config
 from em_workflows.utils import utils
 
+Asset = namedtuple('Asset', ['type', 'fp'])
 
 @task
 def convert_dms_to_mrc(file_path: FilePath) -> None:
@@ -79,7 +81,7 @@ def copy_workdirs(file_path: FilePath) -> Path:
 
 
 @task
-def scale_jpegs(file_path: FilePath) -> None:
+def scale_jpegs(file_path: FilePath) -> Optional[dict]:
     cur = file_path.current
     if file_path.filter_by_suffix([".tif", ".tiff", ".jpeg", ".png", ".jpg"]):
         output_sm = file_path.gen_output_fp("_SM.jpeg")
@@ -117,9 +119,14 @@ def scale_jpegs(file_path: FilePath) -> None:
         FilePath.run(cmd_sm, log_sm)
         FilePath.run(cmd_lg, log_lg)
         assets_fp_sm = file_path.copy_to_assets_dir(fp_to_cp=output_sm)
+        assets_fp_sm_no_proj = assets_fp_sm.relative_to(file_path.proj_dir)
+        sm_thmb = {"type":"keyThumbnail", "path": assets_fp_sm_no_proj.as_posix()}
         assets_fp_lg = file_path.copy_to_assets_dir(fp_to_cp=output_lg)
-        file_path.add_assets_entry(asset_path=assets_fp_sm, asset_type="keyThumbnail")
-        file_path.add_assets_entry(asset_path=assets_fp_lg, asset_type="keyImage")
+        assets_fp_lg_no_proj = assets_fp_lg.relative_to(file_path.proj_dir)
+        lg_thmb = {"type":"keyImage", "path": assets_fp_lg_no_proj.as_posix()}
+        prim_fp = file_path.prim_fp_elt
+        prim_fp["assets"] = [sm_thmb, lg_thmb]
+        return prim_fp
 
 
 @task
@@ -150,10 +157,10 @@ def gen_fps(projects_dir: Path, fps_in: List[Path]) -> List[FilePath]:
 
 
 @task(max_retries=3, retry_delay=datetime.timedelta(minutes=1))
-def gen_callback_body(
+def send_callback(
     token: str,
     callback_url: str,
-    files_elts: List[FilePath],
+    callback: dict,
 ) -> int:
     """
     Upon completion of file conversion a callback is made to the calling
@@ -181,10 +188,7 @@ def gen_callback_body(
         ]
     }
     """
-    elts = list()
-    for fp in files_elts:
-        elts.append(fp.prim_fp_elt)
-    data = json.dumps({"files:": elts})
+    data = json.dumps({"files:": callback})
 
     headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
     logger = prefect.context.get("logger")
@@ -264,6 +268,18 @@ def get_input_dir(input_dir: str) -> Path:
     input_path_str = Config.proj_dir(env=get_environment()) + input_dir
     return Path(input_path_str)
 
+@task
+def gen_callback(fps: List[FilePath], prim_fps: dict) -> list:
+    elts = list()
+    for fp in fps:
+        for asset_type in assets:
+            for a in asset_type:
+                asset = {"type": a.type, "path": a.fp.as_posix()}
+                fp.prim_fp_elt["assets"].append(asset)
+        elts.append(fp.prim_fp_elt["assets"])
+    return elts
+    
+
 with Flow(
     "dm_to_jpeg",
     state_handlers=[utils.notify_api_completion, utils.notify_api_running],
@@ -315,12 +331,13 @@ with Flow(
 
     # scale the jpegs, pngs, and tifs
     scaled_jpegs = scale_jpegs.map(fps, upstream_tasks=[mrc_to_jpeg])
+    # callback = gen_callback(fps, scaled_jpegs)
     cp_wd_to_assets = copy_workdirs.map(fps, upstream_tasks=[scaled_jpegs])
 
-    callback_sent = gen_callback_body(
+    callback_sent = send_callback(
         token=token,
         callback_url=callback_url,
-        files_elts=fps,
+        callback=scaled_jpegs,
         upstream_tasks=[cp_wd_to_assets],
     )
 
