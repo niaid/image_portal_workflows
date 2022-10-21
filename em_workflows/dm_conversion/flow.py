@@ -119,10 +119,10 @@ def scale_jpegs(file_path: FilePath) -> Optional[dict]:
         FilePath.run(cmd_sm, log_sm)
         FilePath.run(cmd_lg, log_lg)
         assets_fp_sm = file_path.copy_to_assets_dir(fp_to_cp=output_sm)
-        assets_fp_sm_no_assets = assets_fp_sm.relative_to(file_path.assets_dir)
+        assets_fp_sm_no_assets = assets_fp_sm.relative_to(file_path.asset_dir)
         sm_thmb = {"type":"keyThumbnail", "path": assets_fp_sm_no_assets.as_posix()}
         assets_fp_lg = file_path.copy_to_assets_dir(fp_to_cp=output_lg)
-        assets_fp_lg_no_assets = assets_fp_lg.relative_to(file_path.assets_dir)
+        assets_fp_lg_no_assets = assets_fp_lg.relative_to(file_path.asset_dir)
         lg_thmb = {"type":"keyImage", "path": assets_fp_lg_no_assets.as_posix()}
         prim_fp = file_path.prim_fp_elt
         prim_fp["assets"] = [sm_thmb, lg_thmb]

@@ -28,6 +28,7 @@ class FilePath:
         self._assets_dir = self.make_assets_dir()
         self.environment = self.get_environment()
         self.proj_dir = Path(Config.proj_dir(env=self.environment))
+        self.asset_dir = Path(Config.assets_dir(env=self.environment))
         self.prim_fp_elt = self.gen_prim_fp_elt()
 
     def __repr__(self) -> str:
