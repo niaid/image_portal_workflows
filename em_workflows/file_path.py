@@ -4,7 +4,6 @@ import os
 from typing import List, Dict
 from pathlib import Path
 import tempfile
-import re
 from prefect.engine import signals
 import subprocess
 from em_workflows.config import Config
