@@ -11,14 +11,14 @@ from em_workflows.config import Config
 
 
 class FilePath:
-    def __init__(self, proj_dir: Path, fp_in: Path) -> None:
+    def __init__(self, input_dir: Path, fp_in: Path) -> None:
         """
         sets up:
         working dir (fast disk where IO can occur)
         assets_dir (slow / big disk where outputs get moved to)
 
         """
-        self.proj_dir = proj_dir
+        self.input_dir = input_dir
         # input (AKA "Projects" file path
         self.fp_in = fp_in
         # current transformation of this file - init to input fname
@@ -79,10 +79,10 @@ class FilePath:
         proj_dir comes in the form {mount_point}/RMLEMHedwigQA/Projects/Lab/PI/
         want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
         """
-        if not "Projects" in self.proj_dir.as_posix():
+        if not "Projects" in self.input_dir.as_posix():
             msg = f"Error: Input directory {self.proj_dir} must contain the string 'Projects'."
             raise signals.FAIL(msg)
-        assets_dir_as_str = self.proj_dir.as_posix().replace("/Projects/", "/Assets/")
+        assets_dir_as_str = self.input_dir.as_posix().replace("/Projects/", "/Assets/")
         assets_dir = Path(assets_dir_as_str)
         assets_dir.mkdir(parents=True, exist_ok=True)
         return assets_dir
@@ -171,6 +171,12 @@ class FilePath:
                 return True
         return False
 
+    def add_asset(self, prim_fp: dict, asset_fp: Path, asset_type: str) -> dict:
+        assets_fp_no_root = asset_fp.relative_to(self.asset_dir)
+        asset = {"type": asset_type, "path": assets_fp_no_root.as_posix()}
+        prim_fp["assets"].append(asset)
+        return prim_fp
+
     def gen_prim_fp_elt(self) -> Dict:
         """
         creates a single primaryFilePath element, to which assets can be appended.
@@ -200,6 +206,7 @@ class FilePath:
         if dest.exists():
             shutil.rmtree(dest)
         shutil.copytree(self.working_dir, dest)
+        self.rm_workdir()
         return dest
 
     def rm_workdir(self):

@@ -16,7 +16,6 @@ from em_workflows.file_path import FilePath
 from em_workflows.config import Config
 from em_workflows.utils import utils
 
-Asset = namedtuple('Asset', ['type', 'fp'])
 
 @task
 def convert_dms_to_mrc(file_path: FilePath) -> None:
@@ -70,14 +69,8 @@ def convert_mrc_to_jpeg(file_path: FilePath) -> None:
 
 
 @task
-def cleanup_workdir(file_path: FilePath) -> None:
-    file_path.rm_workdir()
-
-
-@task
 def copy_workdirs(file_path: FilePath) -> Path:
     return file_path.copy_workdir_to_assets()
-
 
 
 @task
@@ -119,13 +112,15 @@ def scale_jpegs(file_path: FilePath) -> Optional[dict]:
         FilePath.run(cmd_sm, log_sm)
         FilePath.run(cmd_lg, log_lg)
         assets_fp_sm = file_path.copy_to_assets_dir(fp_to_cp=output_sm)
-        assets_fp_sm_no_assets = assets_fp_sm.relative_to(file_path.asset_dir)
-        sm_thmb = {"type":"keyThumbnail", "path": assets_fp_sm_no_assets.as_posix()}
         assets_fp_lg = file_path.copy_to_assets_dir(fp_to_cp=output_lg)
-        assets_fp_lg_no_assets = assets_fp_lg.relative_to(file_path.asset_dir)
-        lg_thmb = {"type":"keyImage", "path": assets_fp_lg_no_assets.as_posix()}
         prim_fp = file_path.prim_fp_elt
-        prim_fp["assets"] = [sm_thmb, lg_thmb]
+        prim_fp = file_path.add_asset(
+            prim_fp=prim_fp, asset_fp=assets_fp_sm, asset_type="keyThumbnail"
+        )
+
+        prim_fp = file_path.add_asset(
+            prim_fp=prim_fp, asset_fp=assets_fp_lg, asset_type="keyImage"
+        )
         return prim_fp
 
 
@@ -146,10 +141,10 @@ def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
 
 
 @task
-def gen_fps(projects_dir: Path, fps_in: List[Path]) -> List[FilePath]:
+def gen_fps(input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
     fps = list()
     for fp in fps_in:
-        file_path = FilePath(proj_dir=projects_dir, fp_in=fp)
+        file_path = FilePath(input_dir=input_dir, fp_in=fp)
         msg = f"created working_dir {file_path.working_dir} for {fp.as_posix()}"
         utils.log(msg)
         fps.append(file_path)
@@ -203,6 +198,7 @@ def send_callback(
         raise ValueError(msg)
     return response.status_code
 
+
 @task
 def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
     """
@@ -234,9 +230,11 @@ def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> Lis
     logger.info(_files)
     return _files
 
+
 @task
 def pint_obj(fp: FilePath) -> None:
     print("tttt")
+
 
 def get_environment() -> str:
     """
@@ -253,6 +251,7 @@ def get_environment() -> str:
         )
     return env
 
+
 @task
 def get_input_dir(input_dir: str) -> Path:
     """
@@ -268,17 +267,6 @@ def get_input_dir(input_dir: str) -> Path:
     input_path_str = Config.proj_dir(env=get_environment()) + input_dir
     return Path(input_path_str)
 
-@task
-def gen_callback(fps: List[FilePath], prim_fps: dict) -> list:
-    elts = list()
-    for fp in fps:
-        for asset_type in assets:
-            for a in asset_type:
-                asset = {"type": a.type, "path": a.fp.as_posix()}
-                fp.prim_fp_elt["assets"].append(asset)
-        elts.append(fp.prim_fp_elt["assets"])
-    return elts
-    
 
 with Flow(
     "dm_to_jpeg",
@@ -300,25 +288,10 @@ with Flow(
 
     input_fps = list_files(
         input_dir_fp,
-        [
-            "DM4",
-            "DM3",
-            "dm4",
-            "dm3",
-            "TIF",
-            "TIFF",
-            "JPEG",
-            "PNG",
-            "JPG",
-            "tif",
-            "tiff",
-            "jpeg",
-            "png",
-            "jpg",
-        ],
+        Config.valid_2d_input_exts,
         single_file=file_name,
     )
-    fps = gen_fps(projects_dir=input_dir_fp, fps_in=input_fps)
+    fps = gen_fps(input_dir=input_dir_fp, fps_in=input_fps)
     # logs = utils.init_log.map(file_path=fps)
 
     tiffs_converted = convert_if_int16_tiff.map(file_path=fps)
@@ -340,5 +313,3 @@ with Flow(
         callback=scaled_jpegs,
         upstream_tasks=[cp_wd_to_assets],
     )
-
-    cleanup = cleanup_workdir.map(fps, upstream_tasks=[cp_wd_to_assets])
