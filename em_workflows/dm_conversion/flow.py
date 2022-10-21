@@ -75,6 +75,9 @@ def copy_workdirs(file_path: FilePath) -> Path:
 
 @task
 def scale_jpegs(file_path: FilePath) -> Optional[dict]:
+    """
+    generates keyThumbnail and keyImage
+    """
     cur = file_path.current
     if file_path.filter_by_suffix([".tif", ".tiff", ".jpeg", ".png", ".jpg"]):
         output_sm = file_path.gen_output_fp("_SM.jpeg")
@@ -304,7 +307,7 @@ with Flow(
 
     # scale the jpegs, pngs, and tifs
     scaled_jpegs = scale_jpegs.map(fps, upstream_tasks=[mrc_to_jpeg])
-    # callback = gen_callback(fps, scaled_jpegs)
+
     cp_wd_to_assets = copy_workdirs.map(fps, upstream_tasks=[scaled_jpegs])
 
     callback_sent = send_callback(
