@@ -33,7 +33,23 @@ class Config:
     size_sm = "300x300"
     # the path to the Projects dir - can vary depending on mount point.
     # assets_dir = "/hedwigqa_data/Assets/"
-    two_d_input_exts = ["dm4", "dm3", "tif", "tiff", "png", "jpg", "jpeg"]
+    valid_2d_input_exts = [
+        "DM4",
+        "DM3",
+        "dm4",
+        "dm3",
+        "TIF",
+        "TIFF",
+        "JPEG",
+        "PNG",
+        "JPG",
+        "tif",
+        "tiff",
+        "jpeg",
+        "png",
+        "jpg",
+    ]
+
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
     tmp_dir = "/gs1/Scratch/macmenaminpe_scratch/"
