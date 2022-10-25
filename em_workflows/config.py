@@ -49,6 +49,7 @@ class Config:
         "png",
         "jpg",
     ]
+    fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
 
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     brt_binary = "/opt/rml/imod/bin/batchruntomo"

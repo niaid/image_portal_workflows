@@ -25,7 +25,7 @@ def convert_dms_to_mrc(file_path: FilePath) -> None:
         msg = f"Using dir: {cur}, : creating output_fp {output_fp}"
         utils.log(msg=msg)
         log_file = f"{output_fp.parent}/dm2mrc.log"
-        cmd = [Config.dm2mrc_loc, cur.as_posix(), output_fp]
+        cmd = [Config.dm2mrc_loc, cur.as_posix(), output_fp.as_posix()]
         # utils.log(f"Generated cmd {cmd}")
         FilePath.run(cmd=cmd, log_file=log_file)
         file_path.update_current(output_fp)
@@ -67,10 +67,6 @@ def convert_mrc_to_jpeg(file_path: FilePath) -> None:
         FilePath.run(cmd, log_fp)
         file_path.update_current(output_fp)
 
-
-@task
-def copy_workdirs(file_path: FilePath) -> Path:
-    return file_path.copy_workdir_to_assets()
 
 
 @task
@@ -143,15 +139,6 @@ def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
     return cmd
 
 
-@task
-def gen_fps(input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
-    fps = list()
-    for fp in fps_in:
-        file_path = FilePath(input_dir=input_dir, fp_in=fp)
-        msg = f"created working_dir {file_path.working_dir} for {fp.as_posix()}"
-        utils.log(msg)
-        fps.append(file_path)
-    return fps
 
 
 @task(max_retries=3, retry_delay=datetime.timedelta(minutes=1))
@@ -202,36 +189,36 @@ def send_callback(
     return response.status_code
 
 
-@task
-def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
-    """
-    List all files within input_dir with spefified extension.
-    if a specific file is requested that file is returned only.
-    This allows workflows run on single files rather than entire dirs (default).
-    Note, if no files are found does NOT raise exception. Function can be called
-    multiple times, sometimes there will be no files of that extension.
-    """
-    _files = list()
-    logger = prefect.context.get("logger")
-    logger.info(f"Looking for *.{exts} in {input_dir}")
-    if single_file:
-        fp = Path(f"{input_dir}/{single_file}")
-        ext = fp.suffix.strip(".")
-        if ext in exts:
-            if not fp.exists():
-                raise signals.FAIL(
-                    f"Expected file: {single_file}, not found in input_dir"
-                )
-            else:
-                _files.append(fp)
-    else:
-        for ext in exts:
-            _files.extend(input_dir.glob(f"*.{ext}"))
-    if not _files:
-        raise signals.FAIL(f"Input dir does not contain anything to process.")
-    logger.info("found files")
-    logger.info(_files)
-    return _files
+#@task
+#def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
+#    """
+#    List all files within input_dir with spefified extension.
+#    if a specific file is requested that file is returned only.
+#    This allows workflows run on single files rather than entire dirs (default).
+#    Note, if no files are found does NOT raise exception. Function can be called
+#    multiple times, sometimes there will be no files of that extension.
+#    """
+#    _files = list()
+#    logger = prefect.context.get("logger")
+#    logger.info(f"Looking for *.{exts} in {input_dir}")
+#    if single_file:
+#        fp = Path(f"{input_dir}/{single_file}")
+#        ext = fp.suffix.strip(".")
+#        if ext in exts:
+#            if not fp.exists():
+#                raise signals.FAIL(
+#                    f"Expected file: {single_file}, not found in input_dir"
+#                )
+#            else:
+#                _files.append(fp)
+#    else:
+#        for ext in exts:
+#            _files.extend(input_dir.glob(f"*.{ext}"))
+#    if not _files:
+#        raise signals.FAIL(f"Input dir does not contain anything to process.")
+#    logger.info("found files")
+#    logger.info(_files)
+#    return _files
 
 
 @task
@@ -255,21 +242,6 @@ def get_environment() -> str:
     return env
 
 
-@task
-def get_input_dir(input_dir: str) -> Path:
-    """
-    Concat the POSTed input file path to the mount point.
-    create working dir
-    set up logger
-    returns Path obj
-    """
-    if not input_dir.endswith("/"):
-        input_dir = input_dir + "/"
-    if not input_dir.startswith("/"):
-        input_dir = "/" + input_dir
-    input_path_str = Config.proj_dir(env=get_environment()) + input_dir
-    return Path(input_path_str)
-
 
 with Flow(
     "dm_to_jpeg",
@@ -287,14 +259,14 @@ with Flow(
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url")()
     token = Parameter("token")()
-    input_dir_fp = get_input_dir(input_dir=input_dir)
+    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
 
-    input_fps = list_files(
+    input_fps = utils.list_files(
         input_dir_fp,
         Config.valid_2d_input_exts,
         single_file=file_name,
     )
-    fps = gen_fps(input_dir=input_dir_fp, fps_in=input_fps)
+    fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_fps)
     # logs = utils.init_log.map(file_path=fps)
 
     tiffs_converted = convert_if_int16_tiff.map(file_path=fps)
@@ -308,7 +280,7 @@ with Flow(
     # scale the jpegs, pngs, and tifs
     scaled_jpegs = scale_jpegs.map(fps, upstream_tasks=[mrc_to_jpeg])
 
-    cp_wd_to_assets = copy_workdirs.map(fps, upstream_tasks=[scaled_jpegs])
+    cp_wd_to_assets = utils.copy_workdirs.map(fps, upstream_tasks=[scaled_jpegs])
 
     callback_sent = send_callback(
         token=token,
