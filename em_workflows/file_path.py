@@ -8,6 +8,10 @@ from prefect.engine import signals
 import subprocess
 from em_workflows.config import Config
 
+from prefect import context
+
+def log(msg):
+    context.logger.info(msg)
 
 class FilePath:
     def __init__(self, input_dir: Path, fp_in: Path) -> None:
@@ -17,26 +21,32 @@ class FilePath:
         assets_dir (slow / big disk where outputs get moved to)
 
         """
-        self.input_dir = input_dir
         # input (AKA "Projects" file path
+        self.proj_dir = input_dir
         self.fp_in = fp_in
+        # not a great name - used to create the subdir into which assets are put eg
+        self.base = fp_in.stem
         # current transformation of this file - init to input fname
         self._current = fp_in
-        # self.fp_sanitized = utils.sanitize_file_name(fp_in)
         self._working_dir = self.make_work_dir()
         self._assets_dir = self.make_assets_dir()
         self.environment = self.get_environment()
-        self.proj_dir = Path(Config.proj_dir(env=self.environment))
-        self.asset_dir = Path(Config.assets_dir(env=self.environment))
+        self.proj_root = Path(Config.proj_dir(env=self.environment))
+        self.asset_root = Path(Config.assets_dir(env=self.environment))
         self.prim_fp_elt = self.gen_prim_fp_elt()
+        log(self.__repr__())
 
     def __repr__(self) -> str:
-        return f"FilePath: proj_dir:{self.proj_dir}, \
+        return f"FilePath: proj_root:{self.proj_root}, \
                 fp_in:{self.fp_in}, prim_fp:{self.prim_fp_elt}, working_dir:{self.working_dir} \
                 assets_dir: {self.assets_dir}."
 
     @property
     def assets_dir(self) -> Path:
+        """
+        the top level directory where results are left.
+        other subdirs are attached here containing the outputs of individual files
+        """
         return self._assets_dir
 
     @property
@@ -78,19 +88,20 @@ class FilePath:
         proj_dir comes in the form {mount_point}/RMLEMHedwigQA/Projects/Lab/PI/
         want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
         """
-        if not "Projects" in self.input_dir.as_posix():
+        if not "Projects" in self.proj_dir.as_posix():
             msg = f"Error: Input directory {self.proj_dir} must contain the string 'Projects'."
             raise signals.FAIL(msg)
-        assets_dir_as_str = self.input_dir.as_posix().replace("/Projects/", "/Assets/")
-        assets_dir = Path(assets_dir_as_str)
+        assets_dir_as_str = self.proj_dir.as_posix().replace("/Projects", "/Assets")
+        assets_dir = Path(f"{assets_dir_as_str}/{self.base}")
         assets_dir.mkdir(parents=True, exist_ok=True)
+        log(f"Created Assets dir {assets_dir}")
         return assets_dir
 
     def copy_to_assets_dir(self, fp_to_cp: Path) -> Path:
         """
         Copy fp to the assets (reported output) dir
         fp is the Path to be copied.
-        assets_dir is the root dir (the input_dir with s/Projects/Assets/)
+        assets_dir is the root dir (the proj_dir with s/Projects/Assets/)
         If prim_fp is passed, assets will be copied to a subdir defined by the input
         file name, eg:
         copy /tmp/tmp7gcsl4on/keyMov_SARsCoV2_1.mp4
@@ -101,6 +112,7 @@ class FilePath:
         If prim_fp is not used, no such subdir is created.
         """
         dest = Path(f"{self.assets_dir}/{fp_to_cp.name}")
+        log(f"copying {fp_to_cp} to {dest}")
         if fp_to_cp.is_dir():
             if dest.exists():
                 shutil.rmtree(dest)
@@ -152,16 +164,20 @@ class FilePath:
         self.prim_fp_elt["assets"].append(asset)
         return asset
 
-    def gen_output_fp(self, output_ext: str) -> Path:
+    def gen_output_fp(self, output_ext: str=None, out_fname: str=None) -> Path:
         """
         cat working_dir to input_fp.name, but swap the extension to output_ext
         the reason for having a working_dir default to None is sometimes the output
         dir is not the same as the input dir, and working_dir is used to define output
         in this case.
         """
-        stem_name = self.fp_in.stem
+        if out_fname:
+            f_name = out_fname
+        else:
+            f_name = f"{self.fp_in.stem}{output_ext}"
+
         # stem_name = re.sub(r'[()\[\] ]',"_",stem_name)
-        output_fp = f"{self.working_dir.as_posix()}/{stem_name}{output_ext}"
+        output_fp = f"{self.working_dir.as_posix()}/{f_name}"
         return Path(output_fp)
 
     def filter_by_suffix(self, suffixes: List[str]) -> bool:
@@ -170,8 +186,17 @@ class FilePath:
                 return True
         return False
 
+    def gen_asset(self, asset_type: str, asset_fp) -> Dict:
+        assets_fp_no_root = asset_fp.relative_to(self.asset_root)
+        asset = {"type": asset_type, "path": assets_fp_no_root.as_posix()}
+        return asset
+
+    def add_asset2(self, prim_fp: dict, asset: dict) -> dict:
+        prim_fp["assets"].append(asset)
+        return prim_fp
+
     def add_asset(self, prim_fp: dict, asset_fp: Path, asset_type: str) -> dict:
-        assets_fp_no_root = asset_fp.relative_to(self.asset_dir)
+        assets_fp_no_root = asset_fp.relative_to(self.asset_root)
         asset = {"type": asset_type, "path": assets_fp_no_root.as_posix()}
         prim_fp["assets"].append(asset)
         return prim_fp
@@ -191,7 +216,7 @@ class FilePath:
         ]
         """
         title = self.fp_in.stem
-        primaryFilePath = self.fp_in.relative_to(self.proj_dir)
+        primaryFilePath = self.fp_in.relative_to(self.proj_root)
         return dict(
             primaryFilePath=primaryFilePath.as_posix(), title=title, assets=list()
         )
