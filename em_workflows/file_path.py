@@ -243,6 +243,6 @@ class FilePath:
         except Exception as ex:
             log(f"STDERR {ex}")
 
-        with open(log_file, "w+") as _file:
-            _file.write(f"STDOUT:{sp.stdout}")
-            _file.write(f"STDERR:{sp.stderr}")
+#        with open(log_file, "w+") as _file:
+#            _file.write(f"STDOUT:{sp.stdout}")
+#            _file.write(f"STDERR:{sp.stderr}")
