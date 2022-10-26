@@ -230,7 +230,7 @@ class FilePath:
         if dest.exists():
             shutil.rmtree(dest)
         shutil.copytree(self.working_dir, dest)
-        self.rm_workdir()
+        # self.rm_workdir()
         return dest
 
     def rm_workdir(self):
@@ -238,7 +238,11 @@ class FilePath:
 
     @staticmethod
     def run(cmd: List[str], log_file: str) -> None:
-        sp = subprocess.run(cmd, check=True, capture_output=True, encoding="UTF-8")
+        try:
+            sp = subprocess.run(cmd, check=True, capture_output=True, encoding="UTF-8")
+        except Exception as ex:
+            log(f"STDERR {ex}")
+
         with open(log_file, "w+") as _file:
             _file.write(f"STDOUT:{sp.stdout}")
             _file.write(f"STDERR:{sp.stderr}")
