@@ -20,6 +20,7 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
     hardcoded
     xfalign -pa -1 -pr {WORKDIR}/Source.mrc {WORKDIR}/align.xf
     """
+    source_mrc = fp_in.gen_output_fp(out_fname="source.mrc")
     output_fp = fp_in.gen_output_fp(out_fname="align.xf")
     log_file = f"{output_fp.parent}/xfalign.log"
     cmd = [
@@ -27,7 +28,7 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
         "-pa",
         "-1",
         "-pr",
-        fp_in.current.as_posix(),
+        source_mrc.as_posix(),
         output_fp.as_posix(),
     ]
     utils.log(f"Created {cmd}")
