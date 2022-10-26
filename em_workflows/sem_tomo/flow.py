@@ -35,7 +35,7 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
         align_xf.as_posix(),
     ]
     utils.log(f"Created {cmd}")
-    fp_in.run(cmd=cmd, log_file=log_file)
+    FilePath.run(cmd=cmd, log_file=log_file)
 
 
 @task
@@ -56,7 +56,7 @@ def gen_align_xg(fp_in: FilePath) -> None:
         align_xg.as_posix(),
     ]
     utils.log(f"Created {cmd}")
-    fp_in.run(cmd=cmd, log_file=log_file)
+    FilePath.run(cmd=cmd, log_file=log_file)
 
 
 @task
@@ -78,7 +78,7 @@ def gen_newstack_align(fp_in: FilePath) -> None:
         align_mrc.as_posix(),
     ]
     utils.log(f"Created {cmd}")
-    fp_in.run(cmd=cmd, log_file=log_file)
+    FilePath.run(cmd=cmd, log_file=log_file)
 
 
 @task
