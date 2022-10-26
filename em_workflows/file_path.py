@@ -240,8 +240,11 @@ class FilePath:
     def run(cmd: List[str], log_file: str) -> None:
         try:
             sp = subprocess.run(cmd, check=True, capture_output=True, encoding="UTF-8")
+            log(f"STDOUT:{sp.stdout}")
+            log(f"STDERR:{sp.stderr}")
         except Exception as ex:
             log(f"STDERR {ex}")
+            raise ex
 
 #        with open(log_file, "w+") as _file:
 #            _file.write(f"STDOUT:{sp.stdout}")
