@@ -82,7 +82,7 @@ def gen_newstack_align(fp_in: FilePath) -> None:
 
 
 @task
-def convert_tif_to_mrc(file_path: FilePath) -> None:
+def convert_tif_to_mrc(file_path: FilePath) -> int:
     """
     generates source.mrc
     assumes there's tifs in input dir
@@ -97,7 +97,8 @@ def convert_tif_to_mrc(file_path: FilePath) -> None:
     cmd.extend(files)
     cmd.append(output_fp.as_posix())
     utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    return_code = FilePath.run(cmd=cmd, log_file=log_file)
+    return return_code
 
 
 @task
