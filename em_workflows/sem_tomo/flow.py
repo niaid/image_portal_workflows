@@ -121,7 +121,7 @@ def create_stretch_file(tilt: str, fp_in: FilePath) -> None:
 
 
 @task
-def gen_newstack_corr_command(fp_in: FilePath) -> str:
+def gen_newstack_corr_command(fp_in: FilePath) -> None:
     """
     generates corrected.mrc
     uses the stretch file from create_stretch_file()

@@ -238,12 +238,15 @@ class FilePath:
 
     @staticmethod
     def run(cmd: List[str], log_file: str) -> None:
-        sp = subprocess.run(cmd, check=False, capture_output=True)
+        try:
+            sp = subprocess.run(cmd, check=False, capture_output=True)
+        except Exception as ex:
+            raise signals.FAIL(str(ex))
         log("Trying to run: " + ' '.join(cmd))
         if sp.returncode != 0:
             msg = "ERROR : " + sp.stderr.decode("utf-8")
             log(msg)
-            raise Exception(msg)
+            raise signals.FAIL(msg)
 
 #        with open(log_file, "w+") as _file:
 #            _file.write(f"STDOUT:{sp.stdout}")
