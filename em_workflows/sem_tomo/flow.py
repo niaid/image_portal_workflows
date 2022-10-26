@@ -18,22 +18,24 @@ shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 def gen_xfalign_comand(fp_in: FilePath) -> None:
     """
     hardcoded
-    xfalign -pa -1 -pr {WORKDIR}/Source.mrc {WORKDIR}/align.xf
+    xfalign -pa -1 -pr source.mrc align.xf
     """
     source_mrc = fp_in.gen_output_fp(out_fname="source.mrc")
-    output_fp = fp_in.gen_output_fp(out_fname="align.xf")
-    log_file = f"{output_fp.parent}/xfalign.log"
+    if not source_mrc.exists():
+        utils.log(f"{source_mrc} does not exist")
+    align_xf = fp_in.gen_output_fp(out_fname="align.xf")
+    log_file = f"{source_mrc.parent}/xfalign.log"
+    utils.log(f"xfalign log_file: {log_file}")
     cmd = [
         Config.xfalign_loc,
         "-pa",
         "-1",
         "-pr",
         source_mrc.as_posix(),
-        output_fp.as_posix(),
+        align_xf.as_posix(),
     ]
     utils.log(f"Created {cmd}")
     fp_in.run(cmd=cmd, log_file=log_file)
-    fp_in.update_current(output_fp)
 
 
 @task
@@ -42,19 +44,19 @@ def gen_align_xg(fp_in: FilePath) -> None:
     hardcoded
     xftoxg -ro -mi 2 {WORKDIR}/align.xf {WORKDIR}/align.xg
     """
-    output_fp = fp_in.gen_output_fp(out_fname="align.xg")
-    log_file = f"{output_fp.parent}/xgalign.log"
+    align_xg = fp_in.gen_output_fp(out_fname="align.xg")
+    align_xf = fp_in.gen_output_fp(out_fname="align.xf")
+    log_file = f"{align_xg.parent}/xgalign.log"
     cmd = [
         Config.xftoxg_loc,
         "-ro",
         "-mi",
         "2",
-        fp_in.current.as_posix(),
-        output_fp.as_posix(),
+        align_xf.as_posix(),
+        align_xg.as_posix(),
     ]
     utils.log(f"Created {cmd}")
     fp_in.run(cmd=cmd, log_file=log_file)
-    fp_in.update_current(output_fp)
 
 
 @task
@@ -73,11 +75,10 @@ def gen_newstack_align(fp_in: FilePath) -> None:
         "-x",
         align_xg.as_posix(),
         source_mrc.as_posix(),
-        align_mrc,
+        align_mrc.as_posix(),
     ]
     utils.log(f"Created {cmd}")
     fp_in.run(cmd=cmd, log_file=log_file)
-    fp_in.update_current(align_mrc)
 
 
 @task
@@ -97,7 +98,6 @@ def convert_tif_to_mrc(file_path: FilePath) -> None:
     cmd.append(output_fp.as_posix())
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
-    file_path.update_current(output_fp)
 
 
 @task
