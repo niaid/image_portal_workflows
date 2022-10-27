@@ -33,7 +33,24 @@ class Config:
     size_sm = "300x300"
     # the path to the Projects dir - can vary depending on mount point.
     # assets_dir = "/hedwigqa_data/Assets/"
-    two_d_input_exts = ["dm4", "dm3", "tif", "tiff", "png", "jpg", "jpeg"]
+    valid_2d_input_exts = [
+        "DM4",
+        "DM3",
+        "dm4",
+        "dm3",
+        "TIF",
+        "TIFF",
+        "JPEG",
+        "PNG",
+        "JPG",
+        "tif",
+        "tiff",
+        "jpeg",
+        "png",
+        "jpg",
+    ]
+    fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
+
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
     tmp_dir = "/gs1/Scratch/macmenaminpe_scratch/"
@@ -55,12 +72,12 @@ class Config:
     @staticmethod
     def proj_dir(env: str) -> str:
         share = Config._share_name(env=env)
-        return f"{Config.mount_point}/{share}/Projects/"
+        return f"{Config.mount_point}{share}/Projects/"
 
     @staticmethod
     def assets_dir(env: str) -> str:
         share = Config._share_name(env=env)
-        return f"{Config.mount_point}/{share}/Assets"
+        return f"{Config.mount_point}{share}/Assets"
 
     # repo_dir = os.path.join(os.path.dirname(__file__), "..")
     repo_dir = Path(os.path.dirname(__file__))

@@ -1,21 +1,38 @@
+from collections import namedtuple
+import datetime
+import os
+import requests
 import json
 from pathlib import Path
-from typing import List
+import prefect
+from typing import List, NamedTuple, Optional
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
-from em_workflows.shell_task_echo import ShellTaskEcho
 from prefect.engine import signals
 from pytools.meta import is_int16
 from pytools.convert import file_to_uint8
 
+from em_workflows.file_path import FilePath
 from em_workflows.config import Config
 from em_workflows.utils import utils
 
-shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
+
+@task
+def convert_dms_to_mrc(file_path: FilePath) -> None:
+    cur = file_path.current
+    if cur.suffix.lower() == ".dm3" or cur.suffix.lower() == ".dm4":
+        output_fp = file_path.gen_output_fp(output_ext=".mrc")
+        msg = f"Using dir: {cur}, : creating output_fp {output_fp}"
+        utils.log(msg=msg)
+        log_file = f"{output_fp.parent}/dm2mrc.log"
+        cmd = [Config.dm2mrc_loc, cur.as_posix(), output_fp.as_posix()]
+        # utils.log(f"Generated cmd {cmd}")
+        FilePath.run(cmd=cmd, log_file=log_file)
+        file_path.update_current(output_fp)
 
 
 @task
-def convert_if_int16_tiff(fp: Path, working_dir: Path) -> Path:
+def convert_if_int16_tiff(file_path: FilePath) -> None:
     """
     accepts a tiff Path obj
     tests if 16 bit
@@ -23,32 +40,87 @@ def convert_if_int16_tiff(fp: Path, working_dir: Path) -> Path:
     else return orig Path
     """
     # first check if file extension is .tif or .tiff
-    is_tiff_ext = False
-    if fp.suffix.lower() == ".tiff" or fp.suffix.lower() == ".tif":
-        is_tiff_ext = True
-    if not is_tiff_ext:
-        return fp
-
-    if is_int16(fp):
-        new_fp = Path(f"{working_dir.as_posix()}/{fp.name}")
-        file_to_uint8(in_file_path=fp, out_file_path=str(new_fp))
-        return new_fp
-    else:
-        return fp
-
-
-@task
-def create_dm2mrc_command(dm_fp: Path, output_fp: Path) -> str:
-    cmd = f"{Config.dm2mrc_loc} {dm_fp} {output_fp} &> {output_fp.parent}/dm2mrc.log"
-    utils.log(f"Generated cmd {cmd}")
-    return cmd
+    if (
+        file_path.current.suffix.lower() == ".tiff"
+        or file_path.current.suffix.lower() == ".tif"
+    ):
+        utils.log(f"{file_path.current.as_posix()} is a tiff file")
+        if is_int16(file_path.current):
+            new_fp = Path(
+                f"{file_path.working_dir.as_posix()}/{file_path.current.name}"
+            )
+            utils.log(
+                f"{file_path.current.as_posix()} is a 16 bit tiff, converting to {new_fp}"
+            )
+            file_to_uint8(in_file_path=file_path.current, out_file_path=str(new_fp))
+            file_path.update_current(new_fp=new_fp)
 
 
 @task
-def create_jpeg_cmd(mrc_fp: Path, output_fp: Path) -> str:
-    cmd = f"{Config.mrc2tif_loc} -j {mrc_fp} {output_fp} &> {output_fp.parent}/mrc2tif.log"
-    utils.log(f"Generated cmd {cmd}")
-    return cmd
+def convert_mrc_to_jpeg(file_path: FilePath) -> None:
+    cur = file_path.current
+    if cur.suffix == ".mrc":
+        output_fp = file_path.gen_output_fp(".jpeg")
+        log_fp = f"{output_fp.parent}/mrc2tif.log"
+        cmd = [Config.mrc2tif_loc, "-j", cur.as_posix(), output_fp]
+        utils.log(f"Generated cmd {cmd}")
+        FilePath.run(cmd, log_fp)
+        file_path.update_current(output_fp)
+
+
+
+@task
+def scale_jpegs(file_path: FilePath) -> Optional[dict]:
+    """
+    generates keyThumbnail and keyImage
+    """
+    cur = file_path.current
+    if file_path.filter_by_suffix([".tif", ".tiff", ".jpeg", ".png", ".jpg"]):
+        output_sm = file_path.gen_output_fp("_SM.jpeg")
+        output_lg = file_path.gen_output_fp("_LG.jpeg")
+        cmd_sm = [
+            "gm",
+            "convert",
+            "-size",
+            Config.size_sm,
+            cur.as_posix(),
+            "-resize",
+            Config.size_sm,
+            "-sharpen",
+            "2",
+            "-quality",
+            "70",
+            output_sm,
+        ]
+        cmd_lg = [
+            "gm",
+            "convert",
+            "-size",
+            Config.size_lg,
+            cur.as_posix(),
+            "-resize",
+            Config.size_lg,
+            "-sharpen",
+            "2",
+            "-quality",
+            "70",
+            output_lg,
+        ]
+        log_sm = f"{output_sm.parent}/jpeg_sm.log"
+        log_lg = f"{output_lg.parent}/jpeg_lg.log"
+        FilePath.run(cmd_sm, log_sm)
+        FilePath.run(cmd_lg, log_lg)
+        assets_fp_sm = file_path.copy_to_assets_dir(fp_to_cp=output_sm)
+        assets_fp_lg = file_path.copy_to_assets_dir(fp_to_cp=output_lg)
+        prim_fp = file_path.prim_fp_elt
+        prim_fp = file_path.add_asset(
+            prim_fp=prim_fp, asset_fp=assets_fp_sm, asset_type="keyThumbnail"
+        )
+
+        prim_fp = file_path.add_asset(
+            prim_fp=prim_fp, asset_fp=assets_fp_lg, asset_type="keyImage"
+        )
+        return prim_fp
 
 
 @task
@@ -67,14 +139,108 @@ def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
     return cmd
 
 
-@task
-def join_list(list1: List[Path], list2: List[Path]) -> List[Path]:
-    return list1 + list2
+
+
+@task(max_retries=3, retry_delay=datetime.timedelta(minutes=1))
+def send_callback(
+    token: str,
+    callback_url: str,
+    callback: dict,
+) -> int:
+    """
+    Upon completion of file conversion a callback is made to the calling
+    API specifying the locations of files, along with metadata about the files.
+    the body of the callback should look something like this:
+    {
+        "status": "success",
+        "files":
+        [
+            {
+                "primaryFilePath: "Lab/PI/Myproject/MySession/Sample1/file_a.dm4",
+                "title": "file_a",
+                "assets":
+                [
+                    {
+                        "type": "keyImage",
+                        "path": "Lab/PI/Myproject/MySession/Sample1/file_a.jpg"
+                    },
+                    {
+                        "type": "thumbnail",
+                        "path": "Lab/PI/Myproject/MySession/Sample1/file_a_s.jpg"
+                    }
+                ]
+            }
+        ]
+    }
+    """
+    data = json.dumps({"files:": callback})
+
+    headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
+    logger = prefect.context.get("logger")
+    logger.info(data)
+    response = requests.post(callback_url, headers=headers, data=data)
+    logger.info(response.url)
+    logger.info(response.status_code)
+    logger.info(response.text)
+    logger.info(response.headers)
+    if response.status_code != 204:
+        msg = f"Bad response code on callback: {response}"
+        raise ValueError(msg)
+    return response.status_code
+
+
+#@task
+#def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
+#    """
+#    List all files within input_dir with spefified extension.
+#    if a specific file is requested that file is returned only.
+#    This allows workflows run on single files rather than entire dirs (default).
+#    Note, if no files are found does NOT raise exception. Function can be called
+#    multiple times, sometimes there will be no files of that extension.
+#    """
+#    _files = list()
+#    logger = prefect.context.get("logger")
+#    logger.info(f"Looking for *.{exts} in {input_dir}")
+#    if single_file:
+#        fp = Path(f"{input_dir}/{single_file}")
+#        ext = fp.suffix.strip(".")
+#        if ext in exts:
+#            if not fp.exists():
+#                raise signals.FAIL(
+#                    f"Expected file: {single_file}, not found in input_dir"
+#                )
+#            else:
+#                _files.append(fp)
+#    else:
+#        for ext in exts:
+#            _files.extend(input_dir.glob(f"*.{ext}"))
+#    if not _files:
+#        raise signals.FAIL(f"Input dir does not contain anything to process.")
+#    logger.info("found files")
+#    logger.info(_files)
+#    return _files
 
 
 @task
-def dump_to_json(elt):
-    print(json.dumps(elt))
+def pint_obj(fp: FilePath) -> None:
+    print("tttt")
+
+
+def get_environment() -> str:
+    """
+    The workflows can operate in one of several environments,
+    named HEDWIG_ENV for historical reasons, eg prod, qa or dev.
+    This function looks up that environment.
+    Raises exception if no environment found.
+    """
+    env = os.environ.get("HEDWIG_ENV")
+    if not env:
+        raise RuntimeError(
+            "Unable to look up HEDWIG_ENV. Should \
+                be exported set to one of: [dev, qa, prod]"
+        )
+    return env
+
 
 
 with Flow(
@@ -95,191 +261,30 @@ with Flow(
     token = Parameter("token")()
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
 
-    # [dm4 and dm3 inputs]
-    dm_fps = utils.list_files(
-        input_dir_fp, ["DM4", "DM3", "dm4", "dm3"], single_file=file_name
-    )
-    # one dir per input dm file
-    working_dir_dms = utils.set_up_work_env.map(input_fp=dm_fps)
-
-    # other input types need to be converted too.
-    # Hopefully there's no naming overlaps (eg same_name.jpeg and same_name.dm4)
-    other_input_fps = utils.list_files(
-        input_dir=input_dir_fp,
-        exts=["TIF", "TIFF", "JPEG", "PNG", "JPG", "tif", "tiff", "jpeg", "png", "jpg"],
+    input_fps = utils.list_files(
+        input_dir_fp,
+        Config.valid_2d_input_exts,
         single_file=file_name,
     )
-    working_dir_others = utils.set_up_work_env.map(input_fp=other_input_fps)
+    fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_fps)
+    # logs = utils.init_log.map(file_path=fps)
 
-    # cat all files into single list, check they exist
-    all_fps = join_list(dm_fps, other_input_fps)
-    utils.check_inputs_ok(all_fps)
-
-    int16_tiff_converted = convert_if_int16_tiff.map(
-        fp=other_input_fps, working_dir=working_dir_others
-    )
-    # sanitize input file names
-    # sanitized files are the starting point dir, Project files are not touched, need
-    # to use that fname to init pipeline.
-    # ONLY use sanitized inputs when need to use Projects files as inputs directly.
-    # (else use the orig fnames, and gen_output_fp will TRANSLATE bad chars.
-    dm_fps_sanitized = utils.sanitize_file_names(dm_fps)
-    other_input_fps_sanitized = utils.sanitize_file_names(int16_tiff_converted)
-    # have to convert int16 tiff files. Test and swap any int16 files found.
+    tiffs_converted = convert_if_int16_tiff.map(file_path=fps)
 
     # dm* to mrc conversion
-    mrc_fps = utils.gen_output_fp.map(
-        input_fp=dm_fps, working_dir=working_dir_dms, output_ext=unmapped(".mrc")
-    )
-    dm2mrc_commands = create_dm2mrc_command.map(
-        dm_fp=dm_fps_sanitized, output_fp=mrc_fps
-    )
-    dm2mrcs = shell_task.map(
-        command=dm2mrc_commands, to_echo=unmapped("running dm2mrc commands")
-    )
+    dm_to_mrc_converted = convert_dms_to_mrc.map(fps, upstream_tasks=[tiffs_converted])
 
     # mrc is intermed format, to jpeg conversion
-    jpeg_fps = utils.gen_output_fp.map(input_fp=mrc_fps, output_ext=unmapped(".jpeg"))
-    jpeg_commands = create_jpeg_cmd.map(mrc_fp=mrc_fps, output_fp=jpeg_fps)
-    jpegs = shell_task.map(
-        command=jpeg_commands,
-        to_echo=unmapped("running jpeg commands"),
-        upstream_tasks=[dm2mrcs],
-    )
+    mrc_to_jpeg = convert_mrc_to_jpeg.map(fps, upstream_tasks=[dm_to_mrc_converted])
 
-    # need to scale the newly created jpegs
-    jpeg_fps_sm_fps = utils.gen_output_fp.map(
-        input_fp=jpeg_fps, upstream_tasks=[jpegs], output_ext=unmapped("_SM.jpeg")
-    )
-    jpeg_fps_sm_cmds = create_gm_cmd.map(
-        fp_in=jpeg_fps, fp_out=jpeg_fps_sm_fps, size=unmapped("sm")
-    )
-    jpeg_fps_sms = shell_task.map(command=jpeg_fps_sm_cmds)
+    # scale the jpegs, pngs, and tifs
+    scaled_jpegs = scale_jpegs.map(fps, upstream_tasks=[mrc_to_jpeg])
 
-    # need to scale the newly created jpegs
-    jpeg_fps_lg_fps = utils.gen_output_fp.map(
-        input_fp=jpeg_fps, upstream_tasks=[jpegs], output_ext=unmapped("_LG.jpeg")
-    )
-    jpeg_fps_lg_cmds = create_gm_cmd.map(
-        fp_in=jpeg_fps, fp_out=jpeg_fps_lg_fps, size=unmapped("lg")
-    )
-    jpeg_fps_lgs = shell_task.map(command=jpeg_fps_lg_cmds)
-    # an input dir can also contain tif / tiff / jpeg or png files
+    cp_wd_to_assets = utils.copy_workdirs.map(fps, upstream_tasks=[scaled_jpegs])
 
-    # files in input dir, need to use working_dir to path
-    other_input_sm_fps = utils.gen_output_fp.map(
-        input_fp=other_input_fps,
-        output_ext=unmapped("_SM.jpeg"),
-        working_dir=working_dir_others,
-    )
-    other_input_gm_sm_cmds = create_gm_cmd.map(
-        fp_in=other_input_fps_sanitized,
-        fp_out=other_input_sm_fps,
-        size=unmapped("sm"),
-    )
-    other_sm_gms = shell_task.map(command=other_input_gm_sm_cmds)
-
-    # large thumbs
-    other_input_lg_fps = utils.gen_output_fp.map(
-        input_fp=other_input_fps,
-        output_ext=unmapped("_LG.jpeg"),
-        working_dir=working_dir_others,
-    )
-    other_input_lg_cmds = create_gm_cmd.map(
-        fp_in=other_input_fps_sanitized, fp_out=other_input_lg_fps, size=unmapped("lg")
-    )
-    other_input_lgs = shell_task.map(command=other_input_lg_cmds)
-
-    # At this point computation of the workflow is complete.
-    # now need to copy subset of files to "Assets" dir
-    # and
-    # create a datastructure containing each of locations of the files.
-
-    # dm3/dm4 type inputs (ie inputs we converted to jpegs)
-    dm_primary_file_elts = utils.gen_callback_elt.map(input_fname=dm_fps)
-
-    # create an assets_dir (to copy required outputs into)
-    assets_dir_dm = utils.make_assets_dir(input_dir=input_dir_fp)
-    assets_dir_other = utils.make_assets_dir(input_dir=input_dir_fp)
-
-    # small thumbnails
-    jpeg_fps_sm_asset_fps = utils.copy_to_assets_dir.map(
-        fp=jpeg_fps_sm_fps,
-        assets_dir=unmapped(assets_dir_dm),
-        upstream_tasks=[jpeg_fps_sms],
-    )
-    with_dm_sm_thumbs = utils.add_assets_entry.map(
-        base_elt=dm_primary_file_elts,
-        path=jpeg_fps_sm_asset_fps,
-        asset_type=unmapped("thumbnail"),
-    )
-    # finished small thumbnails
-
-    # large thumbnails
-    jpeg_fps_lg_asset_fps = utils.copy_to_assets_dir.map(
-        fp=jpeg_fps_lg_fps,
-        assets_dir=unmapped(assets_dir_dm),
-        upstream_tasks=[jpeg_fps_lgs],
-    )
-    with_dm_lg_thumbs = utils.add_assets_entry.map(
-        base_elt=with_dm_sm_thumbs,
-        path=jpeg_fps_lg_asset_fps,
-        asset_type=unmapped("keyImage"),
-    )
-    # finished large thumbnails
-
-    # any other input that wasn't dm4
-    other_primary_file_elts = utils.gen_callback_elt.map(input_fname=other_input_fps)
-
-    # small thumbnails - other inputs
-    other_assets_sm_fps = utils.copy_to_assets_dir.map(
-        fp=other_input_sm_fps,
-        assets_dir=unmapped(assets_dir_other),
-        upstream_tasks=[other_sm_gms],
-    )
-    other_with_sm_thumbs = utils.add_assets_entry.map(
-        base_elt=other_primary_file_elts,
-        path=other_assets_sm_fps,
-        asset_type=unmapped("thumbnail"),
-    )
-    # finished small thumbnails - other inputs
-
-    # other inputs, large thumbs
-    other_assets_lg_fps = utils.copy_to_assets_dir.map(
-        fp=other_input_lg_fps,
-        assets_dir=unmapped(assets_dir_other),
-        upstream_tasks=[other_input_lgs],
-    )
-    other_with_lg_thumbs = utils.add_assets_entry.map(
-        base_elt=other_with_sm_thumbs,
-        path=other_assets_lg_fps,
-        asset_type=unmapped("keyImage"),
-    )
-    # finished with other input conversion.
-
-    all_assets = join_list(with_dm_lg_thumbs, other_with_lg_thumbs)
-
-    cp_other = utils.cp_logs_to_assets.map(
-        working_dir=working_dir_others,
-        assets_dir=unmapped(assets_dir_other),
-        upstream_tasks=[unmapped(all_assets)],
-    )
-    copy_logs = utils.cp_logs_to_assets.map(
-        working_dir=working_dir_dms,
-        assets_dir=unmapped(assets_dir_dm),
-        upstream_tasks=[unmapped(all_assets)],
-    )
-
-    callback = utils.send_callback_body(
-        token=token, callback_url=callback_url, files_elts=all_assets
-    )
-
-    cp_wd_to_assets = utils.copy_workdir_on_fail.map(
-        working_dir=working_dir_dms,
-        assets_dir=unmapped(assets_dir_dm),
-        upstream_tasks=[unmapped(all_assets)],
-    )
-    utils.cleanup_workdir.map(wd=working_dir_dms, upstream_tasks=[copy_logs])
-    utils.cleanup_workdir.map(
-        wd=working_dir_others, upstream_tasks=[copy_logs, cp_other]
+    callback_sent = send_callback(
+        token=token,
+        callback_url=callback_url,
+        callback=scaled_jpegs,
+        upstream_tasks=[cp_wd_to_assets],
     )

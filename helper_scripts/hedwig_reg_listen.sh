@@ -12,7 +12,9 @@ if [[ ! ( $HEDWIG_ENV == "dev" || $HEDWIG_ENV == "qa" || $HEDWIG_ENV == "prod" )
 	exit 1
 fi
 
+
 export HEDWIG_ENV=$HEDWIG_ENV
+export IMOD_DIR=/opt/rml/imod
 
 ACTION=$2
 if [[ ! ( $ACTION == "listen" || $ACTION == "register" ) ]]; then
@@ -28,6 +30,10 @@ fi
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 VENV=$SCRIPT_DIR/../../../$HEDWIG_ENV
+export VENV
+_OLD_VIRTUAL_PATH="$PATH"
+PATH="$VENV/bin:$PATH"
+export PATH
 WFLOWS=$SCRIPT_DIR/../em_workflows
 PREFECT=$VENV/bin/prefect
 PYTHON=$VENV/bin/python3
@@ -44,5 +50,7 @@ if [[ $ACTION == "listen" ]]; then
 	$PYTHON $PREFECT agent local start --label $HEDWIG_ENV --api $NIAID_PREFECT_SERVER
 elif [[ $ACTION == "register" ]]; then
 	printf "\nUsing venv $VENV\nRegister $HEDWIG_ENV Agent\n"
-	$PYTHON $PREFECT register --project "Spaces_$HEDWIG_ENV" --watch --path $WFLOWS/brt/ --path $WFLOWS/sem_tomo/ --path $WFLOWS/dm_conversion/ &
+	$PYTHON $PREFECT register --project Spaces_$HEDWIG_ENV  --path $WFLOWS/brt/
+	$PYTHON $PREFECT register --project Spaces_$HEDWIG_ENV  --path $WFLOWS/sem_tomo/
+	$PYTHON $PREFECT register --project Spaces_$HEDWIG_ENV  --path $WFLOWS/dm_conversion/
 fi

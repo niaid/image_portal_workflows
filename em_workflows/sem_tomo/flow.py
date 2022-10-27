@@ -1,5 +1,8 @@
+from em_workflows.file_path import FilePath
+import subprocess
+import glob
 import math
-from typing import List
+from typing import List, Dict
 from pathlib import Path
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
@@ -13,56 +16,93 @@ shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
 
 @task
-def gen_xfalign_comand(fp_in: Path, fp_out) -> str:
+def gen_xfalign_comand(fp_in: FilePath) -> None:
     """
     hardcoded
-    xfalign -pa -1 -pr {WORKDIR}/Source.mrc {WORKDIR}/align.xf
+    xfalign -pa -1 -pr source.mrc align.xf
     """
-    cmd = f"{Config.xfalign_loc} -pa -1 -pr {fp_in} {fp_out} &> {fp_out.parent}/xfalign.log"
-    utils.log(f"Created {cmd}")
-    return cmd
+    source_mrc = fp_in.gen_output_fp(out_fname="source.mrc")
+    if not source_mrc.exists():
+        utils.log(f"{source_mrc} does not exist")
+    align_xf = fp_in.gen_output_fp(out_fname="align.xf")
+    log_file = f"{source_mrc.parent}/xfalign.log"
+    utils.log(f"xfalign log_file: {log_file}")
+    cmd = [
+        Config.xfalign_loc,
+        "-pa",
+        "-1",
+        "-pr",
+        source_mrc.as_posix(),
+        align_xf.as_posix(),
+    ]
+    FilePath.run(cmd=cmd, log_file=log_file)
 
 
 @task
-def gen_xftoxg_comand(fp_in: Path, fp_out: Path) -> str:
+def gen_align_xg(fp_in: FilePath) -> None:
     """
     hardcoded
     xftoxg -ro -mi 2 {WORKDIR}/align.xf {WORKDIR}/align.xg
     """
-    cmd = (
-        f"{Config.xftoxg_loc} -ro -mi 2 {fp_in} {fp_out} &> {fp_out.parent}/xftoxg.log"
-    )
+    align_xg = fp_in.gen_output_fp(out_fname="align.xg")
+    align_xf = fp_in.gen_output_fp(out_fname="align.xf")
+    log_file = f"{align_xg.parent}/xgalign.log"
+    cmd = [
+        Config.xftoxg_loc,
+        "-ro",
+        "-mi",
+        "2",
+        align_xf.as_posix(),
+        align_xg.as_posix(),
+    ]
     utils.log(f"Created {cmd}")
-    return cmd
+    FilePath.run(cmd=cmd, log_file=log_file)
 
 
 @task
-def gen_newstack_align_command(
-    align_xg: Path, source_mrc: Path, align_mrc: Path
-) -> str:
+def gen_newstack_align(fp_in: FilePath) -> None:
     """
     generates align.mrc
     newstack -x {WORKDIR}/align.xg {WORKDIR}/Source.mrc {WORKDIR}/Align.mrc
     """
-    cmd = f"{Config.newstack_loc} -x {align_xg} {source_mrc} {align_mrc} &> {align_mrc.parent}/newstack_align.log"
+    align_mrc = fp_in.gen_output_fp(out_fname="align.mrc")
+    align_xg = fp_in.gen_output_fp(out_fname="align.xg")
+    source_mrc = fp_in.gen_output_fp(out_fname="source.mrc")
+
+    log_file = f"{align_mrc.parent}/newstack_align.log"
+    cmd = [
+        Config.newstack_loc,
+        "-x",
+        align_xg.as_posix(),
+        source_mrc.as_posix(),
+        align_mrc.as_posix(),
+    ]
     utils.log(f"Created {cmd}")
-    return cmd
+    FilePath.run(cmd=cmd, log_file=log_file)
 
 
 @task
-def gen_tif_mrc_command(input_dir: Path, fp_out: Path) -> str:
+def convert_tif_to_mrc(file_path: FilePath) -> int:
     """
     generates source.mrc
+    assumes there's tifs in input dir
     uses all the tifs in dir
     # tif2mrc {DATAPATH}/*.tif {WORKDIR}/Source.mrc
     """
-    cmd = f"{Config.tif2mrc_loc} {input_dir}/*.tif {fp_out} &> {fp_out.parent}/tif2mrc.log"
+    output_fp = file_path.gen_output_fp(out_fname="source.mrc")
+    log_file = f"{output_fp.parent}/tif2mrc.log"
+    files = glob.glob(f"{file_path.fp_in.as_posix()}/*.tif")
+
+    cmd = [Config.tif2mrc_loc]
+    cmd.extend(files)
+    cmd.append(output_fp.as_posix())
     utils.log(f"Created {cmd}")
-    return cmd
+    return_code = FilePath.run(cmd=cmd, log_file=log_file)
+    return return_code
 
 
 @task
-def create_stretch_file(tilt: str, fp_out: Path) -> None:
+def create_stretch_file(tilt: str, fp_in: FilePath) -> None:
     """
     creates stretch.xf
     used to gen corrected.mrc
@@ -75,85 +115,119 @@ def create_stretch_file(tilt: str, fp_out: Path) -> None:
     # math.cos expects radians, convert to degrees first.
     tilt_angle = 1 / math.cos(math.degrees(float(tilt)))
     utils.log(f"creating stretch file, tilt_angle: {tilt_angle}.")
-    fp_out.touch()
-    with open(fp_out.as_posix(), "w") as _file:
+    output_fp = fp_in.gen_output_fp(out_fname="stretch.xf")
+    # fp_out.touch()
+    with open(output_fp.as_posix(), "w") as _file:
         _file.write(f"1 0 0 {tilt_angle} 0 0")
 
 
 @task
-def gen_newstack_corr_command(stretch_fp: Path, aligned_fp: Path, fp_out: Path) -> str:
+def gen_newstack_corr_command(fp_in: FilePath) -> None:
     """
     generates corrected.mrc
     uses the stretch file from create_stretch_file()
 
     newstack -x {WORKDIR}/stretch.xf {WORKDIR}/aligned.mrc {WORKDIR}/corrected.mrc
     """
-    cmd = f"{Config.newstack_loc} -x {stretch_fp} {aligned_fp} {fp_out} &> {fp_out.parent}/newstack_cor.log"
+    stretch_fp = fp_in.gen_output_fp(out_fname="stretch.xf")
+    align_mrc = fp_in.gen_output_fp(out_fname="align.mrc")
+    corrected_mrc = fp_in.gen_output_fp(out_fname="corrected.mrc")
+    log_file = f"{stretch_fp.parent}/newstack_cor.log"
+    cmd = [
+        Config.newstack_loc,
+        "-x",
+        stretch_fp.as_posix(),
+        align_mrc.as_posix(),
+        corrected_mrc.as_posix(),
+    ]
     utils.log(f"Created {cmd}")
-    return cmd
+    FilePath.run(cmd=cmd, log_file=log_file)
 
 
 @task
-def gen_newstack_norm_command(fp_in: Path, fp_out: Path) -> str:
+def gen_newstack_norm_command(fp_in: FilePath) -> None:
     """
     generates basename.mrc
     MRC file that will be used for all subsequent operations:
 
-    newstack -meansd 150,40 -mo 0 align.mrc|corrected.mrc {BASENAME}.mrc
+    newstack -meansd 150,40 -mo 0 corrected.mrc {BASENAME}.mrc
     """
-    cmd = f"{Config.newstack_loc} -meansd 150,40 -mo 0 {fp_in} {fp_out} &> {fp_out.parent}/newstack_norm.log"
+    corrected_mrc = fp_in.gen_output_fp(out_fname="corrected.mrc")
+    fp_out = fp_in.gen_output_fp(output_ext=".mrc")
+    log_file = f"{fp_out.parent}/newstack_norm.log"
+    cmd = [
+        Config.newstack_loc,
+        "-meansd",
+        "150,40",
+        "-mo",
+        "0",
+        corrected_mrc.as_posix(),
+        fp_out.as_posix(),
+    ]
     utils.log(f"Created {cmd}")
-    return cmd
+    FilePath.run(cmd=cmd, log_file=log_file)
+    assets_fp_mrc = fp_in.copy_to_assets_dir(fp_to_cp=fp_out)
 
 
 @task
-def gen_newstack_mid_mrc_command(fps: List[Path], fp_in: Path, fp_out: Path) -> str:
+def gen_newstack_mid_mrc_command(fp_in: FilePath) -> None:
     """
     generates mid.mrc
     newstack -secs {MIDZ}-{MIDZ} {WORKDIR}/{BASENAME}.mrc {WORKDIR}/mid.mrc
     """
-    mid_z = int(len(fps) / 2)
-    cmd = f"{Config.newstack_loc} -secs {mid_z} {fp_in} {fp_out} &> {fp_out.parent}/newstack_mid.log"
+    mid_mrc = fp_in.gen_output_fp(out_fname="mid.mrc")
+    base_mrc = fp_in.gen_output_fp(output_ext=".mrc")
+    utils.log(fp_in.fp_in.as_posix())
+    tifs = glob.glob(f"{fp_in.fp_in.as_posix()}/*tif")
+    utils.log(tifs)
+    mid_z = str(int(len(tifs) / 2))
+    log_file = f"{base_mrc.parent}/newstack_mid.log"
+    cmd = [Config.newstack_loc, "-secs", mid_z, base_mrc.as_posix(), mid_mrc.as_posix()]
     utils.log(f"Created {cmd}")
-    return cmd
+    FilePath.run(cmd=cmd, log_file=log_file)
 
 
 @task
-def gen_keyimg_cmd(basename_mrc_fp: Path, fp_out: Path) -> str:
+def gen_keyimg(fp_in: FilePath) -> Dict:
     """
     generates keyimg (large thumb)
-    mrc2tif -j -C 0,255 {WORKDIR}/{BASENAME}.mrc {WORKDIR}/hedwig/keyimg_{BASENAME}.jpg
+    mrc2tif -j -C 0,255 mid.mrc {WORKDIR}/keyimg_{BASENAME}.jpg
     """
-    cmd = f"{Config.mrc2tif_loc} -j -C 0,255 {basename_mrc_fp} {fp_out} &> {fp_out.parent}/mrc2tif.log"
+    mid_mrc = fp_in.gen_output_fp(out_fname="mid.mrc")
+    keyimg_fp = fp_in.gen_output_fp(out_fname="keyimg.jpg")
+    log_file = f"{mid_mrc.parent}/mrc2tif.log"
+    cmd = [Config.mrc2tif_loc, "-j", "-C", "0,255", mid_mrc.as_posix(), keyimg_fp.as_posix()]
     utils.log(f"Created keyimg {cmd}")
-    return cmd
+    FilePath.run(cmd=cmd, log_file=log_file)
+    asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=keyimg_fp)
+    keyimg_asset = fp_in.gen_asset(asset_type="keyImage", asset_fp=asset_fp)
+    return keyimg_asset
 
 
 @task
-def gen_keyimg_small_cmd(keyimg_fp: Path, keyimg_sm_fp) -> str:
+def gen_keyimg_small(fp_in: FilePath) -> Dict:
     """
     convert -size 300x300 {WORKDIR}/hedwig/keyimg_{BASENAME}.jpg \
             -resize 300x300 -sharpen 2 -quality 70 {WORKDIR}/hedwig/keyimg_{BASENAME}_s.jpg
     """
-    cmd = f"{Config.convert_loc} -size 300x300 {keyimg_fp} -resize 300x300 -sharpen 2 -quality 70 {keyimg_sm_fp} &> {keyimg_sm_fp.parent}/convert.log"
+    keyimg_fp = fp_in.gen_output_fp(out_fname="keyimg.jpg")
+    keyimg_sm_fp = fp_in.gen_output_fp(out_fname="keyimg_sm.jpg")
+    log_file = f"{keyimg_sm_fp.parent}/convert.log"
+    cmd = [Config.convert_loc, "-size", "300x300", keyimg_fp.as_posix(), "-resize", "300x300", "-sharpen", "2", "-quality", "70", keyimg_sm_fp.as_posix()]
     utils.log(f"Created {cmd}")
-    return cmd
-
+    FilePath.run(cmd=cmd, log_file=log_file)
+    asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=keyimg_sm_fp)
+    keyimg_asset = fp_in.gen_asset(asset_type="keyThumbnail", asset_fp=asset_fp)
+    return keyimg_asset
 
 @task
-def gen_basename(fps: List[Path]) -> Path:
-    """
-    For BASENAME, name of the first found tiff file in the stack,
-    no extension, trailing digits, dashes, and underscores trimmed.
-    TODO - Forrest asks: Can we use the dir name as the basename
-    eg a sample will look like
-    sample_dir/thing_a, sample_dir/thing_b
-    use thing_a and thing_b as basenames
-    TODO
-    """
-    return Path(fps[0].stem)
+def gen_prim_fps(fp_in: FilePath) -> Dict:
+    return fp_in.gen_prim_fp_elt()
 
-
+@task
+def add_asset(prim_fp: dict, asset: dict) -> dict:
+    prim_fp["assets"].append(asset)
+    return prim_fp
 
 
 with Flow(
@@ -170,245 +244,55 @@ with Flow(
 
     # dir to read from.
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
+    # note FIBSEM is different to other flows in that it uses *directories*
+    # to define stacks. Therefore, will have to list dirs to discover stacks
+    # (rather than eg mrc files)
     input_dir_fps = utils.list_dirs(input_dir_fp=input_dir_fp)
-    input_dir_fps_escaped = utils.sanitize_file_names(fps=input_dir_fps)
 
-    # input files to work on.
-    tif_fps = utils.list_files.map(
-        input_dir=input_dir_fps, exts=unmapped(["TIFF", "tiff", "TIF", "tif"])
-    )
-    # check there's something relevent in the input dir (raises exp)
-    utils.check_inputs_ok.map(tif_fps)
-
-    # dir in which to do work in
-    work_dirs = utils.set_up_work_env.map(input_dir_fps)
-    # outputs dir, to move results to.
-    assets_dirs = utils.make_assets_dir.map(input_dir=input_dir_fps)
-    # escape bad chars in file names
-    # only used for first step - gen_output_fp will translate to underscores
-    # tif_fps_escaped= utils.sanitize_file_names.map(tif_fps)
-
-    # gen source.mrc file
-    source_mrc_fps = utils.gen_output_fp.map(
-        working_dir=work_dirs,
-        input_fp=unmapped(Path("source")),
-        output_ext=unmapped(".mrc"),
-    )
-    source_mrc_commands = gen_tif_mrc_command.map(
-        input_dir=input_dir_fps_escaped, fp_out=source_mrc_fps
-    )
-    source_mrcs = shell_task.map(
-        command=source_mrc_commands, to_echo=unmapped(source_mrc_commands)
-    )
+    fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_dir_fps)
+    tif_to_mrc = convert_tif_to_mrc.map(fps)
 
     # using source.mrc gen align.xf
-    xf_fps = utils.gen_output_fp.map(
-        working_dir=work_dirs,
-        input_fp=unmapped(Path("align")),
-        output_ext=unmapped(".xf"),
-    )
-    xf_commands = gen_xfalign_comand.map(fp_in=source_mrc_fps, fp_out=xf_fps)
-    xf_aligns = shell_task.map(
-        command=xf_commands,
-        to_echo=unmapped(xf_commands),
-        upstream_tasks=[source_mrcs],
-    )
+    align_xfs = gen_xfalign_comand.map(fp_in=fps, upstream_tasks=[tif_to_mrc])
 
     # using align.xf create align.xg
-    xg_fps = utils.gen_output_fp.map(
-        working_dir=work_dirs,
-        input_fp=unmapped(Path("align")),
-        output_ext=unmapped(".xg"),
-    )
-    xg_commands = gen_xftoxg_comand.map(fp_in=xf_fps, fp_out=xg_fps)
-    xgs = shell_task.map(
-        command=xg_commands,
-        to_echo=unmapped(xg_commands),
-        upstream_tasks=[xf_aligns],
-    )
+    gen_align_xgs = gen_align_xg.map(fp_in=fps, upstream_tasks=[align_xfs])
 
     # using align.xg create align.mrc
-    mrc_align_fps = utils.gen_output_fp.map(
-        working_dir=work_dirs,
-        input_fp=unmapped(Path("align")),
-        output_ext=unmapped(".mrc"),
-    )
-    mrc_align_commands = gen_newstack_align_command.map(
-        align_xg=xg_fps, source_mrc=source_mrc_fps, align_mrc=mrc_align_fps
-    )
-    mrc_aligns = shell_task.map(
-        command=mrc_align_commands,
-        to_echo=unmapped(mrc_align_commands),
-        upstream_tasks=[xgs],
-    )
+    align_mrcs = gen_newstack_align.map(fp_in=fps, upstream_tasks=[gen_align_xgs])
 
     # create stretch file using tilt_parameter
-    # this only gets exec if tilt_parameter is not None
-    # if tilt_angle is spec'd, copy corrected.mrc to Assets
-    # else copy align_mrc file
-    stretch_fps = utils.gen_output_fp.map(
-        working_dir=work_dirs,
-        input_fp=unmapped(Path("stretch")),
-        output_ext=unmapped(".xf"),
-    )
-    stretchs = create_stretch_file.map(
-        tilt=unmapped(tilt_angle), fp_out=stretch_fps
+    stretchs = create_stretch_file.map(tilt=unmapped(tilt_angle), fp_in=fps)
+
+    corrected_mrcs = gen_newstack_corr_command.map(
+        fp_in=fps, upstream_tasks=[stretchs, align_mrcs]
     )
 
-    corrected_fps = utils.gen_output_fp.map(
-        working_dir=work_dirs,
-        input_fp=unmapped(Path("corrected")),
-        output_ext=unmapped(".mrc"),
-    )
-    newstack_cor_cmds = gen_newstack_corr_command.map(
-        stretch_fp=stretch_fps, aligned_fp=mrc_align_fps, fp_out=corrected_fps
-    )
-    newstack_cors = shell_task.map(
-        command=newstack_cor_cmds,
-        to_echo=unmapped(newstack_cor_cmds),
-        upstream_tasks=[mrc_aligns, stretchs],
+    base_mrcs = gen_newstack_norm_command.map(
+        fp_in=fps, upstream_tasks=[corrected_mrcs]
     )
 
-    # the normalized step uses corrected_fp if tilt is specified
-    # else it uses align_fp
-    norm_input_fps = merge(corrected_fps, mrc_align_fps)
+    # generate midpoint mrc file
+    mid_mrcs = gen_newstack_mid_mrc_command.map(fp_in=fps, upstream_tasks=[base_mrcs])
 
-    # newstack normalized,
-    basenames = gen_basename.map(fps=tif_fps)
-    norm_mrc_fps = utils.gen_output_fp.map(
-        working_dir=work_dirs, input_fp=basenames, output_ext=unmapped(".mrc")
-    )
-    newstack_norm_cmds = gen_newstack_norm_command.map(
-        fp_in=norm_input_fps, fp_out=norm_mrc_fps
-    )
-    newstack_norms = shell_task.map(
-        command=newstack_norm_cmds,
-        to_echo=unmapped(newstack_norm_cmds),
-        upstream_tasks=[newstack_cors],
-    )
+    # large thumb
+    keyimg_assets = gen_keyimg.map(fp_in=fps,upstream_tasks=[mid_mrcs])
+    # small thumb
+    thumb_assets = gen_keyimg_small.map(fp_in=fps, upstream_tasks=[keyimg_assets])
 
-    # newstack mid, gen mid.mrc
-    mid_mrc_fps = utils.gen_output_fp.map(
-        working_dir=work_dirs,
-        input_fp=unmapped(Path("mid")),
-        output_ext=unmapped(".mrc"),
-    )
-    newstack_mid_cmds = gen_newstack_mid_mrc_command.map(
-        fps=tif_fps, fp_in=norm_mrc_fps, fp_out=mid_mrc_fps
-    )
-    mid_mrc = shell_task.map(
-        command=newstack_mid_cmds,
-        to_echo=unmapped(newstack_mid_cmds),
-        upstream_tasks=[newstack_norms],
-    )
+    # nifti file generation
+    niftis = ng.gen_niftis.map(fp_in=fps, upstream_tasks=[base_mrcs])
 
-    # generate keyimg
-    keyimg_fps = utils.gen_output_fp.map(
-        working_dir=work_dirs, input_fp=basenames, output_ext=unmapped("_keyimg.jpg")
-    )
-    keyimg_cmds = gen_keyimg_cmd.map(basename_mrc_fp=mid_mrc_fps, fp_out=keyimg_fps)
-    keyimgs = shell_task.map(
-        command=keyimg_cmds,
-        to_echo=unmapped(keyimg_cmds),
-        upstream_tasks=[mid_mrc],
-    )
+    pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[niftis])
 
-    # generate keyimg small (thumbnail)
-    keyimg_sm_fps = utils.gen_output_fp.map(
-        working_dir=work_dirs, input_fp=basenames, output_ext=unmapped("_keyimg_sm.jpg")
-    )
-    keyimg_sm_cmds = gen_keyimg_small_cmd.map(
-        keyimg_fp=keyimg_fps, keyimg_sm_fp=keyimg_sm_fps
-    )
-    keyimg_sms = shell_task.map(
-        command=keyimg_sm_cmds,
-        to_echo=unmapped(keyimg_sm_cmds),
-        upstream_tasks=[keyimgs],
-    )
+    # this is the toplevel element (the input file basically) onto which
+    # the "assets" (ie the outputs derived from this file) are hung.
+    prim_fps = gen_prim_fps.map(fp_in=fps)
+    callback_with_thumbs = add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
+    callback_with_keyimgs = add_asset.map(prim_fp=callback_with_thumbs, asset=keyimg_assets)
+    callback_with_pyramids = add_asset.map(prim_fp=callback_with_keyimgs, asset=pyramid_assets)
 
-    # START PYRAMID GEN
-    mrc2nifti_cmds = ng.gen_mrc2nifti_cmd.map(
-        fp=norm_mrc_fps, upstream_tasks=[newstack_norms]
-    )
-    mrc2niftis = shell_task.map(command=mrc2nifti_cmds, to_echo=unmapped(norm_mrc_fps))
-
-    ##
-    ng_fps = ng.gen_pyramid_outdir.map(fp=norm_mrc_fps)
-    pyramid_cmds = ng.gen_pyramid_cmd.map(
-        fp=norm_mrc_fps, outdir=ng_fps, upstream_tasks=[mrc2niftis]
-    )
-    gen_pyramids = shell_task.map(command=pyramid_cmds, to_echo=unmapped(pyramid_cmds))
-    ##
-
-    ##
-    min_max_fps = utils.gen_output_fp.map(
-        input_fp=norm_mrc_fps, output_ext=unmapped("_min_max.json")
-    )
-    min_max_cmds = ng.gen_min_max_cmd.map(
-        fp=norm_mrc_fps, out_fp=min_max_fps, upstream_tasks=[mrc2niftis]
-    )
-    min_maxs = shell_task.map(command=min_max_cmds, to_echo=unmapped(min_max_cmds))
-    metadatas = ng.parse_min_max_file.map(fp=min_max_fps, upstream_tasks=[min_maxs])
-    # END PYRAMID
-    #
-
-    # copy over the mrc file used to Assets dir, as might be useful.
-    # Note, this is not reported to API!
-    # setting newstack_norms as upstream isn't exactly correct, but
-    # it's a merged value, and newstack_norms is first usage.
-    utils.copy_to_assets_dir.map(
-        fp=norm_input_fps,
-        assets_dir=assets_dirs,
-        upstream_tasks=[newstack_norms],
-    )
-    # generate base element
-    callback_base_elts = utils.gen_callback_elt.map(input_fname=input_dir_fps)
-
-    # thumnails (small thumbs)
-    thumbnail_fps = utils.copy_to_assets_dir.map(
-        fp=keyimg_sm_fps,
-        assets_dir=assets_dirs,
-        # prim_fp=norm_mrc_fps,
-        upstream_tasks=[keyimg_sms],
-    )
-    callback_with_thumbs = utils.add_assets_entry.map(
-        base_elt=callback_base_elts,
-        path=thumbnail_fps,
-        asset_type=unmapped("thumbnail"),
-    )
-
-    # keyimg
-    keyimg_fp_assets = utils.copy_to_assets_dir.map(
-        fp=keyimg_fps,
-        assets_dir=assets_dirs,
-        # prim_fp=norm_mrc_fps,
-        upstream_tasks=[keyimgs],
-    )
-    callback_with_keyimgs = utils.add_assets_entry.map(
-        base_elt=callback_with_thumbs,
-        path=keyimg_fp_assets,
-        asset_type=unmapped("keyImage"),
-    )
-
-    # neuroglancerPrecomputed
-    ng_asset_fps = utils.copy_to_assets_dir.map(
-        fp=ng_fps,
-        assets_dir=assets_dirs,
-        # prim_fp=norm_mrc_fps,
-        upstream_tasks=[gen_pyramids, metadatas],
-    )
-    callback_with_neuroglancer = utils.add_assets_entry.map(
-        base_elt=callback_with_keyimgs,
-        path=ng_asset_fps,
-        asset_type=unmapped("neuroglancerPrecomputed"),
-        metadata=metadatas,
-    )
-
+    cp_wd_to_assets = utils.copy_workdirs.map(fps, upstream_tasks=[callback_with_pyramids])
     cb = utils.send_callback_body(
-        token=token, callback_url=callback_url, files_elts=callback_with_neuroglancer
+        token=token, callback_url=callback_url, files_elts=callback_with_pyramids
     )
-
-    cp = utils.cp_logs_to_assets.map(
-        working_dir=work_dirs, assets_dir=assets_dirs, upstream_tasks=[unmapped(cb)]
-    )
-    utils.cleanup_workdir.map(wd=work_dirs, upstream_tasks=[unmapped(cp)])

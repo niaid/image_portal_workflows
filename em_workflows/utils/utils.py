@@ -1,5 +1,5 @@
+from em_workflows.file_path import FilePath
 import tempfile
-import re
 import re
 import requests
 import os
@@ -112,6 +112,29 @@ def _escape_str(name):
     return _to_esc.sub(_esc_char, name)
 
 
+@task
+def init_log(file_path: FilePath) -> None:
+    fp = f"{file_path.working_dir.as_posix()}/log.txt"
+    log_fp = Path(fp)
+    # we are going to clobber previous logs - rm if want to keep
+    # if log_fp.exists():
+    #    log_fp.unlink()
+    # the getLogger function uses the (fairly) unique input_dir to look up.
+    logger = logging.getLogger(context.parameters["input_dir"])
+    logger.setLevel("INFO")
+
+    if not logger.handlers:
+        handler = logging.FileHandler(log_fp, encoding="utf-8")
+        logger.addHandler(handler)
+
+        # Formatter can be whatever you want
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d_%H:%M:%S",
+        )
+        handler.setFormatter(formatter)
+
+
 def _init_log(working_dir: Path) -> None:
     log_fp = Path(working_dir, Path("log.txt"))
     # we are going to clobber previous logs - rm if want to keep
@@ -156,8 +179,13 @@ def log(msg):
     context.logger.info(msg)
 
 
-@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
+@task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
+def copy_workdirs(file_path: FilePath) -> Path:
+    return file_path.copy_workdir_to_assets()
+
+@task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
 def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
+    """copies entire contents of working dir to outputs dir"""
     workd_name = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
     dest = f"{assets_dir.as_posix()}/{workd_name}"
     log(f"An error occured - will copy {working_dir} to {dest}")
@@ -198,6 +226,8 @@ def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> Lis
     else:
         for ext in exts:
             _files.extend(input_dir.glob(f"*.{ext}"))
+    if not _files:
+        raise signals.FAIL(f"Input dir does not contain anything to process.")
     log("found files")
     log(_files)
     return _files
@@ -341,6 +371,16 @@ def get_input_dir(input_dir: str) -> Path:
     input_path_str = Config.proj_dir(env=get_environment()) + input_dir
     return Path(input_path_str)
 
+
+@task
+def gen_fps(input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
+    fps = list()
+    for fp in fps_in:
+        file_path = FilePath(input_dir=input_dir, fp_in=fp)
+        msg = f"created working_dir {file_path.working_dir} for {fp.as_posix()}"
+        log(msg)
+        fps.append(file_path)
+    return fps
 
 @task
 def set_up_work_env(input_fp: Path) -> Path:
@@ -494,7 +534,7 @@ def send_callback_body(
     log(json.dumps(data))
     log(response.text)
     log(response.headers)
-    if response != 200:
+    if response.status_code != 204:
         msg = f"Bad response code on callback: {response}"
         log(msg=msg)
         raise ValueError(msg)
