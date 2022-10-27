@@ -12,6 +12,7 @@ if [[ ! ( $HEDWIG_ENV == "dev" || $HEDWIG_ENV == "qa" || $HEDWIG_ENV == "prod" )
 	exit 1
 fi
 
+
 export HEDWIG_ENV=$HEDWIG_ENV
 export IMOD_DIR=/opt/rml/imod
 
@@ -29,6 +30,10 @@ fi
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 VENV=$SCRIPT_DIR/../../../$HEDWIG_ENV
+export VENV
+_OLD_VIRTUAL_PATH="$PATH"
+PATH="$VENV/bin:$PATH"
+export PATH
 WFLOWS=$SCRIPT_DIR/../em_workflows
 PREFECT=$VENV/bin/prefect
 PYTHON=$VENV/bin/python3
