@@ -237,7 +237,7 @@ class FilePath:
         shutil.rmtree(self.working_dir)
 
     @staticmethod
-    def run(cmd: List[str], log_file: str) -> None:
+    def run(cmd: List[str], log_file: str) -> int:
         try:
             sp = subprocess.run(cmd, check=False, capture_output=True)
         except Exception as ex:
@@ -247,6 +247,7 @@ class FilePath:
             msg = "ERROR : " + sp.stderr.decode("utf-8")
             log(msg)
             raise signals.FAIL(msg)
+        return sp.returncode
 
 #        with open(log_file, "w+") as _file:
 #            _file.write(f"STDOUT:{sp.stdout}")
