@@ -246,6 +246,7 @@ class FilePath:
                 stderr = sp.stderr.decode("utf-8")
                 msg = f"ERROR : {stderr} -- {stdout}"
                 log(msg)
+                raise signals.FAIL(msg)
         except Exception as ex:
             raise signals.FAIL(str(ex))
         return sp.returncode

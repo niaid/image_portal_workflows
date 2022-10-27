@@ -62,7 +62,7 @@ def convert_mrc_to_jpeg(file_path: FilePath) -> None:
     if cur.suffix == ".mrc":
         output_fp = file_path.gen_output_fp(".jpeg")
         log_fp = f"{output_fp.parent}/mrc2tif.log"
-        cmd = [Config.mrc2tif_loc, "-j", cur.as_posix(), output_fp]
+        cmd = [Config.mrc2tif_loc, "-j", cur.as_posix(), output_fp.as_posix()]
         utils.log(f"Generated cmd {cmd}")
         FilePath.run(cmd, log_fp)
         file_path.update_current(output_fp)
@@ -90,7 +90,7 @@ def scale_jpegs(file_path: FilePath) -> Optional[dict]:
             "2",
             "-quality",
             "70",
-            output_sm,
+            output_sm.as_posix(),
         ]
         cmd_lg = [
             "gm",
@@ -104,7 +104,7 @@ def scale_jpegs(file_path: FilePath) -> Optional[dict]:
             "2",
             "-quality",
             "70",
-            output_lg,
+            output_lg.as_posix(),
         ]
         log_sm = f"{output_sm.parent}/jpeg_sm.log"
         log_lg = f"{output_lg.parent}/jpeg_lg.log"
