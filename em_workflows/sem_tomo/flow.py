@@ -38,9 +38,9 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
     utils.log(f"Created {cmd}")
     c =  ' '.join(cmd)
     c = f"c &> {log_file}"
-    sp = subprocess.run(c, shell=True)
+    # sp = subprocess.run(c, shell=True)
 
-    # FilePath.run(cmd=cmd, log_file=log_file)
+    FilePath.run(cmd=cmd, log_file=log_file)
 
 
 @task
