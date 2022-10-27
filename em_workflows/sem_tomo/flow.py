@@ -1,4 +1,5 @@
 from em_workflows.file_path import FilePath
+import subprocess
 import glob
 import math
 from typing import List, Dict
@@ -35,7 +36,11 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
         align_xf.as_posix(),
     ]
     utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    c =  ' '.join(cmd)
+    c = f"c &> {log_file}"
+    sp = subprocess.run(c, shell=True)
+
+    # FilePath.run(cmd=cmd, log_file=log_file)
 
 
 @task
