@@ -35,11 +35,6 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
         source_mrc.as_posix(),
         align_xf.as_posix(),
     ]
-    utils.log(f"Created {cmd}")
-    c =  ' '.join(cmd)
-    c = f"c &> {log_file}"
-    # sp = subprocess.run(c, shell=True)
-
     FilePath.run(cmd=cmd, log_file=log_file)
 
 
