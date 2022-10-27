@@ -13,6 +13,7 @@ if [[ ! ( $HEDWIG_ENV == "dev" || $HEDWIG_ENV == "qa" || $HEDWIG_ENV == "prod" )
 fi
 
 export HEDWIG_ENV=$HEDWIG_ENV
+export IMOD_DIR=/opt/rml/imod
 
 ACTION=$2
 if [[ ! ( $ACTION == "listen" || $ACTION == "register" ) ]]; then
