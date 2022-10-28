@@ -18,6 +18,14 @@ from prefect.engine import signals
 
 from em_workflows.config import Config
 
+@task
+def gen_prim_fps(fp_in: FilePath) -> Dict:
+    return fp_in.gen_prim_fp_elt()
+
+@task
+def add_asset(prim_fp: dict, asset: dict) -> dict:
+    prim_fp["assets"].append(asset)
+    return prim_fp
 
 @task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
 def cleanup_workdir(wd: Path):

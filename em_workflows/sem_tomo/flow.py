@@ -220,14 +220,6 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
     keyimg_asset = fp_in.gen_asset(asset_type="keyThumbnail", asset_fp=asset_fp)
     return keyimg_asset
 
-@task
-def gen_prim_fps(fp_in: FilePath) -> Dict:
-    return fp_in.gen_prim_fp_elt()
-
-@task
-def add_asset(prim_fp: dict, asset: dict) -> dict:
-    prim_fp["assets"].append(asset)
-    return prim_fp
 
 
 with Flow(
@@ -287,10 +279,10 @@ with Flow(
 
     # this is the toplevel element (the input file basically) onto which
     # the "assets" (ie the outputs derived from this file) are hung.
-    prim_fps = gen_prim_fps.map(fp_in=fps)
-    callback_with_thumbs = add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
-    callback_with_keyimgs = add_asset.map(prim_fp=callback_with_thumbs, asset=keyimg_assets)
-    callback_with_pyramids = add_asset.map(prim_fp=callback_with_keyimgs, asset=pyramid_assets)
+    prim_fps = utils.gen_prim_fps.map(fp_in=fps)
+    callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
+    callback_with_keyimgs = utils.add_asset.map(prim_fp=callback_with_thumbs, asset=keyimg_assets)
+    callback_with_pyramids = utils.add_asset.map(prim_fp=callback_with_keyimgs, asset=pyramid_assets)
 
     cp_wd_to_assets = utils.copy_workdirs.map(fps, upstream_tasks=[callback_with_pyramids])
     cb = utils.send_callback_body(

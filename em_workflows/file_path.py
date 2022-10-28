@@ -27,14 +27,14 @@ class FilePath:
         # not a great name - used to create the subdir into which assets are put eg
         self.base = fp_in.stem
         # current transformation of this file - init to input fname
-        self._current = fp_in
+        # self._current = fp_in
         self._working_dir = self.make_work_dir()
         self._assets_dir = self.make_assets_dir()
         self.environment = self.get_environment()
         self.proj_root = Path(Config.proj_dir(env=self.environment))
         self.asset_root = Path(Config.assets_dir(env=self.environment))
         self.prim_fp_elt = self.gen_prim_fp_elt()
-        log(self.__repr__())
+        #log(self.__repr__())
 
     def __repr__(self) -> str:
         return f"FilePath: proj_root:{self.proj_root}, \
@@ -49,9 +49,9 @@ class FilePath:
         """
         return self._assets_dir
 
-    @property
-    def current(self) -> Path:
-        return self._current
+#    @property
+#    def current(self) -> Path:
+#        return self._current
 
     @property
     def working_dir(self) -> Path:
@@ -180,9 +180,10 @@ class FilePath:
         output_fp = f"{self.working_dir.as_posix()}/{f_name}"
         return Path(output_fp)
 
-    def filter_by_suffix(self, suffixes: List[str]) -> bool:
+    @staticmethod
+    def filter_by_suffix(fp: Path, suffixes: List[str]) -> bool:
         for ext in suffixes:
-            if self.current.suffix.lower() == ext:
+            if fp.suffix.lower() == ext:
                 return True
         return False
 
@@ -247,6 +248,11 @@ class FilePath:
                 msg = f"ERROR : {stderr} -- {stdout}"
                 log(msg)
                 raise signals.FAIL(msg)
+            else:
+                stdout = sp.stdout.decode("utf-8")
+                stderr = sp.stderr.decode("utf-8")
+                msg = f"Command ok : {stderr} -- {stdout}"
+                log(msg)
         except Exception as ex:
             raise signals.FAIL(str(ex))
         return sp.returncode
