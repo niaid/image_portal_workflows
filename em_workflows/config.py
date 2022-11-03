@@ -21,7 +21,11 @@ class Config:
     xfalign_loc = "/opt/rml/imod/bin/xfalign"
     xftoxg_loc = "/opt/rml/imod/bin/xftoxg"
     newstack_loc = "/opt/rml/imod/bin/newstack"
+    header_loc = "/opt/rml/imod/bin/header"
     convert_loc = "/usr/bin/convert"
+    clip_loc = "/opt/rml/imod/bin/clip"
+    binvol = "/opt/rml/imod/bin/binvol"
+
     # environment where the app gets run - used for share selection
     env_to_share = {
         "dev": "RMLEMHedwigDev",
