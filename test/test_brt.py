@@ -1,4 +1,5 @@
 import pytest
+import shutil
 import sys
 import os
 import prefect
@@ -8,7 +9,7 @@ from prefect.executors import LocalExecutor
 
 from em_workflows.config import Config
 from em_workflows.utils import utils
-
+from em_workflows.file_path import FilePath
 
 @pytest.fixture
 def hpc_env(monkeypatch):
@@ -23,6 +24,25 @@ def hpc_env(monkeypatch):
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
     monkeypatch.setattr(Config, "mount_point", f"{os.getcwd()}")
     monkeypatch.setattr(Config, "tmp_dir", "/tmp/")
+    monkeypatch.setattr(Config, "brt_binary", "/usr/local/IMOD/bin/batchruntomo")
+
+    @task
+    def _run_brt(
+            file_path: FilePath,
+            adoc_template: str,
+            montage: int,
+            gold: int,
+            focus: int,
+            fiducialless: int,
+            trackingMethod: int,
+            TwoSurfaces: int,
+            TargetNumberOfBeads: int,
+            LocalAlignments: int,
+            THICKNESS: int,
+            ) -> None:
+        prefect.context.get("logger").info(f"MOCKED {file_path}")
+        shutil.copy("/home/macmenaminpe/code/image_portal_workflows/test/input_files/brt_outputs/2013-1220-dA30_5-BSC-1_10_ali.mrc", file_path.working_dir)
+        shutil.copy("/home/macmenaminpe/code/image_portal_workflows/test/input_files/brt_outputs/2013-1220-dA30_5-BSC-1_10_rec.mrc", file_path.working_dir)
 
     @task
     def _create_brt_command(adoc_fp: Path) -> str:
@@ -30,7 +50,7 @@ def hpc_env(monkeypatch):
         prefect.context.get("logger").info(f"MOCKED {s}")
         return s
 
-    monkeypatch.setattr(utils, "create_brt_command", _create_brt_command)
+    monkeypatch.setattr(utils,'run_brt', _run_brt)
 
 
 def test_brt(hpc_env):
