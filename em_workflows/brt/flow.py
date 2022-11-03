@@ -27,8 +27,6 @@ from em_workflows.config import Config
 shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
 
-def log(msg):
-    context.logger.info(msg)
 
 
 
@@ -47,13 +45,13 @@ def gen_dimension_command(file_path: FilePath) -> str:
         stdout = sp.stdout.decode("utf-8")
         stderr = sp.stderr.decode("utf-8")
         msg = f"ERROR : {stderr} -- {stdout}"
-        log(msg)
+        utils.log(msg)
         raise signals.FAIL(msg)
     else:
         stdout = sp.stdout.decode("utf-8")
         stderr = sp.stderr.decode("utf-8")
         msg = f"Command ok : {stderr} -- {stdout}"
-        log(msg)
+        utils.log(msg)
         xyz_dim = re.split(" +(\d+)", stdout)
         z_dim = xyz_dim[5]
         utils.log(f"z_dim: {z_dim:}")
