@@ -8,7 +8,6 @@ from typing import List
 
 from pathlib import Path
 import shutil
-from jinja2 import Environment, FileSystemLoader
 from prefect import task, Flow, Parameter, unmapped, flatten, case
 from prefect.run_configs import LocalRun, base
 from prefect.tasks.control_flow import merge
@@ -35,7 +34,14 @@ def log(msg):
 
 @task
 def gen_dimension_command(file_path: FilePath) -> str:
-    command = f"header -s {file_path.working_dir}/{file_path.base}_ali.mrc | tee {file_path.working_dir}/header_gen_dim.log"
+    ali_file = f"{file_path.working_dir}/{file_path.base}_ali.mrc"
+    ali_file_p = Path(ali_file)
+    if ali_file_p.exists():
+        utils.log(f"{ali_file} exists")
+    else:
+        utils.log(f"{ali_file} DOES NOT exist")
+    
+    command = f"header -s {ali_file} | tee {file_path.working_dir}/header_gen_dim.log"
     a = subprocess.run(command, shell=True, check=True, capture_output=True)
     outputs = a.stdout
     xyz_dim = re.split(" +(\d+)", str(outputs))
