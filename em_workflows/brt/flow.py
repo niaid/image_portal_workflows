@@ -39,7 +39,7 @@ def gen_dimension_command(file_path: FilePath) -> str:
     else:
         utils.log(f"{ali_file} DOES NOT exist")
         raise signals.FAIL(f"File {ali_file} does not exist. gen_dimension_command failure.")
-    cmd = ["header", "-s", ali_file]
+    cmd = [Config.header_loc, "-s", ali_file]
     sp = subprocess.run(cmd, check=False, capture_output=True)
     if sp.returncode != 0:
         stdout = sp.stdout.decode("utf-8")
@@ -72,7 +72,7 @@ def gen_ali_x(file_path: FilePath, z_dim) -> None:
         i_padded = str(i).rjust(3, "0")
         ali_x = f"{file_path.working_dir}/{file_path.base}_ali{i_padded}.mrc"
         log_file =  f"{file_path.working_dir}/newstack_mid_pt.log"
-        cmd = ["newstack", "-secs", f"{i}-{i}", ali_file, ali_x]
+        cmd = [Config.newstack_loc, "-secs", f"{i}-{i}", ali_file, ali_x]
         FilePath.run(cmd=cmd, log_file=log_file)
 
 
@@ -83,7 +83,7 @@ def gen_ali_asmbl(file_path: FilePath) -> None:
     """
     alis = glob.glob(f"{file_path.working_dir}/{file_path.base}_ali*.mrc")
     ali_asmbl = f"{file_path.working_dir}/ali_{file_path.base}.mrc"
-    ali_base_cmd = ["newstack", "-float", "3"]
+    ali_base_cmd = [Config.newstack_loc, "-float", "3"]
     ali_base_cmd.extend(alis)
     ali_base_cmd.append(ali_asmbl)
     FilePath.run(cmd=ali_base_cmd, log_file=f"{file_path.working_dir}/asmbl.log")
@@ -97,7 +97,7 @@ def gen_mrc2tiff(file_path: FilePath) -> None:
     """
     ali_asmbl = f"{file_path.working_dir}/ali_{file_path.base}.mrc"
     ali = f"{file_path.working_dir}/{file_path.base}_ali"
-    cmd = ["mrc2tif", "-j", "-C", "0,255", ali_asmbl, ali]
+    cmd = [Config.mrc2tif_loc, "-j", "-C", "0,255", ali_asmbl, ali]
     log_file = f"{file_path.working_dir}/mrc2tif_align.log"
     FilePath.run(cmd=cmd, log_file=log_file)
 
@@ -206,7 +206,7 @@ def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
         padded_val = str(i).zfill(3)
         ave_mrc = f"{file_path.working_dir}/{file_path.base}_ave{padded_val}.mrc"
         min_max = f"{str(izmin)}-{str(izmax)}"
-        cmd = ["clip", "avg", "-2d", "-iz",  min_max, "-m", "1", in_fp, ave_mrc]
+        cmd = [Config.clip_loc, "avg", "-2d", "-iz",  min_max, "-m", "1", in_fp, ave_mrc]
         log_file = f"{file_path.working_dir}/clip_avg.error.log"
         FilePath.run(cmd=cmd, log_file=log_file)
 
@@ -218,7 +218,7 @@ def gen_ave_vol(file_path: FilePath) -> dict:
     """
     aves = glob.glob(f"{file_path.working_dir}/{file_path.base}_ave*")
     ave_mrc = f"{file_path.working_dir}/{file_path.base}_ave.mrc"
-    cmd = ["newstack", "-float", "3"]
+    cmd = [Config.newstack_loc, "-float", "3"]
     cmd.extend(aves)
     cmd.append(ave_mrc)
     log_file = f"{file_path.working_dir}/newstack_float.log"
@@ -234,7 +234,7 @@ def gen_ave_8_vol(file_path: FilePath):
     """
     ave_8_mrc = f"{file_path.working_dir}/avebin8_{file_path.base}.mrc"
     ave_mrc = f"{file_path.working_dir}/{file_path.base}_ave.mrc"
-    cmd = ["binvol", "-binning", "2", ave_mrc, ave_8_mrc]
+    cmd = [Config.binvol, "-binning", "2", ave_mrc, ave_8_mrc]
     log_file = f"{file_path.working_dir}/ave_8_mrc.log"
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(ave_8_mrc))
@@ -249,7 +249,7 @@ def gen_mrc2tif(file_path: FilePath):
     mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
     ave_8_mrc = f"{file_path.working_dir}/avebin8_{file_path.base}.mrc"
     log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
-    cmd = ["mrc2tif", "-j", "-C", "100,255", ave_8_mrc, mp4]
+    cmd = [Config.mrc2tif_loc, "-j", "-C", "100,255", ave_8_mrc, mp4]
     FilePath.run(cmd=cmd, log_file=log_file)
 
 
