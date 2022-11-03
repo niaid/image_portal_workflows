@@ -15,10 +15,6 @@ setupset.copyarg.stackext = {{ stackext }}
 setupset.currentBStackExt = {{ currentBStackExt }}
 {% endif %}
 
-{% if dual is not none %}
-setupset.copyarg.dual = {{ dual }}
-{% endif %}
-
 setupset.copyarg.pixel =
 
 {% if montage is not none %}
