@@ -40,14 +40,27 @@ def gen_dimension_command(file_path: FilePath) -> str:
         utils.log(f"{ali_file} exists")
     else:
         utils.log(f"{ali_file} DOES NOT exist")
+        raise signals.FAIL(f"File {ali_file} does not exist. gen_dimension_command failure.")
+    cmd = ["header", "-s", ali_file]
+    sp = subprocess.run(cmd, check=False, capture_output=True)
+    if sp.returncode != 0:
+        stdout = sp.stdout.decode("utf-8")
+        stderr = sp.stderr.decode("utf-8")
+        msg = f"ERROR : {stderr} -- {stdout}"
+        log(msg)
+        raise signals.FAIL(msg)
+    else:
+        stdout = sp.stdout.decode("utf-8")
+        stderr = sp.stderr.decode("utf-8")
+        msg = f"Command ok : {stderr} -- {stdout}"
+        log(msg)
+        xyz_dim = re.split(" +(\d+)", stdout)
+        z_dim = xyz_dim[5]
+        utils.log(f"z_dim: {z_dim:}")
+        return z_dim
     
-    command = f"header -s {ali_file} | tee {file_path.working_dir}/header_gen_dim.log"
-    a = subprocess.run(command, shell=True, check=True, capture_output=True)
-    outputs = a.stdout
-    xyz_dim = re.split(" +(\d+)", str(outputs))
-    z_dim = xyz_dim[5]
-    utils.log(f"z_dim: {z_dim:}")
-    return z_dim
+    # command = f"header -s {ali_file} | tee {file_path.working_dir}/header_gen_dim.log"
+    # a = subprocess.run(command, shell=True, check=True, capture_output=True)
 
 
 
