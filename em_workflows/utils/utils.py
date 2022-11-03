@@ -71,6 +71,163 @@ def _make_work_dir(fname: Path = None) -> Path:
     return Path(working_dir)
 
 
+def update_adoc(
+    adoc_fp: Path,
+    tg_fp: Path,
+    montage: int,
+    gold: int,
+    focus: int,
+    fiducialless: int,
+    trackingMethod: int,
+    TwoSurfaces: int,
+    TargetNumberOfBeads: int,
+    LocalAlignments: int,
+    THICKNESS: int,
+) -> Path:
+    """
+    Uses jinja templating to update the adoc file with input params.
+    dual_p is calculated by inputs_paired() and is used to define `dual`
+    Some of these parameters are derived programatically.
+    """
+    file_loader = FileSystemLoader(str(adoc_fp.parent))
+    env = Environment(loader=file_loader)
+    template = env.get_template(adoc_fp.name)
+
+    name = tg_fp.stem
+    currentBStackExt = None
+    stackext = tg_fp.suffix[1:]
+    # if dual_p:
+    #    dual = 1
+    #    currentBStackExt = tg_fp.suffix[1:]  # TODO - assumes both files are same ext
+    datasetDirectory = adoc_fp.parent
+    if int(TwoSurfaces) == 0:
+        SurfacesToAnalyze = 1
+    elif int(TwoSurfaces) == 1:
+        SurfacesToAnalyze = 2
+    else:
+        raise signals.FAIL(
+            f"Unable to resolve SurfacesToAnalyze, TwoSurfaces \
+                is set to {TwoSurfaces}, and should be 0 or 1"
+        )
+    rpa_thickness = int(int(THICKNESS) * 1.5)
+
+    vals = {
+        "name": name,
+        "stackext": stackext,
+        "currentBStackExt": currentBStackExt,
+        "montage": montage,
+        "gold": gold,
+        "focus": focus,
+        "datasetDirectory": datasetDirectory,
+        "fiducialless": fiducialless,
+        "trackingMethod": trackingMethod,
+        "TwoSurfaces": TwoSurfaces,
+        "TargetNumberOfBeads": TargetNumberOfBeads,
+        "SurfacesToAnalyze": SurfacesToAnalyze,
+        "LocalAlignments": LocalAlignments,
+        "rpa_thickness": rpa_thickness,
+        "THICKNESS": THICKNESS,
+    }
+
+    # junk above for now.
+    #    vals = {
+    #        "basename": name,
+    #        "bead_size": 10,
+    #        "light_beads": 0,
+    #        "tilt_thickness": 256,
+    #        "montage": 0,
+    #        "dataset_dir": str(adoc_fp.parent),
+    #    }
+    output = template.render(vals)
+    adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
+    log(f"Created adoc: adoc_loc.as_posix()")
+    with open(adoc_loc, "w") as _file:
+        print(output, file=_file)
+    log(f"generated {adoc_loc}")
+    return adoc_loc
+def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
+    """
+    copies files (tomograms/mrc files) into working_dir
+    returns Path of copied file
+    """
+    new_loc = Path(f"{working_dir}/{fname.name}")
+    if fname.exists():
+        shutil.copyfile(src=fname.as_posix(), dst=new_loc)
+    else:
+        fp_1 = Path(f"{fname.parent}/{fname.stem}a{fname.suffix}")
+        fp_2 = Path(f"{fname.parent}/{fname.stem}b{fname.suffix}")
+        if fp_1.exists() and fp_2.exists():
+            shutil.copyfile(src=fp_1.as_posix(), dst=f"{working_dir}/{fp_1.name}")
+            shutil.copyfile(src=fp_2.as_posix(), dst=f"{working_dir}/{fp_2.name}")
+        else:
+            raise signals.FAIL(f"Files missing. {fp_1},{fp_2}. BRT run failure.")
+    return new_loc
+
+def copy_template(working_dir: Path, template_name: str) -> Path:
+    """
+    copies the template adoc file to the working_dir,
+    """
+    adoc_fp = f"{working_dir}/{template_name}.adoc"
+    template_fp = f"{Config.template_dir}/{template_name}.adoc"
+    log(f"trying to copy {template_fp} to {adoc_fp}")
+    shutil.copyfile(template_fp, adoc_fp)
+    return Path(adoc_fp)
+@task
+def run_brt(
+    file_path: FilePath,
+    adoc_template: str,
+    montage: int,
+    gold: int,
+    focus: int,
+    fiducialless: int,
+    trackingMethod: int,
+    TwoSurfaces: int,
+    TargetNumberOfBeads: int,
+    LocalAlignments: int,
+    THICKNESS: int,
+) -> None:
+
+    adoc_fp = copy_template(
+        working_dir=file_path.working_dir, template_name=adoc_template
+    )
+    updated_adoc = update_adoc(
+        adoc_fp=adoc_fp,
+        tg_fp=file_path.fp_in,
+        montage=montage,
+        gold=gold,
+        focus=focus,
+        fiducialless=fiducialless,
+        trackingMethod=trackingMethod,
+        TwoSurfaces=TwoSurfaces,
+        TargetNumberOfBeads=TargetNumberOfBeads,
+        LocalAlignments=LocalAlignments,
+        THICKNESS=THICKNESS,
+    )
+    # why do we need to copy these?
+    tomogram_fp = copy_tg_to_working_dir(
+        fname=file_path.fp_in, working_dir=file_path.working_dir
+    )
+
+    # START BRT (Batchruntomo) - long running process.
+    cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "8", "-gpu", "1"]
+    log_file = f"{file_path.working_dir}/brt_run.log"
+    FilePath.run(cmd, log_file)
+    brts_ok = check_brt_run_ok(file_path=file_path)
+
+def check_brt_run_ok(file_path: FilePath):
+    """
+    ensures the following files exist:
+    BASENAME_rec.mrc - the source for the reconstruction movie
+    and Neuroglancer pyramid
+    BASENAME_ali.mrc
+    """
+    rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
+    ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
+    log(f"checking that dir {file_path.working_dir} contains ok BRT run")
+
+    for _file in [rec_file, ali_file]:
+        if not _file.exists():
+            raise signals.FAIL(f"File {_file} does not exist. BRT run failure.")
 @task
 def create_brt_command(adoc_fp: Path) -> str:
     cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1 &> {adoc_fp.parent}/brt.log"
