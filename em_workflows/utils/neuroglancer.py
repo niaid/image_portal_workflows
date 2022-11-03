@@ -1,3 +1,4 @@
+import subprocess
 from em_workflows.file_path import FilePath
 from em_workflows.utils import utils
 from typing import Dict
@@ -113,14 +114,17 @@ def gen_pyramid_cmd(fp: Path, outdir: Path) -> str:
 
 
 @task
-def gen_archive_pyramid_cmd(working_dir: Path, archive_name: Path) -> str:
+def gen_archive_pyr(file_path: FilePath) -> None:
     """
-    cd working_dir && zip  --compression-method store  -r archive_name  ./* && cd -
+    zip  --compression-method store  -r archive_name  ./* && cd -
     """
-    cmd = f"cd {working_dir} && zip -q --compression-method store -r {archive_name} ./* && cd -"
+    ng_dir = f"{file_path.working_dir}/neuro-{file_path.fp_in.stem}"
+    archive_name = f"{file_path.base}.zip"
+
+    cmd = ["zip", "-q", "--compression-method", "store", "-r", archive_name, ng_dir]
     logger = prefect.context.get("logger")
-    logger.info(f"gen_min_max_cmd command: {cmd}")
-    return cmd
+    logger.info(f"compressing : {cmd}")
+    subprocess.run(cmd, cwd=file_path.working_dir)
 
 
 @task
