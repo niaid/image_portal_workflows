@@ -7,16 +7,9 @@ import math
 from typing import List
 
 from pathlib import Path
-import shutil
-from prefect import task, Flow, Parameter, unmapped, flatten, case
-from prefect.run_configs import LocalRun, base
-from prefect.tasks.control_flow import merge
+from prefect import task, Flow, Parameter, unmapped
+from prefect.run_configs import LocalRun
 from prefect.engine import signals
-from prefect.triggers import any_successful
-
-from prefect import context
-
-# from prefect.tasks.shell import ShellTask
 
 
 from em_workflows.utils import utils
@@ -56,9 +49,6 @@ def gen_dimension_command(file_path: FilePath) -> str:
         z_dim = xyz_dim[5]
         utils.log(f"z_dim: {z_dim:}")
         return z_dim
-    
-    # command = f"header -s {ali_file} | tee {file_path.working_dir}/header_gen_dim.log"
-    # a = subprocess.run(command, shell=True, check=True, capture_output=True)
 
 
 
@@ -132,19 +122,6 @@ def gen_copy_keyimages(file_path: FilePath, z_dim: str) -> dict:
     return keyimg_asset
 
 
-#ffmpeg -f image2 -framerate 4 -i ${BASENAME}_ali.%03d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 tiltMov_${BASENAME}.mp4
-@task
-def gen_gm_convert(tomogram_fp: Path, middle_i: str, fp_out: Path) -> str:
-    """
-    generates the keyThumbnail
-    fname_in and fname_out both derived from tomogram fp
-    MIDDLE_I might always be an int
-    gm convert -size 300x300 path/BASENAME_ali.{MIDDLE_I}.jpg -resize 300x300 -sharpen 2 -quality 70 path/keyimg_BASENAME_s.jpg
-    """
-    fname_in = f"{tomogram_fp.parent}/{tomogram_fp.stem}_ali.{middle_i}.jpg"
-    cmd = f"gm convert -size 300x300 {fname_in} -resize 300x300 -sharpen 2 -quality 70 {fp_out} &> {tomogram_fp.parent}/gm_convert_thumb.log"
-    utils.log(cmd)
-    return cmd
 
 
 def calc_middle_i(z_dim: str) -> str:
@@ -253,34 +230,13 @@ def gen_mrc2tif(file_path: FilePath):
     FilePath.run(cmd=cmd, log_file=log_file)
 
 
-@task
-def gen_mrc2tiff_rc_cmd(fp: Path) -> str:
-    """
-    mrc2tif -j -C 100,255 path/ave_BASNAME.mrc path/BASENAME_mp4
-    """
-    fp_in = f"{fp.parent}/{fp.stem}_ave.mrc"
-    fp_out = f"{fp.parent}/{fp.stem}_mp4"
-    cmd = f"mrc2tif -j -C 100,255 {fp_in} {fp_out} 2> {fp.parent}/mrc2tif.log"
-    utils.log(f"mrc2tiff command: {cmd}")
-    return cmd
-
-
-@task
-def gen_ffmpeg_rc_cmd(fp: Path, fp_out: Path) -> str:
-    """
-    TODO - 3 or 4?
-    ffmpeg -f image2 -framerate 8 -i path/BASENAME_mp4.%03d.jpg -vcodec \
-            libx264 -pix_fmt yuv420p -s 1024,1024 path/keyMov_BASENAME.mp4
-    """
-    fp_in = f"{fp.parent}/{fp.stem}_mp4.%03d.jpg"
-    cmd = f"ffmpeg -f image2 -framerate 8 -y -i {fp_in} -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 {fp_out} &> {fp.parent}/ffmpeg_recon.log"
-    utils.log(f"reconstruction ffmpeg command: {cmd}")
-    return cmd
 
 
 @task
 def list_paired_files(fnames: List[Path]) -> List[Path]:
-    """if the input is a paired/dual axis shot, we can trucate the a|b off
+    """
+    THIS IS AN OLD FUNC : Keeping for now, they'll probably want this back.
+    if the input is a paired/dual axis shot, we can trucate the a|b off
     the filename, and use that string from this point on.
     We need to ensure there are only paired inputs in this list.
     """
@@ -303,6 +259,7 @@ def list_paired_files(fnames: List[Path]) -> List[Path]:
 @task
 def check_inputs_paired(fps: List[Path]):
     """
+    THIS IS AN OLD FUNC : Keeping for now, they'll probably want this back.
     asks if there are ANY paired inputs in a dir.
     If there are, will return True, else False
     """
@@ -405,6 +362,11 @@ with Flow(
     niftis = ng.gen_niftis.map(fp_in=fps, upstream_tasks=[brts])
     pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[niftis])
     archive_pyramid_cmds = ng.gen_archive_pyr.map(file_path=fps, upstream_tasks=[pyramid_assets])
+
+    # now we've done the computational work.
+    # the relevant files have been put into the Assets dirs, but we need to inform the API
+    # Generate a base "primary path" dict, and hang dicts onto this.
+    # repeatedly pass asset in to add_asset func to add asset in question.
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
     callback_with_keyimgs = utils.add_asset.map(prim_fp=callback_with_thumbs, asset=keyimg_assets)
@@ -412,15 +374,13 @@ with Flow(
     callback_with_ave_vol = utils.add_asset.map(prim_fp=callback_with_pyramids, asset=averagedVolume_assets)
     callback_with_bin_vol = utils.add_asset.map(prim_fp=callback_with_ave_vol, asset=bin_vol_assets)
     callback_with_recon_mov = utils.add_asset.map(prim_fp=callback_with_bin_vol, asset=recon_movie_assets)
+    callback_with_tilt_mov = utils.add_asset.map(prim_fp=callback_with_recon_mov, asset=tilt_movie_assets)
 
+    # this is a bit dubious. Previously I wanted to ONLY copy intermed files upon failure.
+    # now we copy evreything, everytime. :shrug emoji: 
+    # spoiler: (we're going to run out of space).
     cp_wd_to_assets = utils.copy_workdirs.map(fps, upstream_tasks=[callback_with_recon_mov])
+    # finally convert to JSON and send.
     cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=callback_with_recon_mov
     )
-#
-#    # all_successful
-#    cleanups = utils.cleanup_workdir.map(wd=working_dirs, upstream_tasks=[copy_logs])
-#
-#    # unable to use map to set ref task. Unable to use callback because it's a http post.
-#    dumb = do_something_dumb(upstream_tasks=[callback])
-# flow.set_reference_tasks([dumb])
