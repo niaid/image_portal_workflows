@@ -28,8 +28,6 @@ class FilePath:
         self.fp_in = fp_in
         # not a great name - used to create the subdir into which assets are put eg
         self.base = fp_in.stem
-        # current transformation of this file - init to input fname
-        # self._current = fp_in
         self._working_dir = self.make_work_dir()
         self._assets_dir = self.make_assets_dir()
         self.environment = self.get_environment()
@@ -51,9 +49,6 @@ class FilePath:
         """
         return self._assets_dir
 
-    #    @property
-    #    def current(self) -> Path:
-    #        return self._current
 
     @property
     def working_dir(self) -> Path:
@@ -72,8 +67,6 @@ class FilePath:
             raise RuntimeError(msg)
         return env
 
-    def update_current(self, new_fp: Path) -> None:
-        self._current = new_fp
 
     def make_work_dir(self) -> Path:
         """
@@ -180,7 +173,6 @@ class FilePath:
         else:
             f_name = f"{self.fp_in.stem}{output_ext}"
 
-        # stem_name = re.sub(r'[()\[\] ]',"_",stem_name)
         output_fp = f"{self.working_dir.as_posix()}/{f_name}"
         return Path(output_fp)
 
@@ -246,15 +238,16 @@ class FilePath:
         log("Trying to run: " + " ".join(cmd))
         try:
             sp = subprocess.run(cmd, check=False, capture_output=True)
+            stdout = sp.stdout.decode("utf-8")
+            stderr = sp.stderr.decode("utf-8")
+            with open(log_file, "w+") as _file:
+                _file.write(f"STDOUT:{stdout}")
+                _file.write(f"STDERR:{stderr}")
             if sp.returncode != 0:
-                stdout = sp.stdout.decode("utf-8")
-                stderr = sp.stderr.decode("utf-8")
                 msg = f"ERROR : {stderr} -- {stdout}"
                 log(msg)
                 raise signals.FAIL(msg)
             else:
-                stdout = sp.stdout.decode("utf-8")
-                stderr = sp.stderr.decode("utf-8")
                 msg = f"Command ok : {stderr} -- {stdout}"
                 log(msg)
         except Exception as ex:
@@ -262,6 +255,3 @@ class FilePath:
         return sp.returncode
 
 
-#        with open(log_file, "w+") as _file:
-#            _file.write(f"STDOUT:{sp.stdout}")
-#            _file.write(f"STDERR:{sp.stderr}")

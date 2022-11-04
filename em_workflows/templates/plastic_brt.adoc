@@ -115,10 +115,6 @@ comparam.matchorwarp.matchorwarp.WarpLimits = 0.3,0.5,0.8,1.0
 #Postprocessing
 runtime.Postprocess.any.doTrimvol = 1
 runtime.Trimvol.any.reorient = 2
-runtime.Trimvol.any.findSecAddThickness = 25
-runtime.Trimvol.any.scaleFromX = 0.7
-runtime.Trimvol.any.scaleFromY = 0.7
-runtime.Trimvol.any.scaleFromZ = 0.25
 
 #Data Set Cleanup
 runtime.Cleanup.any.doCleanup = 1
