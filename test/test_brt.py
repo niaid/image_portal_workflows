@@ -25,6 +25,16 @@ def hpc_env(monkeypatch):
     monkeypatch.setattr(Config, "mount_point", f"{os.getcwd()}")
     monkeypatch.setattr(Config, "tmp_dir", "/tmp/")
     monkeypatch.setattr(Config, "brt_binary", "/usr/local/IMOD/bin/batchruntomo")
+    monkeypatch.setattr(Config, "dm2mrc_loc", "/usr/local/IMOD/bin/dm2mrc")
+    monkeypatch.setattr(Config, "mrc2tif_loc" , "/usr/local/IMOD/bin/mrc2tif")
+    monkeypatch.setattr(Config,"tif2mrc_loc" , "/usr/local/IMOD/bin/tif2mrc")
+    monkeypatch.setattr(Config,"xfalign_loc" , "/usr/local/IMOD/bin/xfalign")
+    monkeypatch.setattr(Config,"xftoxg_loc" , "/usr/local/IMOD/bin/xftoxg")
+    monkeypatch.setattr(Config,"newstack_loc" , "/usr/local/IMOD/bin/newstack")
+    monkeypatch.setattr(Config,"header_loc" , "/usr/local/IMOD/bin/header")
+    monkeypatch.setattr(Config,"convert_loc" , "/usr/bin/convert")
+    monkeypatch.setattr(Config,"clip_loc" , "/usr/local/IMOD/bin/clip")
+    monkeypatch.setattr(Config,"binvol" , "/usr/local/IMOD/bin/binvol")
 
     @task
     def _run_brt(
