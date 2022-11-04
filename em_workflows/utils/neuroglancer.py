@@ -22,9 +22,9 @@ def gen_niftis(fp_in: FilePath) -> None:
     base_mrc = fp_in.gen_output_fp(output_ext=".mrc")
     cmd = list()
     if rec_mrc.exists():
-        cmd = ["mrc2nifti", rec_mrc.as_posix(), nifti.as_posix()] 
+        cmd = ["mrc2nifti", rec_mrc.as_posix(), nifti.as_posix()]
     elif base_mrc.exists():
-        cmd = ["mrc2nifti", base_mrc.as_posix(), nifti.as_posix()] 
+        cmd = ["mrc2nifti", base_mrc.as_posix(), nifti.as_posix()]
     else:
         raise ValueError(
             f"unable to find input for nifti generation. \
@@ -33,6 +33,7 @@ def gen_niftis(fp_in: FilePath) -> None:
     log_file = f"{nifti.parent}/mrc2nifti.log"
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
+
 
 @task
 def gen_pyramids(fp_in: FilePath) -> Dict:
@@ -49,7 +50,13 @@ def gen_pyramids(fp_in: FilePath) -> Dict:
             f"Pyramid dir {outdir} already exists, overwriting."
         )
     log_file = f"{nifti.parent}/volume_to_precomputed_pyramid.log"
-    cmd = ["volume-to-precomputed-pyramid", "--downscaling-method=average", "--flat", nifti.as_posix(), outdir.as_posix()]
+    cmd = [
+        "volume-to-precomputed-pyramid",
+        "--downscaling-method=average",
+        "--flat",
+        nifti.as_posix(),
+        outdir.as_posix(),
+    ]
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=outdir)
@@ -58,11 +65,19 @@ def gen_pyramids(fp_in: FilePath) -> Dict:
     ng_asset["metadata"] = metadata
     return ng_asset
 
+
 def gen_metadata(fp_in: FilePath) -> Dict:
     min_max = fp_in.gen_output_fp(output_ext=f"_min_max.json")
     nifti = fp_in.gen_output_fp(output_ext=".nii")
     log_file = f"{nifti.parent}/mrc_visual_min_max.log"
-    cmd = ["mrc_visual_min_max", nifti.as_posix(), "--mad", "5", "--output-json", min_max.as_posix()]
+    cmd = [
+        "mrc_visual_min_max",
+        nifti.as_posix(),
+        "--mad",
+        "5",
+        "--output-json",
+        min_max.as_posix(),
+    ]
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     with open(min_max, "r") as _file:

@@ -196,7 +196,14 @@ def gen_keyimg(fp_in: FilePath) -> Dict:
     mid_mrc = fp_in.gen_output_fp(out_fname="mid.mrc")
     keyimg_fp = fp_in.gen_output_fp(out_fname="keyimg.jpg")
     log_file = f"{mid_mrc.parent}/mrc2tif.log"
-    cmd = [Config.mrc2tif_loc, "-j", "-C", "0,255", mid_mrc.as_posix(), keyimg_fp.as_posix()]
+    cmd = [
+        Config.mrc2tif_loc,
+        "-j",
+        "-C",
+        "0,255",
+        mid_mrc.as_posix(),
+        keyimg_fp.as_posix(),
+    ]
     utils.log(f"Created keyimg {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=keyimg_fp)
@@ -213,13 +220,24 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
     keyimg_fp = fp_in.gen_output_fp(out_fname="keyimg.jpg")
     keyimg_sm_fp = fp_in.gen_output_fp(out_fname="keyimg_sm.jpg")
     log_file = f"{keyimg_sm_fp.parent}/convert.log"
-    cmd = [Config.convert_loc, "-size", "300x300", keyimg_fp.as_posix(), "-resize", "300x300", "-sharpen", "2", "-quality", "70", keyimg_sm_fp.as_posix()]
+    cmd = [
+        Config.convert_loc,
+        "-size",
+        "300x300",
+        keyimg_fp.as_posix(),
+        "-resize",
+        "300x300",
+        "-sharpen",
+        "2",
+        "-quality",
+        "70",
+        keyimg_sm_fp.as_posix(),
+    ]
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=keyimg_sm_fp)
     keyimg_asset = fp_in.gen_asset(asset_type="keyThumbnail", asset_fp=asset_fp)
     return keyimg_asset
-
 
 
 with Flow(
@@ -268,7 +286,7 @@ with Flow(
     mid_mrcs = gen_newstack_mid_mrc_command.map(fp_in=fps, upstream_tasks=[base_mrcs])
 
     # large thumb
-    keyimg_assets = gen_keyimg.map(fp_in=fps,upstream_tasks=[mid_mrcs])
+    keyimg_assets = gen_keyimg.map(fp_in=fps, upstream_tasks=[mid_mrcs])
     # small thumb
     thumb_assets = gen_keyimg_small.map(fp_in=fps, upstream_tasks=[keyimg_assets])
 
@@ -281,10 +299,16 @@ with Flow(
     # the "assets" (ie the outputs derived from this file) are hung.
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
-    callback_with_keyimgs = utils.add_asset.map(prim_fp=callback_with_thumbs, asset=keyimg_assets)
-    callback_with_pyramids = utils.add_asset.map(prim_fp=callback_with_keyimgs, asset=pyramid_assets)
+    callback_with_keyimgs = utils.add_asset.map(
+        prim_fp=callback_with_thumbs, asset=keyimg_assets
+    )
+    callback_with_pyramids = utils.add_asset.map(
+        prim_fp=callback_with_keyimgs, asset=pyramid_assets
+    )
 
-    cp_wd_to_assets = utils.copy_workdirs.map(fps, upstream_tasks=[callback_with_pyramids])
+    cp_wd_to_assets = utils.copy_workdirs.map(
+        fps, upstream_tasks=[callback_with_pyramids]
+    )
     cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=callback_with_pyramids
     )

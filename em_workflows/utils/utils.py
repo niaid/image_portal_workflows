@@ -19,14 +19,17 @@ from prefect.engine import signals
 
 from em_workflows.config import Config
 
+
 @task
 def gen_prim_fps(fp_in: FilePath) -> Dict:
     return fp_in.gen_prim_fp_elt()
+
 
 @task
 def add_asset(prim_fp: dict, asset: dict) -> dict:
     prim_fp["assets"].append(asset)
     return prim_fp
+
 
 @task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
 def cleanup_workdir(wd: Path):
@@ -146,6 +149,8 @@ def update_adoc(
         print(output, file=_file)
     log(f"generated {adoc_loc}")
     return adoc_loc
+
+
 def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
     """
     copies files (tomograms/mrc files) into working_dir
@@ -164,6 +169,7 @@ def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
             raise signals.FAIL(f"Files missing. {fp_1},{fp_2}. BRT run failure.")
     return new_loc
 
+
 def copy_template(working_dir: Path, template_name: str) -> Path:
     """
     copies the template adoc file to the working_dir,
@@ -173,6 +179,8 @@ def copy_template(working_dir: Path, template_name: str) -> Path:
     log(f"trying to copy {template_fp} to {adoc_fp}")
     shutil.copyfile(template_fp, adoc_fp)
     return Path(adoc_fp)
+
+
 @task
 def run_brt(
     file_path: FilePath,
@@ -215,6 +223,7 @@ def run_brt(
     FilePath.run(cmd, log_file)
     brts_ok = check_brt_run_ok(file_path=file_path)
 
+
 def check_brt_run_ok(file_path: FilePath):
     """
     ensures the following files exist:
@@ -229,6 +238,8 @@ def check_brt_run_ok(file_path: FilePath):
     for _file in [rec_file, ali_file]:
         if not _file.exists():
             raise signals.FAIL(f"File {_file} does not exist. BRT run failure.")
+
+
 @task
 def create_brt_command(adoc_fp: Path) -> str:
     cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1 &> {adoc_fp.parent}/brt.log"
@@ -348,6 +359,7 @@ def log(msg):
 @task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
 def copy_workdirs(file_path: FilePath) -> Path:
     return file_path.copy_workdir_to_assets()
+
 
 @task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
 def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
@@ -547,6 +559,7 @@ def gen_fps(input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
         log(msg)
         fps.append(file_path)
     return fps
+
 
 @task
 def set_up_work_env(input_fp: Path) -> Path:

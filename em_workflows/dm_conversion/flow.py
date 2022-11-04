@@ -20,7 +20,7 @@ from em_workflows.utils import utils
 @task
 def convert_dms_to_mrc(file_path: FilePath) -> None:
     # cur = file_path.current
-    dm_file_suffixes = ['.dm3', '.dm4']
+    dm_file_suffixes = [".dm3", ".dm4"]
     if file_path.fp_in.suffix.lower() in dm_file_suffixes:
         dm_as_mrc = file_path.gen_output_fp(out_fname="dm_as_mrc.mrc")
         msg = f"Using dir: {file_path.fp_in}, : creating dm_as_mrc {dm_as_mrc}"
@@ -41,15 +41,13 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
     else return orig Path
     """
     # first check if file extension is .tif or .tiff
-    tif_suffixes = ['.tiff','.tif']
+    tif_suffixes = [".tiff", ".tif"]
     utils.log(f"Checkgin {file_path.fp_in.suffix} is a tiff file")
     if file_path.fp_in.suffix.lower() in tif_suffixes:
         utils.log(f"{file_path.fp_in.as_posix()} is a tiff file")
         if is_int16(file_path.fp_in):
             tif_8_bit = file_path.gen_output_fp(out_fname="as_8_bit.tif")
-            utils.log(
-                f"{file_path.fp_in} is a 16 bit tiff, converting to {tif_8_bit}"
-            )
+            utils.log(f"{file_path.fp_in} is a 16 bit tiff, converting to {tif_8_bit}")
             file_to_uint8(in_file_path=file_path.fp_in, out_file_path=str(tif_8_bit))
 
 
@@ -62,7 +60,6 @@ def convert_mrc_to_jpeg(file_path: FilePath) -> None:
         cmd = [Config.mrc2tif_loc, "-j", dm_as_mrc.as_posix(), mrc_as_jpg.as_posix()]
         utils.log(f"Generated cmd {cmd}")
         FilePath.run(cmd, log_fp)
-
 
 
 @task
@@ -82,7 +79,7 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     else:
         msg = f"Impossible state for {file_path.fp_in}"
         raise signals.FAIL(msg)
-    if size.lower() == 's':
+    if size.lower() == "s":
         output = file_path.gen_output_fp("_SM.jpeg")
         log = f"{output.parent}/jpeg_sm.log"
         asset_type = "keyThumbnail"
@@ -100,7 +97,7 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
             "70",
             output.as_posix(),
         ]
-    elif size.lower() == 'l':
+    elif size.lower() == "l":
         output = file_path.gen_output_fp("_LG.jpeg")
         log = f"{output.parent}/jpeg_lg.log"
         asset_type = "keyImage"
@@ -125,6 +122,8 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=output)
     asset_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
     return asset_elt
+
+
 #    assets_fp_lg = file_path.copy_to_assets_dir(fp_to_cp=output_lg)
 #    prim_fp = file_path.prim_fp_elt
 #    prim_fp = file_path.add_asset(
@@ -152,11 +151,8 @@ def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
     return cmd
 
 
-
-
-
-#@task
-#def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
+# @task
+# def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
 #    """
 #    List all files within input_dir with spefified extension.
 #    if a specific file is requested that file is returned only.
@@ -208,7 +204,6 @@ def get_environment() -> str:
     return env
 
 
-
 with Flow(
     "dm_to_jpeg",
     state_handlers=[utils.notify_api_completion, utils.notify_api_running],
@@ -244,13 +239,21 @@ with Flow(
     mrc_to_jpeg = convert_mrc_to_jpeg.map(fps, upstream_tasks=[dm_to_mrc_converted])
 
     # scale the jpegs, pngs, and tifs
-    keyimg_assets = scale_jpegs.map(fps, size=unmapped('l'), upstream_tasks=[mrc_to_jpeg])
-    thumb_assets = scale_jpegs.map(fps, size=unmapped('s'), upstream_tasks=[mrc_to_jpeg])
+    keyimg_assets = scale_jpegs.map(
+        fps, size=unmapped("l"), upstream_tasks=[mrc_to_jpeg]
+    )
+    thumb_assets = scale_jpegs.map(
+        fps, size=unmapped("s"), upstream_tasks=[mrc_to_jpeg]
+    )
 
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
-    callback_with_keyimgs = utils.add_asset.map(prim_fp=callback_with_thumbs, asset=keyimg_assets)
-    cp_wd_to_assets = utils.copy_workdirs.map(fps, upstream_tasks=[callback_with_keyimgs])
+    callback_with_keyimgs = utils.add_asset.map(
+        prim_fp=callback_with_thumbs, asset=keyimg_assets
+    )
+    cp_wd_to_assets = utils.copy_workdirs.map(
+        fps, upstream_tasks=[callback_with_keyimgs]
+    )
 
     callback_sent = utils.send_callback_body(
         token=token,

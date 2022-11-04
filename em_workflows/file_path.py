@@ -10,8 +10,10 @@ from em_workflows.config import Config
 
 from prefect import context
 
+
 def log(msg):
     context.logger.info(msg)
+
 
 class FilePath:
     def __init__(self, input_dir: Path, fp_in: Path) -> None:
@@ -34,7 +36,7 @@ class FilePath:
         self.proj_root = Path(Config.proj_dir(env=self.environment))
         self.asset_root = Path(Config.assets_dir(env=self.environment))
         self.prim_fp_elt = self.gen_prim_fp_elt()
-        #log(self.__repr__())
+        # log(self.__repr__())
 
     def __repr__(self) -> str:
         return f"FilePath: proj_root:{self.proj_root}, \
@@ -49,9 +51,9 @@ class FilePath:
         """
         return self._assets_dir
 
-#    @property
-#    def current(self) -> Path:
-#        return self._current
+    #    @property
+    #    def current(self) -> Path:
+    #        return self._current
 
     @property
     def working_dir(self) -> Path:
@@ -152,7 +154,9 @@ class FilePath:
             raise ValueError(
                 f"Asset type: {asset_type} is not a valid type. {valid_typs}"
             )
-        fp_no_mount_point = asset_path.relative_to(Config.assets_dir(env=self.environment))
+        fp_no_mount_point = asset_path.relative_to(
+            Config.assets_dir(env=self.environment)
+        )
         if metadata:
             asset = {
                 "type": asset_type,
@@ -164,7 +168,7 @@ class FilePath:
         self.prim_fp_elt["assets"].append(asset)
         return asset
 
-    def gen_output_fp(self, output_ext: str=None, out_fname: str=None) -> Path:
+    def gen_output_fp(self, output_ext: str = None, out_fname: str = None) -> Path:
         """
         cat working_dir to input_fp.name, but swap the extension to output_ext
         the reason for having a working_dir default to None is sometimes the output
@@ -239,7 +243,7 @@ class FilePath:
 
     @staticmethod
     def run(cmd: List[str], log_file: str) -> int:
-        log("Trying to run: " + ' '.join(cmd))
+        log("Trying to run: " + " ".join(cmd))
         try:
             sp = subprocess.run(cmd, check=False, capture_output=True)
             if sp.returncode != 0:
@@ -256,6 +260,7 @@ class FilePath:
         except Exception as ex:
             raise signals.FAIL(str(ex))
         return sp.returncode
+
 
 #        with open(log_file, "w+") as _file:
 #            _file.write(f"STDOUT:{sp.stdout}")
