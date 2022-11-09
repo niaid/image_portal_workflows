@@ -296,38 +296,31 @@ def list_paired_files(fnames: List[Path]) -> List[Path]:
     return pairs
 
 
-@task
-def check_inputs_paired(fps: List[Path]):
-    """
-    THIS IS AN OLD FUNC : Keeping for now, they'll probably want this back.
-    asks if there are ANY paired inputs in a dir.
-    If there are, will return True, else False
-    """
-    fnames = [fname.stem for fname in fps]
-    inputs_paired = False
-    for fname in fnames:
-        if fname.endswith("a"):
-            # remove the last char, cat on a 'b' and lookup.
-            pair_name = fname[:-1] + "b"
-            if pair_name in fnames:
-                inputs_paired = True
-    utils.log(f"Are inputs paired? {inputs_paired}.")
-    return inputs_paired
+#@task
+#def check_inputs_paired(fps: List[Path]):
+#    """
+#    THIS IS AN OLD FUNC : Keeping for now, they'll probably want this back.
+#    asks if there are ANY paired inputs in a dir.
+#    If there are, will return True, else False
+#    """
+#    fnames = [fname.stem for fname in fps]
+#    inputs_paired = False
+#    for fname in fnames:
+#        if fname.endswith("a"):
+#            # remove the last char, cat on a 'b' and lookup.
+#            pair_name = fname[:-1] + "b"
+#            if pair_name in fnames:
+#                inputs_paired = True
+#    utils.log(f"Are inputs paired? {inputs_paired}.")
+#    return inputs_paired
 
-
-@task
-def do_something_dumb():
-    """
-    doing something dumb because prefect 1 can't handle mapping errors,
-    so not going to map this. Yay. Sob.
-    """
-    utils.log("we're doing something dumb now.")
 
 
 with Flow(
     "brt_flow",
     executor=Config.SLURM_EXECUTOR,
-    state_handlers=[utils.notify_api_completion, utils.notify_api_running],
+    state_handlers=[utils.notify_api_running],
+    terminal_state_handler=utils.custom_terminal_state_handler,
     run_config=LocalRun(labels=[utils.get_environment()]),
 ) as flow:
 
