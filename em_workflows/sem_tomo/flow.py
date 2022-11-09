@@ -122,7 +122,7 @@ def create_stretch_file(tilt: str, fp_in: FilePath) -> None:
 
 
 @task
-def gen_newstack_corr_command(fp_in: FilePath) -> None:
+def gen_newstack_corr_command(fp_in: FilePath) -> dict:
     """
     generates corrected.mrc
     uses the stretch file from create_stretch_file()
@@ -142,6 +142,8 @@ def gen_newstack_corr_command(fp_in: FilePath) -> None:
     ]
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
+    assets_fp_corr_mrc = fp_in.copy_to_assets_dir(fp_to_cp=corrected_mrc)
+    return fp_in.gen_asset(asset_type="correctedMRC", asset_fp=assets_fp_corr_mrc)
 
 
 @task
@@ -274,12 +276,12 @@ with Flow(
     # create stretch file using tilt_parameter
     stretchs = create_stretch_file.map(tilt=unmapped(tilt_angle), fp_in=fps)
 
-    corrected_mrcs = gen_newstack_corr_command.map(
+    corrected_mrc_assets = gen_newstack_corr_command.map(
         fp_in=fps, upstream_tasks=[stretchs, align_mrcs]
     )
 
     base_mrcs = gen_newstack_norm_command.map(
-        fp_in=fps, upstream_tasks=[corrected_mrcs]
+        fp_in=fps, upstream_tasks=[corrected_mrc_assets]
     )
 
     # generate midpoint mrc file
@@ -305,10 +307,11 @@ with Flow(
     callback_with_pyramids = utils.add_asset.map(
         prim_fp=callback_with_keyimgs, asset=pyramid_assets
     )
+    callback_with_corr_mrcs = utils.add_asset.map(prim_fp=callback_with_pyramids, asset=corrected_mrc_assets)
 
     cp_wd_to_assets = utils.copy_workdirs.map(
-        fps, upstream_tasks=[callback_with_pyramids]
+        fps, upstream_tasks=[callback_with_corr_mrcs]
     )
     cb = utils.send_callback_body(
-        token=token, callback_url=callback_url, files_elts=callback_with_pyramids
+        token=token, callback_url=callback_url, files_elts=callback_with_corr_mrcs
     )
