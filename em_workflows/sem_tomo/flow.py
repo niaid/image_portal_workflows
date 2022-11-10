@@ -307,7 +307,9 @@ with Flow(
     callback_with_pyramids = utils.add_asset.map(
         prim_fp=callback_with_keyimgs, asset=pyramid_assets
     )
-    callback_with_corr_mrcs = utils.add_asset.map(prim_fp=callback_with_pyramids, asset=corrected_mrc_assets)
+    callback_with_corr_mrcs = utils.add_asset.map(
+        prim_fp=callback_with_pyramids, asset=corrected_mrc_assets
+    )
 
     cp_wd_to_assets = utils.copy_workdirs.map(
         fps, upstream_tasks=[callback_with_corr_mrcs]

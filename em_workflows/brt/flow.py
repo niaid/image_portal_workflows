@@ -246,9 +246,9 @@ def gen_ave_vol(file_path: FilePath) -> dict:
 
 
 @task
-def gen_ave_8_vol(file_path: FilePath):
+def gen_ave_8_vol(file_path: FilePath) -> dict:
     """
-    binvol -binning 2 WORKDIR/hedwig/ave_BASENAME.mrc WORKDIR/hedwig/avebin8_BASENAME.mrc
+    binvol -binning 2 WORKDIR/hedwig/ave_BASENAME.mrc WORKDIR/avebin8_BASENAME.mrc
     """
     ave_8_mrc = f"{file_path.working_dir}/avebin8_{file_path.base}.mrc"
     ave_mrc = f"{file_path.working_dir}/{file_path.base}_ave.mrc"
@@ -261,14 +261,14 @@ def gen_ave_8_vol(file_path: FilePath):
 
 
 @task
-def gen_mrc2tif(file_path: FilePath):
+def gen_ave_jpgs(file_path: FilePath):
     """
-    mrc2tif -j -C 100,255 WORKDIR/hedwig/ave_BASNAME.mrc hedwig/BASENAME_mp4
+    mrc2tif -j -C 100,255 WORKDIR/hedwig/avebin8_{BASNAME}.mrc hedwig/BASENAME_mp4
     """
     mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
-    ave_8_mrc = f"{file_path.working_dir}/avebin8_{file_path.base}.mrc"
+    ave_mrc = f"{file_path.working_dir}/{file_path.base}_ave.mrc"
     log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
-    cmd = [Config.mrc2tif_loc, "-j", "-C", "100,255", ave_8_mrc, mp4]
+    cmd = [Config.mrc2tif_loc, "-j", "-C", "100,255", ave_mrc, mp4]
     FilePath.run(cmd=cmd, log_file=log_file)
 
 
@@ -296,8 +296,8 @@ def list_paired_files(fnames: List[Path]) -> List[Path]:
     return pairs
 
 
-#@task
-#def check_inputs_paired(fps: List[Path]):
+# @task
+# def check_inputs_paired(fps: List[Path]):
 #    """
 #    THIS IS AN OLD FUNC : Keeping for now, they'll probably want this back.
 #    asks if there are ANY paired inputs in a dir.
@@ -313,7 +313,6 @@ def list_paired_files(fnames: List[Path]) -> List[Path]:
 #                inputs_paired = True
 #    utils.log(f"Are inputs paired? {inputs_paired}.")
 #    return inputs_paired
-
 
 
 with Flow(
@@ -391,8 +390,8 @@ with Flow(
     bin_vol_assets = gen_ave_8_vol.map(
         file_path=fps, upstream_tasks=[averagedVolume_assets]
     )
-    mrc2tiffs = gen_mrc2tif.map(file_path=fps, upstream_tasks=[bin_vol_assets])
-    recon_movie_assets = gen_recon_movie.map(file_path=fps, upstream_tasks=[mrc2tiffs])
+    ave_jpgs = gen_ave_jpgs.map(file_path=fps, upstream_tasks=[bin_vol_assets])
+    recon_movie_assets = gen_recon_movie.map(file_path=fps, upstream_tasks=[ave_jpgs])
     #    # END RECONSTR MOVIE
     #
     #    # START PYRAMID GEN
