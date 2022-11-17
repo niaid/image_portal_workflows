@@ -70,6 +70,7 @@ def gen_ali_asmbl(file_path: FilePath) -> None:
     newstack -float 3 {BASENAME}_ali*.mrc ali_{BASENAME}.mrc
     """
     alis = glob.glob(f"{file_path.working_dir}/{file_path.base}_ali*.mrc")
+    alis.sort()
     ali_asmbl = f"{file_path.working_dir}/ali_{file_path.base}.mrc"
     ali_base_cmd = [Config.newstack_loc, "-float", "3"]
     ali_base_cmd.extend(alis)
@@ -211,6 +212,8 @@ def gen_recon_movie(file_path: FilePath) -> dict:
 @task
 def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
     """
+    produces base_ave001.mrc etc, base_ave002.mrc etc,
+    inputs for newstack (for recon movie) and binvol (for volslicer)
     for i in range(2, dimensions.z-2):
       IZMIN = i-2
       IZMAX = i+2
@@ -229,12 +232,15 @@ def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
 
 
 @task
-def gen_ave_vol(file_path: FilePath) -> dict:
+def consolidate_ave_mrcs(file_path: FilePath) -> dict:
     """
+    consumes base_ave001.mrc etc, base_ave002.mrc etc,
+    creates ave_base.mrc
     newstack -float 3 BASENAME_ave* ave_BASENAME.mrc
     """
     aves = glob.glob(f"{file_path.working_dir}/{file_path.base}_ave*")
-    ave_mrc = f"{file_path.working_dir}/{file_path.base}_ave.mrc"
+    aves.sort()
+    ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
     cmd = [Config.newstack_loc, "-float", "3"]
     cmd.extend(aves)
     cmd.append(ave_mrc)
@@ -246,12 +252,12 @@ def gen_ave_vol(file_path: FilePath) -> dict:
 
 
 @task
-def gen_ave_8_vol(file_path: FilePath):
+def gen_ave_8_vol(file_path: FilePath) -> dict:
     """
-    binvol -binning 2 WORKDIR/hedwig/ave_BASENAME.mrc WORKDIR/hedwig/avebin8_BASENAME.mrc
+    binvol -binning 2 WORKDIR/hedwig/ave_BASENAME.mrc WORKDIR/avebin8_BASENAME.mrc
     """
     ave_8_mrc = f"{file_path.working_dir}/avebin8_{file_path.base}.mrc"
-    ave_mrc = f"{file_path.working_dir}/{file_path.base}_ave.mrc"
+    ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
     cmd = [Config.binvol, "-binning", "2", ave_mrc, ave_8_mrc]
     log_file = f"{file_path.working_dir}/ave_8_mrc.log"
     FilePath.run(cmd=cmd, log_file=log_file)
@@ -261,14 +267,15 @@ def gen_ave_8_vol(file_path: FilePath):
 
 
 @task
-def gen_mrc2tif(file_path: FilePath):
+def gen_ave_jpgs_from_ave_mrc(file_path: FilePath):
     """
+    compiles a load of jpgs from the ave_base.mrc
     mrc2tif -j -C 100,255 WORKDIR/hedwig/ave_BASNAME.mrc hedwig/BASENAME_mp4
     """
     mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
-    ave_8_mrc = f"{file_path.working_dir}/avebin8_{file_path.base}.mrc"
+    ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
     log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
-    cmd = [Config.mrc2tif_loc, "-j", "-C", "100,255", ave_8_mrc, mp4]
+    cmd = [Config.mrc2tif_loc, "-j", "-C", "100,255", ave_mrc, mp4]
     FilePath.run(cmd=cmd, log_file=log_file)
 
 
@@ -296,38 +303,30 @@ def list_paired_files(fnames: List[Path]) -> List[Path]:
     return pairs
 
 
-@task
-def check_inputs_paired(fps: List[Path]):
-    """
-    THIS IS AN OLD FUNC : Keeping for now, they'll probably want this back.
-    asks if there are ANY paired inputs in a dir.
-    If there are, will return True, else False
-    """
-    fnames = [fname.stem for fname in fps]
-    inputs_paired = False
-    for fname in fnames:
-        if fname.endswith("a"):
-            # remove the last char, cat on a 'b' and lookup.
-            pair_name = fname[:-1] + "b"
-            if pair_name in fnames:
-                inputs_paired = True
-    utils.log(f"Are inputs paired? {inputs_paired}.")
-    return inputs_paired
-
-
-@task
-def do_something_dumb():
-    """
-    doing something dumb because prefect 1 can't handle mapping errors,
-    so not going to map this. Yay. Sob.
-    """
-    utils.log("we're doing something dumb now.")
+# @task
+# def check_inputs_paired(fps: List[Path]):
+#    """
+#    THIS IS AN OLD FUNC : Keeping for now, they'll probably want this back.
+#    asks if there are ANY paired inputs in a dir.
+#    If there are, will return True, else False
+#    """
+#    fnames = [fname.stem for fname in fps]
+#    inputs_paired = False
+#    for fname in fnames:
+#        if fname.endswith("a"):
+#            # remove the last char, cat on a 'b' and lookup.
+#            pair_name = fname[:-1] + "b"
+#            if pair_name in fnames:
+#                inputs_paired = True
+#    utils.log(f"Are inputs paired? {inputs_paired}.")
+#    return inputs_paired
 
 
 with Flow(
     "brt_flow",
     executor=Config.SLURM_EXECUTOR,
-    state_handlers=[utils.notify_api_completion, utils.notify_api_running],
+    state_handlers=[utils.notify_api_running],
+    terminal_state_handler=utils.custom_terminal_state_handler,
     run_config=LocalRun(labels=[utils.get_environment()]),
 ) as flow:
 
@@ -394,15 +393,22 @@ with Flow(
 
     # START RECONSTR MOVIE GENERATION:
     clip_avgs = gen_clip_avgs.map(file_path=fps, z_dim=z_dims, upstream_tasks=[asmbls])
-    averagedVolume_assets = gen_ave_vol.map(file_path=fps, upstream_tasks=[clip_avgs])
+    averagedVolume_assets = consolidate_ave_mrcs.map(
+        file_path=fps, upstream_tasks=[clip_avgs]
+    )
+    ave_jpgs = gen_ave_jpgs_from_ave_mrc.map(
+        file_path=fps, upstream_tasks=[averagedVolume_assets]
+    )
+    recon_movie_assets = gen_recon_movie.map(file_path=fps, upstream_tasks=[ave_jpgs])
+    #    # END RECONSTR MOVIE
+
+    # Binned volume assets, for volslicer.
     bin_vol_assets = gen_ave_8_vol.map(
         file_path=fps, upstream_tasks=[averagedVolume_assets]
     )
-    mrc2tiffs = gen_mrc2tif.map(file_path=fps, upstream_tasks=[bin_vol_assets])
-    recon_movie_assets = gen_recon_movie.map(file_path=fps, upstream_tasks=[mrc2tiffs])
-    #    # END RECONSTR MOVIE
-    #
-    #    # START PYRAMID GEN
+    # finished volslicer inputs.
+
+    # START PYRAMID GEN
     # nifti file generation
     niftis = ng.gen_niftis.map(fp_in=fps, upstream_tasks=[brts])
     pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[niftis])

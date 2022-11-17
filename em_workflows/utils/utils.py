@@ -9,12 +9,12 @@ import json
 import prefect
 import logging
 import datetime
-from typing import List, Dict
+from typing import List, Dict, Set, Optional
 from pathlib import Path
 from prefect import task, context
 from prefect import Flow, task, context
 from prefect.triggers import all_successful, always_run, any_failed
-from prefect.engine.state import State
+from prefect.engine.state import State, Success
 from prefect.engine import signals
 
 from em_workflows.config import Config
@@ -486,6 +486,29 @@ def notify_api_running(flow: Flow, old_state, new_state) -> State:
         )
         log(response.text)
     return new_state
+
+
+def custom_terminal_state_handler(
+    flow: Flow,
+    state: State,
+    reference_task_states: Set[State],
+) -> Optional[State]:
+    status = "error"
+    # iterate through reference task states looking for successes
+    for task_state in reference_task_states:
+        if task_state.is_successful():
+            status = "success"
+    callback_url = prefect.context.parameters.get("callback_url")
+    token = prefect.context.parameters.get("token")
+    headers = {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json",
+    }
+    response = requests.post(
+        callback_url, headers=headers, data=json.dumps({"status": status})
+    )
+    log(f"Pipeline status is:{status}, {response.text}")
+    return state
 
 
 def notify_api_completion(flow: Flow, old_state, new_state) -> State:
