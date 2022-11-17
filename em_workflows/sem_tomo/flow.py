@@ -143,7 +143,7 @@ def gen_newstack_corr_command(fp_in: FilePath) -> dict:
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     assets_fp_corr_mrc = fp_in.copy_to_assets_dir(fp_to_cp=corrected_mrc)
-    return fp_in.gen_asset(asset_type="correctedMRC", asset_fp=assets_fp_corr_mrc)
+    return fp_in.gen_asset(asset_type="averagedVolume", asset_fp=assets_fp_corr_mrc)
 
 
 @task
@@ -238,7 +238,7 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=keyimg_sm_fp)
-    keyimg_asset = fp_in.gen_asset(asset_type="keyThumbnail", asset_fp=asset_fp)
+    keyimg_asset = fp_in.gen_asset(asset_type="thumbnail", asset_fp=asset_fp)
     return keyimg_asset
 
 

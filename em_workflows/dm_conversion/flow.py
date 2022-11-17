@@ -82,7 +82,7 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     if size.lower() == "s":
         output = file_path.gen_output_fp("_SM.jpeg")
         log = f"{output.parent}/jpeg_sm.log"
-        asset_type = "keyThumbnail"
+        asset_type = "thumbnail"
         cmd = [
             "gm",
             "convert",
