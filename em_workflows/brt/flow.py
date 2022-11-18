@@ -231,7 +231,7 @@ def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
         izmin = i - 2
         izmax = i + 2
         in_fp = f"{file_path.working_dir}/{file_path.base}_rec.mrc"
-        padded_val = str(i).zfill(3)
+        padded_val = str(i).zfill(4)
         ave_mrc = f"{file_path.working_dir}/{file_path.base}_ave{padded_val}.mrc"
         min_max = f"{str(izmin)}-{str(izmax)}"
         cmd = [Config.clip_loc, "avg", "-2d", "-iz", min_max, "-m", "1", in_fp, ave_mrc]
