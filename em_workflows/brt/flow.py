@@ -192,7 +192,7 @@ def gen_recon_movie(file_path: FilePath) -> dict:
     """
     ffmpeg -f image2 -framerate 8 -i WORKDIR/hedwig/BASENAME_mp4.%04d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 WORKDIR/hedwig/keyMov_BASENAME.mp4
     """
-    mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%04d.jpg"
+    mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
     key_mov = f"{file_path.working_dir}/{file_path.base}_keyMov.mp4"
     cmd = [
         "ffmpeg",
