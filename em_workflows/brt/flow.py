@@ -27,9 +27,11 @@ def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
     ali_or_rec is nasty, str to denote whether you're using the _ali file
     or the _rec file.
     """
-    
-    if ali_or_rec not in ['ali', 'rec']:
-        raise signals.FAIL(f"gen_dimension_command must be called with ali or rec, not {ali_or_rec}")
+
+    if ali_or_rec not in ["ali", "rec"]:
+        raise signals.FAIL(
+            f"gen_dimension_command must be called with ali or rec, not {ali_or_rec}"
+        )
     mrc_file = f"{file_path.working_dir}/{file_path.base}_{ali_or_rec}.mrc"
     ali_file_p = Path(mrc_file)
     if ali_file_p.exists():
@@ -192,9 +194,10 @@ def gen_recon_movie(file_path: FilePath) -> dict:
     """
     ffmpeg -f image2 -framerate 8 -i WORKDIR/hedwig/BASENAME_mp4.%04d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 WORKDIR/hedwig/keyMov_BASENAME.mp4
     """
-    # mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
-    inputs = glob.glob(f"{file_path.working_dir}/{file_path.base}_mp4*jpg")
-    inputs_as_str = " ".join(inputs)
+    test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
+    mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
+    if test_p.exists():
+        mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%04d.jpg"
     key_mov = f"{file_path.working_dir}/{file_path.base}_keyMov.mp4"
     cmd = [
         "ffmpeg",
@@ -203,7 +206,7 @@ def gen_recon_movie(file_path: FilePath) -> dict:
         "-framerate",
         "8",
         "-i",
-        inputs_as_str,
+        mp4_input,
         "-vcodec",
         "libx264",
         "-pix_fmt",
@@ -386,7 +389,9 @@ with Flow(
 
     # stack dimensions - used in movie creation
     # alignment z dimension, this is only used for the tilt movie.
-    ali_z_dims = gen_dimension_command.map(file_path=fps, ali_or_rec=unmapped('ali'), upstream_tasks=[brts])
+    ali_z_dims = gen_dimension_command.map(
+        file_path=fps, ali_or_rec=unmapped("ali"), upstream_tasks=[brts]
+    )
 
     # START TILT MOVIE GENERATION:
     ali_xs = gen_ali_x.map(file_path=fps, z_dim=ali_z_dims, upstream_tasks=[brts])
@@ -404,8 +409,12 @@ with Flow(
     # END TILT MOVIE GENERATION
 
     # START RECONSTR MOVIE GENERATION:
-    rec_z_dims = gen_dimension_command.map(file_path=fps, ali_or_rec=unmapped('rec'), upstream_tasks=[brts])
-    clip_avgs = gen_clip_avgs.map(file_path=fps, z_dim=rec_z_dims, upstream_tasks=[asmbls])
+    rec_z_dims = gen_dimension_command.map(
+        file_path=fps, ali_or_rec=unmapped("rec"), upstream_tasks=[brts]
+    )
+    clip_avgs = gen_clip_avgs.map(
+        file_path=fps, z_dim=rec_z_dims, upstream_tasks=[asmbls]
+    )
     averagedVolume_assets = consolidate_ave_mrcs.map(
         file_path=fps, upstream_tasks=[clip_avgs]
     )
@@ -423,11 +432,11 @@ with Flow(
 
     # START PYRAMID GEN
     # nifti file generation
-#    niftis = ng.gen_niftis.map(fp_in=fps, upstream_tasks=[brts])
-#    pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[niftis])
-#    archive_pyramid_cmds = ng.gen_archive_pyr.map(
-#        file_path=fps, upstream_tasks=[pyramid_assets]
-#    )
+    #    niftis = ng.gen_niftis.map(fp_in=fps, upstream_tasks=[brts])
+    #    pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[niftis])
+    #    archive_pyramid_cmds = ng.gen_archive_pyr.map(
+    #        file_path=fps, upstream_tasks=[pyramid_assets]
+    #    )
 
     # now we've done the computational work.
     # the relevant files have been put into the Assets dirs, but we need to inform the API
@@ -438,9 +447,9 @@ with Flow(
     callback_with_keyimgs = utils.add_asset.map(
         prim_fp=callback_with_thumbs, asset=keyimg_assets
     )
-#    callback_with_pyramids = utils.add_asset.map(
-#        prim_fp=callback_with_keyimgs, asset=pyramid_assets
-#    )
+    #    callback_with_pyramids = utils.add_asset.map(
+    #        prim_fp=callback_with_keyimgs, asset=pyramid_assets
+    #    )
     callback_with_ave_vol = utils.add_asset.map(
         prim_fp=callback_with_keyimgs, asset=averagedVolume_assets
     )
@@ -457,9 +466,9 @@ with Flow(
     # this is a bit dubious. Previously I wanted to ONLY copy intermed files upon failure.
     # now we copy evreything, everytime. :shrug emoji:
     # spoiler: (we're going to run out of space).
-#    cp_wd_to_assets = utils.copy_workdirs.map(
-#        fps, upstream_tasks=[callback_with_recon_mov]
-#    )
+    #    cp_wd_to_assets = utils.copy_workdirs.map(
+    #        fps, upstream_tasks=[callback_with_recon_mov]
+    #    )
     # finally convert to JSON and send.
     cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=callback_with_tilt_mov

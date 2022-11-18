@@ -49,7 +49,6 @@ class FilePath:
         """
         return self._assets_dir
 
-
     @property
     def working_dir(self) -> Path:
         return self._working_dir
@@ -66,7 +65,6 @@ class FilePath:
             msg = "Unable to look up HEDWIG_ENV. Should be exported set to one of: [dev, qa, prod]"
             raise RuntimeError(msg)
         return env
-
 
     def make_work_dir(self) -> Path:
         """
@@ -253,5 +251,3 @@ class FilePath:
         except Exception as ex:
             raise signals.FAIL(str(ex))
         return sp.returncode
-
-
