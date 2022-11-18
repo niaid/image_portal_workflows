@@ -21,17 +21,25 @@ shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
 
 @task
-def gen_dimension_command(file_path: FilePath) -> str:
-    ali_file = f"{file_path.working_dir}/{file_path.base}_ali.mrc"
-    ali_file_p = Path(ali_file)
+def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
+    """
+    looks up the z dimension of an mrc file.
+    ali_or_rec is nasty, str to denote whether you're using the _ali file
+    or the _rec file.
+    """
+    
+    if ali_or_rec not in ['ali', 'rec']:
+        raise signals.FAIL(f"gen_dimension_command must be called with ali or rec, not {ali_or_rec}")
+    mrc_file = f"{file_path.working_dir}/{file_path.base}_{ali_or_rec}.mrc"
+    ali_file_p = Path(mrc_file)
     if ali_file_p.exists():
-        utils.log(f"{ali_file} exists")
+        utils.log(f"{mrc_file} exists")
     else:
-        utils.log(f"{ali_file} DOES NOT exist")
+        utils.log(f"{mrc_file} DOES NOT exist")
         raise signals.FAIL(
-            f"File {ali_file} does not exist. gen_dimension_command failure."
+            f"File {mrc_file} does not exist. gen_dimension_command failure."
         )
-    cmd = [Config.header_loc, "-s", ali_file]
+    cmd = [Config.header_loc, "-s", mrc_file]
     sp = subprocess.run(cmd, check=False, capture_output=True)
     if sp.returncode != 0:
         stdout = sp.stdout.decode("utf-8")
@@ -235,7 +243,7 @@ def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
 def consolidate_ave_mrcs(file_path: FilePath) -> dict:
     """
     consumes base_ave001.mrc etc, base_ave002.mrc etc,
-    creates ave_base.mrc
+    creates ave_base.mrc the (averagedVolume asset)
     newstack -float 3 BASENAME_ave* ave_BASENAME.mrc
     """
     aves = glob.glob(f"{file_path.working_dir}/{file_path.base}_ave*")
@@ -254,11 +262,12 @@ def consolidate_ave_mrcs(file_path: FilePath) -> dict:
 @task
 def gen_ave_8_vol(file_path: FilePath) -> dict:
     """
+    creates volume asset, for volslicer
     binvol -binning 2 WORKDIR/hedwig/ave_BASENAME.mrc WORKDIR/avebin8_BASENAME.mrc
     """
     ave_8_mrc = f"{file_path.working_dir}/avebin8_{file_path.base}.mrc"
     ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
-    cmd = [Config.binvol, "-binning", "2", ave_mrc, ave_8_mrc]
+    cmd = [Config.binvol, "-binning", "8", ave_mrc, ave_8_mrc]
     log_file = f"{file_path.working_dir}/ave_8_mrc.log"
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(ave_8_mrc))
@@ -374,17 +383,18 @@ with Flow(
     # END BRT, check files for success (else fail here)
 
     # stack dimensions - used in movie creation
-    z_dims = gen_dimension_command.map(file_path=fps, upstream_tasks=[brts])
+    # alignment z dimension, this is only used for the tilt movie.
+    ali_z_dims = gen_dimension_command.map(file_path=fps, ali_or_rec=unmapped('ali'), upstream_tasks=[brts])
 
     # START TILT MOVIE GENERATION:
-    ali_xs = gen_ali_x.map(file_path=fps, z_dim=z_dims, upstream_tasks=[brts])
+    ali_xs = gen_ali_x.map(file_path=fps, z_dim=ali_z_dims, upstream_tasks=[brts])
     asmbls = gen_ali_asmbl.map(file_path=fps, upstream_tasks=[ali_xs])
     mrc2tiffs = gen_mrc2tiff.map(file_path=fps, upstream_tasks=[asmbls])
     thumb_assets = gen_thumbs.map(
-        file_path=fps, z_dim=z_dims, upstream_tasks=[mrc2tiffs]
+        file_path=fps, z_dim=ali_z_dims, upstream_tasks=[mrc2tiffs]
     )
     keyimg_assets = gen_copy_keyimages.map(
-        file_path=fps, z_dim=z_dims, upstream_tasks=[mrc2tiffs]
+        file_path=fps, z_dim=ali_z_dims, upstream_tasks=[mrc2tiffs]
     )
     tilt_movie_assets = gen_tilt_movie.map(
         file_path=fps, upstream_tasks=[keyimg_assets]
@@ -392,7 +402,8 @@ with Flow(
     # END TILT MOVIE GENERATION
 
     # START RECONSTR MOVIE GENERATION:
-    clip_avgs = gen_clip_avgs.map(file_path=fps, z_dim=z_dims, upstream_tasks=[asmbls])
+    rec_z_dims = gen_dimension_command.map(file_path=fps, ali_or_rec=unmapped('rec'), upstream_tasks=[brts])
+    clip_avgs = gen_clip_avgs.map(file_path=fps, z_dim=rec_z_dims, upstream_tasks=[asmbls])
     averagedVolume_assets = consolidate_ave_mrcs.map(
         file_path=fps, upstream_tasks=[clip_avgs]
     )
@@ -410,11 +421,11 @@ with Flow(
 
     # START PYRAMID GEN
     # nifti file generation
-    niftis = ng.gen_niftis.map(fp_in=fps, upstream_tasks=[brts])
-    pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[niftis])
-    archive_pyramid_cmds = ng.gen_archive_pyr.map(
-        file_path=fps, upstream_tasks=[pyramid_assets]
-    )
+#    niftis = ng.gen_niftis.map(fp_in=fps, upstream_tasks=[brts])
+#    pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[niftis])
+#    archive_pyramid_cmds = ng.gen_archive_pyr.map(
+#        file_path=fps, upstream_tasks=[pyramid_assets]
+#    )
 
     # now we've done the computational work.
     # the relevant files have been put into the Assets dirs, but we need to inform the API
@@ -425,11 +436,11 @@ with Flow(
     callback_with_keyimgs = utils.add_asset.map(
         prim_fp=callback_with_thumbs, asset=keyimg_assets
     )
-    callback_with_pyramids = utils.add_asset.map(
-        prim_fp=callback_with_keyimgs, asset=pyramid_assets
-    )
+#    callback_with_pyramids = utils.add_asset.map(
+#        prim_fp=callback_with_keyimgs, asset=pyramid_assets
+#    )
     callback_with_ave_vol = utils.add_asset.map(
-        prim_fp=callback_with_pyramids, asset=averagedVolume_assets
+        prim_fp=callback_with_keyimgs, asset=averagedVolume_assets
     )
     callback_with_bin_vol = utils.add_asset.map(
         prim_fp=callback_with_ave_vol, asset=bin_vol_assets
@@ -444,9 +455,9 @@ with Flow(
     # this is a bit dubious. Previously I wanted to ONLY copy intermed files upon failure.
     # now we copy evreything, everytime. :shrug emoji:
     # spoiler: (we're going to run out of space).
-    cp_wd_to_assets = utils.copy_workdirs.map(
-        fps, upstream_tasks=[callback_with_recon_mov]
-    )
+#    cp_wd_to_assets = utils.copy_workdirs.map(
+#        fps, upstream_tasks=[callback_with_recon_mov]
+#    )
     # finally convert to JSON and send.
     cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=callback_with_tilt_mov
