@@ -21,17 +21,27 @@ shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
 
 @task
-def gen_dimension_command(file_path: FilePath) -> str:
-    ali_file = f"{file_path.working_dir}/{file_path.base}_ali.mrc"
-    ali_file_p = Path(ali_file)
-    if ali_file_p.exists():
-        utils.log(f"{ali_file} exists")
-    else:
-        utils.log(f"{ali_file} DOES NOT exist")
+def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
+    """
+    looks up the z dimension of an mrc file.
+    ali_or_rec is nasty, str to denote whether you're using the _ali file
+    or the _rec file.
+    """
+
+    if ali_or_rec not in ["ali", "rec"]:
         raise signals.FAIL(
-            f"File {ali_file} does not exist. gen_dimension_command failure."
+            f"gen_dimension_command must be called with ali or rec, not {ali_or_rec}"
         )
-    cmd = [Config.header_loc, "-s", ali_file]
+    mrc_file = f"{file_path.working_dir}/{file_path.base}_{ali_or_rec}.mrc"
+    ali_file_p = Path(mrc_file)
+    if ali_file_p.exists():
+        utils.log(f"{mrc_file} exists")
+    else:
+        utils.log(f"{mrc_file} DOES NOT exist")
+        raise signals.FAIL(
+            f"File {mrc_file} does not exist. gen_dimension_command failure."
+        )
+    cmd = [Config.header_loc, "-s", mrc_file]
     sp = subprocess.run(cmd, check=False, capture_output=True)
     if sp.returncode != 0:
         stdout = sp.stdout.decode("utf-8")
@@ -184,7 +194,11 @@ def gen_recon_movie(file_path: FilePath) -> dict:
     """
     ffmpeg -f image2 -framerate 8 -i WORKDIR/hedwig/BASENAME_mp4.%04d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 WORKDIR/hedwig/keyMov_BASENAME.mp4
     """
+    # bit of a hack - want to find out if 
+    test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
     mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
+    if test_p.exists():
+        mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%04d.jpg"
     key_mov = f"{file_path.working_dir}/{file_path.base}_keyMov.mp4"
     cmd = [
         "ffmpeg",
@@ -223,7 +237,7 @@ def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
         izmin = i - 2
         izmax = i + 2
         in_fp = f"{file_path.working_dir}/{file_path.base}_rec.mrc"
-        padded_val = str(i).zfill(3)
+        padded_val = str(i).zfill(4)
         ave_mrc = f"{file_path.working_dir}/{file_path.base}_ave{padded_val}.mrc"
         min_max = f"{str(izmin)}-{str(izmax)}"
         cmd = [Config.clip_loc, "avg", "-2d", "-iz", min_max, "-m", "1", in_fp, ave_mrc]
@@ -235,7 +249,7 @@ def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
 def consolidate_ave_mrcs(file_path: FilePath) -> dict:
     """
     consumes base_ave001.mrc etc, base_ave002.mrc etc,
-    creates ave_base.mrc
+    creates ave_base.mrc the (averagedVolume asset)
     newstack -float 3 BASENAME_ave* ave_BASENAME.mrc
     """
     aves = glob.glob(f"{file_path.working_dir}/{file_path.base}_ave*")
@@ -254,11 +268,12 @@ def consolidate_ave_mrcs(file_path: FilePath) -> dict:
 @task
 def gen_ave_8_vol(file_path: FilePath) -> dict:
     """
+    creates volume asset, for volslicer
     binvol -binning 2 WORKDIR/hedwig/ave_BASENAME.mrc WORKDIR/avebin8_BASENAME.mrc
     """
     ave_8_mrc = f"{file_path.working_dir}/avebin8_{file_path.base}.mrc"
     ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
-    cmd = [Config.binvol, "-binning", "2", ave_mrc, ave_8_mrc]
+    cmd = [Config.binvol, "-binning", "8", ave_mrc, ave_8_mrc]
     log_file = f"{file_path.working_dir}/ave_8_mrc.log"
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(ave_8_mrc))
@@ -269,8 +284,10 @@ def gen_ave_8_vol(file_path: FilePath) -> dict:
 @task
 def gen_ave_jpgs_from_ave_mrc(file_path: FilePath):
     """
-    compiles a load of jpgs from the ave_base.mrc
     mrc2tif -j -C 100,255 WORKDIR/hedwig/ave_BASNAME.mrc hedwig/BASENAME_mp4
+    generates a load of jpgs from the ave_base.mrc with the format {base}_mp4.123.jpg
+    OR, {base}_mp4.1234.jpg depending on size of stack.
+    These jpgs can later be compiled into a movie.
     """
     mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
     ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
@@ -374,17 +391,20 @@ with Flow(
     # END BRT, check files for success (else fail here)
 
     # stack dimensions - used in movie creation
-    z_dims = gen_dimension_command.map(file_path=fps, upstream_tasks=[brts])
+    # alignment z dimension, this is only used for the tilt movie.
+    ali_z_dims = gen_dimension_command.map(
+        file_path=fps, ali_or_rec=unmapped("ali"), upstream_tasks=[brts]
+    )
 
     # START TILT MOVIE GENERATION:
-    ali_xs = gen_ali_x.map(file_path=fps, z_dim=z_dims, upstream_tasks=[brts])
+    ali_xs = gen_ali_x.map(file_path=fps, z_dim=ali_z_dims, upstream_tasks=[brts])
     asmbls = gen_ali_asmbl.map(file_path=fps, upstream_tasks=[ali_xs])
     mrc2tiffs = gen_mrc2tiff.map(file_path=fps, upstream_tasks=[asmbls])
     thumb_assets = gen_thumbs.map(
-        file_path=fps, z_dim=z_dims, upstream_tasks=[mrc2tiffs]
+        file_path=fps, z_dim=ali_z_dims, upstream_tasks=[mrc2tiffs]
     )
     keyimg_assets = gen_copy_keyimages.map(
-        file_path=fps, z_dim=z_dims, upstream_tasks=[mrc2tiffs]
+        file_path=fps, z_dim=ali_z_dims, upstream_tasks=[mrc2tiffs]
     )
     tilt_movie_assets = gen_tilt_movie.map(
         file_path=fps, upstream_tasks=[keyimg_assets]
@@ -392,7 +412,12 @@ with Flow(
     # END TILT MOVIE GENERATION
 
     # START RECONSTR MOVIE GENERATION:
-    clip_avgs = gen_clip_avgs.map(file_path=fps, z_dim=z_dims, upstream_tasks=[asmbls])
+    rec_z_dims = gen_dimension_command.map(
+        file_path=fps, ali_or_rec=unmapped("rec"), upstream_tasks=[brts]
+    )
+    clip_avgs = gen_clip_avgs.map(
+        file_path=fps, z_dim=rec_z_dims, upstream_tasks=[asmbls]
+    )
     averagedVolume_assets = consolidate_ave_mrcs.map(
         file_path=fps, upstream_tasks=[clip_avgs]
     )
