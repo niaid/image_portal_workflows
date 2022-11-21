@@ -432,11 +432,11 @@ with Flow(
 
     # START PYRAMID GEN
     # nifti file generation
-    #    niftis = ng.gen_niftis.map(fp_in=fps, upstream_tasks=[brts])
-    #    pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[niftis])
-    #    archive_pyramid_cmds = ng.gen_archive_pyr.map(
-    #        file_path=fps, upstream_tasks=[pyramid_assets]
-    #    )
+    niftis = ng.gen_niftis.map(fp_in=fps, upstream_tasks=[brts])
+    pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[niftis])
+    archive_pyramid_cmds = ng.gen_archive_pyr.map(
+        file_path=fps, upstream_tasks=[pyramid_assets]
+    )
 
     # now we've done the computational work.
     # the relevant files have been put into the Assets dirs, but we need to inform the API
@@ -447,11 +447,11 @@ with Flow(
     callback_with_keyimgs = utils.add_asset.map(
         prim_fp=callback_with_thumbs, asset=keyimg_assets
     )
-    #    callback_with_pyramids = utils.add_asset.map(
-    #        prim_fp=callback_with_keyimgs, asset=pyramid_assets
-    #    )
+    callback_with_pyramids = utils.add_asset.map(
+        prim_fp=callback_with_keyimgs, asset=pyramid_assets
+    )
     callback_with_ave_vol = utils.add_asset.map(
-        prim_fp=callback_with_keyimgs, asset=averagedVolume_assets
+        prim_fp=callback_with_pyramids, asset=averagedVolume_assets
     )
     callback_with_bin_vol = utils.add_asset.map(
         prim_fp=callback_with_ave_vol, asset=bin_vol_assets
@@ -466,9 +466,9 @@ with Flow(
     # this is a bit dubious. Previously I wanted to ONLY copy intermed files upon failure.
     # now we copy evreything, everytime. :shrug emoji:
     # spoiler: (we're going to run out of space).
-    #    cp_wd_to_assets = utils.copy_workdirs.map(
-    #        fps, upstream_tasks=[callback_with_recon_mov]
-    #    )
+    cp_wd_to_assets = utils.copy_workdirs.map(
+        fps, upstream_tasks=[callback_with_recon_mov]
+    )
     # finally convert to JSON and send.
     cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=callback_with_tilt_mov
