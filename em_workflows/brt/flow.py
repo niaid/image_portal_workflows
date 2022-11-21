@@ -194,6 +194,7 @@ def gen_recon_movie(file_path: FilePath) -> dict:
     """
     ffmpeg -f image2 -framerate 8 -i WORKDIR/hedwig/BASENAME_mp4.%04d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 WORKDIR/hedwig/keyMov_BASENAME.mp4
     """
+    # bit of a hack - want to find out if 
     test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
     mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
     if test_p.exists():
@@ -283,8 +284,10 @@ def gen_ave_8_vol(file_path: FilePath) -> dict:
 @task
 def gen_ave_jpgs_from_ave_mrc(file_path: FilePath):
     """
-    compiles a load of jpgs from the ave_base.mrc
     mrc2tif -j -C 100,255 WORKDIR/hedwig/ave_BASNAME.mrc hedwig/BASENAME_mp4
+    generates a load of jpgs from the ave_base.mrc with the format {base}_mp4.123.jpg
+    OR, {base}_mp4.1234.jpg depending on size of stack.
+    These jpgs can later be compiled into a movie.
     """
     mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
     ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
