@@ -13,7 +13,7 @@ from typing import List, Dict, Set, Optional
 from pathlib import Path
 from prefect import task, context
 from prefect import Flow, task, context
-from prefect.triggers import all_successful, always_run, any_failed
+from prefect.triggers import any_successful, always_run, any_failed
 from prefect.engine.state import State, Success
 from prefect.engine import signals
 
@@ -710,7 +710,7 @@ def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path = None) -> Path
     return dest
 
 
-@task(max_retries=3, retry_delay=datetime.timedelta(minutes=1))
+@task(max_retries=3, retry_delay=datetime.timedelta(minutes=1), trigger=any_successful)
 def send_callback_body(
     token: str,
     callback_url: str,
