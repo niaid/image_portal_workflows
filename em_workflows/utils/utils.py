@@ -16,8 +16,13 @@ from prefect import Flow, task, context
 from prefect.triggers import any_successful, always_run, any_failed
 from prefect.engine.state import State, Success
 from prefect.engine import signals
-
+from prefect.engine.signals import SKIP, TRIGGERFAIL
 from em_workflows.config import Config
+from prefect.tasks.control_flow.filter import FilterTask
+
+filter_results = FilterTask(
+    filter_func=lambda x: not isinstance(x, (BaseException, TRIGGERFAIL, SKIP, type(None)))
+)
 
 
 @task

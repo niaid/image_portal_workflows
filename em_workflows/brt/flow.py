@@ -472,9 +472,11 @@ with Flow(
     cp_wd_to_assets = utils.copy_workdirs.map(
         fps, upstream_tasks=[callback_with_tilt_mov]
     )
-    # finally convert to JSON and send.
+    # finally filter error states, and convert to JSON and send.
+    filtered_callback = utils.filter_results(callback_with_tilt_mov)
+
     cb = utils.send_callback_body(
-        token=token, callback_url=callback_url, files_elts=callback_with_tilt_mov
+        token=token, callback_url=callback_url, files_elts=filtered_callback
     )
 
 # the other tasks might be always run or something,
