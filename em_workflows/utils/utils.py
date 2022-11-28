@@ -13,11 +13,16 @@ from typing import List, Dict, Set, Optional
 from pathlib import Path
 from prefect import task, context
 from prefect import Flow, task, context
-from prefect.triggers import all_successful, always_run, any_failed
+from prefect.triggers import any_successful, always_run, any_failed
 from prefect.engine.state import State, Success
 from prefect.engine import signals
-
+from prefect.engine.signals import SKIP, TRIGGERFAIL
 from em_workflows.config import Config
+from prefect.tasks.control_flow.filter import FilterTask
+
+filter_results = FilterTask(
+    filter_func=lambda x: not isinstance(x, (BaseException, TRIGGERFAIL, SKIP, type(None)))
+)
 
 
 @task
@@ -493,22 +498,36 @@ def custom_terminal_state_handler(
     state: State,
     reference_task_states: Set[State],
 ) -> Optional[State]:
-    status = "error"
+    """
+    we define any success at all to be a success
+    """
+    success = False
     # iterate through reference task states looking for successes
     for task_state in reference_task_states:
         if task_state.is_successful():
-            status = "success"
+            success = True
     callback_url = prefect.context.parameters.get("callback_url")
     token = prefect.context.parameters.get("token")
     headers = {
         "Authorization": "Bearer " + token,
         "Content-Type": "application/json",
     }
+    if success:
+        message = "success"
+        ns = Success(
+            message=message,
+            result=state.result,
+            context=state.context,
+            cached_inputs=state.cached_inputs,
+        )
+    else:
+        message = "error"
+        ns = state
     response = requests.post(
-        callback_url, headers=headers, data=json.dumps({"status": status})
+        callback_url, headers=headers, data=json.dumps({"status": message})
     )
-    log(f"Pipeline status is:{status}, {response.text}")
-    return state
+    log(f"Pipeline status is:{message}, {response.text}")
+    return ns
 
 
 def notify_api_completion(flow: Flow, old_state, new_state) -> State:
@@ -696,7 +715,7 @@ def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path = None) -> Path
     return dest
 
 
-@task(max_retries=3, retry_delay=datetime.timedelta(minutes=1))
+@task(max_retries=3, retry_delay=datetime.timedelta(minutes=1), trigger=any_successful)
 def send_callback_body(
     token: str,
     callback_url: str,
