@@ -2,7 +2,6 @@
 
 set -e -o pipefail
 
-NIAID_PREFECT_SERVER="http://44.192.88.156:4200"
 
 SELF=`basename "$0"`
 HEDWIG_ENV=$1
@@ -13,8 +12,17 @@ if [[ ! ( $HEDWIG_ENV == "dev" || $HEDWIG_ENV == "qa" || $HEDWIG_ENV == "prod" )
 fi
 
 
+# this also defines where to register flows.
+if [[ $HEDWIG_ENV == "dev" ]]; then
+	export PREFECT__SERVER__HOST="https://prefect1.hedwig-workflow-api.niaiddev.net"
+elif [[ $HEDWIG_ENV == "qa" ]]; then
+	export PREFECT__SERVER__HOST="https://prefect1.hedwig-workflow-api.niaidqa.net"
+fi
+
+
 export HEDWIG_ENV=$HEDWIG_ENV
 export IMOD_DIR=/opt/rml/imod
+
 
 ACTION=$2
 if [[ ! ( $ACTION == "listen" || $ACTION == "register" ) ]]; then
@@ -47,7 +55,7 @@ fi
 if [[ $ACTION == "listen" ]]; then
 	printf "\nUsing venv $VENV\nStarting $HEDWIG_ENV Agent\n"
 	$PYTHON $PREFECT backend server
-	$PYTHON $PREFECT agent local start --label $HEDWIG_ENV --api $NIAID_PREFECT_SERVER
+	$PYTHON $PREFECT agent local start --label $HEDWIG_ENV --api $PREFECT__SERVER__HOST:4200
 elif [[ $ACTION == "register" ]]; then
 	printf "\nUsing venv $VENV\nRegister $HEDWIG_ENV Agent\n"
 	$PYTHON $PREFECT register --project Spaces_$HEDWIG_ENV  --path $WFLOWS/brt/
