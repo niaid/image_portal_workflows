@@ -5,8 +5,9 @@
 set -xe -o pipefail
 
 HEDWIG_ENV=$1
-if [[ ! ( $HEDWIG_ENV == "dev" || $HEDWIG_ENV == "qa" ) ]]; then
-	echo Environment MUST be set to either "qa" or "dev".
+echo "env is $HEDWIG_ENV"
+if [[ ! ( $HEDWIG_ENV == "dev" || $HEDWIG_ENV == "qa" || $HEDWIG_ENV == "prod" ) ]]; then
+	echo Environment MUST be set to either "prod", "qa" or "dev".
 	echo Eg export HEDWIG_ENV=dev 
 	exit 1
 fi
