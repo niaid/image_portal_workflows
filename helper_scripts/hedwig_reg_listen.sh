@@ -17,6 +17,8 @@ if [[ $HEDWIG_ENV == "dev" ]]; then
 	export PREFECT__SERVER__HOST="https://prefect1.hedwig-workflow-api.niaiddev.net"
 elif [[ $HEDWIG_ENV == "qa" ]]; then
 	export PREFECT__SERVER__HOST="https://prefect1.hedwig-workflow-api.niaidqa.net"
+elif [[ $HEDWIG_ENV == "prod" ]]; then
+	export PREFECT__SERVER__HOST="https://prefect1.hedwig-workflow-api.niaidprod.net"
 fi
 
 
