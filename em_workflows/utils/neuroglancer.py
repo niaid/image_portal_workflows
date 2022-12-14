@@ -54,6 +54,7 @@ def gen_pyramids(fp_in: FilePath) -> Dict:
         "volume-to-precomputed-pyramid",
         "--downscaling-method=average",
         "--flat",
+        "--no-gzip",
         nifti.as_posix(),
         outdir.as_posix(),
     ]
