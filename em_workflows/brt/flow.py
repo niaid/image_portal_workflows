@@ -364,9 +364,13 @@ with Flow(
 
     adoc_template = Parameter("adoc_template", default="plastic_brt")
     input_dir = Parameter("input_dir")
-    callback_url = Parameter("callback_url")()
-    token = Parameter("token")()
+    callback_url = Parameter("callback_url", default=None)()
+    token = Parameter("token", default=None)()
     file_name = Parameter("file_name", default=None)
+
+    # run workflow without an api.
+    no_api = Parameter("no_api", default=False)()
+
     # a single input_dir will have n tomograms
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
     # input_dir_fp = utils.get_input_dir(input_dir=input_dir)

@@ -480,16 +480,19 @@ def notify_api_running(flow: Flow, old_state, new_state) -> State:
     tells API the workflow has started to run.
     """
     if new_state.is_running():
-        callback_url = prefect.context.parameters.get("callback_url")
-        token = prefect.context.parameters.get("token")
-        headers = {
-            "Authorization": "Bearer " + token,
-            "Content-Type": "application/json",
-        }
-        response = requests.post(
-            callback_url, headers=headers, data=json.dumps({"status": "running"})
-        )
-        log(response.text)
+        if prefect.context.parameters.get("no_api"):
+            log("no_api flag used, not interacting with API")
+        else:
+            callback_url = prefect.context.parameters.get("callback_url")
+            token = prefect.context.parameters.get("token")
+            headers = {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json",
+            }
+            response = requests.post(
+                callback_url, headers=headers, data=json.dumps({"status": "running"})
+            )
+            log(response.text)
     return new_state
 
 
@@ -523,10 +526,13 @@ def custom_terminal_state_handler(
     else:
         message = "error"
         ns = state
-    response = requests.post(
-        callback_url, headers=headers, data=json.dumps({"status": message})
-    )
-    log(f"Pipeline status is:{message}, {response.text}")
+    if prefect.context.parameters.get("no_api"):
+        log(f"no_api flag used, terminal: {message}")
+    else:
+        response = requests.post(
+            callback_url, headers=headers, data=json.dumps({"status": message})
+        )
+        log(f"Pipeline status is:{message}, {response.text}")
     return ns
 
 
@@ -541,22 +547,24 @@ def notify_api_completion(flow: Flow, old_state, new_state) -> State:
 
     """
     if new_state.is_finished():
-        status = ""
         if new_state.is_successful():
             status = "success"
         else:
             status = "error"
-        callback_url = prefect.context.parameters.get("callback_url")
-        token = prefect.context.parameters.get("token")
-        headers = {
-            "Authorization": "Bearer " + token,
-            "Content-Type": "application/json",
-        }
-        response = requests.post(
-            callback_url, headers=headers, data=json.dumps({"status": status})
-        )
-        log(f"Pipeline status is:{status}")
-        log(response.text)
+        if prefect.context.parameters.get("no_api"):
+            log(f"no_api flag used, completion: {status}")
+        else:
+            callback_url = prefect.context.parameters.get("callback_url")
+            token = prefect.context.parameters.get("token")
+            headers = {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json",
+            }
+            response = requests.post(
+                callback_url, headers=headers, data=json.dumps({"status": status})
+            )
+            log(f"Pipeline status is:{status}")
+            log(response.text)
     return new_state
 
 
@@ -748,14 +756,17 @@ def send_callback_body(
     }
     """
     data = {"files": files_elts}
-    headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
-    response = requests.post(callback_url, headers=headers, data=json.dumps(data))
-    log(response.url)
-    log(response.status_code)
-    log(json.dumps(data))
-    log(response.text)
-    log(response.headers)
-    if response.status_code != 204:
-        msg = f"Bad response code on callback: {response}"
-        log(msg=msg)
-        raise ValueError(msg)
+    if prefect.context.parameters.get("no_api"):
+        log("no_api flag used, not interacting with API")
+    else:
+        headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
+        response = requests.post(callback_url, headers=headers, data=json.dumps(data))
+        log(response.url)
+        log(response.status_code)
+        log(json.dumps(data))
+        log(response.text)
+        log(response.headers)
+        if response.status_code != 204:
+            msg = f"Bad response code on callback: {response}"
+            log(msg=msg)
+            raise ValueError(msg)

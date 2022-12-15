@@ -218,8 +218,9 @@ with Flow(
     """
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
-    callback_url = Parameter("callback_url")()
-    token = Parameter("token")()
+    callback_url = Parameter("callback_url", default=None)()
+    token = Parameter("token", default=None)()
+    no_api = Parameter("no_api", default=None)()
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
 
     input_fps = utils.list_files(

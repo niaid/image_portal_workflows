@@ -47,8 +47,7 @@ def test_input_fname(mock_nfs_mount):
     state = flow.run(
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
         file_name="20210525_1416_A000_G000.dm4",
-        token="the_token",
-        callback_url="https://ptsv2.com/t/",
+        no_api=True,
     )
     assert state.is_successful()
 
