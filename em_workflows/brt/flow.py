@@ -273,7 +273,7 @@ def gen_ave_8_vol(file_path: FilePath) -> dict:
     """
     ave_8_mrc = f"{file_path.working_dir}/avebin8_{file_path.base}.mrc"
     ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
-    cmd = [Config.binvol, "-binning", "8", ave_mrc, ave_8_mrc]
+    cmd = [Config.binvol, "-binning", "2", ave_mrc, ave_8_mrc]
     log_file = f"{file_path.working_dir}/ave_8_mrc.log"
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(ave_8_mrc))
