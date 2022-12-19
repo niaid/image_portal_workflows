@@ -309,6 +309,8 @@ with Flow(
         prim_fp=callback_with_pyramids, asset=corrected_mrc_assets
     )
 
+    # finally filter error states, and convert to JSON and send.
+    filtered_callback = utils.filter_results(callback_with_corr_mrcs)
     cp_wd_to_assets = utils.copy_workdirs.map(
         fps, upstream_tasks=[callback_with_corr_mrcs]
     )

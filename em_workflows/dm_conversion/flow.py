@@ -252,6 +252,8 @@ with Flow(
     callback_with_keyimgs = utils.add_asset.map(
         prim_fp=callback_with_thumbs, asset=keyimg_assets
     )
+    # finally filter error states, and convert to JSON and send.
+    filtered_callback = utils.filter_results(callback_with_keyimgs)
     cp_wd_to_assets = utils.copy_workdirs.map(
         fps, upstream_tasks=[callback_with_keyimgs]
     )
