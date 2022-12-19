@@ -509,12 +509,6 @@ def custom_terminal_state_handler(
     for task_state in reference_task_states:
         if task_state.is_successful():
             success = True
-    callback_url = prefect.context.parameters.get("callback_url")
-    token = prefect.context.parameters.get("token")
-    headers = {
-        "Authorization": "Bearer " + token,
-        "Content-Type": "application/json",
-    }
     if success:
         message = "success"
         ns = Success(
@@ -527,8 +521,14 @@ def custom_terminal_state_handler(
         message = "error"
         ns = state
     if prefect.context.parameters.get("no_api"):
-        log(f"no_api flag used, terminal: {message}")
+        log(f"no_api flag used, terminal: success is {message}")
     else:
+        callback_url = prefect.context.parameters.get("callback_url")
+        token = prefect.context.parameters.get("token")
+        headers = {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json",
+        }
         response = requests.post(
             callback_url, headers=headers, data=json.dumps({"status": message})
         )
@@ -771,4 +771,4 @@ def send_callback_body(
             log(msg=msg)
             raise ValueError(msg)
     else:
-        log(f"Invalid state - need callback_url and token, OR set no_api to True.")
+        raise signals.FAIL(f"Invalid state - need callback_url and token, OR set no_api to True.")
