@@ -261,5 +261,5 @@ with Flow(
     callback_sent = utils.send_callback_body(
         token=token,
         callback_url=callback_url,
-        files_elts=callback_with_keyimgs,
+        files_elts=filtered_callback,
     )

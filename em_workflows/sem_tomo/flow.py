@@ -315,5 +315,5 @@ with Flow(
         fps, upstream_tasks=[callback_with_corr_mrcs]
     )
     cb = utils.send_callback_body(
-        token=token, callback_url=callback_url, files_elts=callback_with_corr_mrcs
+        token=token, callback_url=callback_url, files_elts=filtered_callback
     )
