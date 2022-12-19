@@ -771,4 +771,4 @@ def send_callback_body(
             log(msg=msg)
             raise ValueError(msg)
     else:
-        raise signals.FAIL(f"Invalid state - need callback_url and token, OR set no_api to True.")
+        log(f"Invalid state - need callback_url and token, OR set no_api to True.")
