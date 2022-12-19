@@ -725,9 +725,9 @@ def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path = None) -> Path
 
 @task(max_retries=3, retry_delay=datetime.timedelta(minutes=1), trigger=any_successful)
 def send_callback_body(
-    token: str,
-    callback_url: str,
     files_elts: List[Dict],
+    token: str = None,
+    callback_url: str = None,
 ) -> None:
     """
     Upon completion of file conversion a callback is made to the calling
@@ -758,7 +758,7 @@ def send_callback_body(
     data = {"files": files_elts}
     if prefect.context.parameters.get("no_api"):
         log("no_api flag used, not interacting with API")
-    else:
+    elif callback_url and token:
         headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
         response = requests.post(callback_url, headers=headers, data=json.dumps(data))
         log(response.url)
@@ -770,3 +770,5 @@ def send_callback_body(
             msg = f"Bad response code on callback: {response}"
             log(msg=msg)
             raise ValueError(msg)
+    else:
+        raise signals.FAIL(f"Invalid state - need callback_url and token, OR set no_api to True.")
