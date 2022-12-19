@@ -93,7 +93,7 @@ runtime.Positioning.any.thickness = {{ rpa_thickness }}
 #Aligned Stack Choices
 #Aligned Stack Parameters
 runtime.AlignedStack.any.linearInterpolation = 0
-runtime.AlignedStack.any.binByFactor = 1
+runtime.AlignedStack.any.binByFactor = 4
 comparam.golderaser.ccderaser.ExpandCircleIterations = 3
 
 #CTF Correction Parameters

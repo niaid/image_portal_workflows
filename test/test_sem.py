@@ -32,7 +32,6 @@ def test_sem(mock_nfs_mount):
     result = flow.run(
         input_dir="/test/input_files/sem_inputs/Projects/",
         tilt_angle="30.2",
-        token="the_token",
-        callback_url="https://ptsv2.com/t/",
+        no_api=True
     )
     assert result.is_successful()

@@ -273,7 +273,7 @@ def gen_ave_8_vol(file_path: FilePath) -> dict:
     """
     ave_8_mrc = f"{file_path.working_dir}/avebin8_{file_path.base}.mrc"
     ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
-    cmd = [Config.binvol, "-binning", "8", ave_mrc, ave_8_mrc]
+    cmd = [Config.binvol, "-binning", "2", ave_mrc, ave_8_mrc]
     log_file = f"{file_path.working_dir}/ave_8_mrc.log"
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(ave_8_mrc))
@@ -364,9 +364,13 @@ with Flow(
 
     adoc_template = Parameter("adoc_template", default="plastic_brt")
     input_dir = Parameter("input_dir")
-    callback_url = Parameter("callback_url")()
-    token = Parameter("token")()
+    callback_url = Parameter("callback_url", default=None)()
+    token = Parameter("token", default=None)()
     file_name = Parameter("file_name", default=None)
+
+    # run workflow without an api.
+    no_api = Parameter("no_api", default=False)()
+
     # a single input_dir will have n tomograms
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
     # input_dir_fp = utils.get_input_dir(input_dir=input_dir)

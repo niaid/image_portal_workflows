@@ -78,7 +78,6 @@ def test_brt(hpc_env):
         LocalAlignments=0,
         THICKNESS=30,
         input_dir="test/input_files/brt_inputs/Projects/",
-        token="the_token",
-        callback_url="https://ptsv2.com/t/",
+        no_api=True
     )
     assert result.is_successful()

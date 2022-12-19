@@ -218,8 +218,9 @@ with Flow(
     """
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
-    callback_url = Parameter("callback_url")()
-    token = Parameter("token")()
+    callback_url = Parameter("callback_url", default=None)()
+    token = Parameter("token", default=None)()
+    no_api = Parameter("no_api", default=None)()
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
 
     input_fps = utils.list_files(
@@ -251,6 +252,8 @@ with Flow(
     callback_with_keyimgs = utils.add_asset.map(
         prim_fp=callback_with_thumbs, asset=keyimg_assets
     )
+    # finally filter error states, and convert to JSON and send.
+    filtered_callback = utils.filter_results(callback_with_keyimgs)
     cp_wd_to_assets = utils.copy_workdirs.map(
         fps, upstream_tasks=[callback_with_keyimgs]
     )
@@ -258,5 +261,5 @@ with Flow(
     callback_sent = utils.send_callback_body(
         token=token,
         callback_url=callback_url,
-        files_elts=callback_with_keyimgs,
+        files_elts=filtered_callback,
     )

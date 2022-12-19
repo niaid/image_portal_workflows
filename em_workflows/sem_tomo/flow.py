@@ -1,12 +1,9 @@
 from em_workflows.file_path import FilePath
-import subprocess
 import glob
 import math
 from typing import List, Dict
-from pathlib import Path
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
-from prefect.tasks.control_flow import merge
 from em_workflows.config import Config
 from em_workflows.shell_task_echo import ShellTaskEcho
 from em_workflows.utils import utils
@@ -250,9 +247,10 @@ with Flow(
 ) as flow:
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
-    callback_url = Parameter("callback_url")()
-    token = Parameter("token")()
+    callback_url = Parameter("callback_url", default=None)()
+    token = Parameter("token", default=None)()
     tilt_angle = Parameter("tilt_angle", default=None)()
+    no_api = Parameter("no_api", default=False)()
 
     # dir to read from.
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
@@ -311,9 +309,11 @@ with Flow(
         prim_fp=callback_with_pyramids, asset=corrected_mrc_assets
     )
 
+    # finally filter error states, and convert to JSON and send.
+    filtered_callback = utils.filter_results(callback_with_corr_mrcs)
     cp_wd_to_assets = utils.copy_workdirs.map(
         fps, upstream_tasks=[callback_with_corr_mrcs]
     )
     cb = utils.send_callback_body(
-        token=token, callback_url=callback_url, files_elts=callback_with_corr_mrcs
+        token=token, callback_url=callback_url, files_elts=filtered_callback
     )
