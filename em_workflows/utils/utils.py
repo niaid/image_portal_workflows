@@ -493,6 +493,11 @@ def notify_api_running(flow: Flow, old_state, new_state) -> State:
                 callback_url, headers=headers, data=json.dumps({"status": "running"})
             )
             log(response.text)
+            log(response.headers)
+            if not response.ok:
+                msg = f"Bad response code on notify_api_running: {response}"
+                log(msg=msg)
+                raise signals.FAIL(msg)
     return new_state
 
 
@@ -533,6 +538,11 @@ def custom_terminal_state_handler(
             callback_url, headers=headers, data=json.dumps({"status": message})
         )
         log(f"Pipeline status is:{message}, {response.text}")
+        log(response.headers)
+        if not response.ok:
+            msg = f"Bad response code on callback: {response}"
+            log(msg=msg)
+            raise signals.FAIL(msg)
     return ns
 
 
@@ -565,6 +575,11 @@ def notify_api_completion(flow: Flow, old_state, new_state) -> State:
             )
             log(f"Pipeline status is:{status}")
             log(response.text)
+            log(response.headers)
+            if not response.ok:
+                msg = f"Bad response code on callback: {response}"
+                log(msg=msg)
+                raise signals.FAIL(msg)
     return new_state
 
 
@@ -657,7 +672,7 @@ def add_assets_entry(
         "neuroglancerPrecomputed",
     ]
     if asset_type not in valid_typs:
-        raise ValueError(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
+        raise signals.FAIL(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
     fp_no_mount_point = path.relative_to(Config.assets_dir(env=get_environment()))
     if metadata:
         asset = {
@@ -766,9 +781,9 @@ def send_callback_body(
         log(json.dumps(data))
         log(response.text)
         log(response.headers)
-        if response.status_code != 204:
+        if not response.ok:
             msg = f"Bad response code on callback: {response}"
             log(msg=msg)
-            raise ValueError(msg)
+            raise signals.FAIL(msg)
     else:
         raise signals.FAIL(f"Invalid state - need callback_url and token, OR set no_api to True.")
