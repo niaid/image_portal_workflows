@@ -24,75 +24,60 @@ Workflows are currently run on RML HPC ("BigSky").
 
 There are three environments currently on BigSky: (`dev`, `qa`, `prod`).
 They were set up as follows:
+(Note, this first step is only required once, and only to work around ancient versions of Python.)
 
-- Obtain and set up Miniconda (to allow setting up of venvs) e.g.::
+.. codeblock:: sh
 
-  wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.11.0-Linux-x86_64.sh
-
-
-- Activate conda to create the virtual environment::
-
-  conda create -n conda_env
-  conda activate conda_env
-  # create dev for example
-  python3 -m venv code/hedwig_venv_dev
-  # don't need the conda env any more...
-  conda deactivate
-
-
-- Set up dev venv.::
-
-  source ~/code/hedwig_venv_dev/bin/activate
-  cd ~/code/hedwig_venv_dev
-  git clone git@github.com:niaid/image_portal_workflows.git
-  cd image_portal_workflows/
-  pip3 install -r requirements.txt --find-links https://github.com/niaid/tomojs-pytools/releases/tag/v1.0
-  # ensure PYTHONPATH isn't set!
-  unset  PYTHONPATH
-  # ensure HEDWIG_ENV is set!
-  export HEDWIG_ENV=dev
-  # there's an issue with looking up certs - this fixes it
-  export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
-  # start an agent specific to this env (project), note agent label "dev".
-  prefect agent local start -l qa --key the_key
-  # stop, background, and disown agent - note this will be deamonized.
-  <crtl> z
-  bg
-  disown "%prefect"
-  prefect create project "RML_QA"
-  cd em_workflows
-  pip install -e .
-  # register each of the workflows, for example:
-  prefect register --project "RML_DEV" -p em_workflows/dm_conversion/
-  prefect register --project "RML_DEV" -p em_workflows/brt/
-  # ...etc per workflow
-  # (The workflow needs to be registered every time the source is updated.)
+   # Obtain and set up Miniconda (to allow setting up of venvs) e.g.
+   wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.11.0-Linux-x86_64.sh
+   # Activate conda to create the virtual environment
+   conda create -n conda_env
+   conda activate conda_env
+   # create venv, "some_name" for example
+   python3 -m venv some_name
+   # don't need the conda env any more...
+   conda deactivate
 
 
-- Set up Dask jobqueue::
+A script exists to help set up `dev`, `qa`, or `prod` environments in
+`$HOME/code/hedwig/<HEDWIG_ENV>`
+Insure `$HOME/code/hedwig` exists. Runs on Linux.
 
-  cat ~/.config/dask/jobqueue.yaml 
-jobqueue:
-  slurm:
-    name: dask-worker
+.. codeblock:: sh
 
-    # Dask worker options
-    cores: 1                 # Total number of cores per job
-    memory: "10 GB"                # Total amount of memory per job
-    processes: 1                # Number of Python processes per job
+   git clone git@github.com:niaid/image_portal_workflows.git
+   # generates venv qa.
+   ./image_portal_workflows/helper_scripts/generate_venv.sh qa
 
-    # interface: ens160           # Network interface to use like eth0 or ib0
-    death-timeout: 120           # Number of seconds to wait if a worker can not find a scheduler
-    local-directory: /gs1/home/macmenaminpe/tmp       # Location of fast local storage 
-    extra: []
+The prefect agent, the thing that reaches out to the prefect API machine, is daemonized on HPC.
+See `image_portal_workflows/helper_scripts/hedwig_reg_listen.sh` and
+`image_portal_workflows/helper_scripts/hedwig_listener_prod.service` etc.
 
-    # SLURM resource manager options
-    shebang: "#!/usr/bin/env bash"
-    queue: gpu
-    project: null
-    walltime: '10:00:00'
+To register a new workflow, or update an existing one (in `qa` environment):
+(The workflow needs to be registered every time the source is updated.)
+`image_portal_workflows/helper_scripts/hedwig_reg_listen.sh qa register`
 
 
+Currently dask jobqueue is configured with a yaml file.
+
+.. codeblock:: sh
+
+   $ cat ~/.config/dask/jobqueue.yaml
+   # Dask worker options
+   cores: 8                # Total number of cores per job
+   memory: "64 GB"                # Total amount of memory per job
+   processes: 1                # Number of Python processes per job
+
+   # interface: ens160           # Network interface to use like eth0 or ib0
+   death-timeout: 120           # Number of seconds to wait if a worker can not find a scheduler
+   local-directory: /gs1/home/macmenaminpe/tmp       # Location of fast local storage like /scratch or $TMPDIR
+   job_extra_directives: ["--gres=gpu:1"]
+
+   # SLURM resource manager options
+   shebang: "#!/usr/bin/env bash"
+   queue: gpu
+   project: null
+   walltime: '10:00:00'
 
 - Note, although unused above, BigSky also has Spack available, e.g.::
 
