@@ -7,6 +7,7 @@ with open("requirements.txt", "r") as fp:
 
 setup(
     name="em_workflows",
+    version='1.0.1',
     author="Philip MacMenamin",
     author_email="bioinformatics@niaid.nih.gov",
     description="Workflows for Microscopy related file processing.",

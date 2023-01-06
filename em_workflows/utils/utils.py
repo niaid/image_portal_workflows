@@ -223,7 +223,7 @@ def run_brt(
     )
 
     # START BRT (Batchruntomo) - long running process.
-    cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "8", "-gpu", "1"]
+    cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "1", "-gpu", "1"]
     log_file = f"{file_path.working_dir}/brt_run.log"
     FilePath.run(cmd, log_file)
     brts_ok = check_brt_run_ok(file_path=file_path)
