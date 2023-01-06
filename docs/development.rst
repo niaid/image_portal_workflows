@@ -26,7 +26,7 @@ There are three environments currently on BigSky: (`dev`, `qa`, `prod`).
 They were set up as follows:
 (Note, this first step is only required once, and only to work around ancient versions of Python.)
 
-.. codeblock:: sh
+.. code-block:: sh
 
    # Obtain and set up Miniconda (to allow setting up of venvs) e.g.
    wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.11.0-Linux-x86_64.sh
@@ -43,7 +43,7 @@ A script exists to help set up `dev`, `qa`, or `prod` environments in
 `$HOME/code/hedwig/<HEDWIG_ENV>`
 Insure `$HOME/code/hedwig` exists. Runs on Linux.
 
-.. codeblock:: sh
+.. code-block:: sh
 
    git clone git@github.com:niaid/image_portal_workflows.git
    # generates venv qa.
@@ -60,7 +60,7 @@ To register a new workflow, or update an existing one (in `qa` environment):
 
 Currently dask jobqueue is configured with a yaml file.
 
-.. codeblock:: sh
+.. code-block:: sh
 
    $ cat ~/.config/dask/jobqueue.yaml
    # Dask worker options
