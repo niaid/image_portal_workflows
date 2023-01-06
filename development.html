@@ -48,9 +48,25 @@
 <p>There are three environments currently on BigSky: (<cite>dev</cite>, <cite>qa</cite>, <cite>prod</cite>).
 They were set up as follows:
 (Note, this first step is only required once, and only to work around ancient versions of Python.)</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Obtain and set up Miniconda (to allow setting up of venvs) e.g.</span>
+wget<span class="w"> </span>https://repo.anaconda.com/miniconda/Miniconda3-py39_4.11.0-Linux-x86_64.sh
+<span class="c1"># Activate conda to create the virtual environment</span>
+conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>conda_env
+conda<span class="w"> </span>activate<span class="w"> </span>conda_env
+<span class="c1"># create venv, &quot;some_name&quot; for example</span>
+python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>some_name
+<span class="c1"># don&#39;t need the conda env any more...</span>
+conda<span class="w"> </span>deactivate
+</pre></div>
+</div>
 <p>A script exists to help set up <cite>dev</cite>, <cite>qa</cite>, or <cite>prod</cite> environments in
 <cite>$HOME/code/hedwig/&lt;HEDWIG_ENV&gt;</cite>
 Insure <cite>$HOME/code/hedwig</cite> exists. Runs on Linux.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:niaid/image_portal_workflows.git
+<span class="c1"># generates venv qa.</span>
+./image_portal_workflows/helper_scripts/generate_venv.sh<span class="w"> </span>qa
+</pre></div>
+</div>
 <p>The prefect agent, the thing that reaches out to the prefect API machine, is daemonized on HPC.
 See <cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh</cite> and
 <cite>image_portal_workflows/helper_scripts/hedwig_listener_prod.service</cite> etc.</p>
@@ -58,6 +74,24 @@ See <cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh</cite> and
 (The workflow needs to be registered every time the source is updated.)
 <cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh qa register</cite></p>
 <p>Currently dask jobqueue is configured with a yaml file.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>cat<span class="w"> </span>~/.config/dask/jobqueue.yaml
+<span class="c1"># Dask worker options</span>
+cores:<span class="w"> </span><span class="m">8</span><span class="w">                </span><span class="c1"># Total number of cores per job</span>
+memory:<span class="w"> </span><span class="s2">&quot;64 GB&quot;</span><span class="w">                </span><span class="c1"># Total amount of memory per job</span>
+processes:<span class="w"> </span><span class="m">1</span><span class="w">                </span><span class="c1"># Number of Python processes per job</span>
+
+<span class="c1"># interface: ens160           # Network interface to use like eth0 or ib0</span>
+death-timeout:<span class="w"> </span><span class="m">120</span><span class="w">           </span><span class="c1"># Number of seconds to wait if a worker can not find a scheduler</span>
+local-directory:<span class="w"> </span>/gs1/home/macmenaminpe/tmp<span class="w">       </span><span class="c1"># Location of fast local storage like /scratch or $TMPDIR</span>
+job_extra_directives:<span class="w"> </span><span class="o">[</span><span class="s2">&quot;--gres=gpu:1&quot;</span><span class="o">]</span>
+
+<span class="c1"># SLURM resource manager options</span>
+shebang:<span class="w"> </span><span class="s2">&quot;#!/usr/bin/env bash&quot;</span>
+queue:<span class="w"> </span>gpu
+project:<span class="w"> </span>null
+walltime:<span class="w"> </span><span class="s1">&#39;10:00:00&#39;</span>
+</pre></div>
+</div>
 <ul>
 <li><p>Note, although unused above, BigSky also has Spack available, e.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ source /gs1/apps/user/rmlspack/share/spack/setup-env.sh
