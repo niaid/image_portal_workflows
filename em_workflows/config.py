@@ -8,16 +8,16 @@ import prefect
 def SLURM_exec():
     cluster = SLURMCluster(
         name="dask-worker",
-        cores=8,
+        cores=16,
         memory="32G",
-        processes=2,
+        processes=8,
         death_timeout=121,
         local_directory="/gs1/home/macmenaminpe/tmp/",
         queue="gpu",
-        walltime="2:00:00",
+        walltime="4:00:00",
         job_extra_directives=["--gres=gpu:1"],
     )
-    cluster.adapt(minimum=1, maximum=7)
+    cluster.adapt(minimum=1, maximum=6)
     logging = prefect.context.get("logger")
     logging.debug(f"Dask cluster started")
     logging.debug(f"see dashboard {cluster.dashboard_link}")
