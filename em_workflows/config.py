@@ -6,11 +6,15 @@ import prefect
 
 
 def SLURM_exec():
+    """
+    brings up a dynamically sized cluster.
+    For some reason processes > 1 crash BRT. Be careful optimizing this.
+    """
     cluster = SLURMCluster(
         name="dask-worker",
         cores=16,
         memory="32G",
-        processes=8,
+        processes=1,
         death_timeout=121,
         local_directory="/gs1/home/macmenaminpe/tmp/",
         queue="gpu",
