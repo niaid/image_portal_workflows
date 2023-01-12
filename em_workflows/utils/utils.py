@@ -21,7 +21,9 @@ from em_workflows.config import Config
 from prefect.tasks.control_flow.filter import FilterTask
 
 filter_results = FilterTask(
-    filter_func=lambda x: not isinstance(x, (BaseException, TRIGGERFAIL, SKIP, type(None)))
+    filter_func=lambda x: not isinstance(
+        x, (BaseException, TRIGGERFAIL, SKIP, type(None))
+    )
 )
 
 
@@ -672,7 +674,9 @@ def add_assets_entry(
         "neuroglancerPrecomputed",
     ]
     if asset_type not in valid_typs:
-        raise signals.FAIL(f"Asset type: {asset_type} is not a valid type. {valid_typs}")
+        raise signals.FAIL(
+            f"Asset type: {asset_type} is not a valid type. {valid_typs}"
+        )
     fp_no_mount_point = path.relative_to(Config.assets_dir(env=get_environment()))
     if metadata:
         asset = {
@@ -774,7 +778,10 @@ def send_callback_body(
     if prefect.context.parameters.get("no_api"):
         log("no_api flag used, not interacting with API")
     elif callback_url and token:
-        headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
+        headers = {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json",
+        }
         response = requests.post(callback_url, headers=headers, data=json.dumps(data))
         log(response.url)
         log(response.status_code)
@@ -786,4 +793,6 @@ def send_callback_body(
             log(msg=msg)
             raise signals.FAIL(msg)
     else:
-        raise signals.FAIL(f"Invalid state - need callback_url and token, OR set no_api to True.")
+        raise signals.FAIL(
+            f"Invalid state - need callback_url and token, OR set no_api to True."
+        )

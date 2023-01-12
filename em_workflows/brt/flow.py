@@ -194,7 +194,7 @@ def gen_recon_movie(file_path: FilePath) -> dict:
     """
     ffmpeg -f image2 -framerate 8 -i WORKDIR/hedwig/BASENAME_mp4.%04d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 WORKDIR/hedwig/keyMov_BASENAME.mp4
     """
-    # bit of a hack - want to find out if 
+    # bit of a hack - want to find out if
     test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
     mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
     if test_p.exists():

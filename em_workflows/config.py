@@ -6,7 +6,22 @@ import prefect
 
 
 def SLURM_exec():
-    cluster = SLURMCluster(n_workers=4)
+    """
+    brings up a dynamically sized cluster.
+    For some reason processes > 1 crash BRT. Be careful optimizing this.
+    """
+    cluster = SLURMCluster(
+        name="dask-worker",
+        cores=16,
+        memory="32G",
+        processes=1,
+        death_timeout=121,
+        local_directory="/gs1/home/macmenaminpe/tmp/",
+        queue="gpu",
+        walltime="4:00:00",
+        job_extra_directives=["--gres=gpu:1"],
+    )
+    cluster.adapt(minimum=1, maximum=6)
     logging = prefect.context.get("logger")
     logging.debug(f"Dask cluster started")
     logging.debug(f"see dashboard {cluster.dashboard_link}")
