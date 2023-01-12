@@ -140,6 +140,8 @@ def gen_newstack_corr_command(fp_in: FilePath) -> dict:
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     assets_fp_corr_mrc = fp_in.copy_to_assets_dir(fp_to_cp=corrected_mrc)
+    # we think that averagedVolume is not the best term here.
+    # possibly use: alignedCorrectedVol
     return fp_in.gen_asset(asset_type="averagedVolume", asset_fp=assets_fp_corr_mrc)
 
 
