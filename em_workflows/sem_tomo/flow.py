@@ -280,6 +280,11 @@ with Flow(
         fp_in=fps, upstream_tasks=[stretchs, align_mrcs]
     )
 
+    corrected_movie_assets = utils.mrc_to_movie.map(file_path=fps,
+            root=unmapped("corrected"),
+            asset_type=unmapped("AlignMov"),
+            upstream_tasks=[corrected_mrc_assets])
+
     base_mrcs = gen_newstack_norm_command.map(
         fp_in=fps, upstream_tasks=[corrected_mrc_assets]
     )
@@ -310,11 +315,14 @@ with Flow(
     callback_with_corr_mrcs = utils.add_asset.map(
         prim_fp=callback_with_pyramids, asset=corrected_mrc_assets
     )
+    callback_with_corr_movies = utils.add_asset.map(
+        prim_fp=callback_with_corr_mrcs, asset=corrected_movie_assets
+    )
 
     # finally filter error states, and convert to JSON and send.
-    filtered_callback = utils.filter_results(callback_with_corr_mrcs)
+    filtered_callback = utils.filter_results(callback_with_corr_movies)
     cp_wd_to_assets = utils.copy_workdirs.map(
-        fps, upstream_tasks=[callback_with_corr_mrcs]
+        fps, upstream_tasks=[callback_with_corr_movies]
     )
     cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=filtered_callback

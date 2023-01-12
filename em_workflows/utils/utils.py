@@ -28,6 +28,43 @@ filter_results = FilterTask(
 
 
 @task
+def mrc_to_movie(file_path: FilePath, root: str, asset_type: str):
+    """
+    converts an mrc file into a movie
+    """
+    mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
+    mrc = f"{file_path.working_dir}/{root}.mrc"
+    log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
+    cmd = [Config.mrc2tif_loc, "-j", "-C", "100,255", mrc, mp4]
+    FilePath.run(cmd=cmd, log_file=log_file)
+    mov = f"{file_path.working_dir}/{file_path.base}_{asset_type}.mp4"
+    test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
+    mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
+    if test_p.exists():
+        mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%04d.jpg"
+    cmd = [
+        "ffmpeg",
+        "-f",
+        "image2",
+        "-framerate",
+        "8",
+        "-i",
+        mp4_input,
+        "-vcodec",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-s",
+        "1024,1024",
+        mov,
+    ]
+    log_file = f"{file_path.working_dir}/{file_path.base}_{asset_type}.log"
+    FilePath.run(cmd=cmd, log_file=log_file)
+    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(mov))
+    asset = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
+    return asset
+
+@task
 def gen_prim_fps(fp_in: FilePath) -> Dict:
     return fp_in.gen_prim_fp_elt()
 
