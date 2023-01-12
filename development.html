@@ -67,9 +67,21 @@ Insure <cite>$HOME/code/hedwig</cite> exists. Runs on Linux.</p>
 ./image_portal_workflows/helper_scripts/generate_venv.sh<span class="w"> </span>qa
 </pre></div>
 </div>
+<section id="updating-venvs">
+<h4>Updating venvs:<a class="headerlink" href="#updating-venvs" title="Permalink to this heading">¶</a></h4>
+<p>To update your python virtual environment:
+Change into the correct venv directory, e.g. <cite>~/code/hedwig/dev/image_portal_workflows</cite>.
+Ensure environment is active and run something like:</p>
+<p><cite>pip   install -e . -r requirements.txt –upgrade  –find-links https://github.com/niaid/tomojs-pytools/releases/tag/v1.3</cite></p>
+</section>
+<section id="prefect-agent">
+<h4>Prefect Agent:<a class="headerlink" href="#prefect-agent" title="Permalink to this heading">¶</a></h4>
 <p>The prefect agent, the thing that reaches out to the prefect API machine, is daemonized on HPC.
 See <cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh</cite> and
 <cite>image_portal_workflows/helper_scripts/hedwig_listener_prod.service</cite> etc.</p>
+</section>
+<section id="register-workflows">
+<h4>Register Workflows:<a class="headerlink" href="#register-workflows" title="Permalink to this heading">¶</a></h4>
 <p>To register a new workflow, or update an existing one (in <cite>qa</cite> environment):
 (The workflow needs to be registered every time the source is updated.)
 <cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh qa register</cite></p>
@@ -92,17 +104,17 @@ project:<span class="w"> </span>null
 walltime:<span class="w"> </span><span class="s1">&#39;10:00:00&#39;</span>
 </pre></div>
 </div>
-<ul>
-<li><p>Note, although unused above, BigSky also has Spack available, e.g.:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ source /gs1/apps/user/rmlspack/share/spack/setup-env.sh
-$ spack load -r python@3.8.6/eg2vaag
-$ python -V
+<ul class="simple">
+<li><p>Note, although unused above, BigSky also has Spack available.</p></li>
+</ul>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">source</span><span class="w"> </span>/gs1/apps/user/rmlspack/share/spack/setup-env.sh
+$<span class="w"> </span>spack<span class="w"> </span>load<span class="w"> </span>-r<span class="w"> </span>python@3.8.6/eg2vaag
+$<span class="w"> </span>python<span class="w"> </span>-V
+Python<span class="w"> </span><span class="m">3</span>.8.6
+$<span class="w"> </span>spack<span class="w"> </span>unload<span class="w"> </span>-a
 </pre></div>
 </div>
-<p>Python 3.8.6
-$ spack unload -a</p>
-</li>
-</ul>
+</section>
 </section>
 <section id="git-lfs">
 <h3>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this heading">¶</a></h3>
@@ -250,7 +262,7 @@ methods.</p>
       &copy;2021, NIAID.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

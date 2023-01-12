@@ -49,10 +49,25 @@ Insure `$HOME/code/hedwig` exists. Runs on Linux.
    # generates venv qa.
    ./image_portal_workflows/helper_scripts/generate_venv.sh qa
 
+
+Updating venvs:
+---------------
+To update your python virtual environment:
+Change into the correct venv directory, e.g. `~/code/hedwig/dev/image_portal_workflows`.
+Ensure environment is active and run something like:
+
+`pip   install -e . -r requirements.txt --upgrade  --find-links https://github.com/niaid/tomojs-pytools/releases/tag/v1.3`
+
+
+Prefect Agent:
+--------------
 The prefect agent, the thing that reaches out to the prefect API machine, is daemonized on HPC.
 See `image_portal_workflows/helper_scripts/hedwig_reg_listen.sh` and
 `image_portal_workflows/helper_scripts/hedwig_listener_prod.service` etc.
 
+
+Register Workflows:
+-------------------
 To register a new workflow, or update an existing one (in `qa` environment):
 (The workflow needs to be registered every time the source is updated.)
 `image_portal_workflows/helper_scripts/hedwig_reg_listen.sh qa register`
@@ -79,7 +94,9 @@ Currently dask jobqueue is configured with a yaml file.
    project: null
    walltime: '10:00:00'
 
-- Note, although unused above, BigSky also has Spack available, e.g.::
+- Note, although unused above, BigSky also has Spack available.
+
+.. code-block:: sh
 
   $ source /gs1/apps/user/rmlspack/share/spack/setup-env.sh
   $ spack load -r python@3.8.6/eg2vaag
