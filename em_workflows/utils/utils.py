@@ -38,33 +38,33 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
     return prim_fp
 
 
-@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
-def cleanup_workdir(wd: Path):
-    """
-    working_dir isn't needed after run, so rm.
-    """
-    # log(f"Trying to remove {wd}")
-    shutil.rmtree(wd)
+#@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
+#def cleanup_workdir(wd: Path):
+#    """
+#    working_dir isn't needed after run, so rm.
+#    """
+#    # log(f"Trying to remove {wd}")
+#    shutil.rmtree(wd)
 
 
-@task
-def check_inputs_ok(fps: List[Path]) -> None:
-    """
-    ensures there's at least one file that is going to be processed.
-    escapes bad chars that occur in input file names
-    """
-    if not fps:
-        raise signals.FAIL(f"Input dir does not contain anything to process.")
-    for fp in fps:
-        if not fp.exists():
-            raise signals.FAIL(f"Input dir does not contain {fp}")
-    log("files ok")
+#@task
+#def check_inputs_ok(fps: List[Path]) -> None:
+#    """
+#    ensures there's at least one file that is going to be processed.
+#    escapes bad chars that occur in input file names
+#    """
+#    if not fps:
+#        raise signals.FAIL(f"Input dir does not contain anything to process.")
+#    for fp in fps:
+#        if not fp.exists():
+#            raise signals.FAIL(f"Input dir does not contain {fp}")
+#    log("files ok")
 
 
-@task
-def sanitize_file_names(fps: List[Path]) -> List[Path]:
-    escaped_files = [Path(_escape_str(_file.as_posix())) for _file in fps]
-    return escaped_files
+#@task
+#def sanitize_file_names(fps: List[Path]) -> List[Path]:
+#    escaped_files = [Path(_escape_str(_file.as_posix())) for _file in fps]
+#    return escaped_files
 
 
 def _make_work_dir(fname: Path = None) -> Path:
@@ -140,15 +140,6 @@ def update_adoc(
         "THICKNESS": THICKNESS,
     }
 
-    # junk above for now.
-    #    vals = {
-    #        "basename": name,
-    #        "bead_size": 10,
-    #        "light_beads": 0,
-    #        "tilt_thickness": 256,
-    #        "montage": 0,
-    #        "dataset_dir": str(adoc_fp.parent),
-    #    }
     output = template.render(vals)
     adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
     log(f"Created adoc: adoc_loc.as_posix()")
@@ -228,16 +219,6 @@ def run_brt(
     cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "1", "-gpu", "1"]
     log_file = f"{file_path.working_dir}/brt_run.log"
     FilePath.run(cmd, log_file)
-    brts_ok = check_brt_run_ok(file_path=file_path)
-
-
-def check_brt_run_ok(file_path: FilePath):
-    """
-    ensures the following files exist:
-    BASENAME_rec.mrc - the source for the reconstruction movie
-    and Neuroglancer pyramid
-    BASENAME_ali.mrc
-    """
     rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
     ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
     log(f"checking that dir {file_path.working_dir} contains ok BRT run")
@@ -245,45 +226,62 @@ def check_brt_run_ok(file_path: FilePath):
     for _file in [rec_file, ali_file]:
         if not _file.exists():
             raise signals.FAIL(f"File {_file} does not exist. BRT run failure.")
+    # brts_ok = check_brt_run_ok(file_path=file_path)
 
 
-@task
-def create_brt_command(adoc_fp: Path) -> str:
-    cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1 &> {adoc_fp.parent}/brt.log"
-    log(f"Generated command: {cmd}")
-    return cmd
+# def check_brt_run_ok(file_path: FilePath):
+#     """
+#     ensures the following files exist:
+#     BASENAME_rec.mrc - the source for the reconstruction movie
+#     and Neuroglancer pyramid
+#     BASENAME_ali.mrc
+#     """
+#     rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
+#     ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
+#     log(f"checking that dir {file_path.working_dir} contains ok BRT run")
+# 
+#     for _file in [rec_file, ali_file]:
+#         if not _file.exists():
+#             raise signals.FAIL(f"File {_file} does not exist. BRT run failure.")
 
 
-@task
-def add_assets(assets_list: Dict, new_asset: Dict[str, str]) -> Dict:
-    log(f"Trying to add asset {new_asset}")
-    assets_list.get("assets").append(new_asset)
-    return assets_list
+#@task
+#def create_brt_command(adoc_fp: Path) -> str:
+#    cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1 &> {adoc_fp.parent}/brt.log"
+#    log(f"Generated command: {cmd}")
+#    return cmd
 
 
-@task
-def gen_callback_elt(input_fname: Path, input_fname_b: Path = None) -> Dict:
-    """
-    creates a single primaryFilePath element, to which assets can be appended.
-    TODO:
-    input_fname_b is optional, sometimes the input can be a pair of files.
-    eg:
-    [
-     {
-      "primaryFilePath": "Lab/PI/Myproject/MySession/Sample1/file_a.mrc",
-      "title": "file_a",
-      "assets": []
-     }
-    ]
-    """
-    title = input_fname.stem  # working for now.
-    proj_dir = Config.proj_dir(env=get_environment())
-    primaryFilePath = input_fname.relative_to(proj_dir)
-    return dict(primaryFilePath=primaryFilePath.as_posix(), title=title, assets=list())
+# @task
+# def add_assets(assets_list: Dict, new_asset: Dict[str, str]) -> Dict:
+#     log(f"Trying to add asset {new_asset}")
+#     assets_list.get("assets").append(new_asset)
+#     return assets_list
 
 
-def _esc_char(match):
-    return "\\" + match.group(0)
+# @task
+# def gen_callback_elt(input_fname: Path, input_fname_b: Path = None) -> Dict:
+#     """
+#     creates a single primaryFilePath element, to which assets can be appended.
+#     TODO:
+#     input_fname_b is optional, sometimes the input can be a pair of files.
+#     eg:
+#     [
+#      {
+#       "primaryFilePath": "Lab/PI/Myproject/MySession/Sample1/file_a.mrc",
+#       "title": "file_a",
+#       "assets": []
+#      }
+#     ]
+#     """
+#     title = input_fname.stem  # working for now.
+#     proj_dir = Config.proj_dir(env=get_environment())
+#     primaryFilePath = input_fname.relative_to(proj_dir)
+#     return dict(primaryFilePath=primaryFilePath.as_posix(), title=title, assets=list())
+
+
+# def _esc_char(match):
+#     return "\\" + match.group(0)
 
 
 def _tr_str(name):
@@ -291,9 +289,9 @@ def _tr_str(name):
     return _to_esc.sub("_", name)
 
 
-def _escape_str(name):
-    _to_esc = re.compile(r"\s|[]()[]")
-    return _to_esc.sub(_esc_char, name)
+#def _escape_str(name):
+#    _to_esc = re.compile(r"\s|[]()[]")
+#    return _to_esc.sub(_esc_char, name)
 
 
 @task
