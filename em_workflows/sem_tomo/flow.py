@@ -99,7 +99,7 @@ def convert_tif_to_mrc(file_path: FilePath) -> int:
 
 
 @task
-def create_stretch_file(tilt: str, fp_in: FilePath) -> None:
+def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
     """
     creates stretch.xf
     used to gen corrected.mrc
@@ -107,13 +107,12 @@ def create_stretch_file(tilt: str, fp_in: FilePath) -> None:
     1 0 0 {TILT_PARAMETER} 0 0
 
     where TILT_PARAMETER is calculated as 1/cos({TILT_ANGLE}).
-    Note that tilt angle is specified in degrees.
+    Note that tilt angle is input in degrees, however cos method expects radians
     """
     # math.cos expects radians, convert to degrees first.
     tilt_angle = 1 / math.cos(math.degrees(float(tilt)))
     utils.log(f"creating stretch file, tilt_angle: {tilt_angle}.")
     output_fp = fp_in.gen_output_fp(out_fname="stretch.xf")
-    # fp_out.touch()
     with open(output_fp.as_posix(), "w") as _file:
         _file.write(f"1 0 0 {tilt_angle} 0 0")
 
@@ -251,7 +250,7 @@ with Flow(
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url", default=None)()
     token = Parameter("token", default=None)()
-    tilt_angle = Parameter("tilt_angle", default=None)()
+    tilt_angle = Parameter("tilt_angle", default=0)()
     no_api = Parameter("no_api", default=False)()
 
     # dir to read from.
