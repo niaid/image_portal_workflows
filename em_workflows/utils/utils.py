@@ -31,11 +31,12 @@ filter_results = FilterTask(
 def mrc_to_movie(file_path: FilePath, root: str, asset_type: str):
     """
     converts an mrc file into a movie
+    root should be mrc_fname
     """
     mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
     mrc = f"{file_path.working_dir}/{root}.mrc"
     log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
-    cmd = [Config.mrc2tif_loc, "-j", "-C", "100,255", mrc, mp4]
+    cmd = [Config.mrc2tif_loc, "-j", "-C", "0,255", mrc, mp4]
     FilePath.run(cmd=cmd, log_file=log_file)
     mov = f"{file_path.working_dir}/{file_path.base}_{asset_type}.mp4"
     test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
@@ -104,19 +105,19 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
 #    return escaped_files
 
 
-def _make_work_dir(fname: Path = None) -> Path:
-    """
-    a temporary dir to house all files in the form:
-    {Config.tmp_dir}{fname.stem}.
-    eg: /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/tomogram_fname/
-    Will be rm'd upon completion.
-    """
-    working_dir = Path(tempfile.mkdtemp(dir=f"{Config.tmp_dir}"))
-    if fname:
-        msg = f"created working_dir {working_dir} for {fname.as_posix()}"
-    else:
-        msg = f"No file name given for dir creation"
-    return Path(working_dir)
+# def _make_work_dir(fname: Path = None) -> Path:
+#     """
+#     a temporary dir to house all files in the form:
+#     {Config.tmp_dir}{fname.stem}.
+#     eg: /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/tomogram_fname/
+#     Will be rm'd upon completion.
+#     """
+#     working_dir = Path(tempfile.mkdtemp(dir=f"{Config.tmp_dir}"))
+#     if fname:
+#         msg = f"created working_dir {working_dir} for {fname.as_posix()}"
+#     else:
+#         msg = f"No file name given for dir creation"
+#     return Path(working_dir)
 
 
 def update_adoc(
@@ -354,25 +355,25 @@ def init_log(file_path: FilePath) -> None:
         handler.setFormatter(formatter)
 
 
-def _init_log(working_dir: Path) -> None:
-    log_fp = Path(working_dir, Path("log.txt"))
-    # we are going to clobber previous logs - rm if want to keep
-    # if log_fp.exists():
-    #    log_fp.unlink()
-    # the getLogger function uses the (fairly) unique input_dir to look up.
-    logger = logging.getLogger(context.parameters["input_dir"])
-    logger.setLevel("INFO")
-
-    if not logger.handlers:
-        handler = logging.FileHandler(log_fp, encoding="utf-8")
-        logger.addHandler(handler)
-
-        # Formatter can be whatever you want
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d_%H:%M:%S",
-        )
-        handler.setFormatter(formatter)
+# def _init_log(working_dir: Path) -> None:
+#     log_fp = Path(working_dir, Path("log.txt"))
+#     # we are going to clobber previous logs - rm if want to keep
+#     # if log_fp.exists():
+#     #    log_fp.unlink()
+#     # the getLogger function uses the (fairly) unique input_dir to look up.
+#     logger = logging.getLogger(context.parameters["input_dir"])
+#     logger.setLevel("INFO")
+# 
+#     if not logger.handlers:
+#         handler = logging.FileHandler(log_fp, encoding="utf-8")
+#         logger.addHandler(handler)
+# 
+#         # Formatter can be whatever you want
+#         formatter = logging.Formatter(
+#             "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+#             datefmt="%Y-%m-%d_%H:%M:%S",
+#         )
+#         handler.setFormatter(formatter)
 
 
 def abbreviate_list(l: List[str]) -> str:
@@ -403,13 +404,13 @@ def copy_workdirs(file_path: FilePath) -> Path:
     return file_path.copy_workdir_to_assets()
 
 
-@task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
-def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
-    """copies entire contents of working dir to outputs dir"""
-    workd_name = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
-    dest = f"{assets_dir.as_posix()}/{workd_name}"
-    log(f"An error occured - will copy {working_dir} to {dest}")
-    shutil.copytree(working_dir.as_posix(), dest)
+#@task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
+#def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
+#    """copies entire contents of working dir to outputs dir"""
+#    workd_name = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
+#    dest = f"{assets_dir.as_posix()}/{workd_name}"
+#    log(f"An error occured - will copy {working_dir} to {dest}")
+#    shutil.copytree(working_dir.as_posix(), dest)
 
 
 @task
@@ -663,21 +664,21 @@ def gen_fps(input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
     return fps
 
 
-@task
-def set_up_work_env(input_fp: Path) -> Path:
-    """note input"""
-    # create a temp space to work
-    working_dir = _make_work_dir()
-    _init_log(working_dir=working_dir)
-    log(f"Working dir for {input_fp} is {working_dir}.")
-    return working_dir
+# @task
+# def set_up_work_env(input_fp: Path) -> Path:
+#     """note input"""
+#     # create a temp space to work
+#     working_dir = _make_work_dir()
+#     _init_log(working_dir=working_dir)
+#     log(f"Working dir for {input_fp} is {working_dir}.")
+#     return working_dir
 
 
-@task
-def print_t(t):
-    """dumb function to print stuff..."""
-    log("++++++++++++++++++++++++++++++++++++++++")
-    log(t)
+# @task
+# def print_t(t):
+#     """dumb function to print stuff..."""
+#     log("++++++++++++++++++++++++++++++++++++++++")
+#     log(t)
 
 
 @task
@@ -697,6 +698,7 @@ def add_assets_entry(
 
     used to build the callback for API
     metadata is used in conjunction with neuroglancer only
+    Used in FilePath obj
     """
     valid_typs = [
         "averagedVolume",
@@ -731,6 +733,7 @@ def make_assets_dir(input_dir: Path, subdir_name: Path = None) -> Path:
     input_dir comes in the form {mount_point}/RMLEMHedwigQA/Projects/Lab/PI/
     want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
     Sometimes you don't want to create a subdir based on a file name. (eg fibsem)
+    Used in FilePath obj
     """
     if not "Projects" in input_dir.as_posix():
         raise signals.FAIL(
