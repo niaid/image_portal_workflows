@@ -99,7 +99,7 @@ def convert_tif_to_mrc(file_path: FilePath) -> int:
 
 
 @task
-def create_stretch_file(tilt: str, fp_in: FilePath) -> None:
+def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
     """
     creates stretch.xf
     used to gen corrected.mrc
@@ -107,13 +107,12 @@ def create_stretch_file(tilt: str, fp_in: FilePath) -> None:
     1 0 0 {TILT_PARAMETER} 0 0
 
     where TILT_PARAMETER is calculated as 1/cos({TILT_ANGLE}).
-    Note that tilt angle is specified in degrees.
+    Note that tilt angle is input in degrees, however cos method expects radians
     """
     # math.cos expects radians, convert to degrees first.
     tilt_angle = 1 / math.cos(math.degrees(float(tilt)))
     utils.log(f"creating stretch file, tilt_angle: {tilt_angle}.")
     output_fp = fp_in.gen_output_fp(out_fname="stretch.xf")
-    # fp_out.touch()
     with open(output_fp.as_posix(), "w") as _file:
         _file.write(f"1 0 0 {tilt_angle} 0 0")
 
@@ -140,6 +139,8 @@ def gen_newstack_corr_command(fp_in: FilePath) -> dict:
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     assets_fp_corr_mrc = fp_in.copy_to_assets_dir(fp_to_cp=corrected_mrc)
+    # we think that averagedVolume is not the best term here.
+    # possibly use: alignedCorrectedVol
     return fp_in.gen_asset(asset_type="averagedVolume", asset_fp=assets_fp_corr_mrc)
 
 
@@ -249,7 +250,7 @@ with Flow(
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url", default=None)()
     token = Parameter("token", default=None)()
-    tilt_angle = Parameter("tilt_angle", default=None)()
+    tilt_angle = Parameter("tilt_angle", default=0)()
     no_api = Parameter("no_api", default=False)()
 
     # dir to read from.
@@ -277,6 +278,11 @@ with Flow(
     corrected_mrc_assets = gen_newstack_corr_command.map(
         fp_in=fps, upstream_tasks=[stretchs, align_mrcs]
     )
+
+    corrected_movie_assets = utils.mrc_to_movie.map(file_path=fps,
+            root=unmapped("corrected"),
+            asset_type=unmapped("recMovie"),
+            upstream_tasks=[corrected_mrc_assets])
 
     base_mrcs = gen_newstack_norm_command.map(
         fp_in=fps, upstream_tasks=[corrected_mrc_assets]
@@ -308,11 +314,14 @@ with Flow(
     callback_with_corr_mrcs = utils.add_asset.map(
         prim_fp=callback_with_pyramids, asset=corrected_mrc_assets
     )
+    callback_with_corr_movies = utils.add_asset.map(
+        prim_fp=callback_with_corr_mrcs, asset=corrected_movie_assets
+    )
 
     # finally filter error states, and convert to JSON and send.
-    filtered_callback = utils.filter_results(callback_with_corr_mrcs)
+    filtered_callback = utils.filter_results(callback_with_corr_movies)
     cp_wd_to_assets = utils.copy_workdirs.map(
-        fps, upstream_tasks=[callback_with_corr_mrcs]
+        fps, upstream_tasks=[callback_with_corr_movies]
     )
     cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=filtered_callback

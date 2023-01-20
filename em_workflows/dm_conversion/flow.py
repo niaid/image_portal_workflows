@@ -2,9 +2,7 @@ from collections import namedtuple
 import datetime
 import os
 import requests
-import json
 from pathlib import Path
-import prefect
 from typing import List, NamedTuple, Optional
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
@@ -53,6 +51,11 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
 
 @task
 def convert_mrc_to_jpeg(file_path: FilePath) -> None:
+    """
+    converts previously generated mrc file, (derived from a dm file) to jpeg.
+    note, ignores everything that's NOT <name>dm_as_mrc.mrc
+    that is, convert_mrc_to_jpeg does not simply process all mrc files.
+    """
     dm_as_mrc = file_path.gen_output_fp(out_fname="dm_as_mrc.mrc")
     if dm_as_mrc.exists():
         mrc_as_jpg = file_path.gen_output_fp(out_fname="mrc_as_jpg.jpeg")

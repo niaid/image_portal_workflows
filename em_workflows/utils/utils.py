@@ -28,6 +28,44 @@ filter_results = FilterTask(
 
 
 @task
+def mrc_to_movie(file_path: FilePath, root: str, asset_type: str):
+    """
+    converts an mrc file into a movie
+    root should be mrc_fname
+    """
+    mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
+    mrc = f"{file_path.working_dir}/{root}.mrc"
+    log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
+    cmd = [Config.mrc2tif_loc, "-j", "-C", "0,255", mrc, mp4]
+    FilePath.run(cmd=cmd, log_file=log_file)
+    mov = f"{file_path.working_dir}/{file_path.base}_{asset_type}.mp4"
+    test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
+    mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
+    if test_p.exists():
+        mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%04d.jpg"
+    cmd = [
+        "ffmpeg",
+        "-f",
+        "image2",
+        "-framerate",
+        "8",
+        "-i",
+        mp4_input,
+        "-vcodec",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-s",
+        "1024,1024",
+        mov,
+    ]
+    log_file = f"{file_path.working_dir}/{file_path.base}_{asset_type}.log"
+    FilePath.run(cmd=cmd, log_file=log_file)
+    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(mov))
+    asset = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
+    return asset
+
+@task
 def gen_prim_fps(fp_in: FilePath) -> Dict:
     return fp_in.gen_prim_fp_elt()
 
@@ -38,48 +76,48 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
     return prim_fp
 
 
-@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
-def cleanup_workdir(wd: Path):
-    """
-    working_dir isn't needed after run, so rm.
-    """
-    # log(f"Trying to remove {wd}")
-    shutil.rmtree(wd)
+#@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
+#def cleanup_workdir(wd: Path):
+#    """
+#    working_dir isn't needed after run, so rm.
+#    """
+#    # log(f"Trying to remove {wd}")
+#    shutil.rmtree(wd)
 
 
-@task
-def check_inputs_ok(fps: List[Path]) -> None:
-    """
-    ensures there's at least one file that is going to be processed.
-    escapes bad chars that occur in input file names
-    """
-    if not fps:
-        raise signals.FAIL(f"Input dir does not contain anything to process.")
-    for fp in fps:
-        if not fp.exists():
-            raise signals.FAIL(f"Input dir does not contain {fp}")
-    log("files ok")
+#@task
+#def check_inputs_ok(fps: List[Path]) -> None:
+#    """
+#    ensures there's at least one file that is going to be processed.
+#    escapes bad chars that occur in input file names
+#    """
+#    if not fps:
+#        raise signals.FAIL(f"Input dir does not contain anything to process.")
+#    for fp in fps:
+#        if not fp.exists():
+#            raise signals.FAIL(f"Input dir does not contain {fp}")
+#    log("files ok")
 
 
-@task
-def sanitize_file_names(fps: List[Path]) -> List[Path]:
-    escaped_files = [Path(_escape_str(_file.as_posix())) for _file in fps]
-    return escaped_files
+#@task
+#def sanitize_file_names(fps: List[Path]) -> List[Path]:
+#    escaped_files = [Path(_escape_str(_file.as_posix())) for _file in fps]
+#    return escaped_files
 
 
-def _make_work_dir(fname: Path = None) -> Path:
-    """
-    a temporary dir to house all files in the form:
-    {Config.tmp_dir}{fname.stem}.
-    eg: /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/tomogram_fname/
-    Will be rm'd upon completion.
-    """
-    working_dir = Path(tempfile.mkdtemp(dir=f"{Config.tmp_dir}"))
-    if fname:
-        msg = f"created working_dir {working_dir} for {fname.as_posix()}"
-    else:
-        msg = f"No file name given for dir creation"
-    return Path(working_dir)
+# def _make_work_dir(fname: Path = None) -> Path:
+#     """
+#     a temporary dir to house all files in the form:
+#     {Config.tmp_dir}{fname.stem}.
+#     eg: /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/tomogram_fname/
+#     Will be rm'd upon completion.
+#     """
+#     working_dir = Path(tempfile.mkdtemp(dir=f"{Config.tmp_dir}"))
+#     if fname:
+#         msg = f"created working_dir {working_dir} for {fname.as_posix()}"
+#     else:
+#         msg = f"No file name given for dir creation"
+#     return Path(working_dir)
 
 
 def update_adoc(
@@ -140,15 +178,6 @@ def update_adoc(
         "THICKNESS": THICKNESS,
     }
 
-    # junk above for now.
-    #    vals = {
-    #        "basename": name,
-    #        "bead_size": 10,
-    #        "light_beads": 0,
-    #        "tilt_thickness": 256,
-    #        "montage": 0,
-    #        "dataset_dir": str(adoc_fp.parent),
-    #    }
     output = template.render(vals)
     adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
     log(f"Created adoc: adoc_loc.as_posix()")
@@ -228,16 +257,6 @@ def run_brt(
     cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "1", "-gpu", "1"]
     log_file = f"{file_path.working_dir}/brt_run.log"
     FilePath.run(cmd, log_file)
-    brts_ok = check_brt_run_ok(file_path=file_path)
-
-
-def check_brt_run_ok(file_path: FilePath):
-    """
-    ensures the following files exist:
-    BASENAME_rec.mrc - the source for the reconstruction movie
-    and Neuroglancer pyramid
-    BASENAME_ali.mrc
-    """
     rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
     ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
     log(f"checking that dir {file_path.working_dir} contains ok BRT run")
@@ -245,45 +264,62 @@ def check_brt_run_ok(file_path: FilePath):
     for _file in [rec_file, ali_file]:
         if not _file.exists():
             raise signals.FAIL(f"File {_file} does not exist. BRT run failure.")
+    # brts_ok = check_brt_run_ok(file_path=file_path)
 
 
-@task
-def create_brt_command(adoc_fp: Path) -> str:
-    cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1 &> {adoc_fp.parent}/brt.log"
-    log(f"Generated command: {cmd}")
-    return cmd
+# def check_brt_run_ok(file_path: FilePath):
+#     """
+#     ensures the following files exist:
+#     BASENAME_rec.mrc - the source for the reconstruction movie
+#     and Neuroglancer pyramid
+#     BASENAME_ali.mrc
+#     """
+#     rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
+#     ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
+#     log(f"checking that dir {file_path.working_dir} contains ok BRT run")
+# 
+#     for _file in [rec_file, ali_file]:
+#         if not _file.exists():
+#             raise signals.FAIL(f"File {_file} does not exist. BRT run failure.")
 
 
-@task
-def add_assets(assets_list: Dict, new_asset: Dict[str, str]) -> Dict:
-    log(f"Trying to add asset {new_asset}")
-    assets_list.get("assets").append(new_asset)
-    return assets_list
+#@task
+#def create_brt_command(adoc_fp: Path) -> str:
+#    cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1 &> {adoc_fp.parent}/brt.log"
+#    log(f"Generated command: {cmd}")
+#    return cmd
 
 
-@task
-def gen_callback_elt(input_fname: Path, input_fname_b: Path = None) -> Dict:
-    """
-    creates a single primaryFilePath element, to which assets can be appended.
-    TODO:
-    input_fname_b is optional, sometimes the input can be a pair of files.
-    eg:
-    [
-     {
-      "primaryFilePath": "Lab/PI/Myproject/MySession/Sample1/file_a.mrc",
-      "title": "file_a",
-      "assets": []
-     }
-    ]
-    """
-    title = input_fname.stem  # working for now.
-    proj_dir = Config.proj_dir(env=get_environment())
-    primaryFilePath = input_fname.relative_to(proj_dir)
-    return dict(primaryFilePath=primaryFilePath.as_posix(), title=title, assets=list())
+# @task
+# def add_assets(assets_list: Dict, new_asset: Dict[str, str]) -> Dict:
+#     log(f"Trying to add asset {new_asset}")
+#     assets_list.get("assets").append(new_asset)
+#     return assets_list
 
 
-def _esc_char(match):
-    return "\\" + match.group(0)
+# @task
+# def gen_callback_elt(input_fname: Path, input_fname_b: Path = None) -> Dict:
+#     """
+#     creates a single primaryFilePath element, to which assets can be appended.
+#     TODO:
+#     input_fname_b is optional, sometimes the input can be a pair of files.
+#     eg:
+#     [
+#      {
+#       "primaryFilePath": "Lab/PI/Myproject/MySession/Sample1/file_a.mrc",
+#       "title": "file_a",
+#       "assets": []
+#      }
+#     ]
+#     """
+#     title = input_fname.stem  # working for now.
+#     proj_dir = Config.proj_dir(env=get_environment())
+#     primaryFilePath = input_fname.relative_to(proj_dir)
+#     return dict(primaryFilePath=primaryFilePath.as_posix(), title=title, assets=list())
+
+
+# def _esc_char(match):
+#     return "\\" + match.group(0)
 
 
 def _tr_str(name):
@@ -291,9 +327,9 @@ def _tr_str(name):
     return _to_esc.sub("_", name)
 
 
-def _escape_str(name):
-    _to_esc = re.compile(r"\s|[]()[]")
-    return _to_esc.sub(_esc_char, name)
+#def _escape_str(name):
+#    _to_esc = re.compile(r"\s|[]()[]")
+#    return _to_esc.sub(_esc_char, name)
 
 
 @task
@@ -319,25 +355,25 @@ def init_log(file_path: FilePath) -> None:
         handler.setFormatter(formatter)
 
 
-def _init_log(working_dir: Path) -> None:
-    log_fp = Path(working_dir, Path("log.txt"))
-    # we are going to clobber previous logs - rm if want to keep
-    # if log_fp.exists():
-    #    log_fp.unlink()
-    # the getLogger function uses the (fairly) unique input_dir to look up.
-    logger = logging.getLogger(context.parameters["input_dir"])
-    logger.setLevel("INFO")
-
-    if not logger.handlers:
-        handler = logging.FileHandler(log_fp, encoding="utf-8")
-        logger.addHandler(handler)
-
-        # Formatter can be whatever you want
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d_%H:%M:%S",
-        )
-        handler.setFormatter(formatter)
+# def _init_log(working_dir: Path) -> None:
+#     log_fp = Path(working_dir, Path("log.txt"))
+#     # we are going to clobber previous logs - rm if want to keep
+#     # if log_fp.exists():
+#     #    log_fp.unlink()
+#     # the getLogger function uses the (fairly) unique input_dir to look up.
+#     logger = logging.getLogger(context.parameters["input_dir"])
+#     logger.setLevel("INFO")
+# 
+#     if not logger.handlers:
+#         handler = logging.FileHandler(log_fp, encoding="utf-8")
+#         logger.addHandler(handler)
+# 
+#         # Formatter can be whatever you want
+#         formatter = logging.Formatter(
+#             "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+#             datefmt="%Y-%m-%d_%H:%M:%S",
+#         )
+#         handler.setFormatter(formatter)
 
 
 def abbreviate_list(l: List[str]) -> str:
@@ -368,13 +404,13 @@ def copy_workdirs(file_path: FilePath) -> Path:
     return file_path.copy_workdir_to_assets()
 
 
-@task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
-def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
-    """copies entire contents of working dir to outputs dir"""
-    workd_name = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
-    dest = f"{assets_dir.as_posix()}/{workd_name}"
-    log(f"An error occured - will copy {working_dir} to {dest}")
-    shutil.copytree(working_dir.as_posix(), dest)
+#@task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
+#def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
+#    """copies entire contents of working dir to outputs dir"""
+#    workd_name = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
+#    dest = f"{assets_dir.as_posix()}/{workd_name}"
+#    log(f"An error occured - will copy {working_dir} to {dest}")
+#    shutil.copytree(working_dir.as_posix(), dest)
 
 
 @task
@@ -628,21 +664,21 @@ def gen_fps(input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
     return fps
 
 
-@task
-def set_up_work_env(input_fp: Path) -> Path:
-    """note input"""
-    # create a temp space to work
-    working_dir = _make_work_dir()
-    _init_log(working_dir=working_dir)
-    log(f"Working dir for {input_fp} is {working_dir}.")
-    return working_dir
+# @task
+# def set_up_work_env(input_fp: Path) -> Path:
+#     """note input"""
+#     # create a temp space to work
+#     working_dir = _make_work_dir()
+#     _init_log(working_dir=working_dir)
+#     log(f"Working dir for {input_fp} is {working_dir}.")
+#     return working_dir
 
 
-@task
-def print_t(t):
-    """dumb function to print stuff..."""
-    log("++++++++++++++++++++++++++++++++++++++++")
-    log(t)
+# @task
+# def print_t(t):
+#     """dumb function to print stuff..."""
+#     log("++++++++++++++++++++++++++++++++++++++++")
+#     log(t)
 
 
 @task
@@ -662,6 +698,7 @@ def add_assets_entry(
 
     used to build the callback for API
     metadata is used in conjunction with neuroglancer only
+    Used in FilePath obj
     """
     valid_typs = [
         "averagedVolume",
@@ -696,6 +733,7 @@ def make_assets_dir(input_dir: Path, subdir_name: Path = None) -> Path:
     input_dir comes in the form {mount_point}/RMLEMHedwigQA/Projects/Lab/PI/
     want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
     Sometimes you don't want to create a subdir based on a file name. (eg fibsem)
+    Used in FilePath obj
     """
     if not "Projects" in input_dir.as_posix():
         raise signals.FAIL(
