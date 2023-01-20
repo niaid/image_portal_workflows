@@ -192,7 +192,9 @@ def gen_tilt_movie(file_path: FilePath) -> dict:
 @task
 def gen_recon_movie(file_path: FilePath) -> dict:
     """
+    compiles a stack of jpgs into a movie.
     ffmpeg -f image2 -framerate 8 -i WORKDIR/hedwig/BASENAME_mp4.%04d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 WORKDIR/hedwig/keyMov_BASENAME.mp4
+    TODO: This and tilt_movie should be refactored into one movie function
     """
     # bit of a hack - want to find out if
     test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
