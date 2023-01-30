@@ -67,6 +67,8 @@ class Config:
         "jpeg",
         "png",
         "jpg",
+        "mrc",
+        "MRC",
     ]
     fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
 

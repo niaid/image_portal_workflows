@@ -1,6 +1,6 @@
 from em_workflows.file_path import FilePath
 from jinja2 import Environment, FileSystemLoader
-import tempfile
+import subprocess
 import re
 import requests
 import os
@@ -20,11 +20,38 @@ from prefect.engine.signals import SKIP, TRIGGERFAIL
 from em_workflows.config import Config
 from prefect.tasks.control_flow.filter import FilterTask
 
+from collections import namedtuple
+# used for keeping outputs of imod's header command (dimensions of image).
+Header = namedtuple('Header', 'x y z')
+
+
 filter_results = FilterTask(
     filter_func=lambda x: not isinstance(
         x, (BaseException, TRIGGERFAIL, SKIP, type(None))
     )
 )
+
+def lookup_dims(fp: Path) -> Header:
+    """
+    returns tuple containing x,y,z dims of file
+    """
+    cmd = [Config.header_loc, "-s", fp]
+    sp = subprocess.run(cmd, check=False, capture_output=True)
+    if sp.returncode != 0:
+        stdout = sp.stdout.decode("utf-8")
+        stderr = sp.stderr.decode("utf-8")
+        msg = f"ERROR : {stderr} -- {stdout}"
+        log(msg)
+        raise signals.FAIL(msg)
+    else:
+        stdout = sp.stdout.decode("utf-8")
+        stderr = sp.stderr.decode("utf-8")
+        msg = f"Command ok : {stderr} -- {stdout}"
+        log(msg)
+        xyz_dim = re.split(" +(\d+)", stdout)
+        xyz_cleaned = Header(int(xyz_dim[1]), int(xyz_dim[3]), int(xyz_dim[5]))
+        log(f"dims: {xyz_cleaned:}")
+        return xyz_cleaned
 
 
 @task

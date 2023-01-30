@@ -147,6 +147,7 @@ def gen_archive_pyr(file_path: FilePath) -> None:
 def gen_min_max_cmd(fp: Path, out_fp: Path) -> str:
     """
     mrc_visual_min_max {basename}.nii --mad 5 --output-json mrc2ngpc-output.json
+    mad == Median absolute deviation - determined empiricaly 5
     """
     cmd = f"mrc_visual_min_max {fp.parent}/{fp.stem}.nii --mad 5 --output-json {out_fp} &> {fp.parent}/mrc_visual_min_max.log"
     logger = prefect.context.get("logger")
