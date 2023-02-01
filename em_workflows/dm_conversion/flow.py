@@ -277,10 +277,10 @@ with Flow(
 
     # scale the jpegs, pngs, and tifs
     keyimg_assets = scale_jpegs.map(
-        fps, size=unmapped("l"), upstream_tasks=[mrc_to_jpeg]
+        fps, size=unmapped("l"), upstream_tasks=[mrc_to_jpeg, convert_2d_mrc]
     )
     thumb_assets = scale_jpegs.map(
-        fps, size=unmapped("s"), upstream_tasks=[mrc_to_jpeg]
+        fps, size=unmapped("s"), upstream_tasks=[mrc_to_jpeg, convert_2d_mrc]
     )
 
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
