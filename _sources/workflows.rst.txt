@@ -2,6 +2,12 @@
 Workflows
 =========
 
+Overview:
+Inputs are provided via the parameter input_dir.
+This directory is listed, and a temp working directory is created for each input (a file for the 2D and BRT pipelines, or a directory containing a stack of tiffs for FIBSEM). A list of Objects of class FilePath are used to these inputs.
+Note: objects passed between Prefect Tasks (eg FilePath objects), must be considered immutable. Updates to state made in one task will be lost and not available to the next task. Create a new object.
+The map function is used extensively, and preserves order.
+
 TomoJS 3D pipeline for tomographic reconstruction.
 
 The term "batch run tomo[gram]" is abbreviated BRT.
