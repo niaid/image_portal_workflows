@@ -21,8 +21,9 @@ from em_workflows.config import Config
 from prefect.tasks.control_flow.filter import FilterTask
 
 from collections import namedtuple
+
 # used for keeping outputs of imod's header command (dimensions of image).
-Header = namedtuple('Header', 'x y z')
+Header = namedtuple("Header", "x y z")
 
 
 filter_results = FilterTask(
@@ -30,6 +31,7 @@ filter_results = FilterTask(
         x, (BaseException, TRIGGERFAIL, SKIP, type(None))
     )
 )
+
 
 def lookup_dims(fp: Path) -> Header:
     """
@@ -92,6 +94,7 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str):
     asset = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
     return asset
 
+
 @task
 def gen_prim_fps(fp_in: FilePath) -> Dict:
     return fp_in.gen_prim_fp_elt()
@@ -103,8 +106,8 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
     return prim_fp
 
 
-#@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
-#def cleanup_workdir(wd: Path):
+# @task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
+# def cleanup_workdir(wd: Path):
 #    """
 #    working_dir isn't needed after run, so rm.
 #    """
@@ -112,8 +115,8 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
 #    shutil.rmtree(wd)
 
 
-#@task
-#def check_inputs_ok(fps: List[Path]) -> None:
+# @task
+# def check_inputs_ok(fps: List[Path]) -> None:
 #    """
 #    ensures there's at least one file that is going to be processed.
 #    escapes bad chars that occur in input file names
@@ -126,8 +129,8 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
 #    log("files ok")
 
 
-#@task
-#def sanitize_file_names(fps: List[Path]) -> List[Path]:
+# @task
+# def sanitize_file_names(fps: List[Path]) -> List[Path]:
 #    escaped_files = [Path(_escape_str(_file.as_posix())) for _file in fps]
 #    return escaped_files
 
@@ -304,14 +307,14 @@ def run_brt(
 #     rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
 #     ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
 #     log(f"checking that dir {file_path.working_dir} contains ok BRT run")
-# 
+#
 #     for _file in [rec_file, ali_file]:
 #         if not _file.exists():
 #             raise signals.FAIL(f"File {_file} does not exist. BRT run failure.")
 
 
-#@task
-#def create_brt_command(adoc_fp: Path) -> str:
+# @task
+# def create_brt_command(adoc_fp: Path) -> str:
 #    cmd = f"{Config.brt_binary} -di {adoc_fp.as_posix()} -cp 8 -gpu 1 &> {adoc_fp.parent}/brt.log"
 #    log(f"Generated command: {cmd}")
 #    return cmd
@@ -354,7 +357,7 @@ def _tr_str(name):
     return _to_esc.sub("_", name)
 
 
-#def _escape_str(name):
+# def _escape_str(name):
 #    _to_esc = re.compile(r"\s|[]()[]")
 #    return _to_esc.sub(_esc_char, name)
 
@@ -390,11 +393,11 @@ def init_log(file_path: FilePath) -> None:
 #     # the getLogger function uses the (fairly) unique input_dir to look up.
 #     logger = logging.getLogger(context.parameters["input_dir"])
 #     logger.setLevel("INFO")
-# 
+#
 #     if not logger.handlers:
 #         handler = logging.FileHandler(log_fp, encoding="utf-8")
 #         logger.addHandler(handler)
-# 
+#
 #         # Formatter can be whatever you want
 #         formatter = logging.Formatter(
 #             "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -431,8 +434,8 @@ def copy_workdirs(file_path: FilePath) -> Path:
     return file_path.copy_workdir_to_assets()
 
 
-#@task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
-#def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
+# @task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
+# def copy_workdir_on_fail(working_dir: Path, assets_dir: Path) -> None:
 #    """copies entire contents of working dir to outputs dir"""
 #    workd_name = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
 #    dest = f"{assets_dir.as_posix()}/{workd_name}"

@@ -45,6 +45,7 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
             utils.log(f"{file_path.fp_in} is a 16 bit tiff, converting to {tif_8_bit}")
             file_to_uint8(in_file_path=file_path.fp_in, out_file_path=str(tif_8_bit))
 
+
 @task
 def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     """
@@ -61,17 +62,34 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
         dims = utils.lookup_dims(file_path.fp_in)
         # use the min dimension of x & y to compute shrink_factor
         min_xy = min(dims.x, dims.y)
-        # work out shrink_factor 
-        shrink_factor = min_xy/large_dim
+        # work out shrink_factor
+        shrink_factor = min_xy / large_dim
         # round to 3 decimal places
         shrink_factor_3 = f"{shrink_factor:.3f}"
         out_fp = f"{file_path.working_dir}/{file_path.base}_mrc_as_tiff.tiff"
         log_fp = f"{file_path.working_dir}/{file_path.base}_mrc_as_tiff.log"
-        utils.log(f"{file_path.fp_in.as_posix()} is a mrc file, will convert to {out_fp}.")
+        utils.log(
+            f"{file_path.fp_in.as_posix()} is a mrc file, will convert to {out_fp}."
+        )
         # work out meansd
-        cmd = ['env', 'IMOD_OUTPUT_FORMAT=TIF','newstack','-shrink', shrink_factor_3,'-antialias','4','-mode', '0','-meansd', '140,50', file_path.fp_in.as_posix(), out_fp]
+        cmd = [
+            "env",
+            "IMOD_OUTPUT_FORMAT=TIF",
+            Config.newstack_loc,
+            "-shrink",
+            shrink_factor_3,
+            "-antialias",
+            "4",
+            "-mode",
+            "0",
+            "-meansd",
+            "140,50",
+            file_path.fp_in.as_posix(),
+            out_fp,
+        ]
         utils.log(f"Generated cmd {cmd}")
         FilePath.run(cmd, log_fp)
+
 
 @task
 def convert_dm_mrc_to_jpeg(file_path: FilePath) -> None:
@@ -93,7 +111,7 @@ def convert_dm_mrc_to_jpeg(file_path: FilePath) -> None:
 def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     """
     generates keyThumbnail and keyImage
-    looks for file names <something>_mrc_as_jpg.jpeg 
+    looks for file names <something>_mrc_as_jpg.jpeg
     """
     mrc_as_jpg = file_path.gen_output_fp(out_fname="mrc_as_jpg.jpeg")
     tif_8_bit = file_path.gen_output_fp(out_fname="as_8_bit.tif")
@@ -104,7 +122,7 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     elif tif_8_bit.exists():
         cur = tif_8_bit
     elif mrc_as_tiff.exists():
-        cur = mrc_as_tiff # can ignore here if scaled
+        cur = mrc_as_tiff  # can ignore here if scaled
     elif file_path.fp_in.suffix.lower() in tif_jpg_png_suffixes:
         cur = file_path.fp_in
     else:

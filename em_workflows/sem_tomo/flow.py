@@ -279,10 +279,12 @@ with Flow(
         fp_in=fps, upstream_tasks=[stretchs, align_mrcs]
     )
 
-    corrected_movie_assets = utils.mrc_to_movie.map(file_path=fps,
-            root=unmapped("corrected"),
-            asset_type=unmapped("recMovie"),
-            upstream_tasks=[corrected_mrc_assets])
+    corrected_movie_assets = utils.mrc_to_movie.map(
+        file_path=fps,
+        root=unmapped("corrected"),
+        asset_type=unmapped("recMovie"),
+        upstream_tasks=[corrected_mrc_assets],
+    )
 
     base_mrcs = gen_newstack_norm_command.map(
         fp_in=fps, upstream_tasks=[corrected_mrc_assets]
