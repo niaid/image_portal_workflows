@@ -1,9 +1,6 @@
-from collections import namedtuple
-import datetime
 import os
-import requests
 from pathlib import Path
-from typing import List, NamedTuple, Optional
+from typing import Optional
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
 from prefect.engine import signals
@@ -50,11 +47,56 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
 
 
 @task
-def convert_mrc_to_jpeg(file_path: FilePath) -> None:
+def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
+    """
+    Checks Projects dir for mrc inputs. We assume anything in Projects will be 2D.
+
+    env IMOD_OUTPUT_FORMAT=TIF newstack \
+            --shrink $shrink_factor$ -antialias 6 -mode 0 -meansd 140,50 f_in.mrc f_out.tif
+    where shrink_factor is input_size/1024
+    used the smaller of x and y (4092/1024)
+    """
+    utils.log(f"Checking {file_path} for mrc inputs")
+    large_dim = 1024
+    if file_path.fp_in.suffix.lower() == ".mrc":
+        dims = utils.lookup_dims(file_path.fp_in)
+        # use the min dimension of x & y to compute shrink_factor
+        min_xy = min(dims.x, dims.y)
+        # work out shrink_factor
+        shrink_factor = min_xy / large_dim
+        # round to 3 decimal places
+        shrink_factor_3 = f"{shrink_factor:.3f}"
+        out_fp = f"{file_path.working_dir}/{file_path.base}_mrc_as_tiff.tiff"
+        log_fp = f"{file_path.working_dir}/{file_path.base}_mrc_as_tiff.log"
+        utils.log(
+            f"{file_path.fp_in.as_posix()} is a mrc file, will convert to {out_fp}."
+        )
+        # work out meansd
+        cmd = [
+            "env",
+            "IMOD_OUTPUT_FORMAT=TIF",
+            Config.newstack_loc,
+            "-shrink",
+            shrink_factor_3,
+            "-antialias",
+            "4",
+            "-mode",
+            "0",
+            "-meansd",
+            "140,50",
+            file_path.fp_in.as_posix(),
+            out_fp,
+        ]
+        utils.log(f"Generated cmd {cmd}")
+        FilePath.run(cmd, log_fp)
+
+
+@task
+def convert_dm_mrc_to_jpeg(file_path: FilePath) -> None:
     """
     converts previously generated mrc file, (derived from a dm file) to jpeg.
     note, ignores everything that's NOT <name>dm_as_mrc.mrc
-    that is, convert_mrc_to_jpeg does not simply process all mrc files.
+    that is, convert_dm_mrc_to_jpeg does not process ALL mrc files.
     """
     dm_as_mrc = file_path.gen_output_fp(out_fname="dm_as_mrc.mrc")
     if dm_as_mrc.exists():
@@ -69,14 +111,18 @@ def convert_mrc_to_jpeg(file_path: FilePath) -> None:
 def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     """
     generates keyThumbnail and keyImage
+    looks for file names <something>_mrc_as_jpg.jpeg
     """
     mrc_as_jpg = file_path.gen_output_fp(out_fname="mrc_as_jpg.jpeg")
     tif_8_bit = file_path.gen_output_fp(out_fname="as_8_bit.tif")
+    mrc_as_tiff = Path(f"{file_path.working_dir}/{file_path.base}_mrc_as_tiff.tiff")
     tif_jpg_png_suffixes = [".tif", ".tiff", ".jpeg", ".png", ".jpg"]
     if mrc_as_jpg.exists():
         cur = mrc_as_jpg
     elif tif_8_bit.exists():
         cur = tif_8_bit
+    elif mrc_as_tiff.exists():
+        cur = mrc_as_tiff  # can ignore here if scaled
     elif file_path.fp_in.suffix.lower() in tif_jpg_png_suffixes:
         cur = file_path.fp_in
     else:
@@ -214,10 +260,13 @@ with Flow(
     run_config=LocalRun(labels=[utils.get_environment()]),
 ) as flow:
     """
-    [dm4 and dm3 inputs] ---> [mrc intermediary files] ---> [jpeg outputs]    -->
-                                                            [add jpeg inputs] -->
-
-    --> ALL scaled into sizes "sm" and "lg"
+    -list all inputs (ie files of relevant input type)
+    -create output dir for each.
+    -convert all 16bit tiffs to 8 bit, write to Assets dir.
+    -convert all dm3/dm4 files to mrc, write to Assets dir.
+    -convert <name>dm_as_mrc.mrc files to jpegs.
+    -convert all mrcs in Projects dir to jpegs.
+    -convert all tiffs/pngs/jpegs to correct size for thumbs, "sm" and "lg"
     """
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
@@ -240,14 +289,16 @@ with Flow(
     dm_to_mrc_converted = convert_dms_to_mrc.map(fps, upstream_tasks=[tiffs_converted])
 
     # mrc is intermed format, to jpeg conversion
-    mrc_to_jpeg = convert_mrc_to_jpeg.map(fps, upstream_tasks=[dm_to_mrc_converted])
+    mrc_to_jpeg = convert_dm_mrc_to_jpeg.map(fps, upstream_tasks=[dm_to_mrc_converted])
+
+    convert_2d_mrc = convert_2d_mrc_to_tiff.map(file_path=fps)
 
     # scale the jpegs, pngs, and tifs
     keyimg_assets = scale_jpegs.map(
-        fps, size=unmapped("l"), upstream_tasks=[mrc_to_jpeg]
+        fps, size=unmapped("l"), upstream_tasks=[mrc_to_jpeg, convert_2d_mrc]
     )
     thumb_assets = scale_jpegs.map(
-        fps, size=unmapped("s"), upstream_tasks=[mrc_to_jpeg]
+        fps, size=unmapped("s"), upstream_tasks=[mrc_to_jpeg, convert_2d_mrc]
     )
 
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)

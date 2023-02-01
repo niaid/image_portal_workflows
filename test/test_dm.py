@@ -9,10 +9,6 @@ import os
 def mock_nfs_mount(monkeypatch):
     from em_workflows.config import Config
 
-    def _mock_send_callback(
-        token: str, callback_url: str, files_elts: List[Dict]
-    ) -> None:
-        return
 
     def _mock_proj_dir(env: str) -> str:
         return os.getcwd()
@@ -20,12 +16,13 @@ def mock_nfs_mount(monkeypatch):
     def _mock_assets_dir(env: str) -> str:
         return "/home"
 
-    monkeypatch.setattr(utils, "send_callback_body", _mock_send_callback)
+#     monkeypatch.setattr(utils, "send_callback_body", _mock_send_callback)
     monkeypatch.setattr(Config, "proj_dir", _mock_proj_dir)
     monkeypatch.setattr(Config, "assets_dir", _mock_assets_dir)
     monkeypatch.setattr(Config, "mount_point", os.getcwd() + "/test/input_files")
     monkeypatch.setattr(Config, "tmp_dir", "/tmp")
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
+    monkeypatch.setattr(Config, "header_loc", "/usr/local/IMOD/bin/header")
     monkeypatch.setattr(Config, "dm2mrc_loc", "/usr/local/IMOD/bin/dm2mrc")
     monkeypatch.setattr(Config, "mrc2tif_loc", "/usr/local/IMOD/bin/mrc2tif")
 
@@ -35,8 +32,7 @@ def test_dm4_conv(mock_nfs_mount):
 
     state = flow.run(
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
-        token="the_token",
-        callback_url="https://ptsv2.com/t/",
+        no_api=True,
     )
     assert state.is_successful()
 
@@ -58,8 +54,7 @@ def test_single_file_no_ext_not_found_gens_exception(mock_nfs_mount):
     state = flow.run(
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
         file_name="file_with_no_ext",
-        token="the_token",
-        callback_url="https://ptsv2.com/t/",
+        no_api=True,
     )
     assert state.is_failed()
 
@@ -70,7 +65,6 @@ def test_single_file_not_found_gens_exception(mock_nfs_mount):
     state = flow.run(
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
         file_name="does_not_exist.test",
-        token="the_token",
-        callback_url="https://ptsv2.com/t/",
+        no_api=True,
     )
     assert state.is_failed()

@@ -17,7 +17,7 @@ from em_workflows.utils import neuroglancer as ng
 from em_workflows.shell_task_echo import ShellTaskEcho
 from em_workflows.config import Config
 
-shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
+# shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
 
 @task
@@ -26,6 +26,7 @@ def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
     looks up the z dimension of an mrc file.
     ali_or_rec is nasty, str to denote whether you're using the _ali file
     or the _rec file.
+    TODO - this is duplicate, see utils.lookup_dims()
     """
 
     if ali_or_rec not in ["ali", "rec"]:
