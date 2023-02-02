@@ -60,6 +60,9 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     large_dim = 1024
     if file_path.fp_in.suffix.lower() == ".mrc":
         dims = utils.lookup_dims(file_path.fp_in)
+        if dims.z != 1:
+            msg = f"mrc file {file_path.fp_in} is not 2 dimensional. Contains {dims.z} Z dims."
+            raise signals.FAIL(msg)
         # use the min dimension of x & y to compute shrink_factor
         min_xy = min(dims.x, dims.y)
         # work out shrink_factor
@@ -291,6 +294,7 @@ with Flow(
     # mrc is intermed format, to jpeg conversion
     mrc_to_jpeg = convert_dm_mrc_to_jpeg.map(fps, upstream_tasks=[dm_to_mrc_converted])
 
+    # mrc can also be an input, convert to tiff.
     convert_2d_mrc = convert_2d_mrc_to_tiff.map(file_path=fps)
 
     # scale the jpegs, pngs, and tifs
