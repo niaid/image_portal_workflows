@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Optional
 from prefect import Flow, task, Parameter, unmapped
@@ -14,7 +13,6 @@ from em_workflows.utils import utils
 
 @task
 def convert_dms_to_mrc(file_path: FilePath) -> None:
-    # cur = file_path.current
     dm_file_suffixes = [".dm3", ".dm4"]
     if file_path.fp_in.suffix.lower() in dm_file_suffixes:
         dm_as_mrc = file_path.gen_output_fp(out_fname="dm_as_mrc.mrc")
@@ -24,7 +22,6 @@ def convert_dms_to_mrc(file_path: FilePath) -> None:
         cmd = [Config.dm2mrc_loc, file_path.fp_in.as_posix(), dm_as_mrc.as_posix()]
         # utils.log(f"Generated cmd {cmd}")
         FilePath.run(cmd=cmd, log_file=log_file)
-        # file_path.update_current(dm_as_mrc)
 
 
 @task
@@ -176,31 +173,6 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     return asset_elt
 
 
-#    assets_fp_lg = file_path.copy_to_assets_dir(fp_to_cp=output_lg)
-#    prim_fp = file_path.prim_fp_elt
-#    prim_fp = file_path.add_asset(
-#        prim_fp=prim_fp, asset_fp=assets_fp_sm, asset_type="keyThumbnail"
-#    )
-#    prim_fp = file_path.add_asset(
-#        prim_fp=prim_fp, asset_fp=assets_fp_lg, asset_type="keyImage"
-#    )
-#    return prim_fp
-
-
-@task
-def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
-    # gm convert
-    # -size 300x300 "/io/20210525_1416_A000_G000.jpeg"
-    # -resize 300x300 -sharpen 2 -quality 70 "/io/20210525_1416_A000_G000_sm.jpeg"
-    if size == "sm":
-        scaler = Config.size_sm
-    elif size == "lg":
-        scaler = Config.size_lg
-    else:
-        raise signals.FAIL(f"Thumbnail must be either sm or lg, not {size}")
-    cmd = f"gm convert -size {scaler} {fp_in} -resize {scaler} -sharpen 2 -quality 70 {fp_out}"
-    utils.log(f"Generated cmd {cmd}")
-    return cmd
 
 
 # @task
@@ -235,25 +207,6 @@ def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
 #    return _files
 
 
-# @task
-# def pint_obj(fp: FilePath) -> None:
-#     print("tttt")
-
-
-# def get_environment() -> str:
-#     """
-#     The workflows can operate in one of several environments,
-#     named HEDWIG_ENV for historical reasons, eg prod, qa or dev.
-#     This function looks up that environment.
-#     Raises exception if no environment found.
-#     """
-#     env = os.environ.get("HEDWIG_ENV")
-#     if not env:
-#         raise RuntimeError(
-#             "Unable to look up HEDWIG_ENV. Should \
-#                 be exported set to one of: [dev, qa, prod]"
-#         )
-#     return env
 
 
 with Flow(
