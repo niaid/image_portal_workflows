@@ -14,7 +14,8 @@ from prefect.engine import signals
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
-from em_workflows.shell_task_echo import ShellTaskEcho
+
+# from em_workflows.shell_task_echo import ShellTaskEcho
 from em_workflows.config import Config
 
 # shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
