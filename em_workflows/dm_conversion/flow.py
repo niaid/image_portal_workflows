@@ -235,25 +235,25 @@ def create_gm_cmd(fp_in: Path, fp_out: Path, size: str) -> str:
 #    return _files
 
 
-@task
-def pint_obj(fp: FilePath) -> None:
-    print("tttt")
+# @task
+# def pint_obj(fp: FilePath) -> None:
+#     print("tttt")
 
 
-def get_environment() -> str:
-    """
-    The workflows can operate in one of several environments,
-    named HEDWIG_ENV for historical reasons, eg prod, qa or dev.
-    This function looks up that environment.
-    Raises exception if no environment found.
-    """
-    env = os.environ.get("HEDWIG_ENV")
-    if not env:
-        raise RuntimeError(
-            "Unable to look up HEDWIG_ENV. Should \
-                be exported set to one of: [dev, qa, prod]"
-        )
-    return env
+# def get_environment() -> str:
+#     """
+#     The workflows can operate in one of several environments,
+#     named HEDWIG_ENV for historical reasons, eg prod, qa or dev.
+#     This function looks up that environment.
+#     Raises exception if no environment found.
+#     """
+#     env = os.environ.get("HEDWIG_ENV")
+#     if not env:
+#         raise RuntimeError(
+#             "Unable to look up HEDWIG_ENV. Should \
+#                 be exported set to one of: [dev, qa, prod]"
+#         )
+#     return env
 
 
 with Flow(
