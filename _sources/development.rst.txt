@@ -15,8 +15,15 @@ Github.com
 
 The repository is located in the NIAID Github.com enterprise organization. Having a github.com account which is a member of the NIAID organization is required.
 
+Local Set-up
+============
+
+
 HPC Set up
 ==========
+
+NOTE, THIS IS **ONLY** relevant for HPC. Added for completeness.
+----------------------------------------------------------------
 
 Workflows are currently run on RML HPC ("BigSky").
 
