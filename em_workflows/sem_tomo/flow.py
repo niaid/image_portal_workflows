@@ -5,7 +5,7 @@ from typing import List, Dict
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
 from em_workflows.config import Config
-from em_workflows.shell_task_echo import ShellTaskEcho
+# from em_workflows.shell_task_echo import ShellTaskEcho
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 
@@ -322,9 +322,10 @@ with Flow(
 
     # finally filter error states, and convert to JSON and send.
     filtered_callback = utils.filter_results(callback_with_corr_movies)
-    cp_wd_to_assets = utils.copy_workdirs.map(
-        fps, upstream_tasks=[callback_with_corr_movies]
-    )
+    # copy_workdirs is appears to cause issues with very large dirs.
+#     cp_wd_to_assets = utils.copy_workdirs.map(
+#         fps, upstream_tasks=[callback_with_corr_movies]
+#     )
     cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=filtered_callback
     )
