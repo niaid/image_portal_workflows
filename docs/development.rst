@@ -8,7 +8,9 @@ The docs related to development and testing are contained in this section.
 Prerequisites
 *************
 
-Please read before cloning.
+Please read this Development section before cloning. The `generate_venv.sh` script referenced below
+automates much of the process. Current system assumes that you are locally running either a Linux
+or Mac OS.
 
 Github.com
 ==========
@@ -18,6 +20,7 @@ The repository is located in the NIAID Github.com enterprise organization. Havin
 Local Set-up
 ============
 
+You will need a minimal Python installation to run the `generate_venv.sh` script.
 
 HPC Set up
 ==========
