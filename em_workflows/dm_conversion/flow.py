@@ -57,11 +57,11 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     utils.log(f"Checking {file_path} for mrc inputs")
     large_dim = 1024 # TODO probably config this
     if file_path.fp_in.suffix.lower() == ".mrc":
-        nifti_fp = neuroglancer.gen_niftis.__wrapped__(file_path) 
-        utils.log(f"+++++++++++++++++++++++++++++++++++++++++++++")
-        min_max_histo = neuroglancer.gen_min_max_histo(file_path)
-        utils.log(min_max_histo)
-        utils.log(f"+++++++++++++++++++++++++++++++++++++++++++++")
+        # nifti_fp = neuroglancer.gen_niftis.__wrapped__(file_path) 
+        # utils.log(f"+++++++++++++++++++++++++++++++++++++++++++++")
+        # min_max_histo = neuroglancer.gen_min_max_histo(file_path)
+        # utils.log(min_max_histo)
+        # utils.log(f"+++++++++++++++++++++++++++++++++++++++++++++")
         dims = utils.lookup_dims(file_path.fp_in)
         if dims.z != 1:
             msg = f"mrc file {file_path.fp_in} is not 2 dimensional. Contains {dims.z} Z dims."
