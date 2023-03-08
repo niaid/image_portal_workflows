@@ -41,6 +41,7 @@ def mock_nfs_mount(monkeypatch):
     monkeypatch.setattr(Config, "header_loc", _cmd_loc("header"))
     monkeypatch.setattr(Config, "dm2mrc_loc", _cmd_loc("dm2mrc"))
     monkeypatch.setattr(Config, "mrc2tif_loc", _cmd_loc("mrc2tif"))
+    monkeypatch.setattr(Config, "newstack_loc", _cmd_loc("newstack"))
 
 
 def test_dm4_conv(mock_nfs_mount):
