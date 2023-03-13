@@ -8,7 +8,7 @@ from pytools.convert import file_to_uint8
 
 from em_workflows.file_path import FilePath
 from em_workflows.config import Config
-from em_workflows.utils import utils
+from em_workflows.utils import utils, neuroglancer
 
 
 @task
@@ -57,6 +57,11 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     utils.log(f"Checking {file_path} for mrc inputs")
     large_dim = 1024 # TODO probably config this
     if file_path.fp_in.suffix.lower() == ".mrc":
+        # nifti_fp = neuroglancer.gen_niftis.__wrapped__(file_path) 
+        # utils.log(f"+++++++++++++++++++++++++++++++++++++++++++++")
+        # min_max_histo = neuroglancer.gen_min_max_histo(file_path)
+        # utils.log(min_max_histo)
+        # utils.log(f"+++++++++++++++++++++++++++++++++++++++++++++")
         dims = utils.lookup_dims(file_path.fp_in)
         if dims.z != 1:
             msg = f"mrc file {file_path.fp_in} is not 2 dimensional. Contains {dims.z} Z dims."
@@ -80,7 +85,7 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
             "-shrink",
             shrink_factor_3,
             "-antialias",
-            "4",
+            "6",
             "-mode",
             "0",
             "-meansd",
@@ -159,10 +164,10 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
             cur.as_posix(),
             "-resize",
             Config.size_lg,
-            "-sharpen",
-            "2",
+            # "-sharpen",
+            # "2",
             "-quality",
-            "70",
+            "80",
             output.as_posix(),
         ]
     else:

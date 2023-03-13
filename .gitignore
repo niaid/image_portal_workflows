@@ -130,3 +130,14 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# image stuff
+*tif
+*tiff
+*jpeg
+*jpg
+*mp4
+*mrc
+
+# tags
+tags

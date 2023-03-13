@@ -20,11 +20,14 @@ def gen_niftis(fp_in: FilePath) -> None:
     nifti = fp_in.gen_output_fp(output_ext=".nii")
     rec_mrc = fp_in.gen_output_fp(output_ext="_rec.mrc")
     base_mrc = fp_in.gen_output_fp(output_ext=".mrc")
+    input_mrc = fp_in.fp_in
     cmd = list()
     if rec_mrc.exists():
         cmd = ["mrc2nifti", rec_mrc.as_posix(), nifti.as_posix()]
     elif base_mrc.exists():
         cmd = ["mrc2nifti", base_mrc.as_posix(), nifti.as_posix()]
+    elif input_mrc.exists():
+        cmd = ["mrc2nifti", input_mrc.as_posix(), nifti.as_posix()]
     else:
         raise ValueError(
             f"unable to find input for nifti generation. \
