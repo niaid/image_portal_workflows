@@ -42,11 +42,20 @@ automates much of the process. Current system assumes that you are locally runni
 or Mac OS.</p>
 <section id="github-com">
 <h3>Github.com<a class="headerlink" href="#github-com" title="Permalink to this heading">¶</a></h3>
-<p>The repository is located in the NIAID Github.com enterprise organization. Having a github.com account which is a member of the NIAID organization is required.</p>
+<p>The repository is located in the NIAID Github.com enterprise organization. Having a github.com account
+which is a member of the NIAID organization is required.</p>
 </section>
 <section id="local-set-up">
 <h3>Local Set-up<a class="headerlink" href="#local-set-up" title="Permalink to this heading">¶</a></h3>
-<p>You will need a minimal Python installation to run the <cite>generate_venv.sh</cite> script.</p>
+<p>You will need a minimal Python installation to run the <cite>generate_venv.sh</cite> script.
+The following programs need to be available locally:</p>
+<ul class="simple">
+<li><p>Java runtime (in order to run <cite>etomo</cite> in BRT)</p></li>
+<li><p>ffmpeg (in order to create movies)</p></li>
+</ul>
+<p>Similar to the HPC Set up below, you can locally set up <cite>dev</cite> and <cite>qa</cite> virtual envs.</p>
+<p>Special note for <strong>Mac M1</strong>: The <cite>tomojs-pytools</cite> library depends on imagecodecs which does
+not have binaries built for the M1. Need to install using an x86_64 version of Python.</p>
 </section>
 <section id="hpc-set-up">
 <h3>HPC Set up<a class="headerlink" href="#hpc-set-up" title="Permalink to this heading">¶</a></h3>
@@ -127,6 +136,7 @@ $<span class="w"> </span>spack<span class="w"> </span>unload<span class="w"> </s
 </section>
 <section id="git-lfs">
 <h3>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this heading">¶</a></h3>
+<p><strong>UPDATE 10-Mar-2023: LFS isn’t currently being used due to cost considerations.</strong></p>
 <p>Git <a class="reference external" href="https://git-lfs.github.com">Large File Storage</a> (LFS) is used to store larger files in the repository such as
 test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
 be installed on the system and set up on the users account. The <a class="reference external" href="https://git-lfs.github.com">tool’s documentation</a>
@@ -197,7 +207,17 @@ upstream      git@github.com:niaid/image_portal_workflows.git (push)
 </section>
 <section id="testing">
 <h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading">¶</a></h2>
-<p>TODO</p>
+<p>There are currently four Pytest files in the <cite>test</cite> directory:</p>
+<ul class="simple">
+<li><p>test_dm: 2D</p></li>
+<li><p>test_brt: batchruntomo</p></li>
+<li><p>test_sem:</p></li>
+<li><p>test_callback: I believe this test is out-of-date and needs some fixing</p></li>
+</ul>
+<p>There is test data for <cite>test_dm</cite> in the Git repo, but not for the other two. These files need to be
+downloaded from the HPC machines. The following script will copy them:</p>
+<p><cite>test/copy_test_data.sh</cite></p>
+<p>These files are quite large, so you may want to run each line separately at the command line.</p>
 </section>
 <section id="sphinx-documentation">
 <h2>Sphinx Documentation<a class="headerlink" href="#sphinx-documentation" title="Permalink to this heading">¶</a></h2>
