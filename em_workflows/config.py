@@ -3,6 +3,7 @@ from pathlib import Path
 from dask_jobqueue import SLURMCluster
 from prefect.executors import DaskExecutor
 import prefect
+import shutil
 
 
 def SLURM_exec():
@@ -28,18 +29,32 @@ def SLURM_exec():
     return cluster
 
 
+def command_loc(cmd: str) -> str:
+    """
+    Given the name of a program that is assumed to be in the current path,
+    return the full path by using the `shutil.which()` operation. It is
+    *assumed* that `shutil` is available and the command is on the path
+    :param cmd: str, the command to be run, often part of the `IMOD` package
+    :return: str, the full path to the program
+    """
+    cmd_path = shutil.which(cmd)
+    assert cmd_path
+    return cmd_path
+
+
 class Config:
     # location in container
-    dm2mrc_loc = "/opt/rml/imod/bin/dm2mrc"
-    mrc2tif_loc = "/opt/rml/imod/bin/mrc2tif"
-    tif2mrc_loc = "/opt/rml/imod/bin/tif2mrc"
-    xfalign_loc = "/opt/rml/imod/bin/xfalign"
-    xftoxg_loc = "/opt/rml/imod/bin/xftoxg"
-    newstack_loc = "/opt/rml/imod/bin/newstack"
-    header_loc = "/opt/rml/imod/bin/header"
-    convert_loc = "/usr/bin/convert"
-    clip_loc = "/opt/rml/imod/bin/clip"
-    binvol = "/opt/rml/imod/bin/binvol"
+    binvol = command_loc("binvol")
+    brt_binary = command_loc("batchruntomo")
+    dm2mrc_loc = command_loc("dm2mrc")
+    clip_loc = command_loc("clip")
+    convert_loc = command_loc("convert")
+    header_loc = command_loc("header")
+    mrc2tif_loc = command_loc("mrc2tif")
+    newstack_loc = command_loc("newstack")
+    tif2mrc_loc = command_loc("tif2mrc")
+    xfalign_loc = command_loc("xfalign")
+    xftoxg_loc = command_loc("xftoxg")
 
     # environment where the app gets run - used for share selection
     env_to_share = {
@@ -59,21 +74,20 @@ class Config:
         "dm3",
         "TIF",
         "TIFF",
-        "JPEG",
-        "PNG",
-        "JPG",
         "tif",
         "tiff",
+        "JPEG",
+        "JPG",
         "jpeg",
-        "png",
         "jpg",
+        "PNG",
+        "png",
         "mrc",
         "MRC",
     ]
     fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
 
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
-    brt_binary = "/opt/rml/imod/bin/batchruntomo"
     tmp_dir = "/gs1/Scratch/macmenaminpe_scratch/"
     mount_point = "/mnt/ai-fas12/"
 
@@ -98,7 +112,7 @@ class Config:
     @staticmethod
     def assets_dir(env: str) -> str:
         share = Config._share_name(env=env)
-        return f"{Config.mount_point}{share}/Assets"
+        return f"{Config.mount_point}{share}/Assets/"
 
     # repo_dir = os.path.join(os.path.dirname(__file__), "..")
     repo_dir = Path(os.path.dirname(__file__))

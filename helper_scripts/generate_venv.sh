@@ -29,7 +29,7 @@ source $VENV_LOC/bin/activate
 python3 -m pip install --upgrade pip
 
 # grab Brad's work
-python -m pip install git+https://github.com/niaid/tomojs-pytools@v1.3
+python -m pip install git+https://github.com/niaid/tomojs-pytools@v1.3.6
 
 
 # grab or update this repo

@@ -75,18 +75,19 @@ def test_make_work_dir_to_fp_copy_to_assets_dir(mock_fs):
     )
 
 
-def test_inputs_paired():
-    from em_workflows.brt.flow import check_inputs_paired
-
-    fps = [Path("/tmp/fnamea.mrc"), Path("/tmp/fnameb.mrc"), Path("thing")]
-    assert check_inputs_paired.__wrapped__(fps=fps) is True
-    fps_no_pair = [
-        Path("/tmp/fname.mrc"),
-        Path("/tmp/fnameb.mrc"),
-        Path("/tmp/fnameb.mrc"),
-    ]
-    assert check_inputs_paired.__wrapped__(fps=fps_no_pair) is False
-    assert check_inputs_paired.__wrapped__(fps=[]) is False
+# The brt.flow.check_inputs_paired task is currently commented out
+# def test_inputs_paired():
+#     from em_workflows.brt.flow import check_inputs_paired
+#
+#     fps = [Path("/tmp/fnamea.mrc"), Path("/tmp/fnameb.mrc"), Path("thing")]
+#     assert check_inputs_paired.__wrapped__(fps=fps) is True
+#     fps_no_pair = [
+#         Path("/tmp/fname.mrc"),
+#         Path("/tmp/fnameb.mrc"),
+#         Path("/tmp/fnameb.mrc"),
+#     ]
+#     assert check_inputs_paired.__wrapped__(fps=fps_no_pair) is False
+#     assert check_inputs_paired.__wrapped__(fps=[]) is False
 
 
 def test_paired_files():
