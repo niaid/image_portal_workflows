@@ -15,12 +15,22 @@ or Mac OS.
 Github.com
 ==========
 
-The repository is located in the NIAID Github.com enterprise organization. Having a github.com account which is a member of the NIAID organization is required.
+The repository is located in the NIAID Github.com enterprise organization. Having a github.com account
+which is a member of the NIAID organization is required.
 
 Local Set-up
 ============
 
 You will need a minimal Python installation to run the `generate_venv.sh` script.
+The following programs need to be available locally:
+
+- Java runtime (in order to run `etomo` in BRT)
+- ffmpeg (in order to create movies)
+
+Similar to the HPC Set up below, you can locally set up `dev` and `qa` virtual envs.
+
+Special note for **Mac M1**: The `tomojs-pytools` library depends on imagecodecs which does
+not have binaries built for the M1. Need to install using an x86_64 version of Python.
 
 HPC Set up
 ==========
@@ -29,8 +39,6 @@ NOTE, THIS IS **ONLY** relevant for HPC. Added for completeness.
 ----------------------------------------------------------------
 
 Workflows are currently run on RML HPC ("BigSky").
-
-
 
 There are three environments currently on BigSky: (`dev`, `qa`, `prod`).
 They were set up as follows:
@@ -118,6 +126,8 @@ Currently dask jobqueue is configured with a yaml file.
 Git LFS
 =======
 
+**UPDATE 10-Mar-2023: LFS isn't currently being used due to cost considerations.**
+
 Git `Large File Storage <https://git-lfs.github.com>`_ (LFS) is used to store larger files in the repository such as
 test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
 be installed on the system and set up on the users account. The `tool's documentation <https://git-lfs.github.com>`_
@@ -195,7 +205,20 @@ To contribute to the project first ensure your fork is in good shape, and then t
 Testing
 *******
 
-TODO
+There are currently four Pytest files in the `test` directory:
+
+- test_dm: 2D
+- test_brt: batchruntomo
+- test_sem:
+- test_callback: I believe this test is out-of-date and needs some fixing
+
+There is test data for `test_dm` in the Git repo, but not for the other two. These files need to be
+downloaded from the HPC machines. The following script will copy them:
+
+`test/copy_test_data.sh`
+
+These files are quite large, so you may want to run each line separately at the command line.
+
 
 ********************
 Sphinx Documentation
