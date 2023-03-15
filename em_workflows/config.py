@@ -46,18 +46,18 @@ def command_loc(cmd: str) -> str:
 
 
 class Config:
-    # location in container
-    binvol = command_loc("binvol")
-    brt_binary = command_loc("batchruntomo")
-    dm2mrc_loc = command_loc("dm2mrc")
-    clip_loc = command_loc("clip")
-    convert_loc = command_loc("convert")
-    header_loc = command_loc("header")
-    mrc2tif_loc = command_loc("mrc2tif")
-    newstack_loc = command_loc("newstack")
-    tif2mrc_loc = command_loc("tif2mrc")
-    xfalign_loc = command_loc("xfalign")
-    xftoxg_loc = command_loc("xftoxg")
+    # location in RML HPC
+    binvol = "/opt/rml/imod/bin/binvol"
+    brt_binary = "/opt/rml/imod/bin/batchruntomo"
+    dm2mrc_loc = "/opt/rml/imod/bin/dm2mrc"
+    clip_loc = "/opt/rml/imod/bin/clip"
+    convert_loc = "/usr/bin/convert"
+    header_loc = "/opt/rml/imod/bin/header"
+    mrc2tif_loc = "/opt/rml/imod/bin/mrc2tif"
+    newstack_loc = "/opt/rml/imod/bin/newstack"
+    tif2mrc_loc = "/opt/rml/imod/bin/tif2mrc"
+    xfalign_loc = "/opt/rml/imod/bin/xfalign"
+    xftoxg_loc = "/opt/rml/imod/bin/xftoxg"
 
     # environment where the app gets run - used for share selection
     env_to_share = {
