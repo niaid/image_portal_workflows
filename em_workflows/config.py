@@ -38,7 +38,10 @@ def command_loc(cmd: str) -> str:
     :return: str, the full path to the program
     """
     cmd_path = shutil.which(cmd)
-    assert cmd_path
+    if not cmd_path:
+        # if you can't find the command, pass back whatever was passed in.
+        # let the runtime throw an error, and this will end up in the logs.
+        cmd_path = cmd
     return cmd_path
 
 
