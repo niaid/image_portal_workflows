@@ -199,16 +199,21 @@ class FilePath:
     def gen_prim_fp_elt(self) -> Dict:
         """
         creates a single primaryFilePath element, to which assets can be appended.
-        TODO:
+
+        @Todo:
         input_fname_b is optional, sometimes the input can be a pair of files.
         eg:
-        [
-         {
-          "primaryFilePath": "Lab/PI/Myproject/MySession/Sample1/file_a.mrc",
-          "title": "file_a",
-          "assets": []
-         }
-        ]
+
+        .. code-block:: python
+
+            [
+               {
+                   "primaryFilePath": "Lab/PI/Myproject/MySession/Sample1/file_a.mrc",
+                   "title": "file_a",
+                   "assets": []
+               }
+            ]
+
         """
         title = self.fp_in.stem
         primaryFilePath = self.fp_in.relative_to(self.proj_root)
