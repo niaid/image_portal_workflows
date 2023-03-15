@@ -239,6 +239,7 @@ class FilePath:
             stdout = sp.stdout.decode("utf-8")
             stderr = sp.stderr.decode("utf-8")
             with open(log_file, "w+") as _file:
+                _file.write(f"Trying to run {' '.join(cmd)}")
                 _file.write(f"STDOUT:{stdout}")
                 _file.write(f"STDERR:{stderr}")
             if sp.returncode != 0:
