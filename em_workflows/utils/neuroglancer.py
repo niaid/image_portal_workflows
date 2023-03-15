@@ -71,6 +71,9 @@ def gen_pyramids(fp_in: FilePath) -> Dict:
 
 
 def gen_metadata(fp_in: FilePath) -> Dict:
+    """
+    Given an input FilePath, return the file's metadata
+    """
     min_max = fp_in.gen_output_fp(output_ext=f"_min_max.json")
     nifti = fp_in.gen_output_fp(output_ext=".nii")
     log_file = f"{nifti.parent}/mrc_visual_min_max.log"
@@ -164,10 +167,12 @@ def parse_min_max_file(fp: Path) -> Dict[str, str]:
     min max command is run as a subprocess and dumped to a file.
     This file needs to be parsed.
     Should be four keys:
-        neuroglancerPrecomputedMin,
-        neuroglancerPrecomputedMax,
-        neuroglancerPrecomputedFloor,
-        neuroglancerPrecomputedLimit
+
+    - neuroglancerPrecomputedMin,
+    - neuroglancerPrecomputedMax,
+    - neuroglancerPrecomputedFloor,
+    - neuroglancerPrecomputedLimit
+
     Values should be ints.
     Round min and floor: down, round max and limit: up.
     """
