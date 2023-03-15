@@ -3,4 +3,5 @@ prefect==1.*
 dask
 distributed
 dask-jobqueue
+natsort
 # tomojs-pytools==1.3.* --- Currently tomojs isn't available via normal pip install. Use find links, see docs.

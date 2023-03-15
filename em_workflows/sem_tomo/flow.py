@@ -1,5 +1,6 @@
 from em_workflows.file_path import FilePath
 import glob
+from natsort import os_sorted
 import math
 from typing import List, Dict
 from prefect import Flow, task, Parameter, unmapped
@@ -91,7 +92,7 @@ def convert_tif_to_mrc(file_path: FilePath) -> int:
     files = glob.glob(f"{file_path.fp_in.as_posix()}/*.tif")
 
     cmd = [Config.tif2mrc_loc]
-    cmd.extend(files)
+    cmd.extend(os_sorted(files))
     cmd.append(output_fp.as_posix())
     utils.log(f"Created {cmd}")
     return_code = FilePath.run(cmd=cmd, log_file=log_file)
@@ -179,8 +180,10 @@ def gen_newstack_mid_mrc_command(fp_in: FilePath) -> None:
     base_mrc = fp_in.gen_output_fp(output_ext=".mrc")
     utils.log(fp_in.fp_in.as_posix())
     tifs = glob.glob(f"{fp_in.fp_in.as_posix()}/*tif")
-    utils.log(tifs)
-    mid_z = str(int(len(tifs) / 2))
+    # tile names can be an issue with inputs - natsort seems to get things  ~right
+    tifs_nat_sorted = os_sorted(tifs)
+    utils.log(tifs_nat_sorted)
+    mid_z = str(int(len(tifs_nat_sorted) / 2))
     log_file = f"{base_mrc.parent}/newstack_mid.log"
     cmd = [Config.newstack_loc, "-secs", mid_z, base_mrc.as_posix(), mid_mrc.as_posix()]
     utils.log(f"Created {cmd}")
@@ -246,6 +249,22 @@ with Flow(
     executor=Config.SLURM_EXECUTOR,
     run_config=LocalRun(labels=[utils.get_environment()]),
 ) as flow:
+    """
+    General overview:
+    - Single directory is used to contain a set of gifs, which make up a single stack.
+    - tifs compiled into a single mrc file (source.mrc) in convert_tif_to_mrc()
+    - two metadata files (align xf, and align xg, are generated to allow creation
+    of aligned mrc file (align.mrc)
+    - another mrc file is created, which tries to correct for stage tilt (needs stretch file).
+    This file is called corrected.mrc. Note, if no correction is needed, a correction.mrc is
+    still created, but without any actual correction.
+    - A movie is created using the corrected.mrc file. TODO Why is the base mrc (created next) used?
+    - The corrected mrc file is then contrast adjusted with mean std dev magic numbers "150,40" in gen_newstack_norm_command(), this is referred to as the base mrc
+    - the midpoint of that file is computed, and snapshots are created using this midpoint.
+    - We now want to create the pyramid assets, for neuroglancer / viewer. 
+    - Firstly create nifti file using the base mrc, then convert this to ng format.
+    - To conclude, send callback stating the location of the various outputs.
+    """
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url", default=None)()
