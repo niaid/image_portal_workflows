@@ -154,7 +154,7 @@ def gen_newstack_norm_command(fp_in: FilePath) -> None:
     newstack -meansd 150,40 -mo 0 corrected.mrc {BASENAME}.mrc
     """
     corrected_mrc = fp_in.gen_output_fp(out_fname="corrected.mrc")
-    fp_out = fp_in.gen_output_fp(output_ext=".mrc")
+    fp_out = fp_in.gen_output_fp(output_ext=".mrc", out_fname="adjusted.mrc")
     log_file = f"{fp_out.parent}/newstack_norm.log"
     cmd = [
         Config.newstack_loc,
@@ -177,7 +177,7 @@ def gen_newstack_mid_mrc_command(fp_in: FilePath) -> None:
     newstack -secs {MIDZ}-{MIDZ} {WORKDIR}/{BASENAME}.mrc {WORKDIR}/mid.mrc
     """
     mid_mrc = fp_in.gen_output_fp(out_fname="mid.mrc")
-    base_mrc = fp_in.gen_output_fp(output_ext=".mrc")
+    base_mrc = fp_in.gen_output_fp(output_ext=".mrc", out_fname="adjusted.mrc")
     utils.log(fp_in.fp_in.as_posix())
     tifs = glob.glob(f"{fp_in.fp_in.as_posix()}/*tif")
     # tile names can be an issue with inputs - natsort seems to get things  ~right
@@ -257,9 +257,9 @@ with Flow(
     of aligned mrc file (align.mrc)
     - another mrc file is created, which tries to correct for stage tilt (needs stretch file).
     This file is called corrected.mrc. Note, if no correction is needed, a correction.mrc is
-    still created, but without any actual correction.
-    - A movie is created using the corrected.mrc file. TODO Why is the base mrc (created next) used?
+    still created, but without any actual correction of angle.
     - The corrected mrc file is then contrast adjusted with mean std dev magic numbers "150,40" in gen_newstack_norm_command(), this is referred to as the base mrc
+    - A movie is created using the base.mrc file.
     - the midpoint of that file is computed, and snapshots are created using this midpoint.
     - We now want to create the pyramid assets, for neuroglancer / viewer. 
     - Firstly create nifti file using the base mrc, then convert this to ng format.
@@ -298,15 +298,15 @@ with Flow(
         fp_in=fps, upstream_tasks=[stretchs, align_mrcs]
     )
 
-    corrected_movie_assets = utils.mrc_to_movie.map(
-        file_path=fps,
-        root=unmapped("corrected"),
-        asset_type=unmapped("recMovie"),
-        upstream_tasks=[corrected_mrc_assets],
-    )
 
     base_mrcs = gen_newstack_norm_command.map(
         fp_in=fps, upstream_tasks=[corrected_mrc_assets]
+    )
+    corrected_movie_assets = utils.mrc_to_movie.map(
+        file_path=fps,
+        root=unmapped("adjusted"),
+        asset_type=unmapped("recMovie"),
+        upstream_tasks=[base_mrcs],
     )
 
     # generate midpoint mrc file
@@ -341,10 +341,6 @@ with Flow(
 
     # finally filter error states, and convert to JSON and send.
     filtered_callback = utils.filter_results(callback_with_corr_movies)
-    # copy_workdirs is appears to cause issues with very large dirs.
-#     cp_wd_to_assets = utils.copy_workdirs.map(
-#         fps, upstream_tasks=[callback_with_corr_movies]
-#     )
     cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=filtered_callback
     )
