@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import glob
+import os
+import shutil
 from em_workflows.file_path import FilePath
 import subprocess
 import re
@@ -15,10 +17,7 @@ from prefect.engine import signals
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 
-# from em_workflows.shell_task_echo import ShellTaskEcho
 from em_workflows.config import Config
-
-# shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
 
 
 @task
@@ -70,7 +69,7 @@ def gen_ali_x(file_path: FilePath, z_dim) -> None:
     ali_file = f"{file_path.working_dir}/{file_path.base}_ali.mrc"
     for i in range(1, int(z_dim)):
         i_padded = str(i).rjust(3, "0")
-        ali_x = f"{file_path.working_dir}/{file_path.base}_ali{i_padded}.mrc"
+        ali_x = f"{file_path.working_dir}/{file_path.base}_align_{i_padded}.mrc"
         log_file = f"{file_path.working_dir}/newstack_mid_pt.log"
         cmd = [Config.newstack_loc, "-secs", f"{i}-{i}", ali_file, ali_x]
         FilePath.run(cmd=cmd, log_file=log_file)
@@ -81,7 +80,7 @@ def gen_ali_asmbl(file_path: FilePath) -> None:
     """
     newstack -float 3 {BASENAME}_ali*.mrc ali_{BASENAME}.mrc
     """
-    alis = glob.glob(f"{file_path.working_dir}/{file_path.base}_ali*.mrc")
+    alis = glob.glob(f"{file_path.working_dir}/{file_path.base}_align_*.mrc")
     alis.sort()
     ali_asmbl = f"{file_path.working_dir}/ali_{file_path.base}.mrc"
     ali_base_cmd = [Config.newstack_loc, "-float", "3"]
@@ -323,6 +322,14 @@ def list_paired_files(fnames: List[Path]) -> List[Path]:
                 pairs.append(Path(fname_no_b))
     return pairs
 
+@task
+def cleanup_files(file_path: FilePath, pattern=str):
+    f = f"{file_path.working_dir.as_posix()}/{pattern}"
+    utils.log(f"trying to rm {f}")
+    files_to_rm = glob.glob(f)
+    for _file in files_to_rm:
+        os.remove(_file)
+    print(files_to_rm)
 
 # @task
 # def check_inputs_paired(fps: List[Path]):
@@ -417,6 +424,10 @@ with Flow(
     tilt_movie_assets = gen_tilt_movie.map(
         file_path=fps, upstream_tasks=[keyimg_assets]
     )
+    cleanup_files.map(file_path=fps, pattern=unmapped("*_align_*.mrc"),
+            upstream_tasks=[tilt_movie_assets, thumb_assets, keyimg_assets])
+    cleanup_files.map(file_path=fps, pattern=unmapped("*ali*.jpg"),
+            upstream_tasks=[tilt_movie_assets, thumb_assets, keyimg_assets])
     # END TILT MOVIE GENERATION
 
     # START RECONSTR MOVIE GENERATION:
@@ -433,6 +444,10 @@ with Flow(
         file_path=fps, upstream_tasks=[averagedVolume_assets]
     )
     recon_movie_assets = gen_recon_movie.map(file_path=fps, upstream_tasks=[ave_jpgs])
+    cleanup_files.map(file_path=fps, pattern=unmapped("*_mp4.*.jpg"),
+            upstream_tasks=[recon_movie_assets, ave_jpgs])
+    cleanup_files.map(file_path=fps, pattern=unmapped("*_ave*.mrc"),
+            upstream_tasks=[recon_movie_assets, ave_jpgs])
     #    # END RECONSTR MOVIE
 
     # Binned volume assets, for volslicer.
