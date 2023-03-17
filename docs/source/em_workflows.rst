@@ -8,3 +8,6 @@ em_workflows
    file_path
    shell_task_echo
    utils-module
+   dm_conversion
+   brt
+   sem_tomo

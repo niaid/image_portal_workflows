@@ -233,9 +233,11 @@ def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
     produces base_ave001.mrc etc, base_ave002.mrc etc,
     inputs for newstack (for recon movie) and binvol (for volslicer)
     for i in range(2, dimensions.z-2):
-      IZMIN = i-2
-      IZMAX = i+2
-      clip avg -2d -iz IZMIN-IZMAX  -m 1 BASENAME_rec.mrc BASENAME_ave${I}.mrc
+
+    - IZMIN = i-2
+    - IZMAX = i+2
+
+    clip avg -2d -iz IZMIN-IZMAX  -m 1 BASENAME_rec.mrc BASENAME_ave${I}.mrc
     """
     for i in range(2, int(z_dim) - 2):
         izmin = i - 2

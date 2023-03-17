@@ -200,7 +200,7 @@ class FilePath:
         """
         creates a single primaryFilePath element, to which assets can be appended.
 
-        @Todo:
+        TODO:
         input_fname_b is optional, sometimes the input can be a pair of files.
         eg:
 

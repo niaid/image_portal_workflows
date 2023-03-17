@@ -18,7 +18,7 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
     hardcoded
     xfalign -pa -1 -pr source.mrc align.xf
     """
-    source_mrc = fp_in.gen_output_fp(out_fname="source.mrc")
+    source_mrc = fp_iconvert_tif_to_mrcn.gen_output_fp(out_fname="source.mrc")
     if not source_mrc.exists():
         utils.log(f"{source_mrc} does not exist")
     align_xf = fp_in.gen_output_fp(out_fname="align.xf")
@@ -84,7 +84,11 @@ def convert_tif_to_mrc(file_path: FilePath) -> int:
     generates source.mrc
     assumes there's tifs in input dir
     uses all the tifs in dir
-    # tif2mrc {DATAPATH}/*.tif {WORKDIR}/Source.mrc
+
+    .. code-block::
+
+        # tif2mrc {DATAPATH}/*.tif {WORKDIR}/Source.mrc
+
     """
     output_fp = file_path.gen_output_fp(out_fname="source.mrc")
     log_file = f"{output_fp.parent}/tif2mrc.log"
