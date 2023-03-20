@@ -106,13 +106,14 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
     return prim_fp
 
 
-# @task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
-# def cleanup_workdir(wd: Path):
-#    """
-#    working_dir isn't needed after run, so rm.
-#    """
-#    # log(f"Trying to remove {wd}")
-#    shutil.rmtree(wd)
+@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
+def cleanup_workdir(fp: FilePath):
+    """
+    working_dir isn't needed after run, so rm.
+    task wrapper on the FilePath rm_workdir method.
+    """
+    log(f"Trying to remove {fp.working_dir}")
+    fp.rm_workdir()
 
 
 # @task

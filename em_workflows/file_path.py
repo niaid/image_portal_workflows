@@ -216,8 +216,12 @@ class FilePath:
             primaryFilePath=primaryFilePath.as_posix(), title=title, assets=list()
         )
 
-    def copy_workdir_to_assets(self):
-        """copies all of working dir to Assets dir"""
+    def copy_workdir_to_assets(self) -> Path:
+        """copies all of working dir to Assets dir.
+        tests to see if the destination dir exists prior to copy
+        removes work dir upon completion.
+        returns newly created dir
+        """
         dir_name_as_date = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
         dest = Path(
             f"{self.assets_dir.as_posix()}/{dir_name_as_date}/{self.fp_in.stem}"
