@@ -6,6 +6,7 @@ from typing import List, Dict
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
 from em_workflows.config import Config
+
 # from em_workflows.shell_task_echo import ShellTaskEcho
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
@@ -261,7 +262,7 @@ with Flow(
     - The corrected mrc file is then contrast adjusted with mean std dev magic numbers "150,40" in gen_newstack_norm_command(), this is referred to as the base mrc
     - A movie is created using the base.mrc file.
     - the midpoint of that file is computed, and snapshots are created using this midpoint.
-    - We now want to create the pyramid assets, for neuroglancer / viewer. 
+    - We now want to create the pyramid assets, for neuroglancer / viewer.
     - Firstly create nifti file using the base mrc, then convert this to ng format.
     - To conclude, send callback stating the location of the various outputs.
     """
@@ -297,7 +298,6 @@ with Flow(
     corrected_mrc_assets = gen_newstack_corr_command.map(
         fp_in=fps, upstream_tasks=[stretchs, align_mrcs]
     )
-
 
     base_mrcs = gen_newstack_norm_command.map(
         fp_in=fps, upstream_tasks=[corrected_mrc_assets]
@@ -338,7 +338,9 @@ with Flow(
     callback_with_corr_movies = utils.add_asset.map(
         prim_fp=callback_with_corr_mrcs, asset=corrected_movie_assets
     )
-    rm_workdirs = utils.cleanup_workdir.map(fp=fps, upstream_tasks=[callback_with_corr_movies])
+    rm_workdirs = utils.cleanup_workdir.map(
+        fp=fps, upstream_tasks=[callback_with_corr_movies]
+    )
 
     # finally filter error states, and convert to JSON and send.
     filtered_callback = utils.filter_results(callback_with_corr_movies)

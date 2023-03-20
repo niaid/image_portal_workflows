@@ -55,9 +55,9 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     used the smaller of x and y (4092/1024)
     """
     utils.log(f"Checking {file_path} for mrc inputs")
-    large_dim = 1024 # TODO probably config this
+    large_dim = 1024  # TODO probably config this
     if file_path.fp_in.suffix.lower() == ".mrc":
-        # nifti_fp = neuroglancer.gen_niftis.__wrapped__(file_path) 
+        # nifti_fp = neuroglancer.gen_niftis.__wrapped__(file_path)
         # utils.log(f"+++++++++++++++++++++++++++++++++++++++++++++")
         # min_max_histo = neuroglancer.gen_min_max_histo(file_path)
         # utils.log(min_max_histo)
@@ -179,7 +179,6 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     return asset_elt
 
 
-
 # @task
 # def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
 #    """
@@ -210,8 +209,6 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
 #    logger.info("found files")
 #    logger.info(_files)
 #    return _files
-
-
 
 
 with Flow(
@@ -269,7 +266,9 @@ with Flow(
         prim_fp=callback_with_thumbs, asset=keyimg_assets
     )
     # finally filter error states, and convert to JSON and send.
-    rm_workdirs = utils.cleanup_workdir.map(fp=fps, upstream_tasks=[callback_with_keyimgs])
+    rm_workdirs = utils.cleanup_workdir.map(
+        fp=fps, upstream_tasks=[callback_with_keyimgs]
+    )
     filtered_callback = utils.filter_results(callback_with_keyimgs)
 
     callback_sent = utils.send_callback_body(

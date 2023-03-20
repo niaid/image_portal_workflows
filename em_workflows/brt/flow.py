@@ -322,6 +322,7 @@ def list_paired_files(fnames: List[Path]) -> List[Path]:
                 pairs.append(Path(fname_no_b))
     return pairs
 
+
 @task
 def cleanup_files(file_path: FilePath, pattern=str):
     f = f"{file_path.working_dir.as_posix()}/{pattern}"
@@ -330,6 +331,7 @@ def cleanup_files(file_path: FilePath, pattern=str):
     for _file in files_to_rm:
         os.remove(_file)
     print(files_to_rm)
+
 
 # @task
 # def check_inputs_paired(fps: List[Path]):
@@ -424,10 +426,16 @@ with Flow(
     tilt_movie_assets = gen_tilt_movie.map(
         file_path=fps, upstream_tasks=[keyimg_assets]
     )
-    cleanup_files.map(file_path=fps, pattern=unmapped("*_align_*.mrc"),
-            upstream_tasks=[tilt_movie_assets, thumb_assets, keyimg_assets])
-    cleanup_files.map(file_path=fps, pattern=unmapped("*ali*.jpg"),
-            upstream_tasks=[tilt_movie_assets, thumb_assets, keyimg_assets])
+    cleanup_files.map(
+        file_path=fps,
+        pattern=unmapped("*_align_*.mrc"),
+        upstream_tasks=[tilt_movie_assets, thumb_assets, keyimg_assets],
+    )
+    cleanup_files.map(
+        file_path=fps,
+        pattern=unmapped("*ali*.jpg"),
+        upstream_tasks=[tilt_movie_assets, thumb_assets, keyimg_assets],
+    )
     # END TILT MOVIE GENERATION
 
     # START RECONSTR MOVIE GENERATION:
@@ -444,10 +452,16 @@ with Flow(
         file_path=fps, upstream_tasks=[averagedVolume_assets]
     )
     recon_movie_assets = gen_recon_movie.map(file_path=fps, upstream_tasks=[ave_jpgs])
-    cleanup_files.map(file_path=fps, pattern=unmapped("*_mp4.*.jpg"),
-            upstream_tasks=[recon_movie_assets, ave_jpgs])
-    cleanup_files.map(file_path=fps, pattern=unmapped("*_ave*.mrc"),
-            upstream_tasks=[recon_movie_assets, ave_jpgs])
+    cleanup_files.map(
+        file_path=fps,
+        pattern=unmapped("*_mp4.*.jpg"),
+        upstream_tasks=[recon_movie_assets, ave_jpgs],
+    )
+    cleanup_files.map(
+        file_path=fps,
+        pattern=unmapped("*_ave*.mrc"),
+        upstream_tasks=[recon_movie_assets, ave_jpgs],
+    )
     #    # END RECONSTR MOVIE
 
     # Binned volume assets, for volslicer.
