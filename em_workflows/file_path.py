@@ -1,4 +1,5 @@
 import datetime
+import glob
 import shutil
 import os
 from typing import List, Dict
@@ -226,6 +227,10 @@ class FilePath:
         dest = Path(
             f"{self.assets_dir.as_posix()}/{dir_name_as_date}/{self.fp_in.stem}"
         )
+        existing_workdirs = glob.glob(f"{self.assets_dir.as_posix()}/work_dir_*")
+        for _dir in existing_workdirs:
+            log(f"Trying to remove {_dir}")
+            shutil.rmtree(_dir)
         if dest.exists():
             shutil.rmtree(dest)
         shutil.copytree(self.working_dir, dest)
