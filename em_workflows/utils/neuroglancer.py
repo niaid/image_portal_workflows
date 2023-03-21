@@ -19,14 +19,14 @@ def gen_niftis(fp_in: FilePath) -> None:
     """
     nifti = fp_in.gen_output_fp(output_ext=".nii")
     rec_mrc = fp_in.gen_output_fp(output_ext="_rec.mrc")
-    base_mrc = fp_in.gen_output_fp(output_ext=".mrc")
+    base_mrc = fp_in.gen_output_fp(output_ext=".mrc", out_fname="adjusted.mrc")
     input_mrc = fp_in.fp_in
     cmd = list()
-    if rec_mrc.exists():
+    if rec_mrc.is_file():
         cmd = ["mrc2nifti", rec_mrc.as_posix(), nifti.as_posix()]
-    elif base_mrc.exists():
+    elif base_mrc.is_file():
         cmd = ["mrc2nifti", base_mrc.as_posix(), nifti.as_posix()]
-    elif input_mrc.exists():
+    elif input_mrc.is_file():
         cmd = ["mrc2nifti", input_mrc.as_posix(), nifti.as_posix()]
     else:
         raise ValueError(

@@ -46,6 +46,13 @@ def hpc_env(monkeypatch):
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
     monkeypatch.setattr(Config, "mount_point", f"{os.getcwd()}")
     monkeypatch.setattr(Config, "tmp_dir", "/tmp/")
+    monkeypatch.setattr(Config, "header_loc", "/usr/local/IMOD/bin/header")
+    monkeypatch.setattr(Config, "dm2mrc_loc", "/usr/local/IMOD/bin/dm2mrc")
+    monkeypatch.setattr(Config, "mrc2tif_loc", "/usr/local/IMOD/bin/mrc2tif")
+    monkeypatch.setattr(Config, "newstack_loc", "/usr/local/IMOD/bin/newstack")
+    monkeypatch.setattr(Config, "clip_loc", "/usr/local/IMOD/bin/clip")
+    monkeypatch.setattr(Config, "binvol", "/usr/local/IMOD/bin/binvol")
+
 
     monkeypatch.setattr(Config, "binvol", _cmd_loc("binvol"))
     monkeypatch.setattr(Config, "brt_binary", _cmd_loc("batchruntomo"))
