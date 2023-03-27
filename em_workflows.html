@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to Image Portal Workflows’s documentation! &mdash; Image Portal Workflows  documentation</title>
+  <title>em_workflows &mdash; Image Portal Workflows  documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -17,7 +17,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Development" href="development.html" /> 
+    <link rel="next" title="config module" href="config.html" />
+    <link rel="prev" title="API" href="api.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -28,7 +29,7 @@
 
           
           
-          <a href="#" class="icon icon-home">
+          <a href="index.html" class="icon icon-home">
             Image Portal Workflows
           </a>
 <div role="search">
@@ -40,10 +41,22 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
 <li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">API</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">em_workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="config.html">config module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="file_path.html">file_path module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shell_task_echo.html">shell_task_echo module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="utils-module.html">UTILS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="dm_conversion.html">DM_CONVERSION</a></li>
+<li class="toctree-l3"><a class="reference internal" href="brt.html">BRT</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sem_tomo.html">SEM_TOMO</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -52,17 +65,18 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="#">Image Portal Workflows</a>
+          <a href="index.html">Image Portal Workflows</a>
       </nav>
 
       <div class="wy-nav-content">
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Welcome to Image Portal Workflows’s documentation!</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="api.html">API</a></li>
+      <li class="breadcrumb-item active">em_workflows</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/em_workflows.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -70,32 +84,28 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="welcome-to-image-portal-workflows-s-documentation">
-<h1>Welcome to Image Portal Workflows’s documentation!<a class="headerlink" href="#welcome-to-image-portal-workflows-s-documentation" title="Permalink to this heading"></a></h1>
-</section>
-<section id="image-portal-workflows">
-<h1>Image Portal Workflows<a class="headerlink" href="#image-portal-workflows" title="Permalink to this heading"></a></h1>
-<p>Workflows related to project previously referred to as “Hedwig”.</p>
-<p>[![Github Actions](<a class="reference external" href="https://github.com/niaid/image_portal_workflows/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/niaid/image_portal_workflows/actions/workflows/main.yml">https://github.com/niaid/image_portal_workflows/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/niaid/image_portal_workflows/actions/workflows/main.yml</a>)</p>
-<p>Sphinx Docs: <a class="reference external" href="https://niaid.github.io/image_portal_workflows/">https://niaid.github.io/image_portal_workflows/</a></p>
+  <section id="em-workflows">
+<h1>em_workflows<a class="headerlink" href="#em-workflows" title="Permalink to this heading"></a></h1>
 <div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="development.html#prerequisites">Prerequisites</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development.html#pull-requests">Pull Requests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development.html#testing">Testing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="development.html#sphinx-documentation">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">config module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_path.html">file_path module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="shell_task_echo.html">shell_task_echo module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils-module.html">UTILS</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="neuroglancer.html">neuroglancer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="utils.html">utils module</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="workflows.html#inputs-outputs">Inputs/Outputs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workflows.html#working-directory-temporary-dir">Working directory / temporary dir.</a></li>
-<li class="toctree-l2"><a class="reference internal" href="workflows.html#processes">Processes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dm_conversion.html">DM_CONVERSION</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="dm_flow.html">dm_conversion.flow</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="api.html">API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="em_workflows.html">em_workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="brt.html">BRT</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="brt_flow.html">brt.flow</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sem_tomo.html">SEM_TOMO</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sem_flow.html">sem_tomo.flow</a></li>
 </ul>
 </li>
 </ul>
@@ -106,7 +116,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="development.html" class="btn btn-neutral float-right" title="Development" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="api.html" class="btn btn-neutral float-left" title="API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="config.html" class="btn btn-neutral float-right" title="config module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

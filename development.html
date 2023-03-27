@@ -1,52 +1,111 @@
-
 <!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
-
-    <title>Development &#8212; Image Portal Workflows  documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/sphinx_highlight.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Development &mdash; Image Portal Workflows  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Workflows" href="workflows.html" />
-    <link rel="prev" title="Welcome to Image Portal Workflows’s documentation!" href="index.html" />
-   
-  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+    <link rel="prev" title="Welcome to Image Portal Workflows’s documentation!" href="index.html" /> 
+</head>
 
-  </head><body>
-  
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
           
+          
+          <a href="index.html" class="icon icon-home">
+            Image Portal Workflows
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#github-com">Github.com</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#local-set-up">Local Set-up</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hpc-set-up">HPC Set up</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#note-this-is-only-relevant-for-hpc-added-for-completeness">NOTE, THIS IS <strong>ONLY</strong> relevant for HPC. Added for completeness.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#updating-venvs">Updating venvs:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#prefect-agent">Prefect Agent:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#register-workflows">Register Workflows:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#git-lfs">Git LFS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#flake8">Flake8</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#black">Black</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pull-requests">Pull Requests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sphinx-documentation">Sphinx Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+</ul>
 
-          <div class="body" role="main">
-            
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Image Portal Workflows</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Development</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/development.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
   <section id="development">
-<h1>Development<a class="headerlink" href="#development" title="Permalink to this heading">¶</a></h1>
+<h1>Development<a class="headerlink" href="#development" title="Permalink to this heading"></a></h1>
 <p>The docs related to development and testing are contained in this section.</p>
 <section id="prerequisites">
-<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading">¶</a></h2>
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading"></a></h2>
 <p>Please read this Development section before cloning. The <cite>generate_venv.sh</cite> script referenced below
 automates much of the process. Current system assumes that you are locally running either a Linux
 or Mac OS.</p>
 <section id="github-com">
-<h3>Github.com<a class="headerlink" href="#github-com" title="Permalink to this heading">¶</a></h3>
+<h3>Github.com<a class="headerlink" href="#github-com" title="Permalink to this heading"></a></h3>
 <p>The repository is located in the NIAID Github.com enterprise organization. Having a github.com account
 which is a member of the NIAID organization is required.</p>
 </section>
 <section id="local-set-up">
-<h3>Local Set-up<a class="headerlink" href="#local-set-up" title="Permalink to this heading">¶</a></h3>
+<h3>Local Set-up<a class="headerlink" href="#local-set-up" title="Permalink to this heading"></a></h3>
 <p>You will need a minimal Python installation to run the <cite>generate_venv.sh</cite> script.
 The following programs need to be available locally:</p>
 <ul class="simple">
@@ -58,9 +117,9 @@ The following programs need to be available locally:</p>
 not have binaries built for the M1. Need to install using an x86_64 version of Python.</p>
 </section>
 <section id="hpc-set-up">
-<h3>HPC Set up<a class="headerlink" href="#hpc-set-up" title="Permalink to this heading">¶</a></h3>
+<h3>HPC Set up<a class="headerlink" href="#hpc-set-up" title="Permalink to this heading"></a></h3>
 <section id="note-this-is-only-relevant-for-hpc-added-for-completeness">
-<h4>NOTE, THIS IS <strong>ONLY</strong> relevant for HPC. Added for completeness.<a class="headerlink" href="#note-this-is-only-relevant-for-hpc-added-for-completeness" title="Permalink to this heading">¶</a></h4>
+<h4>NOTE, THIS IS <strong>ONLY</strong> relevant for HPC. Added for completeness.<a class="headerlink" href="#note-this-is-only-relevant-for-hpc-added-for-completeness" title="Permalink to this heading"></a></h4>
 <p>Workflows are currently run on RML HPC (“BigSky”).</p>
 <p>There are three environments currently on BigSky: (<cite>dev</cite>, <cite>qa</cite>, <cite>prod</cite>).
 They were set up as follows:
@@ -86,20 +145,20 @@ Insure <cite>$HOME/code/hedwig</cite> exists. Runs on Linux.</p>
 </div>
 </section>
 <section id="updating-venvs">
-<h4>Updating venvs:<a class="headerlink" href="#updating-venvs" title="Permalink to this heading">¶</a></h4>
+<h4>Updating venvs:<a class="headerlink" href="#updating-venvs" title="Permalink to this heading"></a></h4>
 <p>To update your python virtual environment:
 Change into the correct venv directory, e.g. <cite>~/code/hedwig/dev/image_portal_workflows</cite>.
 Ensure environment is active and run something like:</p>
 <p><cite>pip   install -e . -r requirements.txt –upgrade  –find-links https://github.com/niaid/tomojs-pytools/releases/tag/v1.3</cite></p>
 </section>
 <section id="prefect-agent">
-<h4>Prefect Agent:<a class="headerlink" href="#prefect-agent" title="Permalink to this heading">¶</a></h4>
+<h4>Prefect Agent:<a class="headerlink" href="#prefect-agent" title="Permalink to this heading"></a></h4>
 <p>The prefect agent, the thing that reaches out to the prefect API machine, is daemonized on HPC.
 See <cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh</cite> and
 <cite>image_portal_workflows/helper_scripts/hedwig_listener_prod.service</cite> etc.</p>
 </section>
 <section id="register-workflows">
-<h4>Register Workflows:<a class="headerlink" href="#register-workflows" title="Permalink to this heading">¶</a></h4>
+<h4>Register Workflows:<a class="headerlink" href="#register-workflows" title="Permalink to this heading"></a></h4>
 <p>To register a new workflow, or update an existing one (in <cite>qa</cite> environment):
 (The workflow needs to be registered every time the source is updated.)
 <cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh qa register</cite></p>
@@ -135,7 +194,7 @@ $<span class="w"> </span>spack<span class="w"> </span>unload<span class="w"> </s
 </section>
 </section>
 <section id="git-lfs">
-<h3>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this heading">¶</a></h3>
+<h3>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this heading"></a></h3>
 <p><strong>UPDATE 10-Mar-2023: LFS isn’t currently being used due to cost considerations.</strong></p>
 <p>Git <a class="reference external" href="https://git-lfs.github.com">Large File Storage</a> (LFS) is used to store larger files in the repository such as
 test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
@@ -146,16 +205,16 @@ transparent with operation such as cloning, adding files, and changing branches.
 be stored in Git LFS.</p>
 </section>
 <section id="flake8">
-<h3>Flake8<a class="headerlink" href="#flake8" title="Permalink to this heading">¶</a></h3>
+<h3>Flake8<a class="headerlink" href="#flake8" title="Permalink to this heading"></a></h3>
 <p><a class="reference external" href="https://pypi.org/project/flake8/">Flake8</a> is a CLI utility used to enforce style and do linting.</p>
 </section>
 <section id="black">
-<h3>Black<a class="headerlink" href="#black" title="Permalink to this heading">¶</a></h3>
+<h3>Black<a class="headerlink" href="#black" title="Permalink to this heading"></a></h3>
 <p><a class="reference external" href="https://pypi.org/project/black/">Black</a> is a CLI utility that enforces a standard formatting on Python which helps with code consistancy.</p>
 </section>
 </section>
 <section id="pull-requests">
-<h2>Pull Requests<a class="headerlink" href="#pull-requests" title="Permalink to this heading">¶</a></h2>
+<h2>Pull Requests<a class="headerlink" href="#pull-requests" title="Permalink to this heading"></a></h2>
 <p>To contribute to the project first ensure your fork is in good shape, and then the generate a Pull Request (PR) to the <cite>niaid</cite> fork. Below is an outline an of the kind of steps that could be followed. More thorough documentation can be found here: <a class="reference external" href="https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request">https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request</a></p>
 <ul>
 <li><p>Fork niaid repo into your gh account using the web interface.</p></li>
@@ -206,7 +265,7 @@ upstream      git@github.com:niaid/image_portal_workflows.git (push)
 </ul>
 </section>
 <section id="testing">
-<h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading">¶</a></h2>
+<h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading"></a></h2>
 <p>There are currently four Pytest files in the <cite>test</cite> directory:</p>
 <ul class="simple">
 <li><p>test_dm: 2D</p></li>
@@ -220,7 +279,7 @@ downloaded from the HPC machines. The following script will copy them:</p>
 <p>These files are quite large, so you may want to run each line separately at the command line.</p>
 </section>
 <section id="sphinx-documentation">
-<h2>Sphinx Documentation<a class="headerlink" href="#sphinx-documentation" title="Permalink to this heading">¶</a></h2>
+<h2>Sphinx Documentation<a class="headerlink" href="#sphinx-documentation" title="Permalink to this heading"></a></h2>
 <p><a class="reference external" href="https://www.sphinx-doc.org/">Sphinx</a> documentation as automatically rendered and pushed the the gh-pages branch. The
 API is documented in Sphinx from the the Python docstring automatically for the public module methods and select private
 methods.</p>
@@ -228,79 +287,34 @@ methods.</p>
 </section>
 
 
+           </div>
           </div>
-          
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Image Portal Workflows’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="workflows.html" class="btn btn-neutral float-right" title="Workflows" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, NIAID.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="index.html">Image Portal Workflows</a></h1>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
 
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Development</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pull-requests">Pull Requests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#sphinx-documentation">Sphinx Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="index.html" title="previous chapter">Welcome to Image Portal Workflows’s documentation!</a></li>
-      <li>Next: <a href="workflows.html" title="next chapter">Workflows</a></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="footer">
-      &copy;2021, NIAID.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
-      
-      |
-      <a href="_sources/development.rst.txt"
-          rel="nofollow">Page source</a>
-    </div>
-
-    
-
-    
-  </body>
+</body>
 </html>

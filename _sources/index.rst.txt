@@ -6,7 +6,7 @@
 Welcome to Image Portal Workflows's documentation!
 ==================================================
 
-.. include:: ../README.rst
+.. include:: ../../README.rst
 
 .. toctree::
    :maxdepth: 2
@@ -14,3 +14,4 @@ Welcome to Image Portal Workflows's documentation!
 
    development
    workflows
+   api
