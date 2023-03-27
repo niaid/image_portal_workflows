@@ -3,6 +3,7 @@ from em_workflows.utils import utils
 import pytest
 from prefect.executors import LocalExecutor
 import os
+import shutil
 
 
 @pytest.fixture
@@ -15,16 +16,28 @@ def mock_nfs_mount(monkeypatch):
     def _mock_assets_dir(env: str) -> str:
         return os.getcwd()
 
+    def _cmd_loc(cmd: str) -> str:
+        """
+        Given the name of a program that is assumed to be in the current path,
+        return the full path by using the `shutil.which()` operation. It is
+        *assumed* that `shutil` is available and the command is on the path
+        :param cmd: the command to be run, often part of the `IMOD` package
+        :return: str, the full path to the program
+        """
+        cmd_path = shutil.which(cmd)
+        return cmd_path
+
 #     monkeypatch.setattr(utils, "send_callback_body", _mock_send_callback)
     monkeypatch.setattr(Config, "proj_dir", _mock_proj_dir)
     monkeypatch.setattr(Config, "assets_dir", _mock_assets_dir)
     monkeypatch.setattr(Config, "mount_point", os.getcwd() + "/test/input_files")
     monkeypatch.setattr(Config, "tmp_dir", "/tmp")
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
-    monkeypatch.setattr(Config, "header_loc", "/usr/local/IMOD/header")
-    monkeypatch.setattr(Config, "dm2mrc_loc", "/usr/local/IMOD/dm2mrc")
-    monkeypatch.setattr(Config, "mrc2tif_loc", "/usr/local/IMOD/mrc2tif")
-    monkeypatch.setattr(Config, "newstack_loc", "/usr/local/IMOD/newstack")
+
+    monkeypatch.setattr(Config, "header_loc", _cmd_loc("header"))
+    monkeypatch.setattr(Config, "dm2mrc_loc", _cmd_loc("dm2mrc"))
+    monkeypatch.setattr(Config, "mrc2tif_loc", _cmd_loc("mrc2tif"))
+    monkeypatch.setattr(Config, "newstack_loc", _cmd_loc("newstack"))
 
 
 def test_dm4_conv(mock_nfs_mount):
