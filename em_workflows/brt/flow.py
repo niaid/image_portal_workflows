@@ -19,6 +19,39 @@ from em_workflows.utils import neuroglancer as ng
 
 from em_workflows.config import Config
 
+"""
+Batchruntomo pipeline overview:
+- Takes an `input_dir` containing 1 or more .mrc or .st files
+- IMOD batchruntomo (BRT) https://bio3d.colorado.edu/imod/doc/man/batchruntomo.html is run on each file in dir.
+- BRT has a large number of parameters, which are provided using an .adoc parameter file.
+- Some of these parameters are provided to the pipeline on a per run basis, the remaining of these parameters are defaulted using the templated adoc file.
+- There are two templates, ../templates/plastic_brt.adoc and ../templates/cryo_brt.adoc (Note, currently these are identical, we expect this to change.) The template chosen is defined by parameter adoc_template.
+- The run time parameters are interpolated into the template, and this file is then run with BRT.
+- BRT produces two output files that we care about: _ali.mrc and _rec.mrc
+- Using the ali (alignment) file we generate a tilt movie:
+    look up dimensionality of alignment file, and generate n sections in gen_ali_x()
+    we assemble these sections into a single aligned mrc file, in gen_ali_asmbl()
+    we convert this into a stack of jpegs, in gen_mrc2tiff()
+    we compile these jpegs into a tilt movie in gen_tilt_movie()
+    ADDITIONALLY
+    we take the mid point of the stack jpeg to use as the display thumbnail.
+    we clean up intermediate files now.
+- Using the _rec (reconstructed) file we generate a reconstructed movie (in a similar fashion to the above):
+    look up dimensionality of the reconstructed (_rec) file,
+    create a stack of averaged mrc files in gen_clip_avgs().
+    create single mrc using the above averaged stack, in consolidate_ave_mrcs()
+    convert this mrc to a stack of jpegs, in gen_ave_jpgs_from_ave_mrc()
+    compile jpegs into reconstructed movie, in gen_recon_movie()
+    clean up after ourselves in cleanup_files()
+- Use average (created above) reconstructed mrc file to create input for volslicer.k in gen_ave_8_vol()
+- need to produce pyramid files with reconstructed mrc.
+    convert _rec.mrc file to nifti, in neuroglancer.gen_niftis()
+    convert nifti file to pyramid file, in gen_pyramids()
+    compress pyramid assets, in gen_archive_pyr()
+- Now we need to copy the outputs to the right place, and tell the API where they are. We use JSON to talk to the API.
+- build a json datastructure, containing the locations of the inputs we key on "primaryFilePath", and we append every output that's generated for *this* input into the "assets" json key.
+- Finally, we POST the JSON datastructure to the API, and cleanup temp dirs.
+"""
 
 @task
 def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
@@ -64,7 +97,11 @@ def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
 @task
 def gen_ali_x(file_path: FilePath, z_dim) -> None:
     """
-    newstack -secs {i}-{i} path/BASENAME_ali*.mrc WORKDIR/hedwig/BASENAME_ali{i}.mrc
+    chops an mrc input into its constituent Z sections.
+    eg if an mrc input has a z_dim of 10, 10 sections will be generated.
+    the i-i syntax is awkward, and may not be required. Eg it might be possible
+    to replace i-i with i. TODO - also don't care too much!
+    newstack -secs {i}-{j} path/BASENAME_ali*.mrc WORKDIR/hedwig/BASENAME_ali{i}.mrc
     """
     ali_file = f"{file_path.working_dir}/{file_path.base}_ali.mrc"
     for i in range(1, int(z_dim)):
@@ -92,6 +129,8 @@ def gen_ali_asmbl(file_path: FilePath) -> None:
 @task
 def gen_mrc2tiff(file_path: FilePath) -> None:
     """
+    This generates a lot of jpegs (-j) which will be compiled into a movie.
+    (That is, the -jpeg switch is set to produce jpegs)
     mrc2tif -j -C 0,255 ali_BASENAME.mrc BASENAME_ali
     """
     ali_asmbl = f"{file_path.working_dir}/ali_{file_path.base}.mrc"
@@ -229,6 +268,7 @@ def gen_recon_movie(file_path: FilePath) -> dict:
 @task
 def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
     """
+    give _rec mrc file, generate a stack of mrcs, averaged to assist viewing.
     produces base_ave001.mrc etc, base_ave002.mrc etc,
     inputs for newstack (for recon movie) and binvol (for volslicer)
     for i in range(2, dimensions.z-2):

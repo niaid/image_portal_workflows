@@ -15,7 +15,7 @@ def gen_niftis(fp_in: FilePath) -> None:
 
     """
     supercedes gen_mrc2nifti_cmd
-    mrc2nifti path/{basename}_full_rec.mrc path/{basename}.nii
+    mrc2nifti path/{basename}_rec.mrc path/{basename}.nii
     """
     nifti = fp_in.gen_output_fp(output_ext=".nii")
     rec_mrc = fp_in.gen_output_fp(output_ext="_rec.mrc")
@@ -41,6 +41,7 @@ def gen_niftis(fp_in: FilePath) -> None:
 @task
 def gen_pyramids(fp_in: FilePath) -> Dict:
     """
+    converts nifti files into pyramid files.
     volume-to-precomputed-pyramid --downscaling-method=average --flat path/basename.nii path/neuro-basename
     """
     # generate pyramid dir
@@ -89,26 +90,26 @@ def gen_metadata(fp_in: FilePath) -> Dict:
     return metadata
 
 
-@task
-def gen_mrc2nifti_cmd(fp: Path) -> str:
-    """
-    mrc2nifti path/{basename}_full_rec.mrc path/{basename}.nii
-    """
-    rec_mrc_fp = Path(f"{fp.parent}/{fp.stem}_rec.mrc")
-    base_mrc_fp = Path(f"{fp.parent}/{fp.stem}.mrc")
-    if rec_mrc_fp.exists():
-        mrc_fp = rec_mrc_fp
-    elif base_mrc_fp.exists():
-        mrc_fp = base_mrc_fp
-    else:
-        raise signals.FAIL(
-            f"unable to find input for nifti generation. \
-                {rec_mrc_fp} nor {base_mrc_fp}."
-        )
-    cmd = f"mrc2nifti {mrc_fp} {fp.parent}/{fp.stem}.nii &> {fp.parent}/mrc2nifti.log"
-    logger = prefect.context.get("logger")
-    logger.info(f"mrc2nifti command: {cmd}")
-    return cmd
+#  @task
+#  def gen_mrc2nifti_cmd(fp: Path) -> str:
+#      """
+#      mrc2nifti path/{basename}_full_rec.mrc path/{basename}.nii
+#      """
+#      rec_mrc_fp = Path(f"{fp.parent}/{fp.stem}_rec.mrc")
+#      base_mrc_fp = Path(f"{fp.parent}/{fp.stem}.mrc")
+#      if rec_mrc_fp.exists():
+#          mrc_fp = rec_mrc_fp
+#      elif base_mrc_fp.exists():
+#          mrc_fp = base_mrc_fp
+#      else:
+#          raise signals.FAIL(
+#              f"unable to find input for nifti generation. \
+#                  {rec_mrc_fp} nor {base_mrc_fp}."
+#          )
+#      cmd = f"mrc2nifti {mrc_fp} {fp.parent}/{fp.stem}.nii &> {fp.parent}/mrc2nifti.log"
+#      logger = prefect.context.get("logger")
+#      logger.info(f"mrc2nifti command: {cmd}")
+#      return cmd
 
 
 @task
