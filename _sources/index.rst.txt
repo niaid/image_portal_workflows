@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Image Portal Workflows's documentation!
-==================================================
+Image Portal Workflows's documentation
+======================================
 
 .. include:: ../../README.rst
 
@@ -15,3 +15,4 @@ Welcome to Image Portal Workflows's documentation!
    development
    workflows
    api
+   hpc
