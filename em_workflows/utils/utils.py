@@ -821,27 +821,31 @@ def send_callback_body(
     Upon completion of file conversion a callback is made to the calling
     API specifying the locations of files, along with metadata about the files.
     the body of the callback should look something like this:
-    {
-        "status": "success",
-        "files":
-        [
-            {
-                "primaryFilePath: "Lab/PI/Myproject/MySession/Sample1/file_a.dm4",
-                "title": "file_a",
-                "assets":
-                [
-                    {
-                        "type": "keyImage",
-                        "path": "Lab/PI/Myproject/MySession/Sample1/file_a.jpg"
-                    },
-                    {
-                        "type": "thumbnail",
-                        "path": "Lab/PI/Myproject/MySession/Sample1/file_a_s.jpg"
-                    }
-                ]
-            }
-        ]
-    }
+
+    .. code-block::
+
+        {
+            "status": "success",
+            "files":
+            [
+                {
+                    "primaryFilePath: "Lab/PI/Myproject/MySession/Sample1/file_a.dm4",
+                    "title": "file_a",
+                    "assets":
+                    [
+                        {
+                            "type": "keyImage",
+                            "path": "Lab/PI/Myproject/MySession/Sample1/file_a.jpg"
+                        },
+                        {
+                            "type": "thumbnail",
+                            "path": "Lab/PI/Myproject/MySession/Sample1/file_a_s.jpg"
+                        }
+                    ]
+                }
+            ]
+        }
+
     """
     data = {"files": files_elts}
     if prefect.context.parameters.get("no_api"):

@@ -12,7 +12,6 @@ from prefect import task
 
 @task
 def gen_niftis(fp_in: FilePath) -> None:
-
     """
     supercedes gen_mrc2nifti_cmd
     mrc2nifti path/{basename}_rec.mrc path/{basename}.nii
@@ -165,10 +164,10 @@ def parse_min_max_file(fp: Path) -> Dict[str, str]:
     min max command is run as a subprocess and dumped to a file.
     This file needs to be parsed.
     Should be four keys:
-        neuroglancerPrecomputedMin,
-        neuroglancerPrecomputedMax,
-        neuroglancerPrecomputedFloor,
-        neuroglancerPrecomputedLimit
+    - neuroglancerPrecomputedMin,
+    - neuroglancerPrecomputedMax,
+    - neuroglancerPrecomputedFloor,
+    - neuroglancerPrecomputedLimit
     Values should be ints.
     Round min and floor: down, round max and limit: up.
     """
