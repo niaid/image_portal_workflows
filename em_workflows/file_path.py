@@ -31,6 +31,8 @@ class FilePath:
     avoid any collisions during the asynchronous processing of the pipeline. Very many output files
     are created in the _working_dir, but only the outputs we care about are added to the FilePath
     for copying to the _asset_dir later in the pipeline.
+    An "asset" is a resource the Hedwig Web application uses. For example an asset might be an image,
+    or a movie, or output of the pipeline, that the web application users care about.
 
     :todo: Consider making entire class immutable
     """
@@ -147,19 +149,9 @@ class FilePath:
         self, asset_path: Path, asset_type: str, metadata: Dict[str, str] = None
     ) -> Dict:
         """
-        asset type can be one of:
-
-        - averagedVolume
-        - keyImage
-        - keyThumbnail
-        - recMovie
-        - tiltMovie
-        - volume
-        - neuroglancerPrecomputed
-
-        | Used to build the callback for API
-        | Metadata is used in conjunction with neuroglancer only
+        Suspect to be redundant - TODO
         """
+        #TODO move valid_types to Config.valid_callback_asset_types
         valid_typs = [
             "averagedVolume",
             "keyImage",
