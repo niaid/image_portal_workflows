@@ -102,6 +102,30 @@ def gen_prim_fps(fp_in: FilePath) -> Dict:
 
 @task
 def add_asset(prim_fp: dict, asset: dict) -> dict:
+    """
+    This function is used to add elements to the callback datastructure, for the Hewwig API. 
+    | This datastructure is a dict, and is
+    | converted to JSON just prior to sending to API.
+    | Asset types are checked to ensure they are valid, else we complain.
+    | Metadata is required (only) for the neuroglancer type asset.
+    | The function generates a dict called "asset", which has keys: path, type, and maybe metdata.
+    | The value of type is used from method signature (above).
+    | The value of path is the location of the asset, relative to the "Assets" dir on the RML filesystem.
+    | 
+    | Every asset element is added to the key "assets" 
+    | asset type can be one of:
+
+        - averagedVolume
+        - keyImage
+        - keyThumbnail
+        - recMovie
+        - tiltMovie
+        - volume
+        - neuroglancerPrecomputed
+    | Note, when running Dask distributed with Slurm, mutations to objects will be lost. Using
+    | funtional style avoids this. This is why the callback data structure is not built inside
+    | the FilePath object at runtime.
+    """
     prim_fp["assets"].append(asset)
     return prim_fp
 
@@ -261,7 +285,15 @@ def run_brt(
     TargetNumberOfBeads: int,
     LocalAlignments: int,
     THICKNESS: int,
-) -> None:
+) -> None:    
+    """
+    The natural place for this function is within the brt flow.
+    The reason for this is to facilitate testing. In prefect 1, a 
+    flow lives within a context. This causes problems if things are mocked
+    for testing. If the function is in utils, these problems go away.
+    TODO, this is ugly. This might vanish in Prefect 2, since flows are 
+    no longer obligated to being context dependant.
+    """
 
     adoc_fp = copy_template(
         working_dir=file_path.working_dir, template_name=adoc_template
