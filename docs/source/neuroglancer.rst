@@ -8,7 +8,6 @@ neuroglancer module
 
    .. autofunction:: gen_niftis(fp_in: FilePath)
    .. autofunction:: gen_pyramids(fp_in: FilePath)
-   .. autofunction:: gen_mrc2nifti_cmd(fp: Path)
    .. autofunction:: gen_pyramid_outdir(fp: Path)
    .. autofunction:: gen_pyramid_cmd(fp: Path, outdir: Path)
    .. autofunction:: gen_archive_pyr(file_path: FilePath)

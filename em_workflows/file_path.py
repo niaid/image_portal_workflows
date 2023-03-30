@@ -12,16 +12,34 @@ from em_workflows.config import Config
 from prefect import context
 
 
-def log(msg):
+def log(msg: str) -> None:
+    """ Convenience method to write an INFO message to a (default?) Prefect log.
+
+    :param msg: log message to be written
+    :return: None
+
+    """
     context.logger.info(msg)
 
 
 class FilePath:
+    """
+    The FilePath class is used to track the directory structure of the input and output files
+    when running an image pipeline. The output _asset_dir and a temporary (fast-disk) _working_dir
+    are created for each input file. These members are @properties without setters to keep them immutable,
+    as should the entire class, probably. It is important that each file have its own _working_dir to
+    avoid any collisions during the asynchronous processing of the pipeline. Very many output files
+    are created in the _working_dir, but only the outputs we care about are added to the FilePath
+    for copying to the _asset_dir later in the pipeline.
+
+    :todo: Consider making entire class immutable
+    """
     def __init__(self, input_dir: Path, fp_in: Path) -> None:
         """
         sets up:
-        working dir (fast disk where IO can occur)
-        assets_dir (slow / big disk where outputs get moved to)
+
+        - _working_dir (fast disk where IO can occur)
+        - _assets_dir (slow / big disk where outputs get moved to)
 
         """
         # input (AKA "Projects" file path
@@ -46,12 +64,19 @@ class FilePath:
     def assets_dir(self) -> Path:
         """
         the top level directory where results are left.
+
         other subdirs are attached here containing the outputs of individual files
         """
         return self._assets_dir
 
     @property
     def working_dir(self) -> Path:
+        """
+        A pathlib.Path of the temporary (high-speed) directory where the working files
+        will be stored. This is a property without a setter to make it immutable.
+        :return: pathlib.Path
+        """
+
         return self._working_dir
 
     def get_environment(self) -> str:
@@ -93,18 +118,21 @@ class FilePath:
 
     def copy_to_assets_dir(self, fp_to_cp: Path) -> Path:
         """
-        Copy fp to the assets (reported output) dir
-        fp is the Path to be copied.
-        assets_dir is the root dir (the proj_dir with s/Projects/Assets/)
-        If prim_fp is passed, assets will be copied to a subdir defined by the input
-        file name, eg:
-        copy /tmp/tmp7gcsl4on/keyMov_SARsCoV2_1.mp4
-        to
-        /mnt/ai-fas12/RMLEMHedwigQA/Assets/Lab/Pi/SARsCoV2_1/keyMov_SARsCoV2_1.mp4
-        {mount_point}/{dname}/keyMov_SARsCoV2_1.mp4
-        (note "SARsCoV2_1" in assets_dir)
-        If prim_fp is not used, no such subdir is created.
+        Copy FilePath to the assets (reported output) dir
+
+        - fp is the Path to be copied.
+        - assets_dir is the root dir (the proj_dir with s/Projects/Assets/)
+
         """
+        # :todo: I believe following comments below are out of date
+        # If prim_fp is passed, assets will be copied to a subdir defined by the input
+        # file name, eg:
+        # copy /tmp/tmp7gcsl4on/keyMov_SARsCoV2_1.mp4
+        # to
+        # /mnt/ai-fas12/RMLEMHedwigQA/Assets/Lab/Pi/SARsCoV2_1/keyMov_SARsCoV2_1.mp4
+        # {mount_point}/{dname}/keyMov_SARsCoV2_1.mp4
+        # (note "SARsCoV2_1" in assets_dir)
+        # If prim_fp is not used, no such subdir is created.
         dest = Path(f"{self.assets_dir}/{fp_to_cp.name}")
         log(f"copying {fp_to_cp} to {dest}")
         if fp_to_cp.is_dir():
@@ -121,16 +149,16 @@ class FilePath:
         """
         asset type can be one of:
 
-        averagedVolume
-        keyImage
-        keyThumbnail
-        recMovie
-        tiltMovie
-        volume
-        neuroglancerPrecomputed
+        - averagedVolume
+        - keyImage
+        - keyThumbnail
+        - recMovie
+        - tiltMovie
+        - volume
+        - neuroglancerPrecomputed
 
-        used to build the callback for API
-        metadata is used in conjunction with neuroglancer only
+        | Used to build the callback for API
+        | Metadata is used in conjunction with neuroglancer only
         """
         valid_typs = [
             "averagedVolume",
@@ -177,39 +205,49 @@ class FilePath:
 
     @staticmethod
     def filter_by_suffix(fp: Path, suffixes: List[str]) -> bool:
+        """ This method currently isn't used """
         for ext in suffixes:
             if fp.suffix.lower() == ext:
                 return True
         return False
 
     def gen_asset(self, asset_type: str, asset_fp) -> Dict:
+        """
+        Construct and return an asset (dict) based on the asset "type" and FilePath
+        :param asset_type: a string that details the type of output file
+        :param asset_fp: the originating FilePath to "hang" the asset on
+        :return: the resulting "asset" in the form of a dict
+        """
         assets_fp_no_root = asset_fp.relative_to(self.asset_root)
         asset = {"type": asset_type, "path": assets_fp_no_root.as_posix()}
         return asset
 
-    def add_asset2(self, prim_fp: dict, asset: dict) -> dict:
-        prim_fp["assets"].append(asset)
-        return prim_fp
-
-    def add_asset(self, prim_fp: dict, asset_fp: Path, asset_type: str) -> dict:
-        assets_fp_no_root = asset_fp.relative_to(self.asset_root)
-        asset = {"type": asset_type, "path": assets_fp_no_root.as_posix()}
-        prim_fp["assets"].append(asset)
-        return prim_fp
+    # def add_asset2(self, prim_fp: dict, asset: dict) -> dict:
+    #     prim_fp["assets"].append(asset)
+    #     return prim_fp
+    #
+    # def add_asset(self, prim_fp: dict, asset_fp: Path, asset_type: str) -> dict:
+    #     assets_fp_no_root = asset_fp.relative_to(self.asset_root)
+    #     asset = {"type": asset_type, "path": assets_fp_no_root.as_posix()}
+    #     prim_fp["assets"].append(asset)
+    #     return prim_fp
 
     def gen_prim_fp_elt(self) -> Dict:
         """
         creates a single primaryFilePath element, to which assets can be appended.
-        TODO:
-        input_fname_b is optional, sometimes the input can be a pair of files.
-        eg:
-        [
-         {
-          "primaryFilePath": "Lab/PI/Myproject/MySession/Sample1/file_a.mrc",
-          "title": "file_a",
-          "assets": []
-         }
-        ]
+
+        :todo: Is following "todo" comment out of date?
+        :todo: input_fname_b is optional, sometimes the input can be a pair of files.
+        eg::
+
+            [
+             {
+              "primaryFilePath": "Lab/PI/Myproject/MySession/Sample1/file_a.mrc",
+              "title": "file_a",
+              "assets": []
+             }
+            ]
+
         """
         title = self.fp_in.stem
         primaryFilePath = self.fp_in.relative_to(self.proj_root)
@@ -218,10 +256,11 @@ class FilePath:
         )
 
     def copy_workdir_to_assets(self) -> Path:
-        """copies all of working dir to Assets dir.
-        tests to see if the destination dir exists prior to copy
-        removes work dir upon completion.
-        returns newly created dir
+        """
+        - copies all of working dir to Assets dir.
+        - tests to see if the destination dir exists prior to copy
+        - removes work dir upon completion.
+        - returns newly created dir
         """
         dir_name_as_date = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
         dest = Path(
@@ -238,10 +277,16 @@ class FilePath:
         return dest
 
     def rm_workdir(self):
+        """ Removes the the entire working directory """
         shutil.rmtree(self.working_dir)
 
     @staticmethod
     def run(cmd: List[str], log_file: str) -> int:
+        """ Runs a Unix command as a subprocess
+
+        - Captures stderr & stddout and writes them to the `log_file` input parameter.
+        - If final returncode is not 0, raises a FAIL signal
+        """
         log("Trying to run: " + " ".join(cmd))
         try:
             sp = subprocess.run(cmd, check=False, capture_output=True)
