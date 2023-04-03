@@ -90,20 +90,23 @@ def test_make_work_dir_to_fp_copy_to_assets_dir(mock_fs):
 #     assert check_inputs_paired.__wrapped__(fps=[]) is False
 
 
-def test_paired_files():
-    from em_workflows.brt.flow import list_paired_files
-
-    fps = [Path("/tmp/fnamea.mrc"), Path("/tmp/fnameb.mrc"), Path("thing")]
-    pairs = list_paired_files.__wrapped__(fnames=fps)
-    assert len(pairs) == 1
-    assert pairs[0].as_posix() == "/tmp/fname.mrc"
-    fps_no_pairs = [
-        Path("/tmp/fname.mrc"),
-        Path("/tmp/fnameb.mrc"),
-        Path("/tmp/fnameb.mrc"),
-    ]
-    assert list_paired_files.__wrapped__(fnames=fps_no_pairs) == []
-
+# def test_paired_files():
+#     """
+#     Not currently used, but they may want it bnack
+#     """
+#     from em_workflows.brt.flow import list_paired_files
+#
+#     fps = [Path("/tmp/fnamea.mrc"), Path("/tmp/fnameb.mrc"), Path("thing")]
+#     pairs = list_paired_files.__wrapped__(fnames=fps)
+#     assert len(pairs) == 1
+#     assert pairs[0].as_posix() == "/tmp/fname.mrc"
+#     fps_no_pairs = [
+#         Path("/tmp/fname.mrc"),
+#         Path("/tmp/fnameb.mrc"),
+#         Path("/tmp/fnameb.mrc"),
+#     ]
+#     assert list_paired_files.__wrapped__(fnames=fps_no_pairs) == []
+#
 
 def test_gen_mrc2tiff():
     from em_workflows.brt import flow

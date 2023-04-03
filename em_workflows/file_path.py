@@ -12,12 +12,12 @@ from em_workflows.config import Config
 from prefect import context
 
 
+@staticmethod
 def log(msg: str) -> None:
-    """ Convenience method to write an INFO message to a (default?) Prefect log.
-
-    :param msg: log message to be written
+    """
+    Convenience method to write an INFO message to a Prefect log.
+    :param msg: str to be written
     :return: None
-
     """
     context.logger.info(msg)
 
