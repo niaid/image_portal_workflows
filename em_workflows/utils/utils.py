@@ -102,18 +102,16 @@ def gen_prim_fps(fp_in: FilePath) -> Dict:
 
 @task
 def add_asset(prim_fp: dict, asset: dict) -> dict:
-    """
-    This function is used to add elements to the callback datastructure, for the Hewwig API. 
-    | This datastructure is a dict, and is
-    | converted to JSON just prior to sending to API.
-    | Asset types are checked to ensure they are valid, else we complain.
-    | Metadata is required (only) for the neuroglancer type asset.
-    | The function generates a dict called "asset", which has keys: path, type, and maybe metdata.
-    | The value of type is used from method signature (above).
-    | The value of path is the location of the asset, relative to the "Assets" dir on the RML filesystem.
-    | 
-    | Every asset element is added to the key "assets" 
-    | asset type can be one of:
+    """ This function is used to add elements to the callback datastructure, for the Hewwig API:
+
+    - This datastructure is a dict, and is converted to JSON just prior to sending to API.
+    - Asset types are checked to ensure they are valid, else we complain.
+    - Metadata is required (only) for the neuroglancer type asset.
+    - The function generates a dict called "asset", which has keys: path, type, and maybe metdata.
+    - The value of type is used from method signature (above).
+    - The value of path is the location of the asset, relative to the "Assets" dir on the RML filesystem.
+    - Every asset element is added to the key "assets"
+    - Asset `type` can be one of:
 
         - averagedVolume
         - keyImage
@@ -122,10 +120,12 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
         - tiltMovie
         - volume
         - neuroglancerPrecomputed
-    | Note, when running Dask distributed with Slurm, mutations to objects will be lost. Using
-    | funtional style avoids this. This is why the callback data structure is not built inside
-    | the FilePath object at runtime.
+
+    **Note**: when running Dask distributed with Slurm, mutations to objects will be lost. Using
+    funtional style avoids this. This is why the callback data structure is not built inside
+    the FilePath object at runtime.
     """
+
     prim_fp["assets"].append(asset)
     return prim_fp
 
