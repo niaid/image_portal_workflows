@@ -18,5 +18,5 @@ brt.flow
    .. autofunction:: consolidate_ave_mrcs(file_path: FilePath) -> dict
    .. autofunction:: gen_ave_8_vol(file_path: FilePath)
    .. autofunction:: gen_ave_jpgs_from_ave_mrc(file_path: FilePath)
-   .. autofunction:: list_paired_files(fnames: List[Path])
+   .. autofunction:: cleanup_files(file_path: FilePath, pattern=str)
 

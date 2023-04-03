@@ -91,8 +91,314 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="utils-module">
-<h1>utils module<a class="headerlink" href="#utils-module" title="Permalink to this heading"></a></h1>
+  <section id="module-utils">
+<span id="utils-module"></span><h1>utils module<a class="headerlink" href="#module-utils" title="Permalink to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.mrc_to_movie">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">mrc_to_movie</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asset_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.mrc_to_movie" title="Permalink to this definition"></a></dt>
+<dd><p>converts an mrc file into a movie
+root should be mrc_fname</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.gen_prim_fps">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">gen_prim_fps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#utils.gen_prim_fps" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.add_asset">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">add_asset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prim_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#utils.add_asset" title="Permalink to this definition"></a></dt>
+<dd><p>This function is used to add elements to the callback datastructure, for the Hewwig API:</p>
+<ul>
+<li><p>This datastructure is a dict, and is converted to JSON just prior to sending to API.</p></li>
+<li><p>Asset types are checked to ensure they are valid, else we complain.</p></li>
+<li><p>Metadata is required (only) for the neuroglancer type asset.</p></li>
+<li><p>The function generates a dict called “asset”, which has keys: path, type, and maybe metdata.</p></li>
+<li><p>The value of type is used from method signature (above).</p></li>
+<li><p>The value of path is the location of the asset, relative to the “Assets” dir on the RML filesystem.</p></li>
+<li><p>Every asset element is added to the key “assets”</p></li>
+<li><p>Asset <cite>type</cite> can be one of:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>averagedVolume</p></li>
+<li><p>keyImage</p></li>
+<li><p>keyThumbnail</p></li>
+<li><p>recMovie</p></li>
+<li><p>tiltMovie</p></li>
+<li><p>volume</p></li>
+<li><p>neuroglancerPrecomputed</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<p><strong>Note</strong>: when running Dask distributed with Slurm, mutations to objects will be lost. Using
+funtional style avoids this. This is why the callback data structure is not built inside
+the FilePath object at runtime.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.cleanup_workdir">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">cleanup_workdir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.cleanup_workdir" title="Permalink to this definition"></a></dt>
+<dd><p>working_dir isn’t needed after run, so rm.
+task wrapper on the FilePath rm_workdir method.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.run_brt">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">run_brt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">adoc_template</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">montage</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fiducialless</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trackingMethod</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TwoSurfaces</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TargetNumberOfBeads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LocalAlignments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">THICKNESS</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None:</span></span></span><a class="headerlink" href="#utils.run_brt" title="Permalink to this definition"></a></dt>
+<dd><p>The natural place for this function is within the brt flow.
+The reason for this is to facilitate testing. In prefect 1, a 
+flow lives within a context. This causes problems if things are mocked
+for testing. If the function is in utils, these problems go away.
+TODO, this is ugly. This might vanish in Prefect 2, since flows are 
+no longer obligated to being context dependant.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.init_log">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">init_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None:</span></span></span><a class="headerlink" href="#utils.init_log" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.copy_workdirs">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">copy_workdirs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path:</span></span></span><a class="headerlink" href="#utils.copy_workdirs" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.cp_logs_to_assets">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">cp_logs_to_assets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">working_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assets_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None:</span></span></span><a class="headerlink" href="#utils.cp_logs_to_assets" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.list_files">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">list_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">single_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List[Path]:</span></span></span><a class="headerlink" href="#utils.list_files" title="Permalink to this definition"></a></dt>
+<dd><p>List all files within input_dir with spefified extension.
+if a specific file is requested that file is returned only.
+This allows workflows run on single files rather than entire dirs (default).
+Note, if no files are found does NOT raise exception. Function can be called
+multiple times, sometimes there will be no files of that extension.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.list_dirs">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">list_dirs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List[Path]:</span></span></span><a class="headerlink" href="#utils.list_dirs" title="Permalink to this definition"></a></dt>
+<dd><p>Lists subdirs of directory input_dir
+Some pipelines, eg SEM, store image stacks in dirs (rather than
+single files.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.gen_output_fp">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">gen_output_fp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_ext</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path:</span></span></span><a class="headerlink" href="#utils.gen_output_fp" title="Permalink to this definition"></a></dt>
+<dd><p>cat working_dir to input_fp.name, but swap the extension to output_ext
+the reason for having a working_dir default to None is sometimes the output
+dir is not the same as the input dir, and working_dir is used to define output
+in this case.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.gen_output_fname">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">gen_output_fname</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_ext</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path:</span></span></span><a class="headerlink" href="#utils.gen_output_fname" title="Permalink to this definition"></a></dt>
+<dd><p>Each file is generated using the input file name, without extension,
+with a new extension.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.run_single_file">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">run_single_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_fps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fp_to_check</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List[Path]:</span></span></span><a class="headerlink" href="#utils.run_single_file" title="Permalink to this definition"></a></dt>
+<dd><p>Workflows can be run on single files, if the file_name param is used.
+This function will limit the list of inputs to only that file_name (if
+provided), and check the file exists, if so will return as Path, else
+raise exception.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.get_input_dir">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">get_input_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path:</span></span></span><a class="headerlink" href="#utils.get_input_dir" title="Permalink to this definition"></a></dt>
+<dd><p>Concat the POSTed input file path to the mount point.
+create working dir
+set up logger
+returns Path obj</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.gen_fps">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">gen_fps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fps_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List[FilePath]:</span></span></span><a class="headerlink" href="#utils.gen_fps" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.add_assets_entry">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">add_assets_entry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_elt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asset_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict:</span></span></span><a class="headerlink" href="#utils.add_assets_entry" title="Permalink to this definition"></a></dt>
+<dd><p>asset type can be one of:</p>
+<p>averagedVolume
+keyImage
+keyThumbnail
+recMovie
+tiltMovie
+volume
+neuroglancerPrecomputed</p>
+<p>used to build the callback for API
+metadata is used in conjunction with neuroglancer only
+Used in FilePath obj</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.make_assets_dir">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">make_assets_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subdir_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path:</span></span></span><a class="headerlink" href="#utils.make_assets_dir" title="Permalink to this definition"></a></dt>
+<dd><p>input_dir comes in the form {mount_point}/RMLEMHedwigQA/Projects/Lab/PI/
+want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
+Sometimes you don’t want to create a subdir based on a file name. (eg fibsem)
+Used in FilePath obj</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.copy_to_assets_dir">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">copy_to_assets_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assets_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prim_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path:</span></span></span><a class="headerlink" href="#utils.copy_to_assets_dir" title="Permalink to this definition"></a></dt>
+<dd><p>Copy fp to the assets (reported output) dir
+fp is the Path to be copied.
+assets_dir is the root dir (the input_dir with s/Projects/Assets/)
+If prim_fp is passed, assets will be copied to a subdir defined by the input
+file name, eg:
+copy /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/keyMov_SARsCoV2_1.mp4
+to
+/mnt/ai-fas12/RMLEMHedwigQA/Assets/Lab/Pi/SARsCoV2_1/keyMov_SARsCoV2_1.mp4
+{mount_point}/{dname}/keyMov_SARsCoV2_1.mp4
+(note “SARsCoV2_1” in assets_dir)
+If prim_fp is not used, no such subdir is created.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.send_callback_body">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">send_callback_body</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files_elts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None:</span></span></span><a class="headerlink" href="#utils.send_callback_body" title="Permalink to this definition"></a></dt>
+<dd><p>Upon completion of file conversion a callback is made to the calling
+API specifying the locations of files, along with metadata about the files.
+the body of the callback should look something like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;files&quot;</span><span class="p">:</span>
+    <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;primaryFilePath: &quot;</span><span class="n">Lab</span><span class="o">/</span><span class="n">PI</span><span class="o">/</span><span class="n">Myproject</span><span class="o">/</span><span class="n">MySession</span><span class="o">/</span><span class="n">Sample1</span><span class="o">/</span><span class="n">file_a</span><span class="o">.</span><span class="n">dm4</span><span class="s2">&quot;,</span>
+            <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;file_a&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;assets&quot;</span><span class="p">:</span>
+            <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;keyImage&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;Lab/PI/Myproject/MySession/Sample1/file_a.jpg&quot;</span>
+                <span class="p">},</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;thumbnail&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;Lab/PI/Myproject/MySession/Sample1/file_a_s.jpg&quot;</span>
+                <span class="p">}</span>
+            <span class="p">]</span>
+        <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="utils.Header">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">Header</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.Header" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="utils.Header.x">
+<span class="sig-name descname"><span class="pre">x</span></span><a class="headerlink" href="#utils.Header.x" title="Permalink to this definition"></a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="utils.Header.y">
+<span class="sig-name descname"><span class="pre">y</span></span><a class="headerlink" href="#utils.Header.y" title="Permalink to this definition"></a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="utils.Header.z">
+<span class="sig-name descname"><span class="pre">z</span></span><a class="headerlink" href="#utils.Header.z" title="Permalink to this definition"></a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.lookup_dims">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">lookup_dims</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#utils.Header" title="utils.Header"><span class="pre">Header</span></a></span></span><a class="headerlink" href="#utils.lookup_dims" title="Permalink to this definition"></a></dt>
+<dd><p>returns tuple containing x,y,z dims of file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.update_adoc">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">update_adoc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adoc_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tg_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">montage</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fiducialless</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trackingMethod</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TwoSurfaces</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TargetNumberOfBeads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LocalAlignments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">THICKNESS</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="headerlink" href="#utils.update_adoc" title="Permalink to this definition"></a></dt>
+<dd><p>Uses jinja templating to update the adoc file with input params.
+dual_p is calculated by inputs_paired() and is used to define <cite>dual</cite>
+Some of these parameters are derived programatically.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.copy_tg_to_working_dir">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">copy_tg_to_working_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="headerlink" href="#utils.copy_tg_to_working_dir" title="Permalink to this definition"></a></dt>
+<dd><p>copies files (tomograms/mrc files) into working_dir
+returns Path of copied file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.copy_template">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">copy_template</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">working_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">template_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="headerlink" href="#utils.copy_template" title="Permalink to this definition"></a></dt>
+<dd><p>copies the template adoc file to the working_dir,</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.abbreviate_list">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">abbreviate_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">l</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#utils.abbreviate_list" title="Permalink to this definition"></a></dt>
+<dd><p>Abbreviates a long list displaying only first and last elt,
+if for example you want give an idea of what commands are running.
+go from:
+[This, is, a, long, list, that, goes, on, and, on] -&gt;
+to:
+This
+..
+on</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.log">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.log" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.notify_api_running">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">notify_api_running</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flow</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Flow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">old_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_state</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">State</span></span></span><a class="headerlink" href="#utils.notify_api_running" title="Permalink to this definition"></a></dt>
+<dd><p>tells API the workflow has started to run.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.custom_terminal_state_handler">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">custom_terminal_state_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flow</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Flow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">State</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_task_states</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">State</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">State</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#utils.custom_terminal_state_handler" title="Permalink to this definition"></a></dt>
+<dd><p>we define any success at all to be a success</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.notify_api_completion">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">notify_api_completion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flow</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Flow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">old_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_state</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">State</span></span></span><a class="headerlink" href="#utils.notify_api_completion" title="Permalink to this definition"></a></dt>
+<dd><p>Prefect workflows transition from State to State, see:
+<a class="reference external" href="https://docs.prefect.io/core/concepts/states.html#overview">https://docs.prefect.io/core/concepts/states.html#overview</a>.
+This method checks if the State being transitioned into is an is_finished state.
+If it is, a notification is sent stating the workflow is finished.
+Is a static method because signiture much conform as above, see:
+<a class="reference external" href="https://docs.prefect.io/core/concepts/notifications.html#state-handlers">https://docs.prefect.io/core/concepts/notifications.html#state-handlers</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="utils.get_environment">
+<span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">get_environment</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#utils.get_environment" title="Permalink to this definition"></a></dt>
+<dd><p>The workflows can operate in one of several environments,
+named HEDWIG_ENV for historical reasons, eg prod, qa or dev.
+This function looks up that environment.
+Raises exception if no environment found.</p>
+</dd></dl>
+
 </section>
 
 

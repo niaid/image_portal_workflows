@@ -90,8 +90,228 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="brt-flow">
-<h1>brt.flow<a class="headerlink" href="#brt-flow" title="Permalink to this heading"></a></h1>
+  <section id="module-brt.flow">
+<span id="brt-flow"></span><h1>brt.flow<a class="headerlink" href="#module-brt.flow" title="Permalink to this heading"></a></h1>
+<section id="batchruntomo-pipeline-overview">
+<h2>Batchruntomo pipeline overview:<a class="headerlink" href="#batchruntomo-pipeline-overview" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>Takes an <code class="docutils literal notranslate"><span class="pre">input_dir</span></code> containing 1 or more <cite>.mrc</cite> or <cite>.st</cite> files</p></li>
+<li><p>IMOD <code class="docutils literal notranslate"><span class="pre">batchruntomo</span></code> (BRT) <a class="reference external" href="https://bio3d.colorado.edu/imod/doc/man/batchruntomo.html">https://bio3d.colorado.edu/imod/doc/man/batchruntomo.html</a> is run on each file in dir.</p></li>
+<li><p>BRT has a large number of parameters, which are provided using an .adoc parameter file.</p></li>
+<li><p>Some of these parameters are provided to the pipeline on a per run basis, the remaining of these parameters are
+defaulted using the templated adoc file.</p></li>
+<li><p>There are two templates, <code class="docutils literal notranslate"><span class="pre">../templates/plastic_brt.adoc</span></code> and <code class="docutils literal notranslate"><span class="pre">../templates/cryo_brt.adoc</span></code> (Note, currently
+these are identical, we expect this to change.) The template chosen is defined by parameter adoc_template.</p></li>
+<li><p>The run time parameters are interpolated into the template, and this file is then run with BRT.</p></li>
+<li><p>BRT produces two output files that we care about: <cite>_ali.mrc</cite> and <cite>_rec.mrc</cite></p></li>
+<li><dl class="simple">
+<dt>Using the <cite>ali</cite> (alignment) file we generate a tilt movie:</dt><dd><ul>
+<li><p>look up dimensionality of alignment file, and generate n sections in <code class="docutils literal notranslate"><span class="pre">gen_ali_x()</span></code></p></li>
+<li><p>we assemble these sections into a single aligned mrc file, in <code class="docutils literal notranslate"><span class="pre">gen_ali_asmbl()</span></code></p></li>
+<li><p>we convert this into a stack of jpegs, in <code class="docutils literal notranslate"><span class="pre">gen_mrc2tiff()</span></code></p></li>
+<li><p>we compile these jpegs into a tilt movie in <code class="docutils literal notranslate"><span class="pre">gen_tilt_movie()</span></code></p></li>
+<li><p>ADDITIONALLY:</p></li>
+<li><p>we take the mid point of the stack jpeg to use as the display thumbnail.</p></li>
+<li><p>we clean up intermediate files now.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Using the _rec (reconstructed) file we generate a reconstructed movie (in a similar fashion to the above)</dt><dd><ul>
+<li><p>look up dimensionality of the reconstructed (_rec) file,</p></li>
+<li><p>create a stack of averaged mrc files in <code class="docutils literal notranslate"><span class="pre">gen_clip_avgs()</span></code></p></li>
+<li><p>create single mrc using the above averaged stack, in <code class="docutils literal notranslate"><span class="pre">consolidate_ave_mrcs()</span></code></p></li>
+<li><p>convert this mrc to a stack of jpegs, in <code class="docutils literal notranslate"><span class="pre">gen_ave_jpgs_from_ave_mrc()</span></code></p></li>
+<li><p>compile jpegs into reconstructed movie, in <code class="docutils literal notranslate"><span class="pre">gen_recon_movie()</span></code></p></li>
+<li><p>clean up after ourselves in <code class="docutils literal notranslate"><span class="pre">cleanup_files()</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>Use average (created above) reconstructed mrc file to create input for volslicer.k in <code class="docutils literal notranslate"><span class="pre">gen_ave_8_vol()</span></code></p></li>
+<li><dl class="simple">
+<dt>need to produce pyramid files with reconstructed mrc.</dt><dd><ul>
+<li><p>convert <code class="docutils literal notranslate"><span class="pre">_rec.mrc</span></code> file to nifti, in <code class="docutils literal notranslate"><span class="pre">neuroglancer.gen_niftis()</span></code></p></li>
+<li><p>convert nifti file to pyramid file, in <code class="docutils literal notranslate"><span class="pre">gen_pyramids()</span></code></p></li>
+<li><p>compress pyramid assets, in <code class="docutils literal notranslate"><span class="pre">gen_archive_pyr()</span></code></p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>Now we need to copy the outputs to the right place, and tell the API where they are. We use JSON to talk to the API.</p></li>
+<li><p>build a json datastructure, containing the locations of the inputs we key on “primaryFilePath”, and we append every
+output that’s generated for <em>this</em> input into the “assets” json key.</p></li>
+<li><p>Finally, we <code class="docutils literal notranslate"><span class="pre">POST</span></code> the JSON datastructure to the API, and cleanup temp dirs.</p></li>
+</ul>
+</section>
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.gen_dimension_command">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_dimension_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ali_or_rec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#brt.flow.gen_dimension_command" title="Permalink to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">looks up the z dimension of an mrc file.</div>
+<div class="line">ali_or_rec is nasty, str to denote whether you’re using the <cite>_ali</cite> file or the <cite>_rec</cite> file.</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Todo<span class="colon">:</span></dt>
+<dd class="field-odd"><p>this is duplicate, see utils.lookup_dims()</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.gen_ali_x">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_ali_x</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_dim</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#brt.flow.gen_ali_x" title="Permalink to this definition"></a></dt>
+<dd><ul>
+<li><p>chops an mrc input into its constituent Z sections.</p></li>
+<li><p>eg if an mrc input has a z_dim of 10, 10 sections will be generated.</p></li>
+<li><p>the i-i syntax is awkward, and may not be required. Eg possibly replace i-i with i.</p></li>
+<li><p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">newstack</span> <span class="o">-</span><span class="n">secs</span> <span class="p">{</span><span class="n">i</span><span class="p">}</span><span class="o">-</span><span class="p">{</span><span class="n">i</span><span class="p">}</span> <span class="n">path</span><span class="o">/</span><span class="n">BASENAME_ali</span><span class="o">*.</span><span class="n">mrc</span> <span class="n">WORKDIR</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">BASENAME_ali</span><span class="p">{</span><span class="n">i</span><span class="p">}</span><span class="o">.</span><span class="n">mrc</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.gen_ali_asmbl">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_ali_asmbl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#brt.flow.gen_ali_asmbl" title="Permalink to this definition"></a></dt>
+<dd><p>Use IMOD <code class="docutils literal notranslate"><span class="pre">newstack</span></code> to assemble, eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">newstack</span> <span class="o">-</span><span class="nb">float</span> <span class="mi">3</span> <span class="p">{</span><span class="n">BASENAME</span><span class="p">}</span><span class="n">_ali</span><span class="o">*.</span><span class="n">mrc</span> <span class="n">ali_</span><span class="p">{</span><span class="n">BASENAME</span><span class="p">}</span><span class="o">.</span><span class="n">mrc</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.gen_mrc2tiff">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_mrc2tiff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#brt.flow.gen_mrc2tiff" title="Permalink to this definition"></a></dt>
+<dd><p>This generates a lot of jpegs (-j) which will be compiled into a movie.
+(That is, the -jpeg switch is set to produce jpegs) eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mrc2tif</span> <span class="o">-</span><span class="n">j</span> <span class="o">-</span><span class="n">C</span> <span class="mi">0</span><span class="p">,</span><span class="mi">255</span> <span class="n">ali_BASENAME</span><span class="o">.</span><span class="n">mrc</span> <span class="n">BASENAME_ali</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.gen_thumbs">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_thumbs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_dim</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#brt.flow.gen_thumbs" title="Permalink to this definition"></a></dt>
+<dd><p>Use GraphicsMagick to create thumbnail images, eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">gm</span> <span class="n">convert</span> <span class="o">-</span><span class="n">size</span> <span class="mi">300</span><span class="n">x300</span> <span class="n">BASENAME_ali</span><span class="o">.</span><span class="p">{</span><span class="n">MIDDLE_I</span><span class="p">}</span><span class="o">.</span><span class="n">jpg</span> <span class="o">-</span><span class="n">resize</span> <span class="mi">300</span><span class="n">x300</span> <span class="o">-</span><span class="n">sharpen</span> <span class="mi">2</span> <span class="o">-</span><span class="n">quality</span> <span class="mi">70</span> <span class="n">keyimg_BASENAME_s</span><span class="o">.</span><span class="n">jpg</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.gen_copy_keyimages">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_copy_keyimages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#brt.flow.gen_copy_keyimages" title="Permalink to this definition"></a></dt>
+<dd><ul>
+<li><p>generates the keyImage (by copying image i to keyImage.jpeg)</p></li>
+<li><p>fname_in and fname_out both derived from tomogram fp</p></li>
+<li><p>MIDDLE_I might always be an int.</p></li>
+<li><p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cp</span> <span class="n">BASENAME_ali</span><span class="o">.</span><span class="p">{</span><span class="n">MIDDLE_I</span><span class="p">}</span><span class="o">.</span><span class="n">jpg</span> <span class="n">BASENAME_keyimg</span><span class="o">.</span><span class="n">jpg</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.gen_tilt_movie">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_tilt_movie</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#brt.flow.gen_tilt_movie" title="Permalink to this definition"></a></dt>
+<dd><p>generates the tilt movie, eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>ffmpeg -f image2 -framerate 4 -i ${BASENAME}_ali.%03d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 tiltMov_${BASENAME}.mp4
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.gen_recon_movie">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_recon_movie</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#brt.flow.gen_recon_movie" title="Permalink to this definition"></a></dt>
+<dd><p>compiles a stack of jpgs into a movie. eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ffmpeg</span> <span class="o">-</span><span class="n">f</span> <span class="n">image2</span> <span class="o">-</span><span class="n">framerate</span> <span class="mi">8</span> <span class="o">-</span><span class="n">i</span> <span class="n">WORKDIR</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">BASENAME_mp4</span><span class="o">.%</span><span class="mi">04</span><span class="n">d</span><span class="o">.</span><span class="n">jpg</span> <span class="o">-</span><span class="n">vcodec</span> <span class="n">libx264</span> <span class="o">-</span><span class="n">pix_fmt</span> <span class="n">yuv420p</span> <span class="o">-</span><span class="n">s</span> <span class="mi">1024</span><span class="p">,</span><span class="mi">1024</span> <span class="n">WORKDIR</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">keyMov_BASENAME</span><span class="o">.</span><span class="n">mp4</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Todo<span class="colon">:</span></dt>
+<dd class="field-odd"><p>This and tilt_movie should be refactored into one movie function</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.gen_clip_avgs">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_clip_avgs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#brt.flow.gen_clip_avgs" title="Permalink to this definition"></a></dt>
+<dd><ul>
+<li><p>give _rec mrc file, generate a stack of mrcs, averaged to assist viewing.</p></li>
+<li><p>produces base_ave001.mrc etc, base_ave002.mrc etc,</p></li>
+<li><p>inputs for newstack (for recon movie) and binvol (for volslicer)</p></li>
+<li><p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>for i in range(2, dimensions.z-2):
+    IZMIN = i-2
+    IZMAX = i+2
+    clip avg -2d -iz IZMIN-IZMAX  -m 1 BASENAME_rec.mrc BASENAME_ave${i}.mrc
+</pre></div>
+</div>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.consolidate_ave_mrcs">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">consolidate_ave_mrcs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#brt.flow.consolidate_ave_mrcs" title="Permalink to this definition"></a></dt>
+<dd><ul>
+<li><p>consumes base_ave001.mrc etc, base_ave002.mrc etc,</p></li>
+<li><p>creates ave_base.mrc the (averagedVolume asset)</p></li>
+<li><p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">newstack</span> <span class="o">-</span><span class="nb">float</span> <span class="mi">3</span> <span class="n">BASENAME_ave</span><span class="o">*</span> <span class="n">ave_BASENAME</span><span class="o">.</span><span class="n">mrc</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.gen_ave_8_vol">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_ave_8_vol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#brt.flow.gen_ave_8_vol" title="Permalink to this definition"></a></dt>
+<dd><ul>
+<li><p>creates volume asset, for volslicer, eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">binvol</span> <span class="o">-</span><span class="n">binning</span> <span class="mi">2</span> <span class="n">WORKDIR</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">ave_BASENAME</span><span class="o">.</span><span class="n">mrc</span> <span class="n">WORKDIR</span><span class="o">/</span><span class="n">avebin8_BASENAME</span><span class="o">.</span><span class="n">mrc</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.gen_ave_jpgs_from_ave_mrc">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_ave_jpgs_from_ave_mrc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#brt.flow.gen_ave_jpgs_from_ave_mrc" title="Permalink to this definition"></a></dt>
+<dd><ul>
+<li><p>generates a load of jpgs from the ave_base.mrc with the format {base}_mp4.123.jpg <strong>OR</strong> {base}_mp4.1234.jpg depending on size of stack.</p></li>
+<li><p>These jpgs can later be compiled into a movie. eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mrc2tif</span> <span class="o">-</span><span class="n">j</span> <span class="o">-</span><span class="n">C</span> <span class="mi">100</span><span class="p">,</span><span class="mi">255</span> <span class="n">WORKDIR</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">ave_BASNAME</span><span class="o">.</span><span class="n">mrc</span> <span class="n">hedwig</span><span class="o">/</span><span class="n">BASENAME_mp4</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.cleanup_files">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">cleanup_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#brt.flow.cleanup_files" title="Permalink to this definition"></a></dt>
+<dd><p>Given a <code class="docutils literal notranslate"><span class="pre">FilePath</span></code> and unix file <code class="docutils literal notranslate"><span class="pre">pattern</span></code>, iterate through directory removing all files
+that match the pattern</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="brt.flow.calc_middle_i">
+<span class="sig-prename descclassname"><span class="pre">brt.flow.</span></span><span class="sig-name descname"><span class="pre">calc_middle_i</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#brt.flow.calc_middle_i" title="Permalink to this definition"></a></dt>
+<dd><p>we want to find the middle image of the stack (for use as thumbnail)
+the file name later needed is padded with zeros
+:todo: this might be 3 or 4 - make this not a magic number.</p>
+</dd></dl>
+
 </section>
 
 
