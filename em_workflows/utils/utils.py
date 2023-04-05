@@ -262,6 +262,14 @@ def run_brt(
     LocalAlignments: int,
     THICKNESS: int,
 ) -> None:
+    """
+    The natural place for this function is within the brt flow.
+    The reason for this is to facilitate testing. In prefect 1, a
+    flow lives within a context. This causes problems if things are mocked
+    for testing. If the function is in utils, these problems go away.
+    TODO, this is ugly. This might vanish in Prefect 2, since flows are
+    no longer obligated to being context dependant.
+    """
 
     adoc_fp = copy_template(
         working_dir=file_path.working_dir, template_name=adoc_template
