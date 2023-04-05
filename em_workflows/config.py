@@ -48,6 +48,7 @@ def command_loc(cmd: str) -> str:
 class Config:
     # location in RML HPC
     binvol = "/opt/rml/imod/bin/binvol"
+    bioformats2raw = "bioformats2raw"
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
     dm2mrc_loc = "/opt/rml/imod/bin/dm2mrc"
     clip_loc = "/opt/rml/imod/bin/clip"

@@ -53,6 +53,7 @@ Batchruntomo pipeline overview:
 - Finally, we POST the JSON datastructure to the API, and cleanup temp dirs.
 """
 
+
 @task
 def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
     """
@@ -512,11 +513,10 @@ with Flow(
 
     # START PYRAMID GEN
     # nifti file generation
-    niftis = ng.gen_niftis.map(fp_in=fps, upstream_tasks=[brts])
-    pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[niftis])
-    archive_pyramid_cmds = ng.gen_archive_pyr.map(
-        file_path=fps, upstream_tasks=[pyramid_assets]
-    )
+    pyramid_assets = ng.gen_zarr.map(fp_in=fps, upstream_tasks=[brts])
+    #  archive_pyramid_cmds = ng.gen_archive_pyr.map(
+    #      file_path=fps, upstream_tasks=[pyramid_assets]
+    #  )
 
     # now we've done the computational work.
     # the relevant files have been put into the Assets dirs, but we need to inform the API
@@ -543,9 +543,6 @@ with Flow(
         prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
 
-    # this is a bit dubious. Previously I wanted to ONLY copy intermed files upon failure.
-    # now we copy evreything, everytime. :shrug emoji:
-    # spoiler: (we're going to run out of space).
     cp_wd_to_assets = utils.copy_workdirs.map(
         fps, upstream_tasks=[callback_with_tilt_mov]
     )

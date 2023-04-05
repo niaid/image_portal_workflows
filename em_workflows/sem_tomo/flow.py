@@ -11,8 +11,6 @@ from em_workflows.config import Config
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 
-# shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
-
 
 @task
 def gen_xfalign_comand(fp_in: FilePath) -> None:
@@ -317,10 +315,10 @@ with Flow(
     # small thumb
     thumb_assets = gen_keyimg_small.map(fp_in=fps, upstream_tasks=[keyimg_assets])
 
-    # nifti file generation
-    niftis = ng.gen_niftis.map(fp_in=fps, upstream_tasks=[base_mrcs])
+    # zarr file generation
+    zarrs = ng.gen_zarr.map(fp_in=fps, upstream_tasks=[base_mrcs])
 
-    pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[niftis])
+    pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[zarrs])
 
     # this is the toplevel element (the input file basically) onto which
     # the "assets" (ie the outputs derived from this file) are hung.

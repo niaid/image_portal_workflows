@@ -1,3 +1,4 @@
+from em_workflows.config import Config
 import subprocess
 from em_workflows.file_path import FilePath
 from em_workflows.utils import utils
@@ -11,31 +12,56 @@ from prefect import task
 
 
 @task
-def gen_niftis(fp_in: FilePath) -> None:
+def gen_zarr(fp_in: FilePath) -> None:
 
     """
-    supercedes gen_mrc2nifti_cmd
-    mrc2nifti path/{basename}_rec.mrc path/{basename}.nii
+    uses bioformats
     """
-    nifti = fp_in.gen_output_fp(output_ext=".nii")
+    zarr = fp_in.gen_output_fp(output_ext=".zarr")
     rec_mrc = fp_in.gen_output_fp(output_ext="_rec.mrc")
     base_mrc = fp_in.gen_output_fp(output_ext=".mrc", out_fname="adjusted.mrc")
     input_mrc = fp_in.fp_in
-    cmd = list()
     if rec_mrc.is_file():
-        cmd = ["mrc2nifti", rec_mrc.as_posix(), nifti.as_posix()]
+        input_file = rec_mrc.as_posix()
     elif base_mrc.is_file():
-        cmd = ["mrc2nifti", base_mrc.as_posix(), nifti.as_posix()]
+        input_file = base_mrc.as_posix()
     elif input_mrc.is_file():
-        cmd = ["mrc2nifti", input_mrc.as_posix(), nifti.as_posix()]
+        input_file = input_mrc.as_posix()
     else:
-        raise ValueError(
-            f"unable to find input for nifti generation. \
-                {rec_mrc} nor {base_mrc}."
-        )
-    log_file = f"{nifti.parent}/mrc2nifti.log"
+        raise ValueError(f"unable to find input for zarr generation.")
+
+        bioformats2raw
+    cmd = [
+        Config.bioformats2raw,
+        "--scale-format-string",
+        "%2$d",
+        "--downsample-type",
+        "AREA",
+        "--compression",
+        "blosc",
+        "--compression-properties",
+        "cname=zlib",
+        "--compression-properties",
+        "clevel=5",
+        "--compression-properties",
+        "shuffle=1",
+        "--resolutions",
+        "1",
+        "--chunk_depth",
+        "64",
+        "--tile_width",
+        "256",
+        "--tile_height",
+        "256",
+        input_file,
+        zarr.as_posix(),
+    ]
+    log_file = f"{zarr.parent}/mrc2zarr.log"
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
+    utils.log(f"biulding multiscales")
+    cmd_ms = ["zarr_build_multiscales", zarr.as_posix()]
+    FilePath.run(cmd=cmd_ms, log_file=log_file)
 
 
 @task
