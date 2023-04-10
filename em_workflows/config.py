@@ -67,8 +67,6 @@ class Config:
         "prod": "RMLEMHedwigProd",
     }
 
-    size_lg = "1024x1024"
-    size_sm = "300x300"
 
     # bioformats2raw settings
     fibsem_depth = 128
@@ -80,6 +78,13 @@ class Config:
 
     # the path to the Projects dir - can vary depending on mount point.
     # assets_dir = "/hedwigqa_data/Assets/"
+    # Image sizes, just large and small for now
+    LARGE_DIM = 1024
+    SMALL_DIM = 300
+    LARGE_2D = f"{LARGE_DIM}x{LARGE_DIM}"
+    SMALL_2D = f"{SMALL_DIM}x{SMALL_DIM}"
+
+    # List of 2D extensions we may want to process
     valid_2d_input_exts = [
         "DM4",
         "DM3",

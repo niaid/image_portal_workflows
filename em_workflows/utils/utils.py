@@ -398,27 +398,27 @@ def _tr_str(name):
 #    return _to_esc.sub(_esc_char, name)
 
 
-@task
-def init_log(file_path: FilePath) -> None:
-    fp = f"{file_path.working_dir.as_posix()}/log.txt"
-    log_fp = Path(fp)
-    # we are going to clobber previous logs - rm if want to keep
-    # if log_fp.exists():
-    #    log_fp.unlink()
-    # the getLogger function uses the (fairly) unique input_dir to look up.
-    logger = logging.getLogger(context.parameters["input_dir"])
-    logger.setLevel("INFO")
-
-    if not logger.handlers:
-        handler = logging.FileHandler(log_fp, encoding="utf-8")
-        logger.addHandler(handler)
-
-        # Formatter can be whatever you want
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d_%H:%M:%S",
-        )
-        handler.setFormatter(formatter)
+# @task
+# def init_log(file_path: FilePath) -> None:
+#     fp = f"{file_path.working_dir.as_posix()}/log.txt"
+#     log_fp = Path(fp)
+#     # we are going to clobber previous logs - rm if want to keep
+#     # if log_fp.exists():
+#     #    log_fp.unlink()
+#     # the getLogger function uses the (fairly) unique input_dir to look up.
+#     logger = logging.getLogger(context.parameters["input_dir"])
+#     logger.setLevel("INFO")
+#
+#     if not logger.handlers:
+#         handler = logging.FileHandler(log_fp, encoding="utf-8")
+#         logger.addHandler(handler)
+#
+#         # Formatter can be whatever you want
+#         formatter = logging.Formatter(
+#             "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+#             datefmt="%Y-%m-%d_%H:%M:%S",
+#         )
+#         handler.setFormatter(formatter)
 
 
 # def _init_log(working_dir: Path) -> None:
