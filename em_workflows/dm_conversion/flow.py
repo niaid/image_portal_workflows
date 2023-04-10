@@ -47,7 +47,7 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
 def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     """
     Checks Projects dir for mrc inputs. We assume anything in Projects will be 2D.
-    Converts to tiff file, 1024 in size
+    Converts to tiff file, 1024 in size (using constant Config.LARGE_DIM)
 
     env IMOD_OUTPUT_FORMAT=TIF newstack \
             --shrink $shrink_factor$ -antialias 6 -mode 0 -meansd 140,50 f_in.mrc f_out.tif
@@ -55,7 +55,6 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     used the smaller of x and y (4092/1024)
     """
     utils.log(f"Checking {file_path} for mrc inputs")
-    large_dim = 1024  # TODO probably config this
     if file_path.fp_in.suffix.lower() == ".mrc":
         # nifti_fp = neuroglancer.gen_niftis.__wrapped__(file_path)
         # utils.log(f"+++++++++++++++++++++++++++++++++++++++++++++")
@@ -69,7 +68,7 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
         # use the min dimension of x & y to compute shrink_factor
         min_xy = min(dims.x, dims.y)
         # work out shrink_factor
-        shrink_factor = min_xy / large_dim
+        shrink_factor = min_xy / Config.LARGE_DIM
         # round to 3 decimal places
         shrink_factor_3 = f"{shrink_factor:.3f}"
         out_fp = f"{file_path.working_dir}/{file_path.base}_mrc_as_tiff.tiff"
@@ -142,10 +141,10 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
             "gm",
             "convert",
             "-size",
-            Config.size_sm,
+            Config.SMALL_2D,
             cur.as_posix(),
             "-resize",
-            Config.size_sm,
+            Config.SMALL_2D,
             "-sharpen",
             "2",
             "-quality",
@@ -160,10 +159,10 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
             "gm",
             "convert",
             "-size",
-            Config.size_lg,
+            Config.LARGE_2D,
             cur.as_posix(),
             "-resize",
-            Config.size_lg,
+            Config.LARGE_2D,
             # "-sharpen",
             # "2",
             "-quality",
