@@ -26,6 +26,7 @@ jobs:
           python -m pip install -r docs/requirements.txt
       - name: Build Sphinx Documentation
         run: |
+          export HEDWIG_ENV=dev
           make -C docs html
       - name: Upload documentation
         if: github.event_name == 'push'
