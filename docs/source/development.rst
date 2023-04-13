@@ -18,6 +18,10 @@ Github.com
 The repository is located in the NIAID Github.com enterprise organization. Having a github.com account
 which is a member of the NIAID organization is required.
 
+pip install -e <path_to_clone>
+git+https://github.com/niaid/tomojs-pytools.git@master in requirements.txt
+￼
+
 Local Set-up
 ============
 
