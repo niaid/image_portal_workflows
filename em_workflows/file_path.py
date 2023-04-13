@@ -12,7 +12,6 @@ from em_workflows.config import Config
 from prefect import context
 
 
-@staticmethod
 def log(msg: str) -> None:
     """
     Convenience method to write an INFO message to a Prefect log.
