@@ -37,10 +37,8 @@ class FilePath:
         self.prim_fp_elt = self.gen_prim_fp_elt()
         # log(self.__repr__())
 
-    def __repr__(self) -> str:
-        return f"FilePath: proj_root:{self.proj_root}, \
-                fp_in:{self.fp_in}, prim_fp:{self.prim_fp_elt}, working_dir:{self.working_dir} \
-                assets_dir: {self.assets_dir}."
+    def __str_(self) -> str:
+        return f"FilePath: proj_root:{self.proj_root}\nfp_in:{self.fp_in}\nprim_fp:{self.prim_fp_elt}\nworking_dir:{self.working_dir}\nassets_dir: {self.assets_dir}."
 
     @property
     def assets_dir(self) -> Path:
