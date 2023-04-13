@@ -97,12 +97,15 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str):
 
 @task
 def gen_prim_fps(fp_in: FilePath) -> Dict:
-    return fp_in.gen_prim_fp_elt()
+    base_elts = fp_in.gen_prim_fp_elt()
+    log(f"Generated fp elt {base_elts}")
+    return base_elts
 
 
 @task
 def add_asset(prim_fp: dict, asset: dict) -> dict:
     prim_fp["assets"].append(asset)
+    log(f"Added fp elt {asset} to {prim_fp}.")
     return prim_fp
 
 
@@ -854,6 +857,7 @@ def send_callback_body(
     data = {"files": files_elts}
     if prefect.context.parameters.get("no_api"):
         log("no_api flag used, not interacting with API")
+        log(json.dumps(data))
     elif callback_url and token:
         headers = {
             "Authorization": "Bearer " + token,
