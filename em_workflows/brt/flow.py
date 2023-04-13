@@ -512,8 +512,13 @@ with Flow(
     # finished volslicer inputs.
 
     # START PYRAMID GEN
-    # nifti file generation
-    pyramid_assets = ng.gen_zarr.map(fp_in=fps, upstream_tasks=[brts])
+    pyramid_assets = ng.gen_zarr.map(
+        fp_in=fps,
+        depth=unmapped(Config.brt_depth),
+        width=unmapped(Config.brt_width),
+        height=unmapped(Config.brt_height),
+        upstream_tasks=[brts],
+    )
     #  archive_pyramid_cmds = ng.gen_archive_pyr.map(
     #      file_path=fps, upstream_tasks=[pyramid_assets]
     #  )

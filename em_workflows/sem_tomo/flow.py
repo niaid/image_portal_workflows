@@ -316,9 +316,13 @@ with Flow(
     thumb_assets = gen_keyimg_small.map(fp_in=fps, upstream_tasks=[keyimg_assets])
 
     # zarr file generation
-    zarrs = ng.gen_zarr.map(fp_in=fps, upstream_tasks=[base_mrcs])
-
-    pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[zarrs])
+    pyramid_assets = ng.gen_zarr.map(
+        fp_in=fps,
+        depth=Config.fibsem_depth,
+        width=Config.fibsem_width,
+        height=Config.fibsem_height,
+        upstream_tasks=[base_mrcs],
+    )
 
     # this is the toplevel element (the input file basically) onto which
     # the "assets" (ie the outputs derived from this file) are hung.

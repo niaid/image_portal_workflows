@@ -69,6 +69,15 @@ class Config:
 
     size_lg = "1024x1024"
     size_sm = "300x300"
+
+    # bioformats2raw settings
+    fibsem_depth = 128
+    fibsem_height = 128
+    fibsem_width = 128
+    brt_depth = 64
+    brt_width = 256
+    brt_height = 256
+
     # the path to the Projects dir - can vary depending on mount point.
     # assets_dir = "/hedwigqa_data/Assets/"
     valid_2d_input_exts = [
