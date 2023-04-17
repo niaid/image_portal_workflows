@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 import prefect
 from prefect import task
+from pytools.workflow_functions import visual_min_max
 
 
 @task
@@ -69,7 +70,8 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int=None) -> Dict:
     cmd_ms = ["zarr_build_multiscales", zarr.as_posix()]
     FilePath.run(cmd=cmd_ms, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=zarr)
-    metadata = gen_metadata(fp_in=fp_in)
+    first_zarr_arr = Path(zarr.as_posix() + "/0")
+    metadata = visual_min_max(mad_scale=5, input_image=first_zarr_arr)
     ng_asset = fp_in.gen_asset(asset_type="neuroglancerPrecomputed", asset_fp=asset_fp)
 
     ng_asset["metadata"] = metadata
@@ -108,24 +110,24 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int=None) -> Dict:
 #      return ng_asset
 
 
-def gen_metadata(fp_in: FilePath) -> Dict:
-    min_max = fp_in.gen_output_fp(output_ext=f"_min_max.json")
-    # first (/0) elt of image zarr array is used to gen stats
-    zarr = fp_in.gen_output_fp(output_ext=".zarr/0")
-    log_file = f"{zarr.parent}/mrc_visual_min_max.log"
-    cmd = [
-        "mrc_visual_min_max",
-        zarr.as_posix(),
-        "--mad",
-        "5",
-        "--output-json",
-        min_max.as_posix(),
-    ]
-    utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
-    with open(min_max, "r") as _file:
-        metadata = json.load(_file)
-    return metadata
+#  def gen_metadata(fp_in: FilePath) -> Dict:
+#      min_max = fp_in.gen_output_fp(output_ext=f"_min_max.json")
+#      # first (/0) elt of image zarr array is used to gen stats
+#      zarr = fp_in.gen_output_fp(output_ext=".zarr/0")
+#      log_file = f"{zarr.parent}/mrc_visual_min_max.log"
+#      cmd = [
+#          "mrc_visual_min_max",
+#          zarr.as_posix(),
+#          "--mad",
+#          "5",
+#          "--output-json",
+#          min_max.as_posix(),
+#      ]
+#      utils.log(f"Created {cmd}")
+#      FilePath.run(cmd=cmd, log_file=log_file)
+#      with open(min_max, "r") as _file:
+#          metadata = json.load(_file)
+#      return metadata
 
 
 
