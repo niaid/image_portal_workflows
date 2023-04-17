@@ -164,7 +164,7 @@ def gen_newstack_norm_command(fp_in: FilePath) -> None:
         corrected_mrc.as_posix(),
         fp_out.as_posix(),
     ]
-    utils.log(f"Created {cmd}")
+    utils.log(f"Created norm / base mrc {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     assets_fp_mrc = fp_in.copy_to_assets_dir(fp_to_cp=fp_out)
 
@@ -318,9 +318,9 @@ with Flow(
     # zarr file generation
     pyramid_assets = ng.gen_zarr.map(
         fp_in=fps,
-        depth=Config.fibsem_depth,
-        width=Config.fibsem_width,
-        height=Config.fibsem_height,
+        depth=unmapped(Config.fibsem_depth),
+        width=unmapped(Config.fibsem_width),
+        height=unmapped(Config.fibsem_height),
         upstream_tasks=[base_mrcs],
     )
 
