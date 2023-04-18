@@ -108,7 +108,7 @@ class FilePath:
         proj_dir comes in the form {mount_point}/RMLEMHedwigQA/Projects/Lab/PI/
         want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
         """
-        if not "Projects" in self.proj_dir.as_posix():
+        if "Projects" not in self.proj_dir.as_posix():
             msg = f"Error: Input directory {self.proj_dir} must contain the string 'Projects'."
             raise signals.FAIL(msg)
         assets_dir_as_str = self.proj_dir.as_posix().replace("/Projects", "/Assets")
@@ -229,6 +229,7 @@ class FilePath:
 
         :todo: Is following "todo" comment out of date?
         :todo: input_fname_b is optional, sometimes the input can be a pair of files.
+
         eg::
 
             [

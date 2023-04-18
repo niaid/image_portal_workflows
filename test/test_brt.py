@@ -1,25 +1,23 @@
+# test_brt.py
+"""
+test_brt.py runs an end-to-end test of the batchruntomo pipeline
+
+NOTE: These tests depend on setup performed in conftest.py
+"""
 import pytest
 import shutil
-import sys
 import os
 import platform
 import prefect
 from prefect import task
 from pathlib import Path
-from prefect.executors import LocalExecutor
 
-from em_workflows.config import Config
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
 
+
 @pytest.fixture
 def hpc_env(monkeypatch):
-    def _mock_proj_dir(env: str) -> str:
-        return os.getcwd()
-
-    def _mock_assets_dir(env: str) -> str:
-        return os.getcwd()
-
     def _mock_test_output_dir() -> str:
         """
         Get partial results based on machine type. Alternately could use a HOME env. variable.
@@ -30,35 +28,6 @@ def hpc_env(monkeypatch):
         elif platform.system() == 'Darwin':
             return "/Users/mbopf/projects/hedwig/data/brt_outputs/"
 
-    def _cmd_loc(cmd: str) -> str:
-        """
-        Given the name of a program that is assumed to be in the current path,
-        return the full path by using the `shutil.which()` operation. It is
-        *assumed* that `shutil` is available and the command is on the path
-        :param cmd: str, the command to be run, often part of the `IMOD` package
-        :return: str, the full path to the program
-        """
-        cmd_path = shutil.which(cmd)
-        return cmd_path
-
-    monkeypatch.setattr(Config, "proj_dir", _mock_proj_dir)
-    monkeypatch.setattr(Config, "assets_dir", _mock_assets_dir)
-    monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
-    monkeypatch.setattr(Config, "mount_point", f"{os.getcwd()}")
-    monkeypatch.setattr(Config, "tmp_dir", "/tmp/")
-
-    monkeypatch.setattr(Config, "binvol", _cmd_loc("binvol"))
-    monkeypatch.setattr(Config, "brt_binary", _cmd_loc("batchruntomo"))
-    monkeypatch.setattr(Config, "clip_loc", _cmd_loc("clip"))
-    monkeypatch.setattr(Config, "dm2mrc_loc", _cmd_loc("dm2mrc"))
-    monkeypatch.setattr(Config, "header_loc", _cmd_loc("header"))
-    monkeypatch.setattr(Config, "mrc2tif_loc", _cmd_loc("mrc2tif"))
-    monkeypatch.setattr(Config, "newstack_loc", _cmd_loc("newstack"))
-    monkeypatch.setattr(Config, "tif2mrc_loc", _cmd_loc("tif2mrc"))
-    monkeypatch.setattr(Config, "xfalign_loc", _cmd_loc("xfalign"))
-    monkeypatch.setattr(Config, "xftoxg_loc", _cmd_loc("xftoxg"))
-
-    monkeypatch.setattr(Config, "convert_loc", _cmd_loc("convert"))
 
     @task
     def _prep_mock_brt_run(
@@ -87,7 +56,7 @@ def hpc_env(monkeypatch):
     monkeypatch.setattr(utils, 'run_brt', _prep_mock_brt_run)
 
 
-def test_brt(hpc_env):
+def test_brt(mock_nfs_mount, hpc_env):
     from em_workflows.brt.flow import flow
 
     result = flow.run(
