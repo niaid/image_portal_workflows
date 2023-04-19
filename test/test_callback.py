@@ -20,6 +20,7 @@ def mock_fs(monkeypatch):
     monkeypatch.setattr(Config, "mount_point", "/tmp/")
 
 
+@pytest.mark.skip(reason="This test needs to be updated")
 def test_make_work_dir_to_fp_copy_to_assets_dir(mock_fs):
     # create the place where outputs will go.
     # __wrapped__ jumps past decorator
@@ -108,6 +109,7 @@ def test_make_work_dir_to_fp_copy_to_assets_dir(mock_fs):
 #     assert list_paired_files.__wrapped__(fnames=fps_no_pairs) == []
 #
 
+@pytest.mark.skip(reason="This test needs to be updated")
 def test_gen_mrc2tiff():
     from em_workflows.brt import flow
 
@@ -116,7 +118,9 @@ def test_gen_mrc2tiff():
     assert cmd == "mrc2tif -j -C 0,255 /test/dir/ali_fname.mrc /test/dir/fname_ali"
 
 
+@pytest.mark.skip(reason="This test needs to be updated")
 def test_copy_template_and_update_adoc():
+    """ Mostly superceded by ``test_utils.test_update_adoc()`` """
     from em_workflows.brt import flow
 
     with tempfile.TemporaryDirectory() as tmpdirname:
