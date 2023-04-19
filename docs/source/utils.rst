@@ -11,7 +11,6 @@ utils module
    .. autofunction:: add_asset(prim_fp: dict, asset: dict) -> dict
    .. autofunction:: cleanup_workdir(fp: FilePath)
    .. autofunction:: run_brt(file_path: FilePath, adoc_template: str, montage: int, gold: int, focus: int, fiducialless: int, trackingMethod: int, TwoSurfaces: int, TargetNumberOfBeads: int, LocalAlignments: int, THICKNESS: int,) -> None:
-   .. autofunction:: init_log(file_path: FilePath)->None:
    .. autofunction:: copy_workdirs(file_path: FilePath) -> Path:
    .. autofunction:: cp_logs_to_assets(working_dir: Path, assets_dir: Path) -> None:
    .. autofunction:: list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
