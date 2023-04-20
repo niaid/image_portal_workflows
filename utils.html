@@ -96,19 +96,52 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="utils.mrc_to_movie">
 <span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">mrc_to_movie</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asset_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.mrc_to_movie" title="Permalink to this definition"></a></dt>
-<dd><p>converts an mrc file into a movie
-root should be mrc_fname</p>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_path</strong> – FilePath for the input</p></li>
+<li><p><strong>root</strong> – base name of the mrc file</p></li>
+<li><p><strong>asset_type</strong> – type of resulting output (movie)</p></li>
+</ul>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>Uses the file_path to identify the working_dir which should have the “root” mrc</p></li>
+<li><p>Runs IMOD <code class="docutils literal notranslate"><span class="pre">mrc2tif</span></code> to convert the mrc to many jpgs named by z number</p></li>
+<li><p>Calls <code class="docutils literal notranslate"><span class="pre">ffmpeg</span></code> to create the mp4 movie from the jpgs and returns it as an asset</p></li>
+</ul>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="utils.gen_prim_fps">
 <span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">gen_prim_fps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#utils.gen_prim_fps" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fp_in</strong> – FilePath of current input</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a Dict to hold the ‘assets’</p>
+</dd>
+</dl>
+<p>This function delegates creation of primary fps to <code class="docutils literal notranslate"><span class="pre">FilePath.gen_prim_fp_elt()</span></code>
+and creates a primary element for assets to be appended</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="utils.add_asset">
 <span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">add_asset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prim_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#utils.add_asset" title="Permalink to this definition"></a></dt>
-<dd><p>This function is used to add elements to the callback datastructure, for the Hewwig API:</p>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prim_fp</strong> – the ‘primary’ element (dict) to which assets are appended</p></li>
+<li><p><strong>asset</strong> – The actual asset (output) to be added in the form of another dict</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The resulting, dict with asset added</p>
+</dd>
+</dl>
+<p>This function is used to add elements to the callback datastructure, for the Hewwig API:</p>
 <ul>
 <li><p>This datastructure is a dict, and is converted to JSON just prior to sending to API.</p></li>
 <li><p>Asset types are checked to ensure they are valid, else we complain.</p></li>
@@ -139,8 +172,15 @@ the FilePath object at runtime.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="utils.cleanup_workdir">
 <span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">cleanup_workdir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.cleanup_workdir" title="Permalink to this definition"></a></dt>
-<dd><p>working_dir isn’t needed after run, so rm.
-task wrapper on the FilePath rm_workdir method.</p>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fp</strong> – a FilePath which has a working_dir to be removed</p>
+</dd>
+</dl>
+<div class="line-block">
+<div class="line">working_dir isn’t needed after run, so rm.</div>
+<div class="line">task wrapper on the FilePath rm_workdir method.</div>
+</div>
 </dd></dl>
 
 <dl class="py function">
@@ -185,10 +225,17 @@ single files.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="utils.gen_output_fp">
 <span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">gen_output_fp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_ext</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path:</span></span></span><a class="headerlink" href="#utils.gen_output_fp" title="Permalink to this definition"></a></dt>
-<dd><p>cat working_dir to input_fp.name, but swap the extension to output_ext
-the reason for having a working_dir default to None is sometimes the output
+<dd><div class="line-block">
+<div class="line">cat working_dir to input_fp.name, but swap the extension to output_ext</div>
+</div>
+<p>the reason for having a working_dir default to None is sometimes the output
 dir is not the same as the input dir, and working_dir is used to define output
 in this case.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Todo<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Consider removing since this function isn’t currently called</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -219,7 +266,10 @@ returns Path obj</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="utils.gen_fps">
 <span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">gen_fps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fps_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List[FilePath]:</span></span></span><a class="headerlink" href="#utils.gen_fps" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Given in input directory (Path) and a list of input files (Path), return
+a list of FilePaths for the input files. This includes a temporary working
+directory for each file to keep the files separate on the HPC.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="utils.add_assets_entry">
@@ -320,15 +370,30 @@ the body of the callback should look something like this:</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="utils.lookup_dims">
 <span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">lookup_dims</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#utils.Header" title="utils.Header"><span class="pre">Header</span></a></span></span><a class="headerlink" href="#utils.lookup_dims" title="Permalink to this definition"></a></dt>
-<dd><p>returns tuple containing x,y,z dims of file</p>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fp</strong> – pathlib.Path to an image</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a tuple containing x,y,z dims of file</p>
+</dd>
+</dl>
+<p>calls IMOD <code class="docutils literal notranslate"><span class="pre">header</span></code> with -s (size) flag; parses stdout to get result</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="utils.update_adoc">
 <span class="sig-prename descclassname"><span class="pre">utils.</span></span><span class="sig-name descname"><span class="pre">update_adoc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adoc_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tg_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">montage</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fiducialless</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trackingMethod</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TwoSurfaces</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TargetNumberOfBeads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LocalAlignments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">THICKNESS</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="headerlink" href="#utils.update_adoc" title="Permalink to this definition"></a></dt>
-<dd><p>Uses jinja templating to update the adoc file with input params.
-dual_p is calculated by inputs_paired() and is used to define <cite>dual</cite>
-Some of these parameters are derived programatically.</p>
+<dd><div class="line-block">
+<div class="line">Uses jinja templating to update the adoc file with input params.</div>
+<div class="line">dual_p is calculated by inputs_paired() and is used to define <cite>dual</cite></div>
+<div class="line">Some of these parameters are derived programatically.</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Todo<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Remove references to <code class="docutils literal notranslate"><span class="pre">dual_p</span></code> in comments?</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
