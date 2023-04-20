@@ -35,7 +35,10 @@ filter_results = FilterTask(
 
 def lookup_dims(fp: Path) -> Header:
     """
-    returns tuple containing x,y,z dims of file
+    :param fp: pathlib.Path to an image
+    :returns: a tuple containing x,y,z dims of file
+
+    calls IMOD ``header`` with -s (size) flag; parses stdout to get result
     """
     cmd = [Config.header_loc, "-s", fp]
     sp = subprocess.run(cmd, check=False, capture_output=True)
@@ -59,8 +62,13 @@ def lookup_dims(fp: Path) -> Header:
 @task
 def mrc_to_movie(file_path: FilePath, root: str, asset_type: str):
     """
-    converts an mrc file into a movie
-    root should be mrc_fname
+    :param file_path: FilePath for the input
+    :param root: base name of the mrc file
+    :param asset_type: type of resulting output (movie)
+
+    - Uses the file_path to identify the working_dir which should have the "root" mrc
+    - Runs IMOD ``mrc2tif`` to convert the mrc to many jpgs named by z number
+    - Calls ``ffmpeg`` to create the mp4 movie from the jpgs and returns it as an asset
     """
     mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
     mrc = f"{file_path.working_dir}/{root}.mrc"
@@ -97,12 +105,24 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str):
 
 @task
 def gen_prim_fps(fp_in: FilePath) -> Dict:
+    """
+    :param fp_in: FilePath of current input
+    :return: a Dict to hold the 'assets'
+
+    This function delegates creation of primary fps to ``FilePath.gen_prim_fp_elt()``
+    and creates a primary element for assets to be appended
+    """
     return fp_in.gen_prim_fp_elt()
 
 
 @task
 def add_asset(prim_fp: dict, asset: dict) -> dict:
-    """ This function is used to add elements to the callback datastructure, for the Hewwig API:
+    """
+    :param prim_fp: the 'primary' element (dict) to which assets are appended
+    :param asset: The actual asset (output) to be added in the form of another dict
+    :return: The resulting, dict with asset added
+
+    This function is used to add elements to the callback datastructure, for the Hewwig API:
 
     - This datastructure is a dict, and is converted to JSON just prior to sending to API.
     - Asset types are checked to ensure they are valid, else we complain.
@@ -125,7 +145,6 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
     funtional style avoids this. This is why the callback data structure is not built inside
     the FilePath object at runtime.
     """
-
     prim_fp["assets"].append(asset)
     return prim_fp
 
@@ -133,8 +152,11 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
 @task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
 def cleanup_workdir(fp: FilePath):
     """
-    working_dir isn't needed after run, so rm.
-    task wrapper on the FilePath rm_workdir method.
+    :param fp: a FilePath which has a working_dir to be removed
+
+    | working_dir isn't needed after run, so rm.
+    | task wrapper on the FilePath rm_workdir method.
+
     """
     log(f"Trying to remove {fp.working_dir}")
     fp.rm_workdir()
@@ -189,9 +211,10 @@ def update_adoc(
     THICKNESS: int,
 ) -> Path:
     """
-    Uses jinja templating to update the adoc file with input params.
-    dual_p is calculated by inputs_paired() and is used to define `dual`
-    Some of these parameters are derived programatically.
+    | Uses jinja templating to update the adoc file with input params.
+    | dual_p is calculated by inputs_paired() and is used to define `dual`
+    | Some of these parameters are derived programatically.
+    :todo: Remove references to ``dual_p`` in comments?
     """
     file_loader = FileSystemLoader(str(adoc_fp.parent))
     env = Environment(loader=file_loader)
@@ -386,6 +409,9 @@ def run_brt(
 
 
 def _tr_str(name):
+    """
+    :todo: Consider removing as this looks to be dead code
+    """
     _to_esc = re.compile(r"\s|[]()[]")
     return _to_esc.sub("_", name)
 
@@ -457,8 +483,10 @@ def abbreviate_list(l: List[str]) -> str:
 
 def log(msg):
     # log_name is defined by the dir_name (all wfs are associated with an input_dir
-    logger = logging.getLogger(context.parameters["input_dir"])
-    logger.info(msg)
+    # Verify that we are in a flow and have perameters defined; not true if testing
+    if hasattr(context, 'parameters'):
+        logger = logging.getLogger(context.parameters["input_dir"])
+        logger.info(msg)
     context.logger.info(msg)
 
 
@@ -535,10 +563,14 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
 @task
 def gen_output_fp(input_fp: Path, output_ext: str, working_dir: Path = None) -> Path:
     """
-    cat working_dir to input_fp.name, but swap the extension to output_ext
+    | cat working_dir to input_fp.name, but swap the extension to output_ext
+
     the reason for having a working_dir default to None is sometimes the output
     dir is not the same as the input dir, and working_dir is used to define output
     in this case.
+
+    :todo: Consider removing since this function isn't currently called
+
     """
     stem_name = _tr_str(input_fp.stem)
     if working_dir:
@@ -718,6 +750,11 @@ def get_input_dir(input_dir: str) -> Path:
 
 @task
 def gen_fps(input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
+    """
+    Given in input directory (Path) and a list of input files (Path), return
+    a list of FilePaths for the input files. This includes a temporary working
+    directory for each file to keep the files separate on the HPC.
+    """
     fps = list()
     for fp in fps_in:
         file_path = FilePath(input_dir=input_dir, fp_in=fp)
