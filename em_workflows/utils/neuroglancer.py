@@ -52,6 +52,8 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int=None) -> Dict:
         "1",
         "--tile_width",
         str(width),
+	"--max_workers", 
+	"50",
         "--tile_height",
         str(height)
     ]

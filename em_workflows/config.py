@@ -13,7 +13,7 @@ def SLURM_exec():
     """
     cluster = SLURMCluster(
         name="dask-worker",
-        cores=16,
+        cores=50,
         memory="32G",
         processes=1,
         death_timeout=121,
