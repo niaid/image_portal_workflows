@@ -1,7 +1,6 @@
 from em_workflows.file_path import FilePath
 from jinja2 import Environment, FileSystemLoader
 import subprocess
-import re
 import requests
 import os
 import shutil
@@ -18,7 +17,6 @@ from prefect.engine import signals
 from prefect.engine.signals import SKIP, TRIGGERFAIL
 from em_workflows.config import Config
 from prefect.tasks.control_flow.filter import FilterTask
-
 from collections import namedtuple
 
 # used for keeping outputs of imod's header command (dimensions of image).
@@ -52,8 +50,8 @@ def lookup_dims(fp: Path) -> Header:
         stderr = sp.stderr.decode("utf-8")
         msg = f"Command ok : {stderr} -- {stdout}"
         log(msg)
-        xyz_dim = re.split(" +(\d+)", stdout)
-        xyz_cleaned = Header(int(xyz_dim[1]), int(xyz_dim[3]), int(xyz_dim[5]))
+        xyz_dim = [int(x) for x in stdout.split()]
+        xyz_cleaned = Header(*xyz_dim)
         log(f"dims: {xyz_cleaned:}")
         return xyz_cleaned
 
@@ -216,6 +214,7 @@ def update_adoc(
     | Uses jinja templating to update the adoc file with input params.
     | dual_p is calculated by inputs_paired() and is used to define `dual`
     | Some of these parameters are derived programatically.
+
     :todo: Remove references to ``dual_p`` in comments?
     """
     file_loader = FileSystemLoader(str(adoc_fp.parent))
@@ -271,6 +270,8 @@ def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
     """
     copies files (tomograms/mrc files) into working_dir
     returns Path of copied file
+    :todo: Determine if the 'a' & 'b' files still exist and if these files need
+    to be copied. (See comment in ``run_brt`` before this call is made)
     """
     new_loc = Path(f"{working_dir}/{fname.name}")
     if fname.exists():
@@ -288,7 +289,11 @@ def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
 
 def copy_template(working_dir: Path, template_name: str) -> Path:
     """
-    copies the template adoc file to the working_dir,
+    :param working_dir: libpath.Path of temporary working directory
+    :param template_name: base str name of the ADOC template
+    :return: libpath.Path of the copied file
+
+    copies the template adoc file to the working_dir
     """
     adoc_fp = f"{working_dir}/{template_name}.adoc"
     template_fp = f"{Config.template_dir}/{template_name}.adoc"
@@ -408,12 +413,12 @@ def run_brt(
 #     return "\\" + match.group(0)
 
 
-def _tr_str(name):
-    """
-    :todo: Consider removing as this looks to be dead code
-    """
-    _to_esc = re.compile(r"\s|[]()[]")
-    return _to_esc.sub("_", name)
+# def _tr_str(name):
+#     """
+#     :todo: Consider removing as this looks to be dead code
+#     """
+#     _to_esc = re.compile(r"\s|[]()[]")
+#     return _to_esc.sub("_", name)
 
 
 # def _escape_str(name):
@@ -466,8 +471,13 @@ def _tr_str(name):
 
 
 def log(msg):
-    # log_name is defined by the dir_name (all wfs are associated with an input_dir
-    # Verify that we are in a flow and have perameters defined; not true if testing
+    """
+    Convenience function to print an INFO message to both the "input_dir" context log and
+    the "root" prefect log.
+
+    :param msg: string to output
+    :return: None
+    """
     if hasattr(context, "parameters"):
         logger = logging.getLogger(context.parameters["input_dir"])
         logger.info(msg)
@@ -476,6 +486,18 @@ def log(msg):
 
 @task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
 def copy_workdirs(file_path: FilePath) -> Path:
+    """
+    :param file_path: The FilePath of the file whose workdir is to be copied
+    :returns: Resulting Assets FilePath
+
+    This test copies the workdir, in it's entirety, to the Assets path. This can
+    be a very large number of files and storage space. This work is delgated to
+    FilePath.
+
+    :param file_path: FilePath of the current imagefile
+    :return: pathlib.Path of copied directory
+
+    """
     return file_path.copy_workdir_to_assets()
 
 
@@ -488,24 +510,32 @@ def copy_workdirs(file_path: FilePath) -> Path:
 #    shutil.copytree(working_dir.as_posix(), dest)
 
 
-@task
-def cp_logs_to_assets(working_dir: Path, assets_dir: Path) -> None:
-    print(f"looking in {working_dir}")
-    print(f"copying to {assets_dir}")
-    for _log in working_dir.glob("*.log"):
-        print(f"found {_log}")
-        print(f"going to copy to {assets_dir}")
-        shutil.copy(_log, assets_dir)
+# @task
+# def cp_logs_to_assets(working_dir: Path, assets_dir: Path) -> None:
+#     """
+#     :todo: Consider removing as this function isn't used (according to PyCharm)
+#     """
+#     print(f"looking in {working_dir}")
+#     print(f"copying to {assets_dir}")
+#     for _log in working_dir.glob("*.log"):
+#         print(f"found {_log}")
+#         print(f"going to copy to {assets_dir}")
+#         shutil.copy(_log, assets_dir)
 
 
 @task
 def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
     """
-    List all files within input_dir with spefified extension.
-    if a specific file is requested that file is returned only.
-    This allows workflows run on single files rather than entire dirs (default).
-    Note, if no files are found does NOT raise exception. Function can be called
-    multiple times, sometimes there will be no files of that extension.
+    :param input_dir: libpath.Path of the input directory
+    :param exts: List of str extensions to be checked
+    :param single_file: if present, only that file returned
+    :return: List of pathlib.Paths of matching files
+
+    - List all files within input_dir with specified extension.
+    - if a specific file is requested that file is returned only.
+    - This allows workflows to run on single files rather than entire dirs (default).
+    - Note, if no files are found does NOT raise exception. Function can be called
+      multiple times, sometimes there will be no files of that extension.
     """
     _files = list()
     log(f"Looking for *.{exts} in {input_dir}")
@@ -544,52 +574,69 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
     return dirs
 
 
-@task
-def gen_output_fp(input_fp: Path, output_ext: str, working_dir: Path = None) -> Path:
-    """
-    | cat working_dir to input_fp.name, but swap the extension to output_ext
-
-    the reason for having a working_dir default to None is sometimes the output
-    dir is not the same as the input dir, and working_dir is used to define output
-    in this case.
-
-    :todo: Consider removing since this function isn't currently called
-
-    """
-    stem_name = _tr_str(input_fp.stem)
-    if working_dir:
-        output_fp = f"{working_dir.as_posix()}/{stem_name}{output_ext}"
-    else:
-        output_fp = f"{input_fp.parent}/{stem_name}{output_ext}"
-
-    msg = f"Using dir: {working_dir}, file: {input_fp}, ext: {output_ext} creating output_fp {output_fp}"
-    log(msg=msg)
-    return Path(output_fp)
-
-
-@task
-def gen_output_fname(input_fp: Path, output_ext) -> Path:
-    """
-    Each file is generated using the input file name, without extension,
-    with a new extension."""
-    output_fp = Path(f"{input_fp.stem}{output_ext}")
-    log(f"input: {input_fp} output: {output_fp}")
-    return output_fp
+# @task
+# def gen_output_fp(input_fp: Path, output_ext: str, working_dir: Path = None) -> Path:
+#     """
+#     :param input_fp:
+#     :param output_ext:
+#     :param working_dir:
+#     :returns:
+#
+#     | cat working_dir to input_fp.name, but swap the extension to output_ext
+#
+#     the reason for having a working_dir default to None is sometimes the output
+#     dir is not the same as the input dir, and working_dir is used to define output
+#     in this case.
+#
+#     :todo: Consider removing since this function isn't currently called (according to PyCharm)
+#     """
+#     stem_name = _tr_str(input_fp.stem)
+#     if working_dir:
+#         output_fp = f"{working_dir.as_posix()}/{stem_name}{output_ext}"
+#     else:
+#         output_fp = f"{input_fp.parent}/{stem_name}{output_ext}"
+#
+#     msg = f"Using dir: {working_dir}, file: {input_fp}, ext: {output_ext} creating output_fp {output_fp}"
+#     log(msg=msg)
+#     return Path(output_fp)
 
 
-@task
-def run_single_file(input_fps: List[Path], fp_to_check: str) -> List[Path]:
-    """
-    Workflows can be run on single files, if the file_name param is used.
-    This function will limit the list of inputs to only that file_name (if
-    provided), and check the file exists, if so will return as Path, else
-    raise exception."""
-    if fp_to_check is None:
-        return input_fps
-    for _fp in input_fps:
-        if _fp.name == fp_to_check:
-            return [Path(fp_to_check)]
-    raise signals.FAIL(f"Expecting file: {fp_to_check}, not found in input_dir")
+# @task
+# def gen_output_fname(input_fp: Path, output_ext) -> Path:
+#     """
+#     :param input_fp:
+#     :param output_ext:
+#     :return:
+#
+#     :todo: Consider removing since this function isn't currently called (according to PyCharm)
+#
+#     Each file is generated using the input file name, without extension,
+#     with a new extension.
+#     """
+#     output_fp = Path(f"{input_fp.stem}{output_ext}")
+#     log(f"input: {input_fp} output: {output_fp}")
+#     return output_fp
+
+
+# @task
+# def run_single_file(input_fps: List[Path], fp_to_check: str) -> List[Path]:
+#     """
+#     :param input_fps: List of Paths
+#     :param fp_to_check: the filename to check as a str
+#     :returns: the input filename in a single-element Path list
+#
+#     :todo: Consider removing since this function isn't currently called (according to PyCharm)
+#
+#     Workflows can be run on single files, if the file_name param is used.
+#     This function will limit the list of inputs to only that file_name (if
+#     provided), and check the file exists, if so will return as Path, else
+#     raise exception."""
+#     if fp_to_check is None:
+#         return input_fps
+#     for _fp in input_fps:
+#         if _fp.name == fp_to_check:
+#             return [Path(fp_to_check)]
+#     raise signals.FAIL(f"Expecting file: {fp_to_check}, not found in input_dir")
 
 
 def notify_api_running(flow: Flow, old_state, new_state) -> State:
@@ -719,10 +766,14 @@ def get_environment() -> str:
 @task
 def get_input_dir(input_dir: str) -> Path:
     """
-    Concat the POSTed input file path to the mount point.
-    create working dir
-    set up logger
-    returns Path obj
+    :param input_dir:
+    :return:
+
+    | Concat the POSTed input file path to the mount point.
+    | create working dir
+    | set up logger
+    | returns Path obj
+
     """
     if not input_dir.endswith("/"):
         input_dir = input_dir + "/"
@@ -765,103 +816,105 @@ def gen_fps(input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
 #     log(t)
 
 
-@task
-def add_assets_entry(
-    base_elt: Dict, path: Path, asset_type: str, metadata: Dict[str, str] = None
-) -> Dict:
-    """
-    asset type can be one of:
-
-    averagedVolume
-    keyImage
-    keyThumbnail
-    recMovie
-    tiltMovie
-    volume
-    neuroglancerPrecomputed
-
-    used to build the callback for API
-    metadata is used in conjunction with neuroglancer only
-    Used in FilePath obj
-    """
-    valid_typs = [
-        "averagedVolume",
-        "keyImage",
-        "thumbnail",
-        "keyThumbnail",
-        "recMovie",
-        "tiltMovie",
-        "volume",
-        "neuroglancerPrecomputed",
-    ]
-    if asset_type not in valid_typs:
-        raise signals.FAIL(
-            f"Asset type: {asset_type} is not a valid type. {valid_typs}"
-        )
-    fp_no_mount_point = path.relative_to(Config.assets_dir(env=get_environment()))
-    if metadata:
-        asset = {
-            "type": asset_type,
-            "path": fp_no_mount_point.as_posix(),
-            "metadata": metadata,
-        }
-    else:
-        asset = {"type": asset_type, "path": fp_no_mount_point.as_posix()}
-    base_elt["assets"].append(asset)
-    return base_elt
-
-
-@task
-def make_assets_dir(input_dir: Path, subdir_name: Path = None) -> Path:
-    """
-    input_dir comes in the form {mount_point}/RMLEMHedwigQA/Projects/Lab/PI/
-    want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
-    Sometimes you don't want to create a subdir based on a file name. (eg fibsem)
-    Used in FilePath obj
-    """
-    if "Projects" not in input_dir.as_posix():
-        raise signals.FAIL(
-            f"Input directory {input_dir} does not look correct, it must contain the string 'Projects'."
-        )
-    assets_dir_as_str = input_dir.as_posix().replace("/Projects/", "/Assets/")
-    if subdir_name:
-        assets_dir = Path(f"{assets_dir_as_str}/{subdir_name.stem}")
-    else:
-        assets_dir = Path(assets_dir_as_str)
-    log(f"making assets dir for {input_dir} at {assets_dir.as_posix()}")
-    assets_dir.mkdir(parents=True, exist_ok=True)
-    return assets_dir
+# @task
+# def add_assets_entry(
+#     base_elt: Dict, path: Path, asset_type: str, metadata: Dict[str, str] = None
+# ) -> Dict:
+#     """
+#     asset type can be one of:
+#
+#     averagedVolume
+#     keyImage
+#     keyThumbnail
+#     recMovie
+#     tiltMovie
+#     volume
+#     neuroglancerPrecomputed
+#
+#     used to build the callback for API
+#     metadata is used in conjunction with neuroglancer only
+#     Used in FilePath obj
+#     """
+#     valid_typs = [
+#         "averagedVolume",
+#         "keyImage",
+#         "thumbnail",
+#         "keyThumbnail",
+#         "recMovie",
+#         "tiltMovie",
+#         "volume",
+#         "neuroglancerPrecomputed",
+#     ]
+#     if asset_type not in valid_typs:
+#         raise signals.FAIL(
+#             f"Asset type: {asset_type} is not a valid type. {valid_typs}"
+#         )
+#     fp_no_mount_point = path.relative_to(Config.assets_dir(env=get_environment()))
+#     if metadata:
+#         asset = {
+#             "type": asset_type,
+#             "path": fp_no_mount_point.as_posix(),
+#             "metadata": metadata,
+#         }
+#     else:
+#         asset = {"type": asset_type, "path": fp_no_mount_point.as_posix()}
+#     base_elt["assets"].append(asset)
+#     return base_elt
 
 
-@task
-def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path = None) -> Path:
-    """
-    Copy fp to the assets (reported output) dir
-    fp is the Path to be copied.
-    assets_dir is the root dir (the input_dir with s/Projects/Assets/)
-    If prim_fp is passed, assets will be copied to a subdir defined by the input
-    file name, eg:
-    copy /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/keyMov_SARsCoV2_1.mp4
-    to
-    /mnt/ai-fas12/RMLEMHedwigQA/Assets/Lab/Pi/SARsCoV2_1/keyMov_SARsCoV2_1.mp4
-    {mount_point}/{dname}/keyMov_SARsCoV2_1.mp4
-    (note "SARsCoV2_1" in assets_dir)
-    If prim_fp is not used, no such subdir is created.
-    """
-    if prim_fp is not None:
-        assets_sub_dir = Path(f"{assets_dir}/{prim_fp.stem}")
-    else:
-        assets_sub_dir = assets_dir
-    assets_sub_dir.mkdir(exist_ok=True)
-    dest = Path(f"{assets_sub_dir}/{fp.name}")
-    log(f"Trying to copy {fp} to {dest}")
-    if fp.is_dir():
-        if dest.exists():
-            shutil.rmtree(dest)
-        shutil.copytree(fp, dest)
-    else:
-        shutil.copyfile(fp, dest)
-    return dest
+# @task
+# def make_assets_dir(input_dir: Path, subdir_name: Path = None) -> Path:
+#     """
+#     input_dir comes in the form {mount_point}/RMLEMHedwigQA/Projects/Lab/PI/
+#     want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
+#     Sometimes you don't want to create a subdir based on a file name. (eg fibsem)
+#     Used in FilePath obj
+#     :todo: Consider removing since this function is only used in test/callbacks.py
+#     """
+#     if "Projects" not in input_dir.as_posix():
+#         raise signals.FAIL(
+#             f"Input directory {input_dir} does not look correct, it must contain the string 'Projects'."
+#         )
+#     assets_dir_as_str = input_dir.as_posix().replace("/Projects/", "/Assets/")
+#     if subdir_name:
+#         assets_dir = Path(f"{assets_dir_as_str}/{subdir_name.stem}")
+#     else:
+#         assets_dir = Path(assets_dir_as_str)
+#     log(f"making assets dir for {input_dir} at {assets_dir.as_posix()}")
+#     assets_dir.mkdir(parents=True, exist_ok=True)
+#     return assets_dir
+
+
+# @task
+# def copy_to_assets_dir(fp: Path, assets_dir: Path, prim_fp: Path = None) -> Path:
+#     """
+#     Copy fp to the assets (reported output) dir
+#     fp is the Path to be copied.
+#     assets_dir is the root dir (the input_dir with s/Projects/Assets/)
+#     If prim_fp is passed, assets will be copied to a subdir defined by the input
+#     file name, eg:
+#     copy /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/keyMov_SARsCoV2_1.mp4
+#     to
+#     /mnt/ai-fas12/RMLEMHedwigQA/Assets/Lab/Pi/SARsCoV2_1/keyMov_SARsCoV2_1.mp4
+#     {mount_point}/{dname}/keyMov_SARsCoV2_1.mp4
+#     (note "SARsCoV2_1" in assets_dir)
+#     If prim_fp is not used, no such subdir is created.
+#     :todo: Consider removing since this function is only used in test/callbacks.py
+#     """
+#     if prim_fp is not None:
+#         assets_sub_dir = Path(f"{assets_dir}/{prim_fp.stem}")
+#     else:
+#         assets_sub_dir = assets_dir
+#     assets_sub_dir.mkdir(exist_ok=True)
+#     dest = Path(f"{assets_sub_dir}/{fp.name}")
+#     log(f"Trying to copy {fp} to {dest}")
+#     if fp.is_dir():
+#         if dest.exists():
+#             shutil.rmtree(dest)
+#         shutil.copytree(fp, dest)
+#     else:
+#         shutil.copyfile(fp, dest)
+#     return dest
 
 
 @task(max_retries=3, retry_delay=datetime.timedelta(minutes=1), trigger=any_successful)

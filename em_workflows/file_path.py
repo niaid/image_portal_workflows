@@ -147,40 +147,40 @@ class FilePath:
             shutil.copyfile(fp_to_cp, dest)
         return dest
 
-    def add_assets_entry(
-        self, asset_path: Path, asset_type: str, metadata: Dict[str, str] = None
-    ) -> Dict:
-        """
-        Suspect to be redundant - TODO
-        """
-        # TODO move valid_types to Config.valid_callback_asset_types
-        valid_typs = [
-            "averagedVolume",
-            "keyImage",
-            "thumbnail",
-            "keyThumbnail",
-            "recMovie",
-            "tiltMovie",
-            "volume",
-            "neuroglancerPrecomputed",
-        ]
-        if asset_type not in valid_typs:
-            raise ValueError(
-                f"Asset type: {asset_type} is not a valid type. {valid_typs}"
-            )
-        fp_no_mount_point = asset_path.relative_to(
-            Config.assets_dir(env=self.environment)
-        )
-        if metadata:
-            asset = {
-                "type": asset_type,
-                "path": fp_no_mount_point.as_posix(),
-                "metadata": metadata,
-            }
-        else:
-            asset = {"type": asset_type, "path": fp_no_mount_point.as_posix()}
-        self.prim_fp_elt["assets"].append(asset)
-        return asset
+    # def add_assets_entry(
+    #     self, asset_path: Path, asset_type: str, metadata: Dict[str, str] = None
+    # ) -> Dict:
+    #     """
+    #     Suspect to be redundant - TODO
+    #     """
+    #     # TODO move valid_types to Config.valid_callback_asset_types
+    #     valid_typs = [
+    #         "averagedVolume",
+    #         "keyImage",
+    #         "thumbnail",
+    #         "keyThumbnail",
+    #         "recMovie",
+    #         "tiltMovie",
+    #         "volume",
+    #         "neuroglancerPrecomputed",
+    #     ]
+    #     if asset_type not in valid_typs:
+    #         raise ValueError(
+    #             f"Asset type: {asset_type} is not a valid type. {valid_typs}"
+    #         )
+    #     fp_no_mount_point = asset_path.relative_to(
+    #         Config.assets_dir(env=self.environment)
+    #     )
+    #     if metadata:
+    #         asset = {
+    #             "type": asset_type,
+    #             "path": fp_no_mount_point.as_posix(),
+    #             "metadata": metadata,
+    #         }
+    #     else:
+    #         asset = {"type": asset_type, "path": fp_no_mount_point.as_posix()}
+    #     self.prim_fp_elt["assets"].append(asset)
+    #     return asset
 
     def gen_output_fp(self, output_ext: str = None, out_fname: str = None) -> Path:
         """
@@ -197,13 +197,13 @@ class FilePath:
         output_fp = f"{self.working_dir.as_posix()}/{f_name}"
         return Path(output_fp)
 
-    @staticmethod
-    def filter_by_suffix(fp: Path, suffixes: List[str]) -> bool:
-        """This method currently isn't used"""
-        for ext in suffixes:
-            if fp.suffix.lower() == ext:
-                return True
-        return False
+    # @staticmethod
+    # def filter_by_suffix(fp: Path, suffixes: List[str]) -> bool:
+    #     """This method currently isn't used"""
+    #     for ext in suffixes:
+    #         if fp.suffix.lower() == ext:
+    #             return True
+    #     return False
 
     def gen_asset(self, asset_type: str, asset_fp) -> Dict:
         """
