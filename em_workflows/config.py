@@ -13,9 +13,9 @@ def SLURM_exec():
     """
     cluster = SLURMCluster(
         name="dask-worker",
-        cores=50,
+        cores=60,
         memory="32G",
-        processes=1,
+        # processes=1,
         death_timeout=121,
         local_directory="/gs1/home/macmenaminpe/tmp/",
         queue="gpu",
