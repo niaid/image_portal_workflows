@@ -1,2 +1,10 @@
 [run]
-omit = test/*, setup.py, *.adoc
+source = em_workflows
+omit =
+    # Omit test code
+    test/*,
+    setup.py,
+    # Coverage wants to check adoc files for some reason
+    *.adoc,
+    # Some *.py files show up in temp directories
+    */tmp/*

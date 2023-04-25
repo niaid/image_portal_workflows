@@ -1,3 +1,5 @@
+import glob
+
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
 from em_workflows.config import Config
@@ -6,6 +8,7 @@ import os
 import shutil
 from pathlib import Path
 from prefect.engine import signals
+import tempfile
 
 
 def test_hedwig_env() -> None:
@@ -155,31 +158,31 @@ def test_update_adoc(mock_nfs_mount):
     LocalAlignments = 0
     THICKNESS = 30
 
-    adoc_tmplt = Path(os.path.join(Config.template_dir, f"{adoc_file}.adoc"))
-    local_tmplt = Path.cwd() / f"{adoc_file}.adoc"
-    shutil.copy(adoc_tmplt, local_tmplt)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        adoc_tmplt = Path(os.path.join(Config.template_dir, f"{adoc_file}.adoc"))
+        copied_tmplt = Path(tmp_dir) / f"{adoc_file}.adoc"
+        shutil.copy(adoc_tmplt, copied_tmplt)
 
-    env = utils.get_environment()
-    mrc_image = "test/input_files/brt_inputs/2013-1220-dA30_5-BSC-1_10.mrc"
-    mrc_file = Path(os.path.join(Config.proj_dir(env), mrc_image))
+        env = utils.get_environment()
+        mrc_image = "test/input_files/brt_inputs/2013-1220-dA30_5-BSC-1_10.mrc"
+        mrc_file = Path(os.path.join(Config.proj_dir(env), mrc_image))
 
-    updated_adoc = utils.update_adoc(
-        adoc_fp=local_tmplt,
-        tg_fp=mrc_file,
-        montage=montage,
-        gold=gold,
-        focus=focus,
-        fiducialless=fiducialless,
-        trackingMethod=trackingMethod,
-        TwoSurfaces=TwoSurfaces,
-        TargetNumberOfBeads=TargetNumberOfBeads,
-        LocalAlignments=LocalAlignments,
-        THICKNESS=THICKNESS,
-    )
+        updated_adoc = utils.update_adoc(
+            adoc_fp=copied_tmplt,
+            tg_fp=mrc_file,
+            montage=montage,
+            gold=gold,
+            focus=focus,
+            fiducialless=fiducialless,
+            trackingMethod=trackingMethod,
+            TwoSurfaces=TwoSurfaces,
+            TargetNumberOfBeads=TargetNumberOfBeads,
+            LocalAlignments=LocalAlignments,
+            THICKNESS=THICKNESS,
+        )
 
-    # These will raise FileNotFoundException if the file is missing
-    updated_adoc.unlink(missing_ok=False)
-    local_tmplt.unlink(missing_ok=False)
+        assert updated_adoc.exists()
+        assert copied_tmplt.exists()
 
 
 def test_update_adoc_bad_surfaces(mock_nfs_mount):
@@ -195,30 +198,30 @@ def test_update_adoc_bad_surfaces(mock_nfs_mount):
     LocalAlignments = 0
     THICKNESS = 30
 
-    adoc_tmplt = Path(os.path.join(Config.template_dir, f"{adoc_file}.adoc"))
-    local_tmplt = Path.cwd() / f"{adoc_file}.adoc"
-    shutil.copy(adoc_tmplt, local_tmplt)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        adoc_tmplt = Path(os.path.join(Config.template_dir, f"{adoc_file}.adoc"))
+        copied_tmplt = Path(tmp_dir) / f"{adoc_file}.adoc"
+        shutil.copy(adoc_tmplt, copied_tmplt)
 
-    env = utils.get_environment()
-    mrc_image = "test/input_files/brt_inputs/2013-1220-dA30_5-BSC-1_10.mrc"
-    mrc_file = Path(os.path.join(Config.proj_dir(env), mrc_image))
+        env = utils.get_environment()
+        mrc_image = "test/input_files/brt_inputs/2013-1220-dA30_5-BSC-1_10.mrc"
+        mrc_file = Path(os.path.join(Config.proj_dir(env), mrc_image))
 
-    with pytest.raises(signals.FAIL) as fail_msg:
-        updated_adoc = utils.update_adoc(
-            adoc_fp=local_tmplt,
-            tg_fp=mrc_file,
-            montage=montage,
-            gold=gold,
-            focus=focus,
-            fiducialless=fiducialless,
-            trackingMethod=trackingMethod,
-            TwoSurfaces=TwoSurfaces,
-            TargetNumberOfBeads=TargetNumberOfBeads,
-            LocalAlignments=LocalAlignments,
-            THICKNESS=THICKNESS,
-        )
-    assert "Unable to resolve SurfacesToAnalyze" in str(fail_msg.value)
-    local_tmplt.unlink(missing_ok=False)
+        with pytest.raises(signals.FAIL) as fail_msg:
+            updated_adoc = utils.update_adoc(
+                adoc_fp=copied_tmplt,
+                tg_fp=mrc_file,
+                montage=montage,
+                gold=gold,
+                focus=focus,
+                fiducialless=fiducialless,
+                trackingMethod=trackingMethod,
+                TwoSurfaces=TwoSurfaces,
+                TargetNumberOfBeads=TargetNumberOfBeads,
+                LocalAlignments=LocalAlignments,
+                THICKNESS=THICKNESS,
+            )
+        assert "Unable to resolve SurfacesToAnalyze" in str(fail_msg.value)
 
 
 # Longer-running tests - comment-out following line to run
@@ -243,6 +246,90 @@ def test_mrc_to_movie(mock_nfs_mount):
 
     #    mrc_list = utils.gen_fps.__wrapped__(input_path, [image_path])
     asset = utils.mrc_to_movie.__wrapped__(mrc_filepath, "adjusted", "recMovie")
-    print(f"asset= {asset}")
     assert type(asset) == dict
     assert "adjusted_recMovie.mp4" in asset["path"]
+
+
+def test_copy_template(mock_nfs_mount):
+    """
+    Tests that adoc template get copied to working directory
+    """
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        adoc_fp = utils.copy_template(working_dir=tmp_dir, template_name="plastic_brt")
+        adoc_fp = utils.copy_template(working_dir=tmp_dir, template_name="cryo_brt")
+        tmp_path = Path(tmp_dir)
+        assert tmp_path.exists()
+        assert Path(tmp_path / "plastic_brt.adoc").exists()
+        assert Path(tmp_path / "cryo_brt.adoc").exists()
+
+
+def test_copy_template_missing(mock_nfs_mount):
+    """
+    Tests that adoc template get copied to working directory
+    """
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with pytest.raises(FileNotFoundError) as fnfe:
+            adoc_fp = utils.copy_template(
+                working_dir=tmp_dir, template_name="no_such_tmplt"
+            )
+        assert "no_such_tmplt" in str(fnfe.value)
+
+
+def test_copy_workdirs_small(mock_nfs_mount):
+    """
+    Tests that the workdir is copied to the assets dir. This uses toy data only.
+    """
+    proj_dir = Config.proj_dir(utils.get_environment())
+    input_dir = "test/input_files/dm_inputs/Projects/Lab/PI"
+    image_name = "P6_J130_fsc_iteration_001.png"
+    input_path = Path(proj_dir) / input_dir
+    image_path = Path(proj_dir) / input_dir / image_name
+    assert image_path.exists()
+    image_filepath = FilePath(input_dir=input_path, fp_in=image_path)
+
+    # copy image to working dir to verify test
+    shutil.copy(image_path, image_filepath.working_dir)
+
+    workdest = utils.copy_workdirs.__wrapped__(image_filepath)
+    assert workdest.exists()
+    assert (workdest / image_name).exists()
+    # Clean up
+    assert "work_dir" in str(workdest.parent)
+    shutil.rmtree(workdest.parent)
+
+
+# @pytest.mark.skip(reason="This test takes a long time to run")
+def test_copy_workdirs_large(mock_nfs_mount):
+    """
+    Tests that the entire workdir is copied to the assets dir
+    NOTE: This test assumes the availability of workdir in Assets after a
+          run of test_brt.
+    """
+    proj_dir = Config.proj_dir(utils.get_environment())
+    test_dir = "test/input_files/brt_inputs/Projects/test/"
+    test_assets_dir = "test/input_files/brt_inputs/Assets/test/"
+    image_name = "fake_image.mrc"
+    input_path = Path(proj_dir) / test_dir
+    assets_path = Path(proj_dir) / test_assets_dir
+    input_path.mkdir()
+    image_path = Path(proj_dir) / test_dir / image_name
+    test_filepath = FilePath(input_dir=input_path, fp_in=image_path)
+
+    # copy entire Asset working dir from previous brt test run to test work_dir
+    asset_path = (
+        Path(proj_dir) / "test/input_files/brt_inputs/Assets/2013-1220-dA30_5-BSC-1_10"
+    )
+    filelist = glob.glob(f"{asset_path.as_posix()}/work_dir_*/*/*")
+    for item in filelist:
+        if os.path.isdir(item):
+            shutil.copytree(item, test_filepath.working_dir, dirs_exist_ok=True)
+        else:
+            shutil.copy(item, test_filepath.working_dir)
+
+    workdest = utils.copy_workdirs.__wrapped__(test_filepath)  # Actual test
+
+    assert workdest.exists()
+    # Clean up
+    assert "work_dir" in str(workdest.parent)
+    shutil.rmtree(input_path)
+    shutil.rmtree(assets_path)
