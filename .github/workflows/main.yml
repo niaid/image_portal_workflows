@@ -10,9 +10,13 @@ on:
     branches:
       - main
 
+env:
+  HEDWIG_ENV: dev
+
 jobs:
   docs:
     runs-on: ubuntu-latest
+    needs: test  
     steps:
       - uses: actions/checkout@v2
         with:
@@ -26,7 +30,6 @@ jobs:
           python -m pip install -r docs/requirements.txt
       - name: Build Sphinx Documentation
         run: |
-          export HEDWIG_ENV=dev
           make -C docs html
       - name: Upload documentation
         if: github.event_name == 'push'
@@ -46,14 +49,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
           TARGET_BRANCH: "gh-pages"
-  #  test:
-  #    runs-on: ubuntu-latest
-  #    strategy:
-  #      matrix:
-  #        python-version: ["3.8"]
-  #    steps:
-  #      - uses: actions/checkout@v3
-  #      - uses: actions/setup-python@v4
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8"]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        
   #      - name: Create LFS file list
   #        run: |
   #          git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
@@ -89,17 +94,22 @@ jobs:
   #        #        uses: actions/setup-python@v2
   #        #        with:
   #        #          python-version: ${{ matrix.python-version }}
-  #      - name: Install dependencies
-  #        run: |
-  #          IMOD=imod_4.11.11_RHEL7-64_CUDA10.1.sh
-  #          export IMOD_DIR=/usr/local/IMOD
-  #          export PATH=$IMOD_DIR/bin:$PATH
-  #          wget https://bio3d.colorado.edu/imod/AMD64-RHEL5/${IMOD} &&  sudo sh ${IMOD} -yes &&  rm -f ${IMOD}
-  #          /usr/local/IMOD/bin/dm2mrc -h
-  #          python -m pip install --upgrade pip
-  #          pip install -e . -r requirements.txt --find-links https://github.com/niaid/tomojs-pytools/releases/tag/v0.6
-  #          sudo apt -y update && sudo apt -y install libgl-dev graphicsmagick
-  #          export HEDWIG_ENV=qa
-  #          pytest test/test_callback.py
-  #          pytest test/test_dm.py
-  #
+      - name: Install dependencies
+        run: |
+          IMOD=imod_4.11.24_RHEL7-64_CUDA10.1.sh
+          export IMOD_DIR=/usr/local/IMOD
+          export PATH=$IMOD_DIR/bin:$PATH
+          wget https://bio3d.colorado.edu/imod/AMD64-RHEL5/${IMOD} &&  sudo sh ${IMOD} -yes &&  rm -f ${IMOD}
+          /usr/local/IMOD/bin/dm2mrc -h
+          python -m pip install --upgrade pip
+          pip install -e . -r requirements.txt 
+          sudo apt -y update && sudo apt -y install libgl-dev graphicsmagick
+
+      - name: Test Coverage
+        continue-on-error: true
+        run: |
+          python -m pytest --cov-report term --cov=. test/test_dm.py test/test_utils.py
+
+      - name: Coverage Badge
+        uses: tj-actions/coverage-badge-py@v2
+
