@@ -36,7 +36,6 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
     ]
     FilePath.run(cmd=cmd, log_file=log_file)
 
-
 @task
 def gen_align_xg(fp_in: FilePath) -> None:
     """
@@ -59,25 +58,35 @@ def gen_align_xg(fp_in: FilePath) -> None:
 
 
 @task
-def gen_newstack_align(fp_in: FilePath) -> None:
+def gen_newstack_combi(fp_in: FilePath) -> Dict:
     """
-    generates align.mrc
-    newstack -x {WORKDIR}/align.xg {WORKDIR}/Source.mrc {WORKDIR}/Align.mrc
+    newstack -x align.xg -x stretch.xf -meansd 150,40 -mo 0 source.mrc out.mrc
     """
-    align_mrc = fp_in.gen_output_fp(out_fname="align.mrc")
     align_xg = fp_in.gen_output_fp(out_fname="align.xg")
+    stretch_xf = fp_in.gen_output_fp(out_fname="stretch.xf")
     source_mrc = fp_in.gen_output_fp(out_fname="source.mrc")
-
-    log_file = f"{align_mrc.parent}/newstack_align.log"
+    base_mrc = fp_in.gen_output_fp(output_ext=".mrc", out_fname="adjusted.mrc")
+    # output_fp = fp_in.gen_output_fp(out_fname="out.mrc")
+    log_file = f"{align_xg.parent}/ns_align.log"
     cmd = [
         Config.newstack_loc,
         "-x",
         align_xg.as_posix(),
+        "-x",
+        stretch_xf.as_posix(),
+        "-meansd",
+        "150,40",
+        "-mo",
+        "0",
         source_mrc.as_posix(),
-        align_mrc.as_posix(),
+        base_mrc.as_posix()
     ]
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
+    assets_fp_adjusted_mrc = fp_in.copy_to_assets_dir(fp_to_cp=base_mrc)
+    return fp_in.gen_asset(asset_type="averagedVolume", asset_fp=assets_fp_adjusted_mrc)
+
+
 
 
 @task
@@ -119,56 +128,6 @@ def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
         _file.write(f"1 0 0 {tilt_angle} 0 0")
 
 
-@task
-def gen_newstack_corr_command(fp_in: FilePath) -> dict:
-    """
-    generates corrected.mrc
-    uses the stretch file from create_stretch_file()
-
-    newstack -x {WORKDIR}/stretch.xf {WORKDIR}/aligned.mrc {WORKDIR}/corrected.mrc
-    """
-    stretch_fp = fp_in.gen_output_fp(out_fname="stretch.xf")
-    align_mrc = fp_in.gen_output_fp(out_fname="align.mrc")
-    corrected_mrc = fp_in.gen_output_fp(out_fname="corrected.mrc")
-    log_file = f"{stretch_fp.parent}/newstack_cor.log"
-    cmd = [
-        Config.newstack_loc,
-        "-x",
-        stretch_fp.as_posix(),
-        align_mrc.as_posix(),
-        corrected_mrc.as_posix(),
-    ]
-    utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
-    assets_fp_corr_mrc = fp_in.copy_to_assets_dir(fp_to_cp=corrected_mrc)
-    # we think that averagedVolume is not the best term here.
-    # possibly use: alignedCorrectedVol
-    return fp_in.gen_asset(asset_type="averagedVolume", asset_fp=assets_fp_corr_mrc)
-
-
-@task
-def gen_newstack_norm_command(fp_in: FilePath) -> None:
-    """
-    generates basename.mrc
-    MRC file that will be used for all subsequent operations:
-
-    newstack -meansd 150,40 -mo 0 corrected.mrc {BASENAME}.mrc
-    """
-    corrected_mrc = fp_in.gen_output_fp(out_fname="corrected.mrc")
-    fp_out = fp_in.gen_output_fp(output_ext=".mrc", out_fname="adjusted.mrc")
-    log_file = f"{fp_out.parent}/newstack_norm.log"
-    cmd = [
-        Config.newstack_loc,
-        "-meansd",
-        "150,40",
-        "-mo",
-        "0",
-        corrected_mrc.as_posix(),
-        fp_out.as_posix(),
-    ]
-    utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
-    assets_fp_mrc = fp_in.copy_to_assets_dir(fp_to_cp=fp_out)
 
 
 @task
@@ -287,20 +246,14 @@ with Flow(
     align_xfs = gen_xfalign_comand.map(fp_in=fps, upstream_tasks=[tif_to_mrc])
 
     # using align.xf create align.xg
-    gen_align_xgs = gen_align_xg.map(fp_in=fps, upstream_tasks=[align_xfs])
-
-    # using align.xg create align.mrc
-    align_mrcs = gen_newstack_align.map(fp_in=fps, upstream_tasks=[gen_align_xgs])
+    align_xgs = gen_align_xg.map(fp_in=fps, upstream_tasks=[align_xfs])
 
     # create stretch file using tilt_parameter
     stretchs = create_stretch_file.map(tilt=unmapped(tilt_angle), fp_in=fps)
 
-    corrected_mrc_assets = gen_newstack_corr_command.map(
-        fp_in=fps, upstream_tasks=[stretchs, align_mrcs]
-    )
 
-    base_mrcs = gen_newstack_norm_command.map(
-        fp_in=fps, upstream_tasks=[corrected_mrc_assets]
+    base_mrcs = gen_newstack_combi.map(
+        fp_in=fps, upstream_tasks=[stretchs,align_xgs]
     )
     corrected_movie_assets = utils.mrc_to_movie.map(
         file_path=fps,
@@ -333,7 +286,7 @@ with Flow(
         prim_fp=callback_with_keyimgs, asset=pyramid_assets
     )
     callback_with_corr_mrcs = utils.add_asset.map(
-        prim_fp=callback_with_pyramids, asset=corrected_mrc_assets
+        prim_fp=callback_with_pyramids, asset=base_mrcs
     )
     callback_with_corr_movies = utils.add_asset.map(
         prim_fp=callback_with_corr_mrcs, asset=corrected_movie_assets
