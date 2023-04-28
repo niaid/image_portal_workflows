@@ -1,4 +1,6 @@
 pytest
+coverage
+pytest-cov
 prefect==1.*
 dask
 distributed
