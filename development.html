@@ -112,6 +112,7 @@ The following programs need to be available locally:</p>
 <ul class="simple">
 <li><p>Java runtime (in order to run <cite>etomo</cite> in BRT)</p></li>
 <li><p>ffmpeg (in order to create movies)</p></li>
+<li><p>IMOD package: <a class="reference external" href="https://bio3d.colorado.edu/imod/">https://bio3d.colorado.edu/imod/</a></p></li>
 </ul>
 <p>Similar to the HPC Set up below, you can locally set up <cite>dev</cite> and <cite>qa</cite> virtual envs.</p>
 <p>Special note for <strong>Mac M1</strong>: The <cite>tomojs-pytools</cite> library depends on imagecodecs which does
@@ -267,17 +268,28 @@ upstream      git@github.com:niaid/image_portal_workflows.git (push)
 </section>
 <section id="testing">
 <h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading"></a></h2>
-<p>There are currently four Pytest files in the <cite>test</cite> directory:</p>
+<p>There are currently five Pytest files in the <cite>test</cite> directory:</p>
 <ul class="simple">
-<li><p>test_dm: 2D</p></li>
-<li><p>test_brt: batchruntomo</p></li>
-<li><p>test_sem:</p></li>
-<li><p>test_callback: I believe this test is out-of-date and needs some fixing</p></li>
+<li><p>test_brt: end-to-end test of batchruntomo pipeline</p></li>
+<li><p>test_callback: This test is out-of-date and will likely go away</p></li>
+<li><p>test_dm: 2D end-to-end pipeline test</p></li>
+<li><p>test_sem: end-to-end test of FIBSEM pipeline</p></li>
+<li><p>test_utils: unit tests of utils/utils.py module</p></li>
 </ul>
 <p>There is test data for <cite>test_dm</cite> in the Git repo, but not for the other two. These files need to be
 downloaded from the HPC machines. The following script will copy them:</p>
 <p><cite>test/copy_test_data.sh</cite></p>
-<p>These files are quite large, so you may want to run each line separately at the command line.</p>
+<p>These files are quite large, so you may want to run each line separately at the command line. Some unit tests also require
+the results of previous <code class="docutils literal notranslate"><span class="pre">test_brt</span></code> runs, specifically in the Assets directory. So you must run test_brt before the complete
+test suite will work.</p>
+<p>To run the entire test suite, in the portal_image_workflows directory, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest test
+</pre></div>
+</div>
+<p>To determine the test coverage, in the portal_image_workflows directory, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest --cov=&quot;.&quot; --cov-config=.coveragerc test
+</pre></div>
+</div>
 </section>
 <section id="sphinx-documentation">
 <h2>Sphinx Documentation<a class="headerlink" href="#sphinx-documentation" title="Permalink to this heading"></a></h2>
