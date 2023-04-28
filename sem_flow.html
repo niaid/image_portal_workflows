@@ -107,13 +107,6 @@ xftoxg -ro -mi 2 {WORKDIR}/align.xf {WORKDIR}/align.xg</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="sem_tomo.flow.gen_newstack_align">
-<span class="sig-prename descclassname"><span class="pre">sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_newstack_align</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#sem_tomo.flow.gen_newstack_align" title="Permalink to this definition"></a></dt>
-<dd><p>generates align.mrc
-newstack -x {WORKDIR}/align.xg {WORKDIR}/Source.mrc {WORKDIR}/Align.mrc</p>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="sem_tomo.flow.convert_tif_to_mrc">
 <span class="sig-prename descclassname"><span class="pre">sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">convert_tif_to_mrc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#sem_tomo.flow.convert_tif_to_mrc" title="Permalink to this definition"></a></dt>
 <dd><p>generates source.mrc
@@ -131,22 +124,6 @@ file looks like:
 1 0 0 {TILT_PARAMETER} 0 0</p>
 <p>where TILT_PARAMETER is calculated as 1/cos({TILT_ANGLE}).
 Note that tilt angle is input in degrees, however cos method expects radians</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sem_tomo.flow.gen_newstack_corr_command">
-<span class="sig-prename descclassname"><span class="pre">sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_newstack_corr_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#sem_tomo.flow.gen_newstack_corr_command" title="Permalink to this definition"></a></dt>
-<dd><p>generates corrected.mrc
-uses the stretch file from create_stretch_file()</p>
-<p>newstack -x {WORKDIR}/stretch.xf {WORKDIR}/aligned.mrc {WORKDIR}/corrected.mrc</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="sem_tomo.flow.gen_newstack_norm_command">
-<span class="sig-prename descclassname"><span class="pre">sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_newstack_norm_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#sem_tomo.flow.gen_newstack_norm_command" title="Permalink to this definition"></a></dt>
-<dd><p>generates basename.mrc
-MRC file that will be used for all subsequent operations:</p>
-<p>newstack -meansd 150,40 -mo 0 corrected.mrc {BASENAME}.mrc</p>
 </dd></dl>
 
 <dl class="py function">
