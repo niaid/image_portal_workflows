@@ -30,6 +30,7 @@ The following programs need to be available locally:
 
 - Java runtime (in order to run `etomo` in BRT)
 - ffmpeg (in order to create movies)
+- IMOD package: https://bio3d.colorado.edu/imod/
 
 Similar to the HPC Set up below, you can locally set up `dev` and `qa` virtual envs.
 
@@ -209,19 +210,35 @@ To contribute to the project first ensure your fork is in good shape, and then t
 Testing
 *******
 
-There are currently four Pytest files in the `test` directory:
+There are currently five Pytest files in the `test` directory:
 
-- test_dm: 2D
-- test_brt: batchruntomo
-- test_sem:
-- test_callback: I believe this test is out-of-date and needs some fixing
+- test_brt: end-to-end test of batchruntomo pipeline
+- test_callback: This test is out-of-date and will likely go away
+- test_dm: 2D end-to-end pipeline test
+- test_sem: end-to-end test of FIBSEM pipeline
+- test_utils: unit tests of utils/utils.py module
 
 There is test data for `test_dm` in the Git repo, but not for the other two. These files need to be
 downloaded from the HPC machines. The following script will copy them:
 
 `test/copy_test_data.sh`
 
-These files are quite large, so you may want to run each line separately at the command line.
+These files are quite large, so you may want to run each line separately at the command line. Some unit tests also require
+the results of previous ``test_brt`` runs, specifically in the Assets directory. So you must run test_brt before the complete
+test suite will work.
+
+To run the entire test suite, in the portal_image_workflows directory, run:
+
+.. code-block::
+
+    $ pytest test
+
+To determine the test coverage, in the portal_image_workflows directory, run:
+
+.. code-block::
+
+    $ pytest --cov="." --cov-config=.coveragerc test
+
 
 
 ********************

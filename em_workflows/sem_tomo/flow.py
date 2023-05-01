@@ -126,7 +126,6 @@ def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
         _file.write(f"1 0 0 {tilt_angle} 0 0")
 
 
-
 @task
 def gen_newstack_mid_mrc_command(fp_in: FilePath) -> None:
     """
