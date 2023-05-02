@@ -13,9 +13,9 @@ def SLURM_exec():
     """
     cluster = SLURMCluster(
         name="dask-worker",
-        cores=16,
+        cores=60,
         memory="32G",
-        processes=1,
+        # processes=1,
         death_timeout=121,
         local_directory="/gs1/home/macmenaminpe/tmp/",
         queue="gpu",
@@ -48,6 +48,7 @@ def command_loc(cmd: str) -> str:
 class Config:
     # location in RML HPC
     binvol = "/opt/rml/imod/bin/binvol"
+    bioformats2raw = "/gs1/home/macmenaminpe/bin/bioformats2raw"
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
     dm2mrc_loc = "/opt/rml/imod/bin/dm2mrc"
     clip_loc = "/opt/rml/imod/bin/clip"
@@ -66,6 +67,16 @@ class Config:
         "prod": "RMLEMHedwigProd",
     }
 
+    # bioformats2raw settings
+    fibsem_depth = 128
+    fibsem_height = 128
+    fibsem_width = 128
+    brt_depth = 64
+    brt_width = 256
+    brt_height = 256
+
+    # the path to the Projects dir - can vary depending on mount point.
+    # assets_dir = "/hedwigqa_data/Assets/"
     # Image sizes, just large and small for now
     LARGE_DIM = 1024
     SMALL_DIM = 300

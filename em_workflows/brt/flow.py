@@ -57,6 +57,41 @@ from em_workflows.utils import neuroglancer as ng
 
 from em_workflows.config import Config
 
+"""
+Batchruntomo pipeline overview:
+- Takes an `input_dir` containing 1 or more .mrc or .st files
+- IMOD batchruntomo (BRT) https://bio3d.colorado.edu/imod/doc/man/batchruntomo.html is run on each file in dir.
+- BRT has a large number of parameters, which are provided using an .adoc parameter file.
+- Some of these parameters are provided to the pipeline on a per run basis, the remaining of these parameters are defaulted using the templated adoc file.
+- There are two templates, ../templates/plastic_brt.adoc and ../templates/cryo_brt.adoc (Note, currently these are identical, we expect this to change.) The template chosen is defined by parameter adoc_template.
+- The run time parameters are interpolated into the template, and this file is then run with BRT.
+- BRT produces two output files that we care about: _ali.mrc and _rec.mrc
+- Using the ali (alignment) file we generate a tilt movie:
+    look up dimensionality of alignment file, and generate n sections in gen_ali_x()
+    we assemble these sections into a single aligned mrc file, in gen_ali_asmbl()
+    we convert this into a stack of jpegs, in gen_mrc2tiff()
+    we compile these jpegs into a tilt movie in gen_tilt_movie()
+    ADDITIONALLY
+    we take the mid point of the stack jpeg to use as the display thumbnail.
+    we clean up intermediate files now.
+- Using the _rec (reconstructed) file we generate a reconstructed movie (in a similar fashion to the above):
+    look up dimensionality of the reconstructed (_rec) file,
+    create a stack of averaged mrc files in gen_clip_avgs().
+    create single mrc using the above averaged stack, in consolidate_ave_mrcs()
+    convert this mrc to a stack of jpegs, in gen_ave_jpgs_from_ave_mrc()
+    compile jpegs into reconstructed movie, in gen_recon_movie()
+    clean up after ourselves in cleanup_files()
+- Use average (created above) reconstructed mrc file to create input for volslicer.k in gen_ave_8_vol()
+- need to produce pyramid files with reconstructed mrc.
+    convert _rec.mrc file to nifti, in neuroglancer.gen_niftis()
+    convert nifti file to pyramid file, in gen_pyramids()
+    compress pyramid assets, in gen_archive_pyr()
+- Now we need to copy the outputs to the right place, and tell the API where they are. We use JSON to talk to the API.
+- build a json datastructure, containing the locations of the inputs we key on "primaryFilePath", and we append every output that's generated for *this* input into the "assets" json key.
+- Finally, we POST the JSON datastructure to the API, and cleanup temp dirs.
+"""
+
+
 @task
 def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
     """
@@ -535,12 +570,16 @@ with Flow(
     # finished volslicer inputs.
 
     # START PYRAMID GEN
-    # nifti file generation
-    niftis = ng.gen_niftis.map(fp_in=fps, upstream_tasks=[brts])
-    pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[niftis])
-    archive_pyramid_cmds = ng.gen_archive_pyr.map(
-        file_path=fps, upstream_tasks=[pyramid_assets]
+    pyramid_assets = ng.gen_zarr.map(
+        fp_in=fps,
+        depth=unmapped(Config.brt_depth),
+        width=unmapped(Config.brt_width),
+        height=unmapped(Config.brt_height),
+        upstream_tasks=[brts],
     )
+    #  archive_pyramid_cmds = ng.gen_archive_pyr.map(
+    #      file_path=fps, upstream_tasks=[pyramid_assets]
+    #  )
 
     # now we've done the computational work.
     # the relevant files have been put into the Assets dirs, but we need to inform the API
@@ -567,9 +606,6 @@ with Flow(
         prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
 
-    # this is a bit dubious. Previously I wanted to ONLY copy intermed files upon failure.
-    # now we copy evreything, everytime. :shrug emoji:
-    # spoiler: (we're going to run out of space).
     cp_wd_to_assets = utils.copy_workdirs.map(
         fps, upstream_tasks=[callback_with_tilt_mov]
     )

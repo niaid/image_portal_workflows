@@ -11,8 +11,6 @@ from em_workflows.config import Config
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 
-# shell_task = ShellTaskEcho(log_stderr=True, return_all=True, stream_output=True)
-
 
 @task
 def gen_xfalign_comand(fp_in: FilePath) -> None:
@@ -35,6 +33,7 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
         align_xf.as_posix(),
     ]
     FilePath.run(cmd=cmd, log_file=log_file)
+
 
 @task
 def gen_align_xg(fp_in: FilePath) -> None:
@@ -79,14 +78,12 @@ def gen_newstack_combi(fp_in: FilePath) -> Dict:
         "-mo",
         "0",
         source_mrc.as_posix(),
-        base_mrc.as_posix()
+        base_mrc.as_posix(),
     ]
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     assets_fp_adjusted_mrc = fp_in.copy_to_assets_dir(fp_to_cp=base_mrc)
     return fp_in.gen_asset(asset_type="averagedVolume", asset_fp=assets_fp_adjusted_mrc)
-
-
 
 
 @task
@@ -126,8 +123,6 @@ def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
     output_fp = fp_in.gen_output_fp(out_fname="stretch.xf")
     with open(output_fp.as_posix(), "w") as _file:
         _file.write(f"1 0 0 {tilt_angle} 0 0")
-
-
 
 
 @task
@@ -251,10 +246,7 @@ with Flow(
     # create stretch file using tilt_parameter
     stretchs = create_stretch_file.map(tilt=unmapped(tilt_angle), fp_in=fps)
 
-
-    base_mrcs = gen_newstack_combi.map(
-        fp_in=fps, upstream_tasks=[stretchs,align_xgs]
-    )
+    base_mrcs = gen_newstack_combi.map(fp_in=fps, upstream_tasks=[stretchs, align_xgs])
     corrected_movie_assets = utils.mrc_to_movie.map(
         file_path=fps,
         root=unmapped("adjusted"),
@@ -270,10 +262,14 @@ with Flow(
     # small thumb
     thumb_assets = gen_keyimg_small.map(fp_in=fps, upstream_tasks=[keyimg_assets])
 
-    # nifti file generation
-    niftis = ng.gen_niftis.map(fp_in=fps, upstream_tasks=[base_mrcs])
-
-    pyramid_assets = ng.gen_pyramids.map(fp_in=fps, upstream_tasks=[niftis])
+    # zarr file generation
+    pyramid_assets = ng.gen_zarr.map(
+        fp_in=fps,
+        depth=unmapped(Config.fibsem_depth),
+        width=unmapped(Config.fibsem_width),
+        height=unmapped(Config.fibsem_height),
+        upstream_tasks=[base_mrcs],
+    )
 
     # this is the toplevel element (the input file basically) onto which
     # the "assets" (ie the outputs derived from this file) are hung.
