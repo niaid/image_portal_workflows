@@ -14,8 +14,9 @@ import pytools
 import logging
 import sys
 
+
 @task
-def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int=None) -> Dict:
+def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int = None) -> Dict:
 
     """
     bioformats2raw --scale-format-string '%2$d' --downsample-type AREA --compression=blosc --compression-properties cname=zstd --compression-properties clevel=5 --compression-properties shuffle=1 --tile_width 512 --tile_height 512  input.mrc output.zarr
@@ -55,13 +56,13 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int=None) -> Dict:
         "--tile_width",
         str(width),
         "--tile_height",
-        str(height)
+        str(height),
     ]
     if depth:
         cmd.extend(["--chunk_depth", str(depth)])
     else:
         # if there's no depth we know it's a 2dmrc input
-        cmd.extend(['--downsample-type', 'AREA'])
+        cmd.extend(["--downsample-type", "AREA"])
 
     cmd.extend([input_file, zarr.as_posix()])
 
@@ -98,8 +99,6 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int=None) -> Dict:
 #      return outdir
 
 
-
-
 #  @task
 #  def gen_archive_pyr(file_path: FilePath) -> None:
 #      """
@@ -112,4 +111,3 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int=None) -> Dict:
 #      logger = prefect.context.get("logger")
 #      logger.info(f"compressing : {cmd}")
 #      subprocess.run(cmd, cwd=file_path.working_dir)
-

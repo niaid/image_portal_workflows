@@ -34,6 +34,7 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
     ]
     FilePath.run(cmd=cmd, log_file=log_file)
 
+
 @task
 def gen_align_xg(fp_in: FilePath) -> None:
     """
@@ -77,14 +78,12 @@ def gen_newstack_combi(fp_in: FilePath) -> Dict:
         "-mo",
         "0",
         source_mrc.as_posix(),
-        base_mrc.as_posix()
+        base_mrc.as_posix(),
     ]
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     assets_fp_adjusted_mrc = fp_in.copy_to_assets_dir(fp_to_cp=base_mrc)
     return fp_in.gen_asset(asset_type="averagedVolume", asset_fp=assets_fp_adjusted_mrc)
-
-
 
 
 @task
@@ -247,10 +246,7 @@ with Flow(
     # create stretch file using tilt_parameter
     stretchs = create_stretch_file.map(tilt=unmapped(tilt_angle), fp_in=fps)
 
-
-    base_mrcs = gen_newstack_combi.map(
-        fp_in=fps, upstream_tasks=[stretchs,align_xgs]
-    )
+    base_mrcs = gen_newstack_combi.map(fp_in=fps, upstream_tasks=[stretchs, align_xgs])
     corrected_movie_assets = utils.mrc_to_movie.map(
         file_path=fps,
         root=unmapped("adjusted"),

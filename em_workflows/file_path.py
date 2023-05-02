@@ -35,6 +35,7 @@ class FilePath:
 
     :todo: Consider making entire class immutable
     """
+
     def __init__(self, input_dir: Path, fp_in: Path) -> None:
         """
         sets up:
@@ -148,7 +149,7 @@ class FilePath:
         """
         Suspect to be redundant - TODO
         """
-        #TODO move valid_types to Config.valid_callback_asset_types
+        # TODO move valid_types to Config.valid_callback_asset_types
         valid_typs = [
             "averagedVolume",
             "keyImage",
@@ -194,7 +195,7 @@ class FilePath:
 
     @staticmethod
     def filter_by_suffix(fp: Path, suffixes: List[str]) -> bool:
-        """ This method currently isn't used """
+        """This method currently isn't used"""
         for ext in suffixes:
             if fp.suffix.lower() == ext:
                 return True
@@ -267,12 +268,12 @@ class FilePath:
         return dest
 
     def rm_workdir(self):
-        """ Removes the the entire working directory """
+        """Removes the the entire working directory"""
         shutil.rmtree(self.working_dir)
 
     @staticmethod
     def run(cmd: List[str], log_file: str) -> int:
-        """ Runs a Unix command as a subprocess
+        """Runs a Unix command as a subprocess
 
         - Captures stderr & stddout and writes them to the `log_file` input parameter.
         - If final returncode is not 0, raises a FAIL signal

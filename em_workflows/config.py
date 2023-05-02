@@ -67,7 +67,6 @@ class Config:
         "prod": "RMLEMHedwigProd",
     }
 
-
     # bioformats2raw settings
     fibsem_depth = 128
     fibsem_height = 128

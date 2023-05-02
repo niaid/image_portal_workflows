@@ -311,13 +311,13 @@ def run_brt(
     TargetNumberOfBeads: int,
     LocalAlignments: int,
     THICKNESS: int,
-) -> None:    
+) -> None:
     """
     The natural place for this function is within the brt flow.
-    The reason for this is to facilitate testing. In prefect 1, a 
+    The reason for this is to facilitate testing. In prefect 1, a
     flow lives within a context. This causes problems if things are mocked
     for testing. If the function is in utils, these problems go away.
-    TODO, this is ugly. This might vanish in Prefect 2, since flows are 
+    TODO, this is ugly. This might vanish in Prefect 2, since flows are
     no longer obligated to being context dependant.
     """
 
@@ -487,7 +487,7 @@ def abbreviate_list(l: List[str]) -> str:
 def log(msg):
     # log_name is defined by the dir_name (all wfs are associated with an input_dir
     # Verify that we are in a flow and have perameters defined; not true if testing
-    if hasattr(context, 'parameters'):
+    if hasattr(context, "parameters"):
         logger = logging.getLogger(context.parameters["input_dir"])
         logger.info(msg)
     context.logger.info(msg)
