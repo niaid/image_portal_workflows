@@ -38,3 +38,5 @@ def mock_nfs_mount(monkeypatch):
     monkeypatch.setattr(Config, "xftoxg_loc", command_loc("xftoxg"))
 
     monkeypatch.setattr(Config, "convert_loc", command_loc("convert"))
+    monkeypatch.setattr(Config, "bioformats2raw", command_loc("bioformats2raw"))
+

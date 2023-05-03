@@ -1,13 +1,8 @@
 from em_workflows.config import Config
-import subprocess
 from em_workflows.file_path import FilePath
 from em_workflows.utils import utils
 from typing import Dict
-import math
-import shutil
-import json
 from pathlib import Path
-import prefect
 from prefect import task
 from pytools.workflow_functions import visual_min_max
 import pytools
@@ -19,9 +14,9 @@ import sys
 def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int = None) -> Dict:
 
     """
-    bioformats2raw --scale-format-string '%2$d' --downsample-type AREA --compression=blosc --compression-properties cname=zstd --compression-properties clevel=5 --compression-properties shuffle=1 --tile_width 512 --tile_height 512  input.mrc output.zarr
-
-    bioformats2raw --scale-format-string '%2$d' --compression=blosc --compression-properties cname=zstd --compression-properties clevel=5 --compression-properties shuffle=1  --resolutions 1 --chunk_depth 128 --tile_width 128 --tile_height 128 input.mrc output.zarr
+    bioformats2raw --scale-format-string '%2$d' --compression=blosc --compression-properties cname=zstd \
+    --compression-properties clevel=5 --compression-properties shuffle=1  --resolutions 1 --chunk_depth 128 \
+    --tile_width 128 --tile_height 128 input.mrc output.zarr
     uses bioformats
     """
     zarr = fp_in.gen_output_fp(output_ext=".zarr")
@@ -29,7 +24,7 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int = None) -> Dic
     base_mrc = fp_in.gen_output_fp(output_ext=".mrc", out_fname="adjusted.mrc")
     input_mrc = fp_in.fp_in
 
-    utils.log(f"Created zarr ")
+    utils.log("Created zarr ")
     if rec_mrc.is_file():
         input_file = rec_mrc.as_posix()
     elif base_mrc.is_file():
@@ -37,7 +32,7 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int = None) -> Dic
     elif input_mrc.is_file():
         input_file = input_mrc.as_posix()
     else:
-        raise ValueError(f"unable to find input for zarr generation.")
+        raise ValueError("unable to find input for zarr generation.")
 
     cmd = [
         Config.bioformats2raw,
@@ -69,7 +64,7 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int = None) -> Dic
     log_file = f"{zarr.parent}/mrc2zarr.log"
     utils.log(f"Created zarr {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
-    utils.log(f"biulding multiscales")
+    utils.log("biulding multiscales")
     cmd_ms = ["zarr_build_multiscales", zarr.as_posix()]
     FilePath.run(cmd=cmd_ms, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=zarr)

@@ -58,7 +58,11 @@ class FilePath:
         # log(self.__repr__())
 
     def __str_(self) -> str:
-        return f"FilePath: proj_root:{self.proj_root}\nfp_in:{self.fp_in}\nprim_fp:{self.prim_fp_elt}\nworking_dir:{self.working_dir}\nassets_dir: {self.assets_dir}."
+        return f"FilePath: proj_root:{self.proj_root}\n\
+                fp_in:{self.fp_in}\n\
+                prim_fp:{self.prim_fp_elt}\n\
+                working_dir:{self.working_dir}\n\
+                assets_dir: {self.assets_dir}."
 
     @property
     def assets_dir(self) -> Path:

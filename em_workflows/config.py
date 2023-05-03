@@ -24,7 +24,7 @@ def SLURM_exec():
     )
     cluster.adapt(minimum=1, maximum=6)
     logging = prefect.context.get("logger")
-    logging.debug(f"Dask cluster started")
+    logging.debug("Dask cluster started")
     logging.debug(f"see dashboard {cluster.dashboard_link}")
     return cluster
 

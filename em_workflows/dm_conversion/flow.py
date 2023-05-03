@@ -5,10 +5,9 @@ from prefect.run_configs import LocalRun
 from prefect.engine import signals
 from pytools.meta import is_int16
 from pytools.convert import file_to_uint8
-
+from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
 from em_workflows.config import Config
-from em_workflows.utils import utils, neuroglancer
 
 
 @task
@@ -170,7 +169,7 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
             output.as_posix(),
         ]
     else:
-        msg = f"Jpeg scaler must have size argument set to 'l' or 's'"
+        msg = "Jpeg scaler must have size argument set to 'l' or 's'"
         raise signals.FAIL(msg)
     FilePath.run(cmd, log)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=output)
