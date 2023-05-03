@@ -57,50 +57,51 @@ jobs:
         python-version: ["3.8"]
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v4
         
-  #      - name: Create LFS file list
-  #        run: |
-  #          git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
-  #      - name: Restore LFS cache
-  #        uses: actions/cache@v2
-  #        id: lfs-cache
-  #        with:
-  #          path: .git/lfs
-  #          key: lfs-v1-${{ hashFiles('.lfs-assets-id') }}
-  #          restore-keys: lfs-v1-
-  #      - name: Git LFS Pull
-  #        run: |
-  #          git lfs pull
-  #        #      - name: IMOD Container Build
-  #        #        id: docker-build-imod
-  #        #        env:
-  #        #          DOCKERFILE_PATH: utils/imod/
-  #        #        run: |
-  #        #          docker build -t imod $DOCKERFILE_PATH
-  #        #      - name: IMOD Container Test
-  #        #        run: |
-  #        #          docker run imod dm2mrc -h
-  #        #      - name: Graphicsmagick Container Build
-  #        #        id: docker-build-graphicsmagick
-  #        #        env:
-  #        #          DOCKERFILE_PATH: utils/graphicsmagick/
-  #        #        run: |
-  #        #          docker build -t graphicsmagick $DOCKERFILE_PATH
-  #        #      - name: Graphicsmagick Container Test
-  #        #        run: |
-  #        #          docker run graphicsmagick gm -version
-  #        #      - name: Set up Python ${{ matrix.python-version }}
-  #        #        uses: actions/setup-python@v2
-  #        #        with:
-  #        #          python-version: ${{ matrix.python-version }}
+      - name: Create LFS file list
+        run: |
+          git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+      - name: Restore LFS cache
+        uses: actions/cache@v2
+        id: lfs-cache
+        with:
+          path: .git/lfs
+          key: lfs-v1-${{ hashFiles('.lfs-assets-id') }}
+          restore-keys: lfs-v1-
+      - name: Git LFS Pull
+        run: |
+          git lfs pull
+#      - name: IMOD Container Build
+#        id: docker-build-imod
+#        env:
+#          DOCKERFILE_PATH: utils/imod/
+#        run: |
+#          docker build -t imod $DOCKERFILE_PATH
+#      - name: IMOD Container Test
+#        run: |
+#          docker run imod dm2mrc -h
+#      - name: Graphicsmagick Container Build
+#        id: docker-build-graphicsmagick
+#        env:
+#          DOCKERFILE_PATH: utils/graphicsmagick/
+#        run: |
+#          docker build -t graphicsmagick $DOCKERFILE_PATH
+#      - name: Graphicsmagick Container Test
+#        run: |
+#          docker run graphicsmagick gm -version
+#      - name: Set up Python ${{ matrix.python-version }}
+#        uses: actions/setup-python@v2
+#        with:
+#          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
           IMOD=imod_4.11.24_RHEL7-64_CUDA10.1.sh
           export IMOD_DIR=/usr/local/IMOD
           export PATH=$IMOD_DIR/bin:$PATH
           wget https://bio3d.colorado.edu/imod/AMD64-RHEL5/${IMOD} &&  sudo sh ${IMOD} -yes &&  rm -f ${IMOD}
-          /usr/local/IMOD/bin/dm2mrc -h
           python -m pip install --upgrade pip
           pip install -e . -r requirements.txt 
           sudo apt -y update && sudo apt -y install libgl-dev graphicsmagick
@@ -108,6 +109,8 @@ jobs:
       - name: Test Coverage
         continue-on-error: true
         run: |
+          export IMOD_DIR=/usr/local/IMOD
+          export PATH=$IMOD_DIR/bin:$PATH
           python -m pytest --cov-report term --cov=. test/test_dm.py test/test_utils.py
 
       - name: Coverage Badge
