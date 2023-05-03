@@ -39,12 +39,10 @@ Batchruntomo pipeline overview:
 
 import glob
 import os
-import shutil
 from em_workflows.file_path import FilePath
 import subprocess
 import re
 import math
-from typing import List
 
 from pathlib import Path
 from prefect import task, Flow, Parameter, unmapped
@@ -62,8 +60,11 @@ Batchruntomo pipeline overview:
 - Takes an `input_dir` containing 1 or more .mrc or .st files
 - IMOD batchruntomo (BRT) https://bio3d.colorado.edu/imod/doc/man/batchruntomo.html is run on each file in dir.
 - BRT has a large number of parameters, which are provided using an .adoc parameter file.
-- Some of these parameters are provided to the pipeline on a per run basis, the remaining of these parameters are defaulted using the templated adoc file.
-- There are two templates, ../templates/plastic_brt.adoc and ../templates/cryo_brt.adoc (Note, currently these are identical, we expect this to change.) The template chosen is defined by parameter adoc_template.
+- Some of these parameters are provided to the pipeline on a per run basis, the remaining of
+    these parameters are defaulted using the templated adoc file.
+- There are two templates, ../templates/plastic_brt.adoc and ../templates/cryo_brt.adoc
+    (Note, currently these are identical, we expect this to change.) The template chosen is defined by parameter
+    adoc_template.
 - The run time parameters are interpolated into the template, and this file is then run with BRT.
 - BRT produces two output files that we care about: _ali.mrc and _rec.mrc
 - Using the ali (alignment) file we generate a tilt movie:
@@ -87,7 +88,8 @@ Batchruntomo pipeline overview:
     convert nifti file to pyramid file, in gen_pyramids()
     compress pyramid assets, in gen_archive_pyr()
 - Now we need to copy the outputs to the right place, and tell the API where they are. We use JSON to talk to the API.
-- build a json datastructure, containing the locations of the inputs we key on "primaryFilePath", and we append every output that's generated for *this* input into the "assets" json key.
+- build a json datastructure, containing the locations of the inputs we key on "primaryFilePath", and we append
+    every output that's generated for *this* input into the "assets" json key.
 - Finally, we POST the JSON datastructure to the API, and cleanup temp dirs.
 """
 
@@ -188,7 +190,8 @@ def gen_thumbs(file_path: FilePath, z_dim) -> dict:
     """
     Use GraphicsMagick to create thumbnail images, eg::
 
-        gm convert -size 300x300 BASENAME_ali.{MIDDLE_I}.jpg -resize 300x300 -sharpen 2 -quality 70 keyimg_BASENAME_s.jpg
+        gm convert -size 300x300 BASENAME_ali.{MIDDLE_I}.jpg -resize 300x300 \
+                -sharpen 2 -quality 70 keyimg_BASENAME_s.jpg
     """
     middle_i = calc_middle_i(z_dim=z_dim)
     middle_i_jpg = f"{file_path.working_dir}/{file_path.base}_ali.{middle_i}.jpg"
@@ -248,7 +251,8 @@ def gen_tilt_movie(file_path: FilePath) -> dict:
     """
     generates the tilt movie, eg::
 
-        ffmpeg -f image2 -framerate 4 -i ${BASENAME}_ali.%03d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 tiltMov_${BASENAME}.mp4
+        ffmpeg -f image2 -framerate 4 -i ${BASENAME}_ali.%03d.jpg -vcodec libx264 \
+                -pix_fmt yuv420p -s 1024,1024 tiltMov_${BASENAME}.mp4
     """
     input_fp = f"{file_path.working_dir}/{file_path.base}_ali.%03d.jpg"
     log_file = f"{file_path.working_dir}/ffmpeg_tilt.log"
@@ -281,7 +285,8 @@ def gen_recon_movie(file_path: FilePath) -> dict:
     """
     compiles a stack of jpgs into a movie. eg::
 
-        ffmpeg -f image2 -framerate 8 -i WORKDIR/hedwig/BASENAME_mp4.%04d.jpg -vcodec libx264 -pix_fmt yuv420p -s 1024,1024 WORKDIR/hedwig/keyMov_BASENAME.mp4
+        ffmpeg -f image2 -framerate 8 -i WORKDIR/hedwig/BASENAME_mp4.%04d.jpg -vcodec libx264 \
+                -pix_fmt yuv420p -s 1024,1024 WORKDIR/hedwig/keyMov_BASENAME.mp4
 
     :todo: This and tilt_movie should be refactored into one movie function
     """
@@ -381,7 +386,8 @@ def gen_ave_8_vol(file_path: FilePath) -> dict:
 @task
 def gen_ave_jpgs_from_ave_mrc(file_path: FilePath):
     """
-    - generates a load of jpgs from the ave_base.mrc with the format {base}_mp4.123.jpg **OR** {base}_mp4.1234.jpg depending on size of stack.
+    - generates a load of jpgs from the ave_base.mrc with the format {base}_mp4.123.jpg \
+            **OR** {base}_mp4.1234.jpg depending on size of stack.
     - These jpgs can later be compiled into a movie. eg::
 
         mrc2tif -j -C 100,255 WORKDIR/hedwig/ave_BASNAME.mrc hedwig/BASENAME_mp4

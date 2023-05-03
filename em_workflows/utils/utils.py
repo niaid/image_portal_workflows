@@ -11,9 +11,8 @@ import logging
 import datetime
 from typing import List, Dict, Set, Optional
 from pathlib import Path
-from prefect import task, context
 from prefect import Flow, task, context
-from prefect.triggers import any_successful, always_run, any_failed
+from prefect.triggers import any_successful, always_run
 from prefect.engine.state import State, Success
 from prefect.engine import signals
 from prefect.engine.signals import SKIP, TRIGGERFAIL
@@ -261,7 +260,7 @@ def update_adoc(
 
     output = template.render(vals)
     adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
-    log(f"Created adoc: adoc_loc.as_posix()")
+    log("Created adoc: adoc_loc.as_posix()")
     with open(adoc_loc, "w") as _file:
         print(output, file=_file)
     log(f"generated {adoc_loc}")
@@ -338,9 +337,7 @@ def run_brt(
         THICKNESS=THICKNESS,
     )
     # why do we need to copy these?
-    tomogram_fp = copy_tg_to_working_dir(
-        fname=file_path.fp_in, working_dir=file_path.working_dir
-    )
+    copy_tg_to_working_dir(fname=file_path.fp_in, working_dir=file_path.working_dir)
 
     # START BRT (Batchruntomo) - long running process.
     cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "1", "-gpu", "1"]
@@ -468,22 +465,6 @@ def _tr_str(name):
 #         handler.setFormatter(formatter)
 
 
-def abbreviate_list(l: List[str]) -> str:
-    """
-    Abbreviates a long list displaying only first and last elt,
-    if for example you want give an idea of what commands are running.
-    go from:
-    [This, is, a, long, list, that, goes, on, and, on] ->
-    to:
-    This
-    ..
-    on
-    """
-    # this generates huge numbers of commands -
-    abbrv = "\n" + l[0] + "\n..\n" + l[-1]
-    return abbrv
-
-
 def log(msg):
     # log_name is defined by the dir_name (all wfs are associated with an input_dir
     # Verify that we are in a flow and have perameters defined; not true if testing
@@ -542,7 +523,7 @@ def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> Lis
         for ext in exts:
             _files.extend(input_dir.glob(f"*.{ext}"))
     if not _files:
-        raise signals.FAIL(f"Input dir does not contain anything to process.")
+        raise signals.FAIL(f"Input dir {input_dir} not contain anything to process.")
     log("found files")
     log(_files)
     return _files
@@ -838,7 +819,7 @@ def make_assets_dir(input_dir: Path, subdir_name: Path = None) -> Path:
     Sometimes you don't want to create a subdir based on a file name. (eg fibsem)
     Used in FilePath obj
     """
-    if not "Projects" in input_dir.as_posix():
+    if "Projects" not in input_dir.as_posix():
         raise signals.FAIL(
             f"Input directory {input_dir} does not look correct, it must contain the string 'Projects'."
         )
@@ -940,5 +921,5 @@ def send_callback_body(
             raise signals.FAIL(msg)
     else:
         raise signals.FAIL(
-            f"Invalid state - need callback_url and token, OR set no_api to True."
+            "Invalid state - need callback_url and token, OR set no_api to True."
         )

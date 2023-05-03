@@ -2,12 +2,11 @@ from em_workflows.file_path import FilePath
 import glob
 from natsort import os_sorted
 import math
-from typing import List, Dict
+from typing import Dict
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
 from em_workflows.config import Config
 
-# from em_workflows.shell_task_echo import ShellTaskEcho
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 
@@ -209,11 +208,12 @@ with Flow(
     - Single directory is used to contain a set of gifs, which make up a single stack.
     - tifs compiled into a single mrc file (source.mrc) in convert_tif_to_mrc()
     - two metadata files (align xf, and align xg, are generated to allow creation
-    of aligned mrc file (align.mrc)
+        of aligned mrc file (align.mrc)
     - another mrc file is created, which tries to correct for stage tilt (needs stretch file).
     This file is called corrected.mrc. Note, if no correction is needed, a correction.mrc is
     still created, but without any actual correction of angle.
-    - The corrected mrc file is then contrast adjusted with mean std dev magic numbers "150,40" in gen_newstack_norm_command(), this is referred to as the base mrc
+    - The corrected mrc file is then contrast adjusted with mean std dev magic numbers "150,40"
+        in gen_newstack_norm_command(), this is referred to as the base mrc
     - A movie is created using the base.mrc file.
     - the midpoint of that file is computed, and snapshots are created using this midpoint.
     - We now want to create the pyramid assets, for neuroglancer / viewer.
