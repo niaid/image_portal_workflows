@@ -48,11 +48,7 @@
 <li class="toctree-l2 current"><a class="reference internal" href="em_workflows.html">em_workflows</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="config.html">config module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="file_path.html">file_path module</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">shell_task_echo module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#shell_task_echo.echo"><code class="docutils literal notranslate"><span class="pre">echo()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#shell_task_echo.ShellTaskEcho"><code class="docutils literal notranslate"><span class="pre">ShellTaskEcho</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">shell_task_echo module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="utils-module.html">UTILS</a></li>
 <li class="toctree-l3"><a class="reference internal" href="dm_conversion.html">DM_CONVERSION</a></li>
 <li class="toctree-l3"><a class="reference internal" href="brt.html">BRT</a></li>
@@ -90,68 +86,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-shell_task_echo">
-<span id="shell-task-echo-module"></span><h1>shell_task_echo module<a class="headerlink" href="#module-shell_task_echo" title="Permalink to this heading"></a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="shell_task_echo.echo">
-<span class="sig-prename descclassname"><span class="pre">shell_task_echo.</span></span><span class="sig-name descname"><span class="pre">echo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#shell_task_echo.echo" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="shell_task_echo.ShellTaskEcho">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">shell_task_echo.</span></span><span class="sig-name descname"><span class="pre">ShellTaskEcho</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">helper_script</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shell</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'bash'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_all</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_stderr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stream_output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#shell_task_echo.ShellTaskEcho" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ShellTask</span></code></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="shell_task_echo.ShellTaskEcho.run">
-<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">helper_script</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_echo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#shell_task_echo.ShellTaskEcho.run" title="Permalink to this definition"></a></dt>
-<dd><p>Run the shell command.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>command (string): shell command to be executed; can also be</dt><dd><p>provided at task initialization. Any variables / functions defined in
-<cite>helper_script</cite> will be available in the same process this command
-runs in</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>env (dict, optional): dictionary of environment variables to use for</dt><dd><p>the subprocess</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>helper_script (str, optional): a string representing a shell script, which</dt><dd><p>will be executed prior to the <cite>command</cite> in the same process. Can be used to
-change directories, define helper functions, etc. when re-using this Task
-for different commands in a Flow</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-<dt>Returns:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>output (string): if <cite>return_all</cite> is <cite>False</cite> (the default), only</dt><dd><p>the last line of output is returned, otherwise all lines are
-returned, which is useful for passing result of shell command
-to other downstream tasks. If there is no output, <cite>None</cite> is
-returned.</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-<dt>Raises:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>prefect.engine.signals.FAIL: if command has an exit code other</dt><dd><p>than 0</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
+  <section id="shell-task-echo-module">
+<h1>shell_task_echo module<a class="headerlink" href="#shell-task-echo-module" title="Permalink to this heading"></a></h1>
 </section>
 
 
