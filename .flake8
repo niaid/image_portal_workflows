@@ -1,0 +1,4 @@
+[flake8]
+ignore = W605
+max-line-length = 120
+per-file-ignores = ./test/test_utils.py:F841

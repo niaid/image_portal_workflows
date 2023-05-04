@@ -5,7 +5,6 @@ import pytest
 import os
 import shutil
 from pathlib import Path
-import prefect
 from prefect.engine import signals
 
 
@@ -36,7 +35,7 @@ def test_utils_log(caplog):
     Verify that utils.log() is successfully outputing prefect log messages
     :todo:  Add test within a context - will need a Flow
     """
-    utils.log('utils.log test123 info message')
+    utils.log("utils.log test123 info message")
     assert "prefect:utils.py" in caplog.text
     assert "utils.log test123" in caplog.text
 
@@ -114,7 +113,9 @@ def test_lookup_dims(mock_nfs_mount):
         assert dims.x == 2048 and dims.y == 2048 and dims.z == 121
 
     # Error case - PNG not valid input
-    image_path = Path(os.path.join(proj_dir, input_dir, "P6_J130_fsc_iteration_001.png"))
+    image_path = Path(
+        os.path.join(proj_dir, input_dir, "P6_J130_fsc_iteration_001.png")
+    )
     with pytest.raises(signals.FAIL) as fail_msg:
         dims = utils.lookup_dims(fp=image_path)
     assert "Could not open" in str(fail_msg.value)
@@ -208,6 +209,7 @@ def test_update_adoc_bad_surfaces(mock_nfs_mount):
         )
     assert "Unable to resolve SurfacesToAnalyze" in str(fail_msg.value)
     local_tmplt.unlink(missing_ok=False)
+
 
 # Longer-running tests - comment-out following line to run
 @pytest.mark.skip(reason="This test takes a long time to run")
