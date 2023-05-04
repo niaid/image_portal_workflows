@@ -23,29 +23,34 @@ def hpc_env(monkeypatch):
         Get partial results based on machine type. Alternately could use a HOME env. variable.
         :return: The full path where the previously-created output files are stored
         """
-        if platform.system() == 'Linux':
+        if platform.system() == "Linux":
             return "/home/macmenaminpe/code/image_portal_workflows/test/input_files/brt_outputs/"
-        elif platform.system() == 'Darwin':
+        elif platform.system() == "Darwin":
             return "/Users/mbopf/projects/hedwig/data/brt_outputs/"
-
 
     @task
     def _prep_mock_brt_run(
-            file_path: FilePath,
-            adoc_template: str,
-            montage: int,
-            gold: int,
-            focus: int,
-            fiducialless: int,
-            trackingMethod: int,
-            TwoSurfaces: int,
-            TargetNumberOfBeads: int,
-            LocalAlignments: int,
-            THICKNESS: int,
-            ) -> None:
+        file_path: FilePath,
+        adoc_template: str,
+        montage: int,
+        gold: int,
+        focus: int,
+        fiducialless: int,
+        trackingMethod: int,
+        TwoSurfaces: int,
+        TargetNumberOfBeads: int,
+        LocalAlignments: int,
+        THICKNESS: int,
+    ) -> None:
         prefect.context.get("logger").info(f"MOCKED {file_path}")
-        shutil.copy(os.path.join(_mock_test_output_dir(), "2013-1220-dA30_5-BSC-1_10_ali.mrc"), file_path.working_dir)
-        shutil.copy(os.path.join(_mock_test_output_dir(), "2013-1220-dA30_5-BSC-1_10_rec.mrc"), file_path.working_dir)
+        shutil.copy(
+            os.path.join(_mock_test_output_dir(), "2013-1220-dA30_5-BSC-1_10_ali.mrc"),
+            file_path.working_dir,
+        )
+        shutil.copy(
+            os.path.join(_mock_test_output_dir(), "2013-1220-dA30_5-BSC-1_10_rec.mrc"),
+            file_path.working_dir,
+        )
 
     @task
     def _create_brt_command(adoc_fp: Path) -> str:
@@ -53,7 +58,7 @@ def hpc_env(monkeypatch):
         prefect.context.get("logger").info(f"MOCKED {s}")
         return s
 
-    monkeypatch.setattr(utils, 'run_brt', _prep_mock_brt_run)
+    monkeypatch.setattr(utils, "run_brt", _prep_mock_brt_run)
 
 
 def test_brt(mock_nfs_mount, hpc_env):
@@ -71,6 +76,6 @@ def test_brt(mock_nfs_mount, hpc_env):
         LocalAlignments=0,
         THICKNESS=30,
         input_dir="test/input_files/brt_inputs/Projects/",
-        no_api=True
+        no_api=True,
     )
     assert result.is_successful()
