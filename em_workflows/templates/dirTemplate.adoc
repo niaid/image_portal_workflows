@@ -8,9 +8,9 @@ setupset.scanHeader=1
 setupset.copyarg.twodir=0
 setupset.datasetDirectory={{ dataset_dir }}
 setupset.copyarg.pixel=
- 
+
 #Preprocessing
- 
+
 runtime.Preprocessing.any.removeXrays=1
 comparam.eraser.ccderaser.PeakCriterion=6.
 comparam.eraser.ccderaser.DiffCriterion=4.

@@ -8,7 +8,7 @@ HEDWIG_ENV=$1
 echo "env is $HEDWIG_ENV"
 if [[ ! ( $HEDWIG_ENV == "dev" || $HEDWIG_ENV == "qa" || $HEDWIG_ENV == "prod" ) ]]; then
 	echo Environment MUST be set to either "prod", "qa" or "dev".
-	echo Eg export HEDWIG_ENV=dev 
+	echo Eg export HEDWIG_ENV=dev
 	exit 1
 fi
 
@@ -39,4 +39,3 @@ if [[ ! -d "$REPO_LOC" ]]; then
 else
 	cd $REPO_LOC && git pull origin && cd -
 fi
-
