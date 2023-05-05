@@ -14,10 +14,11 @@ import sys
 def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int = None) -> Dict:
 
     """
-    bioformats2raw --scale-format-string '%2$d' --compression=blosc --compression-properties cname=zstd \
-    --compression-properties clevel=5 --compression-properties shuffle=1  --resolutions 1 --chunk_depth 128 \
-    --tile_width 128 --tile_height 128 input.mrc output.zarr
-    uses bioformats
+    .. code-block::
+
+        bioformats2raw --scale-format-string '%2$d' --compression=blosc --compression-properties cname=zstd
+                       --compression-properties clevel=5 --compression-properties shuffle=1  --resolutions 1
+                       --chunk_depth 128 --tile_width 128 --tile_height 128 input.mrc output.zarr
     """
     zarr = fp_in.gen_output_fp(output_ext=".zarr")
     rec_mrc = fp_in.gen_output_fp(output_ext="_rec.mrc")
