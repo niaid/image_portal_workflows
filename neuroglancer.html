@@ -48,7 +48,6 @@
 <li class="toctree-l2 current"><a class="reference internal" href="em_workflows.html">em_workflows</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="config.html">config module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="file_path.html">file_path module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="shell_task_echo.html">shell_task_echo module</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="utils-module.html">UTILS</a><ul class="current">
 <li class="toctree-l4 current"><a class="current reference internal" href="#">neuroglancer module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils.html">utils module</a></li>
@@ -93,6 +92,16 @@
              
   <section id="module-neuroglancer">
 <span id="neuroglancer-module"></span><h1>neuroglancer module<a class="headerlink" href="#module-neuroglancer" title="Permalink to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="neuroglancer.gen_zarr">
+<span class="sig-prename descclassname"><span class="pre">neuroglancer.</span></span><span class="sig-name descname"><span class="pre">gen_zarr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict:</span></span></span><a class="headerlink" href="#neuroglancer.gen_zarr" title="Permalink to this definition"></a></dt>
+<dd><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bioformats2raw</span> <span class="o">--</span><span class="n">scale</span><span class="o">-</span><span class="nb">format</span><span class="o">-</span><span class="n">string</span> <span class="s1">&#39;%2$d&#39;</span> <span class="o">--</span><span class="n">compression</span><span class="o">=</span><span class="n">blosc</span> <span class="o">--</span><span class="n">compression</span><span class="o">-</span><span class="n">properties</span> <span class="n">cname</span><span class="o">=</span><span class="n">zstd</span>
+               <span class="o">--</span><span class="n">compression</span><span class="o">-</span><span class="n">properties</span> <span class="n">clevel</span><span class="o">=</span><span class="mi">5</span> <span class="o">--</span><span class="n">compression</span><span class="o">-</span><span class="n">properties</span> <span class="n">shuffle</span><span class="o">=</span><span class="mi">1</span>  <span class="o">--</span><span class="n">resolutions</span> <span class="mi">1</span>
+               <span class="o">--</span><span class="n">chunk_depth</span> <span class="mi">128</span> <span class="o">--</span><span class="n">tile_width</span> <span class="mi">128</span> <span class="o">--</span><span class="n">tile_height</span> <span class="mi">128</span> <span class="nb">input</span><span class="o">.</span><span class="n">mrc</span> <span class="n">output</span><span class="o">.</span><span class="n">zarr</span>
+</pre></div>
+</div>
+</dd></dl>
+
 </section>
 
 
