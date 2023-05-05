@@ -6,7 +6,6 @@ em_workflows
 
    config
    file_path
-   shell_task_echo
    utils-module
    dm_conversion
    brt
