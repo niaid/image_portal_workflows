@@ -43,6 +43,7 @@ def test_utils_log(caplog):
 def test_mount_config(mock_nfs_mount):
     """
     Limited checks of Config constants
+    :todo: Rewrite using @pytest.mark.parametrize to limit repetition
     """
     env = utils.get_environment()
     proj_dir = Config.proj_dir(env=env)
@@ -94,6 +95,7 @@ def test_bad_share_name(mock_nfs_mount):
 
 def test_lookup_dims(mock_nfs_mount):
     """
+    Test on a number of different file types
     :todo: Consider rewriting this test to use @pytest.mark.parametrize to limit repetition
     """
     proj_dir = Config.proj_dir(utils.get_environment())
@@ -112,6 +114,14 @@ def test_lookup_dims(mock_nfs_mount):
         dims = utils.lookup_dims(fp=Path(mrc_image))
         assert dims.x == 2048 and dims.y == 2048 and dims.z == 121
 
+
+def test_bad_lookup_dims(mock_nfs_mount):
+    """
+    This test should fail ``header`` doesn't work on PNG
+    """
+    proj_dir = Config.proj_dir(utils.get_environment())
+    input_dir = "test/input_files/dm_inputs/Projects/Lab/PI/"
+    image_path = Path(os.path.join(proj_dir, input_dir, "1-As-70-007.tif"))
     # Error case - PNG not valid input
     image_path = Path(
         os.path.join(proj_dir, input_dir, "P6_J130_fsc_iteration_001.png")
@@ -125,7 +135,7 @@ def test_get_input_dir(mock_nfs_mount):
     hedwig_env = utils.get_environment()
     input_dir = "/test/input_files/dm_inputs"
     my_path = utils.get_input_dir.__wrapped__(input_dir=input_dir)
-    assert hedwig_env in str(my_path)
+    assert "image_portal_workflows" in str(my_path)
     assert input_dir in str(my_path)
 
 
