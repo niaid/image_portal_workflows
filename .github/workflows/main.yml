@@ -16,7 +16,7 @@ env:
 jobs:
   docs:
     runs-on: ubuntu-latest
-    needs: test  
+    needs: test
     steps:
       - uses: actions/checkout@v2
         with:
@@ -60,7 +60,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v4
-        
+
       - name: Create LFS file list
         run: |
           git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
@@ -103,7 +103,7 @@ jobs:
           export PATH=$IMOD_DIR/bin:$PATH
           wget https://bio3d.colorado.edu/imod/AMD64-RHEL5/${IMOD} &&  sudo sh ${IMOD} -yes &&  rm -f ${IMOD}
           python -m pip install --upgrade pip
-          pip install -e . -r requirements.txt 
+          pip install -e . -r requirements.txt
           sudo apt -y update && sudo apt -y install libgl-dev graphicsmagick
 
       - name: Test Coverage
@@ -115,4 +115,3 @@ jobs:
 
       - name: Coverage Badge
         uses: tj-actions/coverage-badge-py@v2
-

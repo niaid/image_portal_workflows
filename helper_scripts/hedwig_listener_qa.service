@@ -8,4 +8,3 @@ ExecStart=/gs1/home/macmenaminpe/code/hedwig/qa/image_portal_workflows/helper_sc
 
 [Install]
 WantedBy=multi-user.target
-

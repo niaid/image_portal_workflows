@@ -11,7 +11,3 @@ Build/Test:
 Test Coverage:
 
 .. image:: ../../coverage.svg
-
-
-
-

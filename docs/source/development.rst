@@ -145,12 +145,12 @@ be stored in Git LFS.
 Flake8
 ======
 
-`Flake8 <https://pypi.org/project/flake8/>`_ is a CLI utility used to enforce style and do linting. 
+`Flake8 <https://pypi.org/project/flake8/>`_ is a CLI utility used to enforce style and do linting.
 
 Black
 =====
 
-`Black <https://pypi.org/project/black/>`_ is a CLI utility that enforces a standard formatting on Python which helps with code consistancy. 
+`Black <https://pypi.org/project/black/>`_ is a CLI utility that enforces a standard formatting on Python which helps with code consistancy.
 
 *****************
 Pull Requests
@@ -199,7 +199,7 @@ To contribute to the project first ensure your fork is in good shape, and then t
 - Initiate creation the Pull Request (PR) via your fork into niaid/nih-3d-main using the web interface.
 
 - Look at your changes, ensure *only* those changes are included in your PR.
-  
+
 - Submit PR with some helpful English. See: https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project
 
 - Feel free to let a niaid repo admin (currently Philip MacM and Bradley Lowenkamp) know there's a PR waiting for review.

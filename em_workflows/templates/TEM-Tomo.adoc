@@ -1,16 +1,16 @@
-setupset.copyarg.name= 
+setupset.copyarg.name=
 setupset.copyarg.dual=0
-setupset.copyarg.gold= 
+setupset.copyarg.gold=
 setupset.copyarg.extract=1
 setupset.copyarg.bextract=0
 setupset.copyarg.defocus= 0
-setupset.copyarg.pixel= 
-setupset.copyarg.rotation = 
+setupset.copyarg.pixel=
+setupset.copyarg.rotation =
 #setupset.copyarg.brotation =
 #setupset.copyarg.ctfnoise=
 
 setupset.scanHeader=1
-setupset.datasetDirectory= 
+setupset.datasetDirectory=
 runtime.Preprocessing.any.removeXrays=1
 comparam.eraser.ccderaser.PeakCriterion=8.
 comparam.eraser.ccderaser.DiffCriterion=6.
@@ -59,7 +59,7 @@ runtime.AlignedStack.any.binByFactor=1
 
 comparam.mtffilter.mtffilter.LowPassRadiusSigma=0.4,.05
 
-comparam.tilt.tilt.THICKNESS= 
+comparam.tilt.tilt.THICKNESS=
 #runtime.Reconstruction.any.extraThickness=50
 #comparam.tilt.tilt.LOG=
 runtime.Reconstruction.a.useSirt=0
@@ -68,4 +68,3 @@ runtime.Reconstruction.any.doBackprojAlso=1
 comparam.sirtsetup.sirtsetup.LeaveIterations=
 comparam.sirtsetup.sirtsetup.ScaleToInteger=-20000,20000
 #comparam.sirtsetup.sirtsetup.RadiusAndSigma=
-

@@ -20,7 +20,7 @@ Within HPC, each environment (dev,qa,prod) has its own mount point. These are:
 There are inputs and outputs. We never write to the inputs directory, only to outputs.
 The output dir is defined as input directory with s/Projects/Projects/. For example:
 
-This would be a dev input directory, note the Projects substr. 
+This would be a dev input directory, note the Projects substr.
 Inputs are provided via the parameter input_dir.
 /mnt/ai-fas12/RMLEMHedwigDev/Projects/RTB/darrellh/nguyenm8-2022-0920-test/SEM-2022-0922-Neta_2D_Test/DM4_sample/
 And this would be the corresponding output directory.
@@ -35,7 +35,7 @@ The above logic is done in utils.get_input_dir()
 
 To find out what we are expected to work on we list this directory, see utils.list_files. Note, FIBSEM uses dirs to define stacks. We filter inputs with file extensions.
 
-The input directory is listed, and a temp working directory is created for each input (a file for the 2D and BRT pipelines, or a directory containing a stack of tiffs for FIBSEM). 
+The input directory is listed, and a temp working directory is created for each input (a file for the 2D and BRT pipelines, or a directory containing a stack of tiffs for FIBSEM).
 
 
 Working directory / temporary dir.

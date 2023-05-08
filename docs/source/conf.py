@@ -12,10 +12,11 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../../em_workflows'))
-sys.path.insert(0, os.path.abspath('../../em_workflows/utils'))
-sys.path.insert(0, os.path.abspath('../../em_workflows/dm_conversion'))
+
+sys.path.insert(0, os.path.abspath("../../"))
+sys.path.insert(0, os.path.abspath("../../em_workflows"))
+sys.path.insert(0, os.path.abspath("../../em_workflows/utils"))
+sys.path.insert(0, os.path.abspath("../../em_workflows/dm_conversion"))
 
 
 # -- Project information -----------------------------------------------------
@@ -30,7 +31,7 @@ author = "NIAID"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc']
+extensions = ["sphinx.ext.autodoc"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -54,4 +55,4 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 
 # Tell Sphinx autodoc to sort in "source code" order rather than alphabetical (default)
-autodoc_member_order = 'bysource'
+autodoc_member_order = "bysource"

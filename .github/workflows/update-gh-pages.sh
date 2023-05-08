@@ -84,4 +84,3 @@ new_changeid=$(git commit-tree "$new_tree" -p "$old_branch_sha" -m "Automatic Up
 $(date)")
 echo "Updating $target_branch with $new_changeid..."
 git update-ref refs/heads/$target_branch $new_changeid
-
