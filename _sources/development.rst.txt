@@ -25,17 +25,20 @@ git+https://github.com/niaid/tomojs-pytools.git@master in requirements.txt
 Local Set-up
 ============
 
-You will need a minimal Python installation to run the `generate_venv.sh` script.
+You will need a minimal Python (3.8+) installation to run the `generate_venv.sh` script.
 The following programs need to be available locally:
 
 - Java runtime (in order to run `etomo` in BRT)
 - ffmpeg (in order to create movies)
 - IMOD package: https://bio3d.colorado.edu/imod/
+- bioformats2raw package: https://github.com/glencoesoftware/bioformats2raw
 
 Similar to the HPC Set up below, you can locally set up `dev` and `qa` virtual envs.
 
 Special note for **Mac M1**: The `tomojs-pytools` library depends on imagecodecs which does
-not have binaries built for the M1. Need to install using an x86_64 version of Python.
+not have binaries built for the M1. Need to install using an x86_64 version of Python. Also, there
+are issues installing `biofomats2raw` as there is no OpenCV package for arm64 chip. There currently
+is no fix or workaround for this issue.
 
 HPC Set up
 ==========
@@ -131,89 +134,92 @@ Currently dask jobqueue is configured with a yaml file.
 Git LFS
 =======
 
-**UPDATE 10-Mar-2023: LFS isn't currently being used due to cost considerations.**
-
 Git `Large File Storage <https://git-lfs.github.com>`_ (LFS) is used to store larger files in the repository such as
 test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
 be installed on the system and set up on the users account. The `tool's documentation <https://git-lfs.github.com>`_
 provides details on installation, set up, and usage that is not duplicated here. Once set up the git usage is usually
 transparent with operation such as cloning, adding files, and changing branches.
 
-The ".gitattributes" configuration file automatically places files in the directories "test/data" and "cxr_similarity/data" to
+The ``.gitattributes`` configuration file automatically places files in the ``test/input_files`` directory to
 be stored in Git LFS.
 
 Flake8
 ======
 
-`Flake8 <https://pypi.org/project/flake8/>`_ is a CLI utility used to enforce style and do linting. 
+`Flake8 <https://pypi.org/project/flake8/>`_ is a CLI utility used to enforce style and do linting.
 
 Black
 =====
 
-`Black <https://pypi.org/project/black/>`_ is a CLI utility that enforces a standard formatting on Python which helps with code consistancy. 
+`Black <https://pypi.org/project/black/>`_ is a CLI utility that enforces a standard formatting on Python which helps with code consistancy.
+
+pre-commit
+==========
+
+`pre-commit <https://pre-commit.com/>`_ is a framework for managing pre-commit hooks that will check code for code
+format compliance at commit time. It is configured via a top-level ``.pre-commit-config.yaml`` file that runs ``black``,
+``Flake8`` and other checks.
 
 *****************
 Pull Requests
 *****************
 
-To contribute to the project first ensure your fork is in good shape, and then the generate a Pull Request (PR) to the `niaid` fork. Below is an outline an of the kind of steps that could be followed. More thorough documentation can be found here: https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request
+To contribute to the project first ensure your fork is in good shape, and then the generate a Pull Request (PR) to the **niaid** fork. Below is an outline an of the kind of steps that could be followed. More thorough documentation can be found here: https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request
 
 - Fork niaid repo into your gh account using the web interface.
 
 - Clone your repo to local machine, e.g.::
 
-	git clone git@github.com:philipmac/nih_3d_workflows.git
+    git clone git@github.com:philipmac/nih_3d_workflows.git
 
 - Set `upstream`::
 
-	git remote add upstream git@github.com:niaid/nih_3d_workflows.git
+    git remote add upstream git@github.com:niaid/nih_3d_workflows.git
 
 - ensure origin and upstream look something like this::
 
-	  $ git remote -v
-	  origin	git@github.com:your_uname/image_portal_workflows.git (fetch)
-	  origin	git@github.com:your_uname/image_portal_workflows.git (push)
-	  upstream	git@github.com:niaid/image_portal_workflows.git (fetch)
-	  upstream	git@github.com:niaid/image_portal_workflows.git (push)
+   $ git remote -v
+   origin	git@github.com:your_uname/image_portal_workflows.git (fetch)
+   origin	git@github.com:your_uname/image_portal_workflows.git (push)
+   upstream	git@github.com:niaid/image_portal_workflows.git (fetch)
+   upstream	git@github.com:niaid/image_portal_workflows.git (push)
 
 - Make edits to local copy.
 
 - Run `flake8`::
 
-        flake8 . --max-line-length=127
+    flake8 . --max-line-length=127
 
 - Run `Black`::
 
-	black .
+    black .
 
 - Ensure neither `black` nor `flake8` are complaining.
 
 - Commit your local work, ensure you're up to date with `upstream`, and push to `origin`::
 
-	git commit -m "Fixes issue 123, ..."
-	git fetch upstream
-	git rebase upstream/master
-	git push origin branch_with_fix
-
+    git commit -m "Fixes issue 123, ..."
+    git fetch upstream
+    git rebase upstream/master
+    git push origin branch_with_fix
 
 - Initiate creation the Pull Request (PR) via your fork into niaid/nih-3d-main using the web interface.
 
 - Look at your changes, ensure *only* those changes are included in your PR.
-  
+
 - Submit PR with some helpful English. See: https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project
 
 - Feel free to let a niaid repo admin (currently Philip MacM and Bradley Lowenkamp) know there's a PR waiting for review.
 
-- Thanks! :)
+Thanks! :)
 
 *******
 Testing
 *******
 
-There are currently five Pytest files in the `test` directory:
+There are currently four pytest files in the `test` directory:
 
 - test_brt: end-to-end test of batchruntomo pipeline
-- test_callback: This test is out-of-date and will likely go away
 - test_dm: 2D end-to-end pipeline test
 - test_sem: end-to-end test of FIBSEM pipeline
 - test_utils: unit tests of utils/utils.py module

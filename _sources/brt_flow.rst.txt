@@ -19,4 +19,3 @@ brt.flow
    .. autofunction:: gen_ave_8_vol(file_path: FilePath)
    .. autofunction:: gen_ave_jpgs_from_ave_mrc(file_path: FilePath)
    .. autofunction:: cleanup_files(file_path: FilePath, pattern=str)
-

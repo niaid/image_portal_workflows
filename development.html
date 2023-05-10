@@ -56,6 +56,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#git-lfs">Git LFS</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#flake8">Flake8</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#black">Black</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pre-commit">pre-commit</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#pull-requests">Pull Requests</a></li>
@@ -110,16 +111,19 @@ git+https://github.com/niaid/tomojs-pytools.git&#64;master in requirements.txt
 </section>
 <section id="local-set-up">
 <h3>Local Set-up<a class="headerlink" href="#local-set-up" title="Permalink to this heading"></a></h3>
-<p>You will need a minimal Python installation to run the <cite>generate_venv.sh</cite> script.
+<p>You will need a minimal Python (3.8+) installation to run the <cite>generate_venv.sh</cite> script.
 The following programs need to be available locally:</p>
 <ul class="simple">
 <li><p>Java runtime (in order to run <cite>etomo</cite> in BRT)</p></li>
 <li><p>ffmpeg (in order to create movies)</p></li>
 <li><p>IMOD package: <a class="reference external" href="https://bio3d.colorado.edu/imod/">https://bio3d.colorado.edu/imod/</a></p></li>
+<li><p>bioformats2raw package: <a class="reference external" href="https://github.com/glencoesoftware/bioformats2raw">https://github.com/glencoesoftware/bioformats2raw</a></p></li>
 </ul>
 <p>Similar to the HPC Set up below, you can locally set up <cite>dev</cite> and <cite>qa</cite> virtual envs.</p>
 <p>Special note for <strong>Mac M1</strong>: The <cite>tomojs-pytools</cite> library depends on imagecodecs which does
-not have binaries built for the M1. Need to install using an x86_64 version of Python.</p>
+not have binaries built for the M1. Need to install using an x86_64 version of Python. Also, there
+are issues installing <cite>biofomats2raw</cite> as there is no OpenCV package for arm64 chip. There currently
+is no fix or workaround for this issue.</p>
 </section>
 <section id="hpc-set-up">
 <h3>HPC Set up<a class="headerlink" href="#hpc-set-up" title="Permalink to this heading"></a></h3>
@@ -200,13 +204,12 @@ $<span class="w"> </span>spack<span class="w"> </span>unload<span class="w"> </s
 </section>
 <section id="git-lfs">
 <h3>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this heading"></a></h3>
-<p><strong>UPDATE 10-Mar-2023: LFS isn’t currently being used due to cost considerations.</strong></p>
 <p>Git <a class="reference external" href="https://git-lfs.github.com">Large File Storage</a> (LFS) is used to store larger files in the repository such as
 test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
 be installed on the system and set up on the users account. The <a class="reference external" href="https://git-lfs.github.com">tool’s documentation</a>
 provides details on installation, set up, and usage that is not duplicated here. Once set up the git usage is usually
 transparent with operation such as cloning, adding files, and changing branches.</p>
-<p>The “.gitattributes” configuration file automatically places files in the directories “test/data” and “cxr_similarity/data” to
+<p>The <code class="docutils literal notranslate"><span class="pre">.gitattributes</span></code> configuration file automatically places files in the <code class="docutils literal notranslate"><span class="pre">test/input_files</span></code> directory to
 be stored in Git LFS.</p>
 </section>
 <section id="flake8">
@@ -217,10 +220,16 @@ be stored in Git LFS.</p>
 <h3>Black<a class="headerlink" href="#black" title="Permalink to this heading"></a></h3>
 <p><a class="reference external" href="https://pypi.org/project/black/">Black</a> is a CLI utility that enforces a standard formatting on Python which helps with code consistancy.</p>
 </section>
+<section id="pre-commit">
+<h3>pre-commit<a class="headerlink" href="#pre-commit" title="Permalink to this heading"></a></h3>
+<p><a class="reference external" href="https://pre-commit.com/">pre-commit</a> is a framework for managing pre-commit hooks that will check code for code
+format compliance at commit time. It is configured via a top-level <code class="docutils literal notranslate"><span class="pre">.pre-commit-config.yaml</span></code> file that runs <code class="docutils literal notranslate"><span class="pre">black</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Flake8</span></code> and other checks.</p>
+</section>
 </section>
 <section id="pull-requests">
 <h2>Pull Requests<a class="headerlink" href="#pull-requests" title="Permalink to this heading"></a></h2>
-<p>To contribute to the project first ensure your fork is in good shape, and then the generate a Pull Request (PR) to the <cite>niaid</cite> fork. Below is an outline an of the kind of steps that could be followed. More thorough documentation can be found here: <a class="reference external" href="https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request">https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request</a></p>
+<p>To contribute to the project first ensure your fork is in good shape, and then the generate a Pull Request (PR) to the <strong>niaid</strong> fork. Below is an outline an of the kind of steps that could be followed. More thorough documentation can be found here: <a class="reference external" href="https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request">https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request</a></p>
 <ul>
 <li><p>Fork niaid repo into your gh account using the web interface.</p></li>
 <li><p>Clone your repo to local machine, e.g.:</p>
@@ -235,10 +244,10 @@ be stored in Git LFS.</p>
 </li>
 <li><p>ensure origin and upstream look something like this:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git remote -v
-origin        git@github.com:your_uname/image_portal_workflows.git (fetch)
-origin        git@github.com:your_uname/image_portal_workflows.git (push)
-upstream      git@github.com:niaid/image_portal_workflows.git (fetch)
-upstream      git@github.com:niaid/image_portal_workflows.git (push)
+origin       git@github.com:your_uname/image_portal_workflows.git (fetch)
+origin       git@github.com:your_uname/image_portal_workflows.git (push)
+upstream     git@github.com:niaid/image_portal_workflows.git (fetch)
+upstream     git@github.com:niaid/image_portal_workflows.git (push)
 </pre></div>
 </div>
 </li>
@@ -266,15 +275,14 @@ upstream      git@github.com:niaid/image_portal_workflows.git (push)
 <li><p>Look at your changes, ensure <em>only</em> those changes are included in your PR.</p></li>
 <li><p>Submit PR with some helpful English. See: <a class="reference external" href="https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project">https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project</a></p></li>
 <li><p>Feel free to let a niaid repo admin (currently Philip MacM and Bradley Lowenkamp) know there’s a PR waiting for review.</p></li>
-<li><p>Thanks! :)</p></li>
 </ul>
+<p>Thanks! :)</p>
 </section>
 <section id="testing">
 <h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading"></a></h2>
-<p>There are currently five Pytest files in the <cite>test</cite> directory:</p>
+<p>There are currently four pytest files in the <cite>test</cite> directory:</p>
 <ul class="simple">
 <li><p>test_brt: end-to-end test of batchruntomo pipeline</p></li>
-<li><p>test_callback: This test is out-of-date and will likely go away</p></li>
 <li><p>test_dm: 2D end-to-end pipeline test</p></li>
 <li><p>test_sem: end-to-end test of FIBSEM pipeline</p></li>
 <li><p>test_utils: unit tests of utils/utils.py module</p></li>
