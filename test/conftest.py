@@ -6,6 +6,7 @@ in the test files.
 """
 import pytest
 import os
+import platform
 from prefect.executors import LocalExecutor
 from em_workflows.config import command_loc
 
@@ -20,8 +21,19 @@ def mock_nfs_mount(monkeypatch):
     def _mock_assets_dir(env: str) -> str:
         return os.getcwd()
 
+    def _mock_bioformats2raw() -> str:
+        """
+        Force M1 Mac to use conda x86 bioformats2raw installation (rather UGLY)
+        :return: The full path where the previously-created output files are stored
+        """
+        if platform.system() == "Linux":
+            command_loc("bioformats2raw")
+        elif platform.system() == "Darwin":
+            return "/Users/mbopf/miniconda-intel/envs/intel_base/bin/bioformats2raw"
+
     monkeypatch.setattr(Config, "proj_dir", _mock_proj_dir)
     monkeypatch.setattr(Config, "assets_dir", _mock_assets_dir)
+    monkeypatch.setattr(Config, "bioformats2raw", _mock_bioformats2raw())
     monkeypatch.setattr(Config, "mount_point", os.getcwd() + "/test/input_files")
     monkeypatch.setattr(Config, "tmp_dir", "/tmp")
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
@@ -38,4 +50,3 @@ def mock_nfs_mount(monkeypatch):
     monkeypatch.setattr(Config, "xftoxg_loc", command_loc("xftoxg"))
 
     monkeypatch.setattr(Config, "convert_loc", command_loc("convert"))
-    monkeypatch.setattr(Config, "bioformats2raw", command_loc("bioformats2raw"))
