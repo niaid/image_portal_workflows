@@ -1,6 +1,7 @@
 pytest
 coverage
 pytest-cov
+coverage-badge
 prefect==1.*
 dask
 distributed
