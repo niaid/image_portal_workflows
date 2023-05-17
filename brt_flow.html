@@ -131,9 +131,7 @@ these are identical, we expect this to change.) The template chosen is defined b
 <li><p>Use average (created above) reconstructed mrc file to create input for volslicer.k in <code class="docutils literal notranslate"><span class="pre">gen_ave_8_vol()</span></code></p></li>
 <li><dl class="simple">
 <dt>need to produce pyramid files with reconstructed mrc.</dt><dd><ul>
-<li><p>convert <code class="docutils literal notranslate"><span class="pre">_rec.mrc</span></code> file to nifti, in <code class="docutils literal notranslate"><span class="pre">neuroglancer.gen_niftis()</span></code></p></li>
-<li><p>convert nifti file to pyramid file, in <code class="docutils literal notranslate"><span class="pre">gen_pyramids()</span></code></p></li>
-<li><p>compress pyramid assets, in <code class="docutils literal notranslate"><span class="pre">gen_archive_pyr()</span></code></p></li>
+<li><p>convert mrc file to Zarr, in gen_zarr()</p></li>
 </ul>
 </dd>
 </dl>
