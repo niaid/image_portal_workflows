@@ -28,9 +28,7 @@ Batchruntomo pipeline overview:
     - clean up after ourselves in ``cleanup_files()``
 - Use average (created above) reconstructed mrc file to create input for volslicer.k in ``gen_ave_8_vol()``
 - need to produce pyramid files with reconstructed mrc.
-    - convert ``_rec.mrc`` file to nifti, in ``neuroglancer.gen_niftis()``
-    - convert nifti file to pyramid file, in ``gen_pyramids()``
-    - compress pyramid assets, in ``gen_archive_pyr()``
+    - convert mrc file to Zarr, in gen_zarr()
 - Now we need to copy the outputs to the right place, and tell the API where they are. We use JSON to talk to the API.
 - build a json datastructure, containing the locations of the inputs we key on "primaryFilePath", and we append every
   output that's generated for *this* input into the "assets" json key.

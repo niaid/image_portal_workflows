@@ -78,7 +78,7 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int = None) -> Dic
     pytools.logger.addHandler(handler)
 
     metadata = visual_min_max(mad_scale=5, input_image=first_zarr_arr)
-    ng_asset = fp_in.gen_asset(asset_type="neuroglancerPrecomputed", asset_fp=asset_fp)
+    ng_asset = fp_in.gen_asset(asset_type="neuroglancerZarr", asset_fp=asset_fp)
 
     ng_asset["metadata"] = metadata
     return ng_asset
