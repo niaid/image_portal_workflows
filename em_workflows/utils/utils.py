@@ -160,8 +160,11 @@ def cleanup_workdir(fp: FilePath):
     | task wrapper on the FilePath rm_workdir method.
 
     """
-    log(f"Trying to remove {fp.working_dir}")
-    fp.rm_workdir()
+    if context.parameters["keep_workdir"] is not True:
+        log(f"Trying to remove {fp.working_dir}")
+        fp.rm_workdir()
+    else:
+        log("keep_workdir is set to True, skipping removal.")
 
 
 # @task

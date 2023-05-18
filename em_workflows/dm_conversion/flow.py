@@ -229,6 +229,8 @@ with Flow(
     callback_url = Parameter("callback_url", default=None)()
     token = Parameter("token", default=None)()
     no_api = Parameter("no_api", default=None)()
+    # keep workdir if set true, useful to look at outputs
+    keep_workdir = Parameter("keep_workdir", default=False)()
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
 
     input_fps = utils.list_files(
