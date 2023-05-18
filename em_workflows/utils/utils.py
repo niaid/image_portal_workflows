@@ -52,8 +52,8 @@ def lookup_dims(fp: Path) -> Header:
         stderr = sp.stderr.decode("utf-8")
         msg = f"Command ok : {stderr} -- {stdout}"
         log(msg)
-        xyz_dim = re.split(" +(\d+)", stdout)
-        xyz_cleaned = Header(int(xyz_dim[1]), int(xyz_dim[3]), int(xyz_dim[5]))
+        xyz_dim = [int(x) for x in stdout.split()]
+        xyz_cleaned = Header(*xyz_dim)
         log(f"dims: {xyz_cleaned:}")
         return xyz_cleaned
 
