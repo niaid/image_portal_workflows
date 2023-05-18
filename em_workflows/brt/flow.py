@@ -486,8 +486,10 @@ with Flow(
     token = Parameter("token", default=None)()
     file_name = Parameter("file_name", default=None)
 
+    # debugging options:
     # run workflow without an api.
     no_api = Parameter("no_api", default=False)()
+    keep_workdir = Parameter("keep_workdir", default=False)()
 
     # a single input_dir will have n tomograms
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
@@ -615,6 +617,7 @@ with Flow(
     cp_wd_to_assets = utils.copy_workdirs.map(
         fps, upstream_tasks=[callback_with_tilt_mov]
     )
+    rm_workdirs = utils.cleanup_workdir.map(fps, upstream_tasks=[cp_wd_to_assets])
     # finally filter error states, and convert to JSON and send.
     filtered_callback = utils.filter_results(callback_with_tilt_mov)
 

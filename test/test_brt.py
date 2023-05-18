@@ -77,5 +77,6 @@ def test_brt(mock_nfs_mount, hpc_env):
         THICKNESS=30,
         input_dir="test/input_files/brt_inputs/Projects/",
         no_api=True,
+        keep_workdir=True,
     )
     assert result.is_successful()

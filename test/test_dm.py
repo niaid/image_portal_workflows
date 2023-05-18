@@ -17,6 +17,17 @@ def test_dm4_conv(mock_nfs_mount):
     assert state.is_successful()
 
 
+def test_dm4_conv_clean_workdir(mock_nfs_mount):
+    from em_workflows.dm_conversion.flow import flow
+
+    state = flow.run(
+        input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
+        no_api=True,
+        # keep_workdir=True
+    )
+    assert state.is_successful()
+
+
 def test_input_fname(mock_nfs_mount):
     from em_workflows.dm_conversion.flow import flow
 

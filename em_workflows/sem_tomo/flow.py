@@ -225,7 +225,9 @@ with Flow(
     callback_url = Parameter("callback_url", default=None)()
     token = Parameter("token", default=None)()
     tilt_angle = Parameter("tilt_angle", default=0)()
+    # debugging options:
     no_api = Parameter("no_api", default=False)()
+    keep_workdir = Parameter("keep_workdir", default=False)()
 
     # dir to read from.
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
