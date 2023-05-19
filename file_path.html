@@ -167,24 +167,12 @@ want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="file_path.FilePath.add_assets_entry">
-<span class="sig-name descname"><span class="pre">add_assets_entry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">asset_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asset_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#file_path.FilePath.add_assets_entry" title="Permalink to this definition"></a></dt>
-<dd><p>Suspect to be redundant - TODO</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="file_path.FilePath.gen_output_fp">
 <span class="sig-name descname"><span class="pre">gen_output_fp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_ext</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_fname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="headerlink" href="#file_path.FilePath.gen_output_fp" title="Permalink to this definition"></a></dt>
 <dd><p>cat working_dir to input_fp.name, but swap the extension to output_ext
 the reason for having a working_dir default to None is sometimes the output
 dir is not the same as the input dir, and working_dir is used to define output
 in this case.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="file_path.FilePath.filter_by_suffix">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">filter_by_suffix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffixes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#file_path.FilePath.filter_by_suffix" title="Permalink to this definition"></a></dt>
-<dd><p>This method currently isn’t used</p>
 </dd></dl>
 
 <dl class="py method">
