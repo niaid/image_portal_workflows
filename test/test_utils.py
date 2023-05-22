@@ -1,5 +1,3 @@
-import glob
-
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
 from em_workflows.config import Config
@@ -224,8 +222,8 @@ def test_update_adoc_bad_surfaces(mock_nfs_mount):
         assert "Unable to resolve SurfacesToAnalyze" in str(fail_msg.value)
 
 
-# Longer-running tests - comment-out following line to run
-@pytest.mark.skip(reason="This test takes a long time to run")
+@pytest.mark.slow
+@pytest.mark.localdata
 def test_mrc_to_movie(mock_nfs_mount):
     """
     - NOTE: this test depends on a sem_inputs/Projects/mrc_movie_test directory
@@ -280,56 +278,17 @@ def test_copy_workdirs_small(mock_nfs_mount):
     Tests that the workdir is copied to the assets dir. This uses toy data only.
     """
     proj_dir = Config.proj_dir(utils.get_environment())
-    input_dir = "test/input_files/dm_inputs/Projects/Lab/PI"
-    image_name = "P6_J130_fsc_iteration_001.png"
-    input_path = Path(proj_dir) / input_dir
-    image_path = Path(proj_dir) / input_dir / image_name
-    assert image_path.exists()
-    image_filepath = FilePath(input_dir=input_path, fp_in=image_path)
+    test_dir = "test/input_files/dm_inputs/Projects/Lab/PI/"
+    test_image = "P6_J130_fsc_iteration_001.png"
 
-    # copy image to working dir to verify test
-    shutil.copy(image_path, image_filepath.working_dir)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        input_path = Path(tmp_dir) / "Projects"
+        image_path = Path(proj_dir) / test_dir / test_image
+        image_filepath = FilePath(input_dir=input_path, fp_in=image_path)
+        shutil.copy(image_path, image_filepath.working_dir)
 
-    workdest = utils.copy_workdirs.__wrapped__(image_filepath)
-    assert workdest.exists()
-    assert (workdest / image_name).exists()
-    # Clean up
-    assert "work_dir" in str(workdest.parent)
-    shutil.rmtree(workdest.parent)
-
-
-# @pytest.mark.skip(reason="This test takes a long time to run")
-def test_copy_workdirs_large(mock_nfs_mount):
-    """
-    Tests that the entire workdir is copied to the assets dir
-    NOTE: This test assumes the availability of workdir in Assets after a
-          run of test_brt.
-    """
-    proj_dir = Config.proj_dir(utils.get_environment())
-    test_dir = "test/input_files/brt_inputs/Projects/test/"
-    test_assets_dir = "test/input_files/brt_inputs/Assets/test/"
-    image_name = "fake_image.mrc"
-    input_path = Path(proj_dir) / test_dir
-    assets_path = Path(proj_dir) / test_assets_dir
-    input_path.mkdir()
-    image_path = Path(proj_dir) / test_dir / image_name
-    test_filepath = FilePath(input_dir=input_path, fp_in=image_path)
-
-    # copy entire Asset working dir from previous brt test run to test work_dir
-    asset_path = (
-        Path(proj_dir) / "test/input_files/brt_inputs/Assets/2013-1220-dA30_5-BSC-1_10"
-    )
-    filelist = glob.glob(f"{asset_path.as_posix()}/work_dir_*/*/*")
-    for item in filelist:
-        if os.path.isdir(item):
-            shutil.copytree(item, test_filepath.working_dir, dirs_exist_ok=True)
-        else:
-            shutil.copy(item, test_filepath.working_dir)
-
-    workdest = utils.copy_workdirs.__wrapped__(test_filepath)  # Actual test
-
-    assert workdest.exists()
-    # Clean up
-    assert "work_dir" in str(workdest.parent)
-    shutil.rmtree(input_path)
-    shutil.rmtree(assets_path)
+        workdest = utils.copy_workdirs.__wrapped__(image_filepath)
+        assert workdest.exists()
+        assert (workdest / test_image).exists()
+        assert image_path.stem in str(workdest)
+        assert "work_dir" in str(workdest.parent)

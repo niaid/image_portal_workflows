@@ -217,33 +217,56 @@ Thanks! :)
 Testing
 *******
 
-There are currently four pytest files in the `test` directory:
+There are currently four ``pytest`` files in the `test` directory:
 
-- test_brt: end-to-end test of batchruntomo pipeline
-- test_dm: 2D end-to-end pipeline test
-- test_sem: end-to-end test of FIBSEM pipeline
-- test_utils: unit tests of utils/utils.py module
+- ``test_brt``: end-to-end test of batchruntomo pipeline
+- ``test_dm``: 2D end-to-end pipeline test
+- ``test_sem``: end-to-end test of FIBSEM pipeline
+- ``test_utils``: unit tests of utils/utils.py module
 
-There is test data for `test_dm` in the Git repo, but not for the other two. These files need to be
+There is test data for `test_dm` in the Git repo, but not for the others. These files need to be
 downloaded from the HPC machines. The following script will copy them:
 
 `test/copy_test_data.sh`
 
-These files are quite large, so you may want to run each line separately at the command line. Some unit tests also require
-the results of previous ``test_brt`` runs, specifically in the Assets directory. So you must run test_brt before the complete
-test suite will work.
+These files are quite large, so you may want to run each line separately at the command line. Some unit tests also
+require the results of previous ``test_brt`` runs, specifically in the Assets directory. So you must run ''test_brt''
+before the complete test suite will work.
 
-To run the entire test suite, in the portal_image_workflows directory, run:
+To run the entire test suite, in the portal_image_workflows directory, run::
 
-.. code-block::
+    $ pytest
 
-    $ pytest test
-
-To determine the test coverage, in the portal_image_workflows directory, run:
-
-.. code-block::
+To determine the test coverage, in the portal_image_workflows directory, run::
 
     $ pytest --cov="." --cov-config=.coveragerc test
+
+There are also a couple ways to select specific types of tests based on pytest `markers
+<https://docs.pytest.org/en/7.1.x/example/markers.html#registering-markers>`_.
+Certain tests use the following decorators to "mark" it:
+
+    - ``@pytest.mark.slow`` : Test takes a long time to run
+    - ``@pytest.mark.localdata`` : Test requires large test file not stored in the repository
+
+So to run tests in GitHub Actions that don't have all the data, run::
+
+    $ pytest -m "not localdata"
+
+To run just run relatively quick tests, run::
+
+    $ pytest -m "not slow"
+
+To run everything, along with verbose pytest output and logging turned on, run::
+
+    $ pytest -v --log-cli-level=INFO
+
+You can also run tests by "keyword" based on the name of the test. For example, the following will run two
+tests in ``test_utils.py`` named ``test_lookup_dims`` and ``test_bad_lookup_dims``::
+
+    $ pytest -k lookup_dims
+
+In addition, temporarily "broken" tests are marked with ``@pytest.mark.skip``. These will be skipped
+every time; comment out or delete the decorator to run them.
 
 
 

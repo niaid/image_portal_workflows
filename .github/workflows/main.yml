@@ -111,7 +111,7 @@ jobs:
         run: |
           export IMOD_DIR=/usr/local/IMOD
           export PATH=$IMOD_DIR/bin:$PATH
-          python -m pytest --cov-report term --cov=. test/test_dm.py test/test_utils.py
+          python -m pytest -v --log-cli-level=INFO -m "not (slow or localdata)" --cov-report term --cov=.
 
       - name: Coverage Badge
         uses: tj-actions/coverage-badge-py@v2
