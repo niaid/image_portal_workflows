@@ -57,7 +57,7 @@ class FilePath:
         self.prim_fp_elt = self.gen_prim_fp_elt()
         # log(self.__repr__())
 
-    def __str_(self) -> str:
+    def __str__(self) -> str:
         return f"FilePath: proj_root:{self.proj_root}\n\
                 fp_in:{self.fp_in}\n\
                 prim_fp:{self.prim_fp_elt}\n\
