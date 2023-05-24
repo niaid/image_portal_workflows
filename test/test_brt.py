@@ -58,7 +58,11 @@ def hpc_env(monkeypatch):
         prefect.context.get("logger").info(f"MOCKED {s}")
         return s
 
-    monkeypatch.setattr(utils, "run_brt", _prep_mock_brt_run)
+    brt_full = os.getenv("BRT_FULL", default="false")
+    if brt_full.lower() == "false":
+        monkeypatch.setattr(utils, "run_brt", _prep_mock_brt_run)
+    else:
+        prefect.context.get("logger").info("BRT_FULL - not mocked")
 
 
 def test_brt(mock_nfs_mount, hpc_env):
