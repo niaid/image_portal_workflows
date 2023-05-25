@@ -39,7 +39,6 @@ import glob
 import os
 from em_workflows.file_path import FilePath
 import subprocess
-import re
 import math
 
 from pathlib import Path
@@ -127,10 +126,10 @@ def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
         stderr = sp.stderr.decode("utf-8")
         msg = f"Command ok : {stderr} -- {stdout}"
         utils.log(msg)
-        xyz_dim = re.split(" +(\d+)", stdout)
-        z_dim = xyz_dim[5]
+        xyz_dim = [int(x) for x in stdout.split()]
+        z_dim = xyz_dim[2]
         utils.log(f"z_dim: {z_dim:}")
-        return z_dim
+        return str(z_dim)
 
 
 @task
@@ -531,12 +530,12 @@ with Flow(
     tilt_movie_assets = gen_tilt_movie.map(
         file_path=fps, upstream_tasks=[keyimg_assets]
     )
-    cleanup_files.map(
+    clean_align_mrc = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_align_*.mrc"),
         upstream_tasks=[tilt_movie_assets, thumb_assets, keyimg_assets],
     )
-    cleanup_files.map(
+    clean_ali_jpg = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*ali*.jpg"),
         upstream_tasks=[tilt_movie_assets, thumb_assets, keyimg_assets],
@@ -557,12 +556,12 @@ with Flow(
         file_path=fps, upstream_tasks=[averagedVolume_assets]
     )
     recon_movie_assets = gen_recon_movie.map(file_path=fps, upstream_tasks=[ave_jpgs])
-    cleanup_files.map(
+    clean_mp4 = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_mp4.*.jpg"),
         upstream_tasks=[recon_movie_assets, ave_jpgs],
     )
-    cleanup_files.map(
+    clean_ave_mrc = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_ave*.mrc"),
         upstream_tasks=[recon_movie_assets, ave_jpgs],
@@ -621,7 +620,17 @@ with Flow(
     cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=filtered_callback
     )
-    rm_workdirs = utils.cleanup_workdir.map(fps, upstream_tasks=[cb])
+    rm_workdirs = utils.cleanup_workdir.map(
+        fps,
+        upstream_tasks=[
+            cb,
+            cp_wd_to_assets,
+            clean_align_mrc,
+            clean_ali_jpg,
+            clean_ave_mrc,
+            clean_mp4,
+        ],
+    )
 
 # the other tasks might be always run or something,
 # this is far enough along to get an idea of success.
