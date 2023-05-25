@@ -158,7 +158,7 @@ def cleanup_workdir(fp: FilePath):
     | task wrapper on the FilePath rm_workdir method.
 
     """
-    if context.parameters.get("keep_workdir") is True:
+    if prefect.context.parameters.get("keep_workdir") is True:
         log("keep_workdir is set to True, skipping removal.")
     else:
         log(f"Trying to remove {fp.working_dir}")

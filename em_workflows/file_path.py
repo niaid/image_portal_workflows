@@ -1,5 +1,4 @@
 import datetime
-import glob
 import shutil
 import os
 from typing import List, Dict
@@ -142,10 +141,10 @@ class FilePath:
         if fp_to_cp.is_dir():
             if dest.exists():
                 shutil.rmtree(dest)
-            shutil.copytree(fp_to_cp, dest)
+            d = shutil.copytree(fp_to_cp, dest)
         else:
-            shutil.copyfile(fp_to_cp, dest)
-        return dest
+            d = shutil.copyfile(fp_to_cp, dest)
+        return Path(d)
 
     # def add_assets_entry(
     #     self, asset_path: Path, asset_type: str, metadata: Dict[str, str] = None
