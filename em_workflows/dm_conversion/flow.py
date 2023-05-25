@@ -266,9 +266,7 @@ with Flow(
         prim_fp=callback_with_thumbs, asset=keyimg_assets
     )
     # finally filter error states, and convert to JSON and send.
-    rm_workdirs = utils.cleanup_workdir.map(
-        fp=fps, upstream_tasks=[callback_with_keyimgs]
-    )
+    rm_workdirs = utils.cleanup_workdir(fps, upstream_tasks=[callback_with_keyimgs])
     filtered_callback = utils.filter_results(callback_with_keyimgs)
 
     callback_sent = utils.send_callback_body(

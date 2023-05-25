@@ -620,7 +620,7 @@ with Flow(
     cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=filtered_callback
     )
-    rm_workdirs = utils.cleanup_workdir.map(
+    rm_workdirs = utils.cleanup_workdir(
         fps,
         upstream_tasks=[
             cb,

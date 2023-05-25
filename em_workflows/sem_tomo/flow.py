@@ -289,9 +289,7 @@ with Flow(
     callback_with_corr_movies = utils.add_asset.map(
         prim_fp=callback_with_corr_mrcs, asset=corrected_movie_assets
     )
-    rm_workdirs = utils.cleanup_workdir.map(
-        fp=fps, upstream_tasks=[callback_with_corr_movies]
-    )
+    rm_workdirs = utils.cleanup_workdir(fps, upstream_tasks=[callback_with_corr_movies])
 
     # finally filter error states, and convert to JSON and send.
     filtered_callback = utils.filter_results(callback_with_corr_movies)

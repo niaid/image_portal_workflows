@@ -150,7 +150,7 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
 
 
 @task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
-def cleanup_workdir(fp: FilePath):
+def cleanup_workdir(fps: List[FilePath]):
     """
     :param fp: a FilePath which has a working_dir to be removed
 
@@ -161,8 +161,9 @@ def cleanup_workdir(fp: FilePath):
     if prefect.context.parameters.get("keep_workdir") is True:
         log("keep_workdir is set to True, skipping removal.")
     else:
-        log(f"Trying to remove {fp.working_dir}")
-        fp.rm_workdir()
+        for fp in fps:
+            log(f"Trying to remove {fp.working_dir}")
+            fp.rm_workdir()
 
 
 # @task
