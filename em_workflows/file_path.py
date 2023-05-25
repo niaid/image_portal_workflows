@@ -261,10 +261,6 @@ class FilePath:
         dest = Path(
             f"{self.assets_dir.as_posix()}/{dir_name_as_date}/{self.fp_in.stem}"
         )
-        existing_workdirs = glob.glob(f"{self.assets_dir.as_posix()}/work_dir_*")
-        for _dir in existing_workdirs:
-            log(f"Trying to remove old workdir {_dir}")
-            shutil.rmtree(_dir)
         if dest.exists():
             log(f"Output assets directory already exists! removing: {dest}")
             shutil.rmtree(dest)
@@ -274,7 +270,7 @@ class FilePath:
     def rm_workdir(self):
         """Removes the the entire working directory"""
         log(f"Removing working dir: {self.working_dir}")
-        shutil.rmtree(self.working_dir)
+        shutil.rmtree(self.working_dir, ignore_errors=True)
 
     @staticmethod
     def run(cmd: List[str], log_file: str) -> int:
