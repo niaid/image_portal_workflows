@@ -1,10 +1,16 @@
+
 [Unit]
 Description=Starts the DEV listener "Agent" which reaches out to workflow API.
 After=network.target
 
 [Service]
 Type=simple
-ExecStart=/gs1/home/macmenaminpe/code/hedwig/dev/image_portal_workflows/helper_scripts/hedwig_reg_listen.sh dev listen
+User=hedwig_dev
+Group=hedwig_dev
+ExecStart=/gs1/home/hedwig_dev/image_portal_workflows/helper_scripts/hedwig_reg_listen.sh listen
+WorkingDirectory=/gs1/home/hedwig_dev
+Environment="HEDWIG_ENV=dev"
+Environment="REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt"
 
 [Install]
 WantedBy=multi-user.target
