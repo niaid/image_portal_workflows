@@ -11,7 +11,7 @@ def SLURM_exec():
     brings up a dynamically sized cluster.
     For some reason processes > 1 crash BRT. Be careful optimizing this.
     """
-    home = os.environ["HOME"]
+    home = os.environ['HOME'])
     cluster = SLURMCluster(
         name="dask-worker",
         cores=60,
