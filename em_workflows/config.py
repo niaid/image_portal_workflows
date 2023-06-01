@@ -11,7 +11,7 @@ def SLURM_exec():
     brings up a dynamically sized cluster.
     For some reason processes > 1 crash BRT. Be careful optimizing this.
     """
-    home = os.environ['HOME'])
+    home = os.environ["HOME"]
     cluster = SLURMCluster(
         name="dask-worker",
         cores=60,
@@ -106,7 +106,8 @@ class Config:
     fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
 
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
-    tmp_dir = "/gs1/Scratch/macmenaminpe_scratch/"
+    user = os.environ["USER"]
+    tmp_dir = f"/gs1/Scratch/{user}_scratch/"
     mount_point = "/mnt/ai-fas12/"
 
     @staticmethod
