@@ -108,7 +108,7 @@ class Config:
 
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     user = os.environ["USER"]
-    tmp_dir = f"/gs1/Scratch/{user}_scratch/"
+    tmp_dir = f"/gs1/Scratch/hedwig_{user}_scratch/"
     mount_point = "/mnt/ai-fas12/"
 
     @staticmethod
