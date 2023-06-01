@@ -11,13 +11,14 @@ def SLURM_exec():
     brings up a dynamically sized cluster.
     For some reason processes > 1 crash BRT. Be careful optimizing this.
     """
+    home = os.environ['HOME'])
     cluster = SLURMCluster(
         name="dask-worker",
         cores=60,
         memory="32G",
         # processes=1,
         death_timeout=121,
-        local_directory="/gs1/home/macmenaminpe/tmp/",
+        local_directory=f"{home}/dask_tmp/",
         queue="gpu",
         walltime="4:00:00",
         job_extra_directives=["--gres=gpu:1"],
