@@ -282,27 +282,54 @@ upstream     git@github.com:niaid/image_portal_workflows.git (push)
 </section>
 <section id="testing">
 <h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading"></a></h2>
-<p>There are currently four pytest files in the <cite>test</cite> directory:</p>
+<p>There are currently four <code class="docutils literal notranslate"><span class="pre">pytest</span></code> files in the <cite>test</cite> directory:</p>
 <ul class="simple">
-<li><p>test_brt: end-to-end test of batchruntomo pipeline</p></li>
-<li><p>test_dm: 2D end-to-end pipeline test</p></li>
-<li><p>test_sem: end-to-end test of FIBSEM pipeline</p></li>
-<li><p>test_utils: unit tests of utils/utils.py module</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_brt</span></code>: end-to-end test of batchruntomo pipeline</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_dm</span></code>: 2D end-to-end pipeline test</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_sem</span></code>: end-to-end test of FIBSEM pipeline</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_utils</span></code>: unit tests of utils/utils.py module</p></li>
 </ul>
-<p>There is test data for <cite>test_dm</cite> in the Git repo, but not for the other two. These files need to be
+<p>There is test data for <cite>test_dm</cite> in the Git repo, but not for the others. These files need to be
 downloaded from the HPC machines. The following script will copy them:</p>
 <p><cite>test/copy_test_data.sh</cite></p>
-<p>These files are quite large, so you may want to run each line separately at the command line. Some unit tests also require
-the results of previous <code class="docutils literal notranslate"><span class="pre">test_brt</span></code> runs, specifically in the Assets directory. So you must run test_brt before the complete
-test suite will work.</p>
+<p>These files are quite large, so you may want to run each line separately at the command line. Some unit tests also
+require the results of previous <code class="docutils literal notranslate"><span class="pre">test_brt</span></code> runs, specifically in the Assets directory. So you must run ‘’test_brt’’
+before the complete test suite will work.</p>
 <p>To run the entire test suite, in the portal_image_workflows directory, run:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest test
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest
 </pre></div>
 </div>
 <p>To determine the test coverage, in the portal_image_workflows directory, run:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest --cov=&quot;.&quot; --cov-config=.coveragerc test
 </pre></div>
 </div>
+<p>There are also a couple ways to select specific types of tests based on pytest <a class="reference external" href="https://docs.pytest.org/en/7.1.x/example/markers.html#registering-markers">markers</a>.
+Certain tests use the following decorators to “mark” it:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.slow</span></code> : Test takes a long time to run</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.localdata</span></code> : Test requires large test file not stored in the repository</p></li>
+</ul>
+</div></blockquote>
+<p>So to run tests in GitHub Actions that don’t have all the data, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -m &quot;not localdata&quot;
+</pre></div>
+</div>
+<p>To run just run relatively quick tests, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -m &quot;not slow&quot;
+</pre></div>
+</div>
+<p>To run everything, along with verbose pytest output and logging turned on, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -v --log-cli-level=INFO
+</pre></div>
+</div>
+<p>You can also run tests by “keyword” based on the name of the test. For example, the following will run two
+tests in <code class="docutils literal notranslate"><span class="pre">test_utils.py</span></code> named <code class="docutils literal notranslate"><span class="pre">test_lookup_dims</span></code> and <code class="docutils literal notranslate"><span class="pre">test_bad_lookup_dims</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -k lookup_dims
+</pre></div>
+</div>
+<p>In addition, temporarily “broken” tests are marked with <code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.skip</span></code>. These will be skipped
+every time; comment out or delete the decorator to run them.</p>
 </section>
 <section id="sphinx-documentation">
 <h2>Sphinx Documentation<a class="headerlink" href="#sphinx-documentation" title="Permalink to this heading"></a></h2>
