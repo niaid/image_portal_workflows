@@ -61,6 +61,8 @@ def hpc_env(monkeypatch):
     monkeypatch.setattr(utils, "run_brt", _prep_mock_brt_run)
 
 
+@pytest.mark.localdata
+@pytest.mark.slow
 def test_brt(mock_nfs_mount, hpc_env):
     from em_workflows.brt.flow import flow
 
