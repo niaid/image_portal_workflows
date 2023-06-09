@@ -1,8 +1,6 @@
 from pathlib import Path
 from typing import Optional
-from prefect import Flow, task, Parameter, unmapped
-from prefect.run_configs import LocalRun
-from prefect.engine import signals
+from prefect import flow, task, unmapped
 from pytools.meta import is_int16
 from pytools.convert import file_to_uint8
 from em_workflows.utils import utils
@@ -63,7 +61,7 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
         dims = utils.lookup_dims(file_path.fp_in)
         if dims.z != 1:
             msg = f"mrc file {file_path.fp_in} is not 2 dimensional. Contains {dims.z} Z dims."
-            raise signals.FAIL(msg)
+            raise ValueError(msg)
         # use the min dimension of x & y to compute shrink_factor
         min_xy = min(dims.x, dims.y)
         # work out shrink_factor
@@ -131,7 +129,7 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
         cur = file_path.fp_in
     else:
         msg = f"Impossible state for {file_path.fp_in}"
-        raise signals.FAIL(msg)
+        raise ValueError(msg)
     if size.lower() == "s":
         output = file_path.gen_output_fp("_SM.jpeg")
         log = f"{output.parent}/jpeg_sm.log"
@@ -170,7 +168,7 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
         ]
     else:
         msg = "Jpeg scaler must have size argument set to 'l' or 's'"
-        raise signals.FAIL(msg)
+        raise ValueError(msg)
     FilePath.run(cmd, log)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=output)
     asset_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
@@ -209,12 +207,16 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
 #    return _files
 
 
-with Flow(
-    "dm_to_jpeg",
-    state_handlers=[utils.notify_api_completion, utils.notify_api_running],
-    executor=Config.SLURM_EXECUTOR,
-    run_config=LocalRun(labels=[utils.get_environment()]),
-) as flow:
+@flow
+def dm_flow(
+    input_dir: str,
+    file_name: str = None,
+    callback_url: str = None,
+    token: str = None,
+    no_api: bool = None,
+    # keep workdir if set true, useful to look at outputs
+    keep_workdir: bool = False,
+):
     """
     -list all inputs (ie files of relevant input type)
     -create output dir for each.
@@ -224,15 +226,7 @@ with Flow(
     -convert all mrcs in Projects dir to jpegs.
     -convert all tiffs/pngs/jpegs to correct size for thumbs, "sm" and "lg"
     """
-    input_dir = Parameter("input_dir")
-    file_name = Parameter("file_name", default=None)
-    callback_url = Parameter("callback_url", default=None)()
-    token = Parameter("token", default=None)()
-    no_api = Parameter("no_api", default=None)()
-    # keep workdir if set true, useful to look at outputs
-    keep_workdir = Parameter("keep_workdir", default=False)()
-    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
-
+    input_dir_fp = utils.get_input_dir.submit(input_dir=input_dir)
     input_fps = utils.list_files(
         input_dir_fp,
         Config.valid_2d_input_exts,
@@ -244,20 +238,20 @@ with Flow(
     tiffs_converted = convert_if_int16_tiff.map(file_path=fps)
 
     # dm* to mrc conversion
-    dm_to_mrc_converted = convert_dms_to_mrc.map(fps, upstream_tasks=[tiffs_converted])
+    dm_to_mrc_converted = convert_dms_to_mrc.map(fps, wait_for=[tiffs_converted])
 
     # mrc is intermed format, to jpeg conversion
-    mrc_to_jpeg = convert_dm_mrc_to_jpeg.map(fps, upstream_tasks=[dm_to_mrc_converted])
+    mrc_to_jpeg = convert_dm_mrc_to_jpeg.map(fps, wait_for=[dm_to_mrc_converted])
 
     # mrc can also be an input, convert to tiff.
     convert_2d_mrc = convert_2d_mrc_to_tiff.map(file_path=fps)
 
     # scale the jpegs, pngs, and tifs
     keyimg_assets = scale_jpegs.map(
-        fps, size=unmapped("l"), upstream_tasks=[mrc_to_jpeg, convert_2d_mrc]
+        fps, size=unmapped("l"), wait_for=[mrc_to_jpeg, convert_2d_mrc]
     )
     thumb_assets = scale_jpegs.map(
-        fps, size=unmapped("s"), upstream_tasks=[mrc_to_jpeg, convert_2d_mrc]
+        fps, size=unmapped("s"), wait_for=[mrc_to_jpeg, convert_2d_mrc]
     )
 
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
@@ -265,12 +259,14 @@ with Flow(
     callback_with_keyimgs = utils.add_asset.map(
         prim_fp=callback_with_thumbs, asset=keyimg_assets
     )
+
     # finally filter error states, and convert to JSON and send.
-    rm_workdirs = utils.cleanup_workdir(fps, upstream_tasks=[callback_with_keyimgs])
+    utils.cleanup_workdir(fps, keep_workdir, wait_for=[callback_with_keyimgs])
     filtered_callback = utils.filter_results(callback_with_keyimgs)
 
-    callback_sent = utils.send_callback_body(
+    utils.send_callback_body(
         token=token,
         callback_url=callback_url,
+        no_api=no_api,
         files_elts=filtered_callback,
     )

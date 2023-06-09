@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from dask_jobqueue import SLURMCluster
-from prefect.executors import DaskExecutor
+from prefect_dask import DaskTaskRunner
 import prefect
 import shutil
 
@@ -105,7 +105,7 @@ class Config:
     ]
     fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
 
-    SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
+    SLURM_EXECUTOR = DaskTaskRunner(cluster_class=SLURM_exec)
     tmp_dir = "/gs1/Scratch/macmenaminpe_scratch/"
     mount_point = "/mnt/ai-fas12/"
 

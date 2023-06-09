@@ -6,7 +6,7 @@ in the test files.
 """
 import pytest
 import os
-from prefect.executors import LocalExecutor
+from prefect.task_runners import ConcurrentTaskRunner
 from em_workflows.config import command_loc
 
 
@@ -24,7 +24,7 @@ def mock_nfs_mount(monkeypatch):
     monkeypatch.setattr(Config, "assets_dir", _mock_assets_dir)
     monkeypatch.setattr(Config, "mount_point", os.getcwd() + "/test/input_files")
     monkeypatch.setattr(Config, "tmp_dir", "/tmp")
-    monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
+    monkeypatch.setattr(Config, "SLURM_EXECUTOR", ConcurrentTaskRunner())
 
     monkeypatch.setattr(Config, "binvol", command_loc("binvol"))
     monkeypatch.setattr(Config, "brt_binary", command_loc("batchruntomo"))

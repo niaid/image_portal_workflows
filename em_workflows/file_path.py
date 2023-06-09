@@ -4,11 +4,10 @@ import os
 from typing import List, Dict
 from pathlib import Path
 import tempfile
-from prefect.engine import signals
 import subprocess
 from em_workflows.config import Config
 
-from prefect import context
+from prefect import get_run_logger
 
 
 def log(msg: str) -> None:
@@ -17,7 +16,7 @@ def log(msg: str) -> None:
     :param msg: str to be written
     :return: None
     """
-    context.logger.info(msg)
+    get_run_logger().info(msg)
 
 
 class FilePath:
@@ -112,7 +111,7 @@ class FilePath:
         """
         if "Projects" not in self.proj_dir.as_posix():
             msg = f"Error: Input directory {self.proj_dir} must contain the string 'Projects'."
-            raise signals.FAIL(msg)
+            raise ValueError(msg)
         assets_dir_as_str = self.proj_dir.as_posix().replace("/Projects", "/Assets")
         assets_dir = Path(f"{assets_dir_as_str}/{self.base}")
         assets_dir.mkdir(parents=True, exist_ok=True)
@@ -276,7 +275,7 @@ class FilePath:
         """Runs a Unix command as a subprocess
 
         - Captures stderr & stddout and writes them to the `log_file` input parameter.
-        - If final returncode is not 0, raises a FAIL signal
+        - If final returncode is not 0, raises a ValueError
         """
         log("Trying to run: " + " ".join(cmd))
         try:
@@ -290,10 +289,10 @@ class FilePath:
             if sp.returncode != 0:
                 msg = f"ERROR : {stderr} -- {stdout}"
                 log(msg)
-                raise signals.FAIL(msg)
+                raise RuntimeError(msg)
             else:
                 msg = f"Command ok : {stderr} -- {stdout}"
                 log(msg)
         except Exception as ex:
-            raise signals.FAIL(str(ex))
+            raise RuntimeError(str(ex))
         return sp.returncode
