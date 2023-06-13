@@ -16,7 +16,7 @@ def SLURM_exec():
         name="dask-worker",
         cores=60,
         memory="32G",
-        processes=1,
+        # processes=1,
         death_timeout=121,
         local_directory=f"{home}/dask_tmp/",
         queue="gpu",
@@ -50,7 +50,7 @@ def command_loc(cmd: str) -> str:
 class Config:
     # location in RML HPC
     binvol = "/opt/rml/imod/bin/binvol"
-    bioformats2raw = "/gs1/home/hedwig_dev/bioformats2raw-0.7.0/bin/bioformats2raw"
+    bioformats2raw = "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw"
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
     dm2mrc_loc = "/opt/rml/imod/bin/dm2mrc"
     clip_loc = "/opt/rml/imod/bin/clip"
