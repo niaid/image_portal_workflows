@@ -36,8 +36,34 @@ clone the repo to the root of home.
 
 `git clone git@github.com:niaid/image_portal_workflows.git`
 
+ie `ls ~` should list you `image_portal_workflows`
+
 `cd image_portal_workflows/`
 `python -m pip install -e .`
 
+
+Set up bashrc env to facilitate env set up.
+Added these lines to `.bashrc`
+
+`export HEDWIG_ENV=qa`
+`source qa/bin/activate`
+
+
+Set up daemon to use appropriate service file, eg for qa it would be: 
+`helper_scripts/hedwig_listener_qa.service`
+You will need to email NIAID RML HPC Support to do this.
+To test the ExecStart command can be run, eg:
+`image_portal_workflows/helper_scripts/hedwig_reg_listen.sh listen`
+
+
+To update version:
+tag your relase, and test in dev etc.
+Upon promotion into HPC env do:
+`cd image_portal_workflows/`
+and
+`git checkout <label>`
+
+Once you're happy this is in order, register the worlfows with the helper script.
+`./helper_scripts/hedwig_reg_listen.sh register`
 
 
