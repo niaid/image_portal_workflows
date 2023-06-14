@@ -1,10 +1,26 @@
+"""
+General overview:
+- Single directory is used to contain a set of gifs, which make up a single stack.
+- tifs compiled into a single mrc file (source.mrc) in convert_tif_to_mrc()
+- two metadata files (align xf, and align xg, are generated to allow creation
+    of aligned mrc file (align.mrc)
+- another mrc file is created, which tries to correct for stage tilt (needs stretch file).
+This file is called corrected.mrc. Note, if no correction is needed, a correction.mrc is
+still created, but without any actual correction of angle.
+- The corrected mrc file is then contrast adjusted with mean std dev magic numbers "150,40"
+    in gen_newstack_norm_command(), this is referred to as the base mrc
+- A movie is created using the base.mrc file.
+- the midpoint of that file is computed, and snapshots are created using this midpoint.
+- We now want to create the pyramid assets, for neuroglancer / viewer.
+- Firstly create nifti file using the base mrc, then convert this to ng format.
+- To conclude, send callback stating the location of the various outputs.
+"""
 from em_workflows.file_path import FilePath
 import glob
 from natsort import os_sorted
 import math
 from typing import Dict
-from prefect import Flow, task, Parameter, unmapped
-from prefect.run_configs import LocalRun
+from prefect import flow, task, unmapped
 from em_workflows.config import Config
 
 from em_workflows.utils import utils
@@ -197,72 +213,52 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
     return keyimg_asset
 
 
-with Flow(
-    "sem_tomo",
-    state_handlers=[utils.notify_api_completion, utils.notify_api_running],
-    executor=Config.SLURM_EXECUTOR,
-    run_config=LocalRun(labels=[utils.get_environment()]),
-) as flow:
-    """
-    General overview:
-    - Single directory is used to contain a set of gifs, which make up a single stack.
-    - tifs compiled into a single mrc file (source.mrc) in convert_tif_to_mrc()
-    - two metadata files (align xf, and align xg, are generated to allow creation
-        of aligned mrc file (align.mrc)
-    - another mrc file is created, which tries to correct for stage tilt (needs stretch file).
-    This file is called corrected.mrc. Note, if no correction is needed, a correction.mrc is
-    still created, but without any actual correction of angle.
-    - The corrected mrc file is then contrast adjusted with mean std dev magic numbers "150,40"
-        in gen_newstack_norm_command(), this is referred to as the base mrc
-    - A movie is created using the base.mrc file.
-    - the midpoint of that file is computed, and snapshots are created using this midpoint.
-    - We now want to create the pyramid assets, for neuroglancer / viewer.
-    - Firstly create nifti file using the base mrc, then convert this to ng format.
-    - To conclude, send callback stating the location of the various outputs.
-    """
-    input_dir = Parameter("input_dir")
-    file_name = Parameter("file_name", default=None)
-    callback_url = Parameter("callback_url", default=None)()
-    token = Parameter("token", default=None)()
-    tilt_angle = Parameter("tilt_angle", default=0)()
+@flow
+def sem_flow(
+    input_dir: str,
+    file_name: str = None,
+    callback_url: str = None,
+    token: str = None,
+    no_api: bool = None,
+    tilt_angle: float = 0,
     # debugging options:
-    no_api = Parameter("no_api", default=False)()
-    keep_workdir = Parameter("keep_workdir", default=False)()
+    keep_workdir: bool = False,
+):
 
     # dir to read from.
-    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
+    input_dir_fp = utils.get_input_dir.submit(input_dir=input_dir)
     # note FIBSEM is different to other flows in that it uses *directories*
     # to define stacks. Therefore, will have to list dirs to discover stacks
     # (rather than eg mrc files)
-    input_dir_fps = utils.list_dirs(input_dir_fp=input_dir_fp)
+    input_dir_fps = utils.list_dirs.submit(input_dir_fp=input_dir_fp)
 
-    fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_dir_fps)
+    fps = utils.gen_fps.submit(input_dir=input_dir_fp, fps_in=input_dir_fps)
     tif_to_mrc = convert_tif_to_mrc.map(fps)
 
     # using source.mrc gen align.xf
-    align_xfs = gen_xfalign_comand.map(fp_in=fps, upstream_tasks=[tif_to_mrc])
+    align_xfs = gen_xfalign_comand.map(fp_in=fps, wait_for=[tif_to_mrc])
 
     # using align.xf create align.xg
-    align_xgs = gen_align_xg.map(fp_in=fps, upstream_tasks=[align_xfs])
+    align_xgs = gen_align_xg.map(fp_in=fps, wait_for=[align_xfs])
 
     # create stretch file using tilt_parameter
     stretchs = create_stretch_file.map(tilt=unmapped(tilt_angle), fp_in=fps)
 
-    base_mrcs = gen_newstack_combi.map(fp_in=fps, upstream_tasks=[stretchs, align_xgs])
+    base_mrcs = gen_newstack_combi.map(fp_in=fps, wait_for=[stretchs, align_xgs])
     corrected_movie_assets = utils.mrc_to_movie.map(
         file_path=fps,
         root=unmapped("adjusted"),
         asset_type=unmapped("recMovie"),
-        upstream_tasks=[base_mrcs],
+        wait_for=[base_mrcs],
     )
 
     # generate midpoint mrc file
-    mid_mrcs = gen_newstack_mid_mrc_command.map(fp_in=fps, upstream_tasks=[base_mrcs])
+    mid_mrcs = gen_newstack_mid_mrc_command.map(fp_in=fps, wait_for=[base_mrcs])
 
     # large thumb
-    keyimg_assets = gen_keyimg.map(fp_in=fps, upstream_tasks=[mid_mrcs])
+    keyimg_assets = gen_keyimg.map(fp_in=fps, wait_for=[mid_mrcs])
     # small thumb
-    thumb_assets = gen_keyimg_small.map(fp_in=fps, upstream_tasks=[keyimg_assets])
+    thumb_assets = gen_keyimg_small.map(fp_in=fps, wait_for=[keyimg_assets])
 
     # zarr file generation
     pyramid_assets = ng.gen_zarr.map(
@@ -270,7 +266,7 @@ with Flow(
         depth=unmapped(Config.fibsem_depth),
         width=unmapped(Config.fibsem_width),
         height=unmapped(Config.fibsem_height),
-        upstream_tasks=[base_mrcs],
+        wait_for=[base_mrcs],
     )
 
     # this is the toplevel element (the input file basically) onto which
@@ -289,10 +285,13 @@ with Flow(
     callback_with_corr_movies = utils.add_asset.map(
         prim_fp=callback_with_corr_mrcs, asset=corrected_movie_assets
     )
-    rm_workdirs = utils.cleanup_workdir(fps, upstream_tasks=[callback_with_corr_movies])
+    utils.cleanup_workdir(fps, keep_workdir, wait_for=[callback_with_corr_movies])
 
     # finally filter error states, and convert to JSON and send.
     filtered_callback = utils.filter_results(callback_with_corr_movies)
-    cb = utils.send_callback_body(
-        token=token, callback_url=callback_url, files_elts=filtered_callback
+    utils.send_callback_body(
+        no_api=no_api,
+        token=token,
+        callback_url=callback_url,
+        files_elts=filtered_callback,
     )

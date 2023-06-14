@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from dask_jobqueue import SLURMCluster
 from prefect_dask import DaskTaskRunner
-import prefect
+from prefect import get_run_logger
 import shutil
 
 
@@ -25,7 +25,7 @@ def SLURM_exec():
     )
     cluster.scale(1)
     # cluster.adapt(minimum=1, maximum=6)
-    logging = prefect.context.get("logger")
+    logging = get_run_logger()
     logging.debug("Dask cluster started")
     logging.debug(f"see dashboard {cluster.dashboard_link}")
     return cluster

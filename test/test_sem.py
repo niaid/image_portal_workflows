@@ -4,11 +4,12 @@ import pytest
 @pytest.mark.localdata
 @pytest.mark.slow
 def test_sem(mock_nfs_mount):
-    from em_workflows.sem_tomo.flow import flow
+    from em_workflows.sem_tomo.flow import sem_flow
 
-    result = flow.run(
+    state = sem_flow(
         input_dir="/test/input_files/sem_inputs/Projects/",
-        tilt_angle="30.2",
+        tilt_angle=30.2,
         no_api=True,
+        return_state=True,
     )
-    assert result.is_successful()
+    assert state.is_completed()
