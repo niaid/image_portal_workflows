@@ -1,10 +1,16 @@
+
 [Unit]
-Description=Starts the production listener "Agent" which reaches out to workflow API.
+Description=Starts the Production listener "Agent" which reaches out to workflow API.
 After=network.target
 
 [Service]
 Type=simple
-ExecStart=/gs1/home/macmenaminpe/code/hedwig/prod/image_portal_workflows/helper_scripts/hedwig_reg_listen.sh prod listen
+User=hedwig_prod
+Group=hedwig_prod
+ExecStart=/gs1/home/hedwig_prod/image_portal_workflows/helper_scripts/hedwig_reg_listen.sh listen
+WorkingDirectory=/gs1/home/hedwig_prod
+Environment="HEDWIG_ENV=prod"
+Environment="REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt"
 
 [Install]
 WantedBy=multi-user.target

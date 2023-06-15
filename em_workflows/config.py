@@ -11,13 +11,14 @@ def SLURM_exec():
     brings up a dynamically sized cluster.
     For some reason processes > 1 crash BRT. Be careful optimizing this.
     """
+    home = os.environ["HOME"]
     cluster = SLURMCluster(
         name="dask-worker",
         cores=60,
         memory="32G",
-        processes=1,
+        # processes=1,
         death_timeout=121,
-        local_directory="/gs1/home/macmenaminpe/tmp/",
+        local_directory=f"{home}/dask_tmp/",
         queue="gpu",
         walltime="4:00:00",
         job_extra_directives=["--gres=gpu:1"],
@@ -49,7 +50,7 @@ def command_loc(cmd: str) -> str:
 class Config:
     # location in RML HPC
     binvol = "/opt/rml/imod/bin/binvol"
-    bioformats2raw = "/gs1/home/macmenaminpe/bin/bioformats2raw"
+    bioformats2raw = "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw"
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
     dm2mrc_loc = "/opt/rml/imod/bin/dm2mrc"
     clip_loc = "/opt/rml/imod/bin/clip"
@@ -106,7 +107,8 @@ class Config:
     fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
 
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
-    tmp_dir = "/gs1/Scratch/macmenaminpe_scratch/"
+    user = os.environ["USER"]
+    tmp_dir = f"/gs1/Scratch/{user}_scratch/"
     mount_point = "/mnt/ai-fas12/"
 
     @staticmethod
