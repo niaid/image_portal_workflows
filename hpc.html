@@ -85,7 +85,40 @@
 </section>
 <section id="setup">
 <h2>Setup:<a class="headerlink" href="#setup" title="Permalink to this heading"></a></h2>
-<p>Installing software / work environments.</p>
+<p>HPC doesn’t seem to have a current version of Python available. Need to get something set up to init the venvs, chose conda.
+Install conda as normal (in this case anaconda, should probably use miniconda instead).
+Activate once to allow env generation. Don’t allow conda update bashrc, don’t want to run conda upon login.</p>
+<p>Load the conda env:</p>
+<p><cite>eval “$(/gs1/home/hedwig_dev/anaconda3/bin/conda shell.bash hook)”</cite></p>
+<p>Then create the venv, eg <cite>dev</cite></p>
+<p><cite>python3 -m venv dev</cite></p>
+<p>Deactivate conda, we shouldn’t need it any more.</p>
+<p><cite>conda deactivate</cite></p>
+<p>Activate the venv.</p>
+<p><cite>source ~/dev/bin/activate</cite>
+(and add this to .bashrc to load automatically.)</p>
+<p>clone the repo to the root of home.</p>
+<p><cite>git clone git&#64;github.com:niaid/image_portal_workflows.git</cite></p>
+<p>ie <cite>ls ~</cite> should list you <cite>image_portal_workflows</cite></p>
+<p><cite>cd image_portal_workflows/</cite>
+<cite>python -m pip install -e .</cite></p>
+<p>Set up bashrc env to facilitate env set up.
+Added these lines to <cite>.bashrc</cite></p>
+<p><cite>export HEDWIG_ENV=qa</cite>
+<cite>source qa/bin/activate</cite></p>
+<p>Set up daemon to use appropriate service file, eg for qa it would be:
+<cite>helper_scripts/hedwig_listener_qa.service</cite>
+You will need to email NIAID RML HPC Support to do this.
+To test the ExecStart command can be run, eg:
+<cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh listen</cite></p>
+<p>To update version:
+tag your relase, and test in dev etc.
+Upon promotion into HPC env do:
+<cite>cd image_portal_workflows/</cite>
+and
+<cite>git checkout &lt;label&gt;</cite></p>
+<p>Once you’re happy this is in order, register the worlfows with the helper script.
+<cite>./helper_scripts/hedwig_reg_listen.sh register</cite></p>
 </section>
 </section>
 

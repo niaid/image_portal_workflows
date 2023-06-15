@@ -11,4 +11,59 @@ Using the cluster information.
 Setup:
 -------
 
-Installing software / work environments.
+HPC doesn't seem to have a current version of Python available. Need to get something set up to init the venvs, chose conda.
+Install conda as normal (in this case anaconda, should probably use miniconda instead).
+Activate once to allow env generation. Don't allow conda update bashrc, don't want to run conda upon login.
+
+Load the conda env: 
+
+`eval "$(/gs1/home/hedwig_dev/anaconda3/bin/conda shell.bash hook)"`
+
+Then create the venv, eg `dev`
+
+`python3 -m venv dev`
+
+Deactivate conda, we shouldn't need it any more.
+
+`conda deactivate`
+
+Activate the venv.
+
+`source ~/dev/bin/activate`
+(and add this to .bashrc to load automatically.)
+
+clone the repo to the root of home.
+
+`git clone git@github.com:niaid/image_portal_workflows.git`
+
+ie `ls ~` should list you `image_portal_workflows`
+
+`cd image_portal_workflows/`
+`python -m pip install -e .`
+
+
+Set up bashrc env to facilitate env set up.
+Added these lines to `.bashrc`
+
+`export HEDWIG_ENV=qa`
+`source qa/bin/activate`
+
+
+Set up daemon to use appropriate service file, eg for qa it would be: 
+`helper_scripts/hedwig_listener_qa.service`
+You will need to email NIAID RML HPC Support to do this.
+To test the ExecStart command can be run, eg:
+`image_portal_workflows/helper_scripts/hedwig_reg_listen.sh listen`
+
+
+To update version:
+tag your relase, and test in dev etc.
+Upon promotion into HPC env do:
+`cd image_portal_workflows/`
+and
+`git checkout <label>`
+
+Once you're happy this is in order, register the worlfows with the helper script.
+`./helper_scripts/hedwig_reg_listen.sh register`
+
+
