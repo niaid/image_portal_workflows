@@ -42,14 +42,10 @@ import subprocess
 import math
 
 from pathlib import Path
-from prefect import task, Flow, Parameter, unmapped
-from prefect.run_configs import LocalRun
-from prefect.engine import signals
-
+from prefect import task, flow, unmapped
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
-
 from em_workflows.config import Config
 
 """
@@ -101,7 +97,7 @@ def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
     """
 
     if ali_or_rec not in ["ali", "rec"]:
-        raise signals.FAIL(
+        raise ValueError(
             f"gen_dimension_command must be called with ali or rec, not {ali_or_rec}"
         )
     mrc_file = f"{file_path.working_dir}/{file_path.base}_{ali_or_rec}.mrc"
@@ -110,7 +106,7 @@ def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
         utils.log(f"{mrc_file} exists")
     else:
         utils.log(f"{mrc_file} DOES NOT exist")
-        raise signals.FAIL(
+        raise RuntimeError(
             f"File {mrc_file} does not exist. gen_dimension_command failure."
         )
     cmd = [Config.header_loc, "-s", mrc_file]
@@ -120,7 +116,7 @@ def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
         stderr = sp.stderr.decode("utf-8")
         msg = f"ERROR : {stderr} -- {stdout}"
         utils.log(msg)
-        raise signals.FAIL(msg)
+        raise RuntimeError(msg)
     else:
         stdout = sp.stdout.decode("utf-8")
         stderr = sp.stderr.decode("utf-8")
@@ -454,39 +450,32 @@ def cleanup_files(file_path: FilePath, pattern=str):
 #    return inputs_paired
 
 
-with Flow(
-    "brt_flow",
-    executor=Config.SLURM_EXECUTOR,
-    state_handlers=[utils.notify_api_running],
-    terminal_state_handler=utils.custom_terminal_state_handler,
-    run_config=LocalRun(labels=[utils.get_environment()]),
-) as flow:
-
-    # This block of params map are for adoc file specfication.
+@flow
+def brt_flow(
+    # This block of params map are for adoc file specification.
     # Note the ugly names, these parameters are lifted verbatim from
     # https://bio3d.colorado.edu/imod/doc/directives.html where possible.
     # (there are two thickness args, these are not verbatim.)
-    montage = Parameter("montage")
-    gold = Parameter("gold")
-    focus = Parameter("focus")
-    fiducialless = Parameter("fiducialless")
-    trackingMethod = Parameter("trackingMethod")
-    TwoSurfaces = Parameter("TwoSurfaces")
-    TargetNumberOfBeads = Parameter("TargetNumberOfBeads")
-    LocalAlignments = Parameter("LocalAlignments")
-    THICKNESS = Parameter("THICKNESS")
+    montage: int,
+    gold: int,
+    focus: int,
+    fiducialless: int,
+    trackingMethod: int,
+    TwoSurfaces: int,
+    TargetNumberOfBeads: int,
+    LocalAlignments: int,
+    THICKNESS: int,
     # end user facing adoc params
-
-    adoc_template = Parameter("adoc_template", default="plastic_brt")
-    input_dir = Parameter("input_dir")
-    callback_url = Parameter("callback_url", default=None)()
-    token = Parameter("token", default=None)()
-    file_name = Parameter("file_name", default=None)
-
+    input_dir: str,
+    adoc_template: str = "plastic_brt",
+    callback_url: str = None,
+    token: str = None,
+    file_name: str = None,
     # debugging options:
     # run workflow without an api.
-    no_api = Parameter("no_api", default=False)()
-    keep_workdir = Parameter("keep_workdir", default=False)()
+    no_api: bool = False,
+    keep_workdir: bool = False,
+):
 
     # a single input_dir will have n tomograms
     input_dir_fp = utils.get_input_dir(input_dir=input_dir)
@@ -514,64 +503,56 @@ with Flow(
     # stack dimensions - used in movie creation
     # alignment z dimension, this is only used for the tilt movie.
     ali_z_dims = gen_dimension_command.map(
-        file_path=fps, ali_or_rec=unmapped("ali"), upstream_tasks=[brts]
+        file_path=fps, ali_or_rec=unmapped("ali"), wait_for=[brts]
     )
 
     # START TILT MOVIE GENERATION:
-    ali_xs = gen_ali_x.map(file_path=fps, z_dim=ali_z_dims, upstream_tasks=[brts])
-    asmbls = gen_ali_asmbl.map(file_path=fps, upstream_tasks=[ali_xs])
-    mrc2tiffs = gen_mrc2tiff.map(file_path=fps, upstream_tasks=[asmbls])
-    thumb_assets = gen_thumbs.map(
-        file_path=fps, z_dim=ali_z_dims, upstream_tasks=[mrc2tiffs]
-    )
+    ali_xs = gen_ali_x.map(file_path=fps, z_dim=ali_z_dims, wait_for=[brts])
+    asmbls = gen_ali_asmbl.map(file_path=fps, wait_for=[ali_xs])
+    mrc2tiffs = gen_mrc2tiff.map(file_path=fps, wait_for=[asmbls])
+    thumb_assets = gen_thumbs.map(file_path=fps, z_dim=ali_z_dims, wait_for=[mrc2tiffs])
     keyimg_assets = gen_copy_keyimages.map(
-        file_path=fps, z_dim=ali_z_dims, upstream_tasks=[mrc2tiffs]
+        file_path=fps, z_dim=ali_z_dims, wait_for=[mrc2tiffs]
     )
-    tilt_movie_assets = gen_tilt_movie.map(
-        file_path=fps, upstream_tasks=[keyimg_assets]
-    )
+    tilt_movie_assets = gen_tilt_movie.map(file_path=fps, wait_for=[keyimg_assets])
     clean_align_mrc = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_align_*.mrc"),
-        upstream_tasks=[tilt_movie_assets, thumb_assets, keyimg_assets],
+        wait_for=[tilt_movie_assets, thumb_assets, keyimg_assets],
     )
     clean_ali_jpg = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*ali*.jpg"),
-        upstream_tasks=[tilt_movie_assets, thumb_assets, keyimg_assets],
+        wait_for=[tilt_movie_assets, thumb_assets, keyimg_assets],
     )
     # END TILT MOVIE GENERATION
 
     # START RECONSTR MOVIE GENERATION:
     rec_z_dims = gen_dimension_command.map(
-        file_path=fps, ali_or_rec=unmapped("rec"), upstream_tasks=[brts]
+        file_path=fps, ali_or_rec=unmapped("rec"), wait_for=[brts]
     )
-    clip_avgs = gen_clip_avgs.map(
-        file_path=fps, z_dim=rec_z_dims, upstream_tasks=[asmbls]
-    )
+    clip_avgs = gen_clip_avgs.map(file_path=fps, z_dim=rec_z_dims, wait_for=[asmbls])
     averagedVolume_assets = consolidate_ave_mrcs.map(
-        file_path=fps, upstream_tasks=[clip_avgs]
+        file_path=fps, wait_for=[clip_avgs]
     )
     ave_jpgs = gen_ave_jpgs_from_ave_mrc.map(
-        file_path=fps, upstream_tasks=[averagedVolume_assets]
+        file_path=fps, wait_for=[averagedVolume_assets]
     )
-    recon_movie_assets = gen_recon_movie.map(file_path=fps, upstream_tasks=[ave_jpgs])
+    recon_movie_assets = gen_recon_movie.map(file_path=fps, wait_for=[ave_jpgs])
     clean_mp4 = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_mp4.*.jpg"),
-        upstream_tasks=[recon_movie_assets, ave_jpgs],
+        wait_for=[recon_movie_assets, ave_jpgs],
     )
     clean_ave_mrc = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_ave*.mrc"),
-        upstream_tasks=[recon_movie_assets, ave_jpgs],
+        wait_for=[recon_movie_assets, ave_jpgs],
     )
     #    # END RECONSTR MOVIE
 
     # Binned volume assets, for volslicer.
-    bin_vol_assets = gen_ave_8_vol.map(
-        file_path=fps, upstream_tasks=[averagedVolume_assets]
-    )
+    bin_vol_assets = gen_ave_8_vol.map(file_path=fps, wait_for=[averagedVolume_assets])
     # finished volslicer inputs.
 
     # START PYRAMID GEN
@@ -580,10 +561,10 @@ with Flow(
         depth=unmapped(Config.brt_depth),
         width=unmapped(Config.brt_width),
         height=unmapped(Config.brt_height),
-        upstream_tasks=[brts],
+        wait_for=[brts],
     )
     #  archive_pyramid_cmds = ng.gen_archive_pyr.map(
-    #      file_path=fps, upstream_tasks=[pyramid_assets]
+    #      file_path=fps, wait_for=[pyramid_assets]
     #  )
 
     # now we've done the computational work.
@@ -611,18 +592,19 @@ with Flow(
         prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
 
-    cp_wd_to_assets = utils.copy_workdirs.map(
-        fps, upstream_tasks=[callback_with_tilt_mov]
-    )
+    cp_wd_to_assets = utils.copy_workdirs.map(fps, wait_for=[callback_with_tilt_mov])
     # finally filter error states, and convert to JSON and send.
     filtered_callback = utils.filter_results(callback_with_tilt_mov)
 
     cb = utils.send_callback_body(
-        token=token, callback_url=callback_url, files_elts=filtered_callback
+        token=token,
+        callback_url=callback_url,
+        no_api=no_api,
+        files_elts=filtered_callback,
     )
-    rm_workdirs = utils.cleanup_workdir(
+    utils.cleanup_workdir(
         fps,
-        upstream_tasks=[
+        wait_for=[
             cb,
             cp_wd_to_assets,
             clean_align_mrc,
@@ -632,6 +614,8 @@ with Flow(
         ],
     )
 
+
 # the other tasks might be always run or something,
 # this is far enough along to get an idea of success.
-flow.set_reference_tasks([callback_with_tilt_mov])
+# @todo - Not sure what to do with this in Prefect 2
+# flow.set_reference_tasks([callback_with_tilt_mov])

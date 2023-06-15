@@ -8,8 +8,7 @@ import pytest
 import shutil
 import os
 import platform
-import prefect
-from prefect import task
+from prefect import task, get_run_logger
 from pathlib import Path
 
 from em_workflows.utils import utils
@@ -42,7 +41,7 @@ def hpc_env(monkeypatch):
         LocalAlignments: int,
         THICKNESS: int,
     ) -> None:
-        prefect.context.get("logger").info(f"MOCKED {file_path}")
+        get_run_logger().info(f"MOCKED {file_path}")
         shutil.copy(
             os.path.join(_mock_test_output_dir(), "2013-1220-dA30_5-BSC-1_10_ali.mrc"),
             file_path.working_dir,
@@ -55,7 +54,7 @@ def hpc_env(monkeypatch):
     @task
     def _create_brt_command(adoc_fp: Path) -> str:
         s = f"cp {_mock_test_output_dir()}*.mrc {adoc_fp.parent}"
-        prefect.context.get("logger").info(f"MOCKED {s}")
+        get_run_logger().info(f"MOCKED {s}")
         return s
 
     monkeypatch.setattr(utils, "run_brt", _prep_mock_brt_run)
@@ -63,16 +62,20 @@ def hpc_env(monkeypatch):
 
 @pytest.mark.localdata
 @pytest.mark.slow
-def test_brt(mock_nfs_mount, hpc_env):
-    from em_workflows.brt.flow import flow
+# def test_brt(mock_nfs_mount, hpc_env):
+def test_brt(mock_nfs_mount):
+    from em_workflows.brt.flow import brt_flow
 
-    result = flow.run(
+    result = brt_flow(
         adoc_template="plastic_brt",
         montage=0,
         gold=15,
         focus=0,
         fiducialless=1,
-        trackingMethod=None,
+        trackingMethod=0,
+        # NOTE: passing these as ints, so can't default to None
+        #       should the type be "str"?
+        # trackingMethod=None,
         TwoSurfaces=0,
         TargetNumberOfBeads=20,
         LocalAlignments=0,
@@ -80,5 +83,6 @@ def test_brt(mock_nfs_mount, hpc_env):
         input_dir="test/input_files/brt_inputs/Projects/",
         no_api=True,
         keep_workdir=True,
+        return_state=True,
     )
-    assert result.is_successful()
+    assert result.is_completed()
