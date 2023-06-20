@@ -31,7 +31,7 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
     """
     # first check if file extension is .tif or .tiff
     tif_suffixes = [".tiff", ".tif"]
-    utils.log(f"Checkgin {file_path.fp_in.suffix} is a tiff file")
+    utils.log(f"Checking {file_path.fp_in.suffix} is a tiff file")
     if file_path.fp_in.suffix.lower() in tif_suffixes:
         utils.log(f"{file_path.fp_in.as_posix()} is a tiff file")
         if is_int16(file_path.fp_in):
@@ -226,7 +226,7 @@ def dm_flow(
     -convert all mrcs in Projects dir to jpegs.
     -convert all tiffs/pngs/jpegs to correct size for thumbs, "sm" and "lg"
     """
-    input_dir_fp = utils.get_input_dir.submit(input_dir=input_dir)
+    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
     input_fps = utils.list_files(
         input_dir_fp,
         Config.valid_2d_input_exts,
@@ -235,21 +235,31 @@ def dm_flow(
     fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_fps)
     # logs = utils.init_log.map(file_path=fps)
 
-    tiffs_converted = convert_if_int16_tiff.map(file_path=fps)
+    # tiffs_converted = convert_if_int16_tiff.map(fps)
+    tiffs_converted = utils.filter_results(convert_if_int16_tiff.map(fps))
 
     # dm* to mrc conversion
     dm_to_mrc_converted = convert_dms_to_mrc.map(fps, wait_for=[tiffs_converted])
+    # dm_to_mrc_converted = utils.filter_results(convert_dms_to_mrc.map(fps, wait_for=[tiffs_converted]))
 
     # mrc is intermed format, to jpeg conversion
     mrc_to_jpeg = convert_dm_mrc_to_jpeg.map(fps, wait_for=[dm_to_mrc_converted])
+    # mrc_to_jpeg = utils.filter_results(convert_dm_mrc_to_jpeg.map(fps, wait_for=[dm_to_mrc_converted]))
 
     # mrc can also be an input, convert to tiff.
     convert_2d_mrc = convert_2d_mrc_to_tiff.map(file_path=fps)
+    # convert_2d_mrc = utils.filter_results(convert_2d_mrc_to_tiff.map(file_path=fps))
 
     # scale the jpegs, pngs, and tifs
+    # keyimg_assets = utils.filter_results(scale_jpegs.map(
+    #     fps, size=unmapped("l"), wait_for=[mrc_to_jpeg, convert_2d_mrc]
+    # ))
     keyimg_assets = scale_jpegs.map(
         fps, size=unmapped("l"), wait_for=[mrc_to_jpeg, convert_2d_mrc]
     )
+    # thumb_assets = utils.filter_results(scale_jpegs.map(
+    #    fps, size=unmapped("s"), wait_for=[mrc_to_jpeg, convert_2d_mrc]
+    # ))
     thumb_assets = scale_jpegs.map(
         fps, size=unmapped("s"), wait_for=[mrc_to_jpeg, convert_2d_mrc]
     )
@@ -261,7 +271,7 @@ def dm_flow(
     )
 
     # finally filter error states, and convert to JSON and send.
-    utils.cleanup_workdir(fps, keep_workdir, wait_for=[callback_with_keyimgs])
+    # utils.cleanup_workdir(fps, keep_workdir, wait_for=[callback_with_keyimgs])
     filtered_callback = utils.filter_results(callback_with_keyimgs)
 
     utils.send_callback_body(

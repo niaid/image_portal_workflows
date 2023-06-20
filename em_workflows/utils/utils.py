@@ -15,7 +15,6 @@ from collections import namedtuple
 Header = namedtuple("Header", "x y z")
 
 
-@task
 def filter_results(results):
     return filter(lambda x: not isinstance(x, (BaseException, type(None))), results)
 
