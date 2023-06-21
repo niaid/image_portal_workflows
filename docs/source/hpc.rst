@@ -26,21 +26,27 @@ Activate the venv.
 
 ``source ~/dev/bin/activate``
 
-clone the repo to the root of home.
+Clone the repo to the root of home. 
 
 ``git clone git@github.com:niaid/image_portal_workflows.git``
 
 Now ``ls ~`` should list you ``image_portal_workflows``
 
-Then get dependencies for project:
+
+Now get dependencies for project:
 
 .. code-block::
 
   cd image_portal_workflows/
   python -m pip install -e .
 
+Source being root of HOME is for convenience, and allows each serivce account to look similar. We need to install *this* repo into our venv. To do this tell ``pip`` the location of ``setup.py`` within the activated venv, eg:
 
-Set up bashrc to facilitate environment set up.
+``python -m pip install ~/image_portal_workflows/``
+ 
+An alternative setup could be run, similar to pytools, whereby source is retrieved via a git label or branch name via `requirements.txt`. I felt that having a complete git repo available in HOME of each account offered more flexibility.
+
+Set up bashrc to automate venv activation.
 Added these lines to ``.bashrc``
 
 .. code-block::
@@ -60,14 +66,17 @@ It's a good idea to test the ``ExecStart`` command can be run, eg:
 
 To update source:
 ~~~~~~~~~~~~~~~~~
-Tag your relase, and test in dev etc.
+Tag relase, and test in dev etc.
 Upon promotion into HPC env do:
 
-``cd image_portal_workflows/``
-and
-``git checkout <label>``
+.. code-block::
 
-Once you're happy this is in order, register the worlfows with the helper script.
+   cd image_portal_workflows/
+   git fetch
+   git checkout <label>
+
+
+Once happy this is in order, register the worlfows with the helper script.
 
 ``./helper_scripts/hedwig_reg_listen.sh register``
 
