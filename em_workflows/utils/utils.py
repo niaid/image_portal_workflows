@@ -485,7 +485,7 @@ def log(msg):
     if hasattr(context, "parameters"):
         logger = logging.getLogger(context.parameters["input_dir"])
         logger.info(msg)
-    context.logger.info(msg)
+    prefect.context.logger.info(msg)
 
 
 @task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
