@@ -71,6 +71,32 @@ def test_input_fname(mock_nfs_mount):
     assert state.is_completed()
 
 
+def test_fname_bad_tif(mock_nfs_mount, caplog):
+    """
+    Create an invalid TIF file in the input directory which should produce an error
+    and a failed run, but verify that the rest of the input files get processed.
+    """
+    from em_workflows.dm_conversion.flow import dm_flow
+
+    proj_dir = Config.proj_dir(utils.get_environment())
+    proj_path = Path(proj_dir)
+    input_dir = "test/input_files/dm_inputs/Projects/Lab/PI"
+    empty_tif = Path(proj_path / input_dir / "empty.tif")
+    # Create empty tif file which will cause error
+    open(empty_tif, "a").close()
+
+    state = dm_flow(
+        input_dir=input_dir,
+        no_api=True,
+        return_state=True,
+        file_name=empty_tif.name,
+    )
+    os.remove(empty_tif)
+    assert state.is_failed()
+    assert "Cannot read TIFF header" in caplog.text
+    # todo: assert <Assets files ("1-As-70-007_LG.jpeg", ..., etc.) exist>
+
+
 def test_single_file_no_ext_not_found_gens_exception(mock_nfs_mount):
     from em_workflows.dm_conversion.flow import dm_flow
 

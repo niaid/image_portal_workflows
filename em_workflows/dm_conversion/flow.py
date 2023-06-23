@@ -267,16 +267,23 @@ def dm_flow(
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
     callback_with_keyimgs = utils.add_asset.map(
-        prim_fp=callback_with_thumbs, asset=keyimg_assets
+        prim_fp=callback_with_thumbs, asset=keyimg_assets, wait_for=callback_with_thumbs
     )
 
     # finally filter error states, and convert to JSON and send.
-    # utils.cleanup_workdir(fps, keep_workdir, wait_for=[callback_with_keyimgs])
-    filtered_callback = utils.filter_results(callback_with_keyimgs)
+    utils.cleanup_workdir(fps, keep_workdir, wait_for=[callback_with_keyimgs])
+    filtered_callback = list(utils.filter_results(callback_with_keyimgs))
 
-    utils.send_callback_body(
+    callback_state = utils.send_callback_body.submit(
         token=token,
         callback_url=callback_url,
         no_api=no_api,
         files_elts=filtered_callback,
+        return_state=True,
     )
+
+    utils.log(f"callback_state = {callback_state}")
+    utils.notify_api_completion(
+        callback_state, token, callback_url, no_api, wait_for=callback_state
+    )
+    utils.log("COMPLETED")

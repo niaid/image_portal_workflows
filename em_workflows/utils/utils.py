@@ -7,7 +7,7 @@ import shutil
 import json
 from typing import List, Dict
 from pathlib import Path
-from prefect import task, get_run_logger
+from prefect import task, get_run_logger, State
 from em_workflows.config import Config
 from collections import namedtuple
 
@@ -705,41 +705,38 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
 #     return ns
 #
 #
-# def notify_api_completion(flow: Flow, old_state, new_state) -> State:
-#     """
-#     Prefect workflows transition from State to State, see:
-#     https://docs.prefect.io/core/concepts/states.html#overview.
-#     This method checks if the State being transitioned into is an is_finished state.
-#     If it is, a notification is sent stating the workflow is finished.
-#     Is a static method because signiture much conform as above, see:
-#     https://docs.prefect.io/core/concepts/notifications.html#state-handlers
-#
-#     """
-#     if new_state.is_finished():
-#         if new_state.is_successful():
-#             status = "success"
-#         else:
-#             status = "error"
-#         if prefect.context.parameters.get("no_api"):
-#             log(f"no_api flag used, completion: {status}")
-#         else:
-#             callback_url = prefect.context.parameters.get("callback_url")
-#             token = prefect.context.parameters.get("token")
-#             headers = {
-#                 "Authorization": "Bearer " + token,
-#                 "Content-Type": "application/json",
-#             }
-#             response = requests.post(
-#                 callback_url, headers=headers, data=json.dumps({"status": status})
-#             )
-#             log(f"Pipeline status is:{status}")
-#             log(response.text)
-#             log(response.headers)
-#             if not response.ok:
-#                 msg = f"Bad response code on callback: {response}"
-#                 log(msg=msg)
-#                 raise signals.FAIL(msg)
-#     return new_state
+
+
+@task
+def notify_api_completion(state: State, token: str, callback_url: str, no_api: bool):
+    """
+    Prefect workflows transition from State to State, see:
+    https://docs.prefect.io/core/concepts/states.html#overview.
+    This method checks if the State being transitioned into is an is_finished state.
+    If it is, a notification is sent stating the workflow is finished.
+    Is a static method because signiture much conform as above, see:
+    https://docs.prefect.io/core/concepts/notifications.html#state-handlers
+
+    """
+
+    if no_api:
+        log("In 'notify_api_completion()' no_api flag used")
+        log(f"state = {state}")
+    else:
+        headers = {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json",
+        }
+        response = requests.post(
+            callback_url, headers=headers, data=json.dumps({"state": state})
+        )
+        log(f"Pipeline state is:{state}")
+        log(response.text)
+        log(response.headers)
+        if not response.ok:
+            msg = f"Bad response code on callback: {response}"
+            log(msg=msg)
+            raise RuntimeError(msg)
 
 
 def get_environment() -> str:
