@@ -105,6 +105,7 @@ class Config:
     ]
     fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
 
+    valid_lrg_2d_rgb_inputs = ["png", "PNG"]
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     tmp_dir = "/gs1/Scratch/macmenaminpe_scratch/"
     mount_point = "/mnt/ai-fas12/"

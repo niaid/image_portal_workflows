@@ -542,8 +542,8 @@ def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> Lis
       multiple times, sometimes there will be no files of that extension.
     """
     _files = list()
-    log(f"Looking for *.{exts} in {input_dir}")
     if single_file:
+        log(f"Looking for single file: {single_file} in {input_dir}")
         fp = Path(f"{input_dir}/{single_file}")
         ext = fp.suffix.strip(".")
         if ext in exts:
@@ -554,6 +554,7 @@ def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> Lis
             else:
                 _files.append(fp)
     else:
+        log(f"Looking for *.{exts} in {input_dir}")
         for ext in exts:
             _files.extend(input_dir.glob(f"*.{ext}"))
     if not _files:
