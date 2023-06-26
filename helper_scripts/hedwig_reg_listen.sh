@@ -50,6 +50,7 @@ if [[ $ACTION == "listen" ]]; then
 	prefect backend server
 	prefect agent local start --label $HEDWIG_ENV --api $PREFECT__SERVER__HOST:4200
 elif [[ $ACTION == "register" ]]; then
+<<<<<<< HEAD
 	printf "\nRegister $HEDWIG_ENV Agent\n"
 	prefect register --project $PROJ  --path $WFLOWS/brt/
 	prefect register --project $PROJ  --path $WFLOWS/sem_tomo/
