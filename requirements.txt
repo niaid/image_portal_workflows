@@ -7,5 +7,5 @@ dask
 distributed
 dask-jobqueue
 natsort
-pytools@git+https://github.com/niaid/tomojs-pytools@v2.0.0
+pytools@git+https://github.com/niaid/tomojs-pytools@master
 pre-commit
