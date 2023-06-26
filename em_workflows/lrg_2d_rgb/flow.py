@@ -46,7 +46,7 @@ def bioformats_gen_zarr(file_path: FilePath):
     output_zarr = f"{file_path.working_dir}/{file_path.base}.zarr"
     log_fp = f"{file_path.working_dir}/{file_path.base}_as_zarr.log"
     cmd = [
-        "bioformats2raw",
+        Config.bioformats2raw,
         "--overwrite",
         "--scale-format-string",
         "%2$d",
