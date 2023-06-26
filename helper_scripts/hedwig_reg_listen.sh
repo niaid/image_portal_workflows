@@ -63,4 +63,7 @@ elif [[ $ACTION == "register" ]]; then
 	$PYTHON $PREFECT register --project Spaces_$HEDWIG_ENV  --path $WFLOWS/brt/
 	$PYTHON $PREFECT register --project Spaces_$HEDWIG_ENV  --path $WFLOWS/sem_tomo/
 	$PYTHON $PREFECT register --project Spaces_$HEDWIG_ENV  --path $WFLOWS/dm_conversion/
+	if [[ ! -d $WFLOWS/lrg_2d_rgb/ ]]; then
+		$PYTHON $PREFECT register --project Spaces_$HEDWIG_ENV  --path $WFLOWS/lrg_2d_rgb/
+	fi
 fi
