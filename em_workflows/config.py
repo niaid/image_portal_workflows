@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from dask_jobqueue import SLURMCluster
-from prefect.executors import DaskExecutor
+from prefect_dask import DaskTaskRunner
 import prefect
 import shutil
 
@@ -50,7 +50,7 @@ def command_loc(cmd: str) -> str:
 class Config:
     # location in RML HPC
     binvol = "/opt/rml/imod/bin/binvol"
-    bioformats2raw = "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw"
+    bioformats2raw = "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw"  # noqa: #E501
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
     dm2mrc_loc = "/opt/rml/imod/bin/dm2mrc"
     clip_loc = "/opt/rml/imod/bin/clip"
@@ -112,9 +112,9 @@ class Config:
         "MRC",
     ]
     fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
-
     valid_lrg_2d_rgb_inputs = ["png", "PNG"]
-    SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
+
+    SLURM_EXECUTOR = DaskTaskRunner(cluster_class=SLURM_exec)
     user = os.environ["USER"]
     tmp_dir = f"/gs1/Scratch/{user}_scratch/"
     mount_point = "/mnt/ai-fas12/"

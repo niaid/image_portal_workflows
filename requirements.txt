@@ -2,7 +2,8 @@ pytest
 coverage
 pytest-cov
 coverage-badge
-prefect==1.*
+prefect==2.*
+prefect-dask
 dask
 distributed
 dask-jobqueue

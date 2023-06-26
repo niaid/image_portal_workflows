@@ -5,29 +5,19 @@ import requests
 import os
 import shutil
 import json
-import prefect
-import logging
-import datetime
-from typing import List, Dict, Set, Optional
+from typing import List, Dict
 from pathlib import Path
-from prefect import Flow, task, context
-from prefect.triggers import any_successful, always_run
-from prefect.engine.state import State, Success
-from prefect.engine import signals
-from prefect.engine.signals import SKIP, TRIGGERFAIL
+from prefect import task, get_run_logger
 from em_workflows.config import Config
-from prefect.tasks.control_flow.filter import FilterTask
 from collections import namedtuple
 
 # used for keeping outputs of imod's header command (dimensions of image).
 Header = namedtuple("Header", "x y z")
 
 
-filter_results = FilterTask(
-    filter_func=lambda x: not isinstance(
-        x, (BaseException, TRIGGERFAIL, SKIP, type(None))
-    )
-)
+@task
+def filter_results(results):
+    return filter(lambda x: not isinstance(x, (BaseException, type(None))), results)
 
 
 def lookup_dims(fp: Path) -> Header:
@@ -44,7 +34,7 @@ def lookup_dims(fp: Path) -> Header:
         stderr = sp.stderr.decode("utf-8")
         msg = f"ERROR : {stderr} -- {stdout}"
         log(msg)
-        raise signals.FAIL(msg)
+        raise ValueError(msg)
     else:
         stdout = sp.stdout.decode("utf-8")
         stderr = sp.stderr.decode("utf-8")
@@ -152,16 +142,17 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
     return prim_fp
 
 
-@task(max_retries=3, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
-def cleanup_workdir(fps: List[FilePath]):
+@task(retries=3, retry_delay_seconds=10)  # @todo Handle "trigger=always_run"
+def cleanup_workdir(fps: List[FilePath], keep_workdir: bool = False):
     """
-    :param fp: a FilePath which has a working_dir to be removed
+    :param fps: list of FilePaths which have working_dirs to be removed
+    :param keep_workdir: bool, if true don't removed work_dir
 
-    | working_dir isn't needed after run, so rm.
+    | working_dir isn't needed after run, so remove unless "keep_workdir" is True.
     | task wrapper on the FilePath rm_workdir method.
 
     """
-    if prefect.context.parameters.get("keep_workdir") is True:
+    if keep_workdir:
         log("keep_workdir is set to True, skipping removal.")
     else:
         for fp in fps:
@@ -240,7 +231,7 @@ def update_adoc(
     elif int(TwoSurfaces) == 1:
         SurfacesToAnalyze = 2
     else:
-        raise signals.FAIL(
+        raise ValueError(
             f"Unable to resolve SurfacesToAnalyze, TwoSurfaces \
                 is set to {TwoSurfaces}, and should be 0 or 1"
         )
@@ -290,7 +281,7 @@ def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
             shutil.copyfile(src=fp_1.as_posix(), dst=f"{working_dir}/{fp_1.name}")
             shutil.copyfile(src=fp_2.as_posix(), dst=f"{working_dir}/{fp_2.name}")
         else:
-            raise signals.FAIL(f"Files missing. {fp_1},{fp_2}. BRT run failure.")
+            raise RuntimeError(f"Files missing. {fp_1},{fp_2}. BRT run failure.")
     return new_loc
 
 
@@ -361,7 +352,7 @@ def run_brt(
 
     for _file in [rec_file, ali_file]:
         if not _file.exists():
-            raise signals.FAIL(f"File {_file} does not exist. BRT run failure.")
+            raise RuntimeError(f"File {_file} does not exist. BRT run failure.")
     # brts_ok = check_brt_run_ok(file_path=file_path)
 
 
@@ -485,13 +476,10 @@ def log(msg):
     :param msg: string to output
     :return: None
     """
-    if hasattr(context, "parameters"):
-        logger = logging.getLogger(context.parameters["input_dir"])
-        logger.info(msg)
-    context.logger.info(msg)
+    get_run_logger().info(msg)
 
 
-@task(max_retries=1, retry_delay=datetime.timedelta(seconds=10), trigger=always_run)
+@task(retries=3, retry_delay_seconds=10)  # @todo Handle "trigger=always_run"
 def copy_workdirs(file_path: FilePath) -> Path:
     """
     :param file_path: The FilePath of the file whose workdir is to be copied
@@ -551,7 +539,7 @@ def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> Lis
         ext = fp.suffix.strip(".")
         if ext in exts:
             if not fp.exists():
-                raise signals.FAIL(
+                raise RuntimeError(
                     f"Expected file: {single_file}, not found in input_dir"
                 )
             else:
@@ -561,7 +549,7 @@ def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> Lis
         for ext in exts:
             _files.extend(input_dir.glob(f"*.{ext}"))
     if not _files:
-        raise signals.FAIL(f"Input dir {input_dir} not contain anything to process.")
+        raise RuntimeError(f"Input dir {input_dir} not contain anything to process.")
     log("found files")
     log(_files)
     return _files
@@ -577,7 +565,7 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
     log(f"trying to list {input_dir_fp}")
     dirs = [Path(x) for x in input_dir_fp.iterdir() if x.is_dir()]
     if len(dirs) == 0:
-        raise signals.FAIL(f"Unable to find any subdirs in dir: {input_dir_fp}")
+        raise RuntimeError(f"Unable to find any subdirs in dir: {input_dir_fp}")
     log(f"Found {dirs}")
     return dirs
 
@@ -647,112 +635,112 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
 #     raise signals.FAIL(f"Expecting file: {fp_to_check}, not found in input_dir")
 
 
-def notify_api_running(flow: Flow, old_state, new_state) -> State:
-    """
-    tells API the workflow has started to run.
-    """
-    if new_state.is_running():
-        if prefect.context.parameters.get("no_api"):
-            log("no_api flag used, not interacting with API")
-        else:
-            callback_url = prefect.context.parameters.get("callback_url")
-            token = prefect.context.parameters.get("token")
-            headers = {
-                "Authorization": "Bearer " + token,
-                "Content-Type": "application/json",
-            }
-            response = requests.post(
-                callback_url, headers=headers, data=json.dumps({"status": "running"})
-            )
-            log(response.text)
-            log(response.headers)
-            if not response.ok:
-                msg = f"Bad response code on notify_api_running: {response}"
-                log(msg=msg)
-                raise signals.FAIL(msg)
-    return new_state
-
-
-def custom_terminal_state_handler(
-    flow: Flow,
-    state: State,
-    reference_task_states: Set[State],
-) -> Optional[State]:
-    """
-    we define any success at all to be a success
-    """
-    success = False
-    # iterate through reference task states looking for successes
-    for task_state in reference_task_states:
-        if task_state.is_successful():
-            success = True
-    if success:
-        message = "success"
-        ns = Success(
-            message=message,
-            result=state.result,
-            context=state.context,
-            cached_inputs=state.cached_inputs,
-        )
-    else:
-        message = "error"
-        ns = state
-    if prefect.context.parameters.get("no_api"):
-        log(f"no_api flag used, terminal: success is {message}")
-    else:
-        callback_url = prefect.context.parameters.get("callback_url")
-        token = prefect.context.parameters.get("token")
-        headers = {
-            "Authorization": "Bearer " + token,
-            "Content-Type": "application/json",
-        }
-        response = requests.post(
-            callback_url, headers=headers, data=json.dumps({"status": message})
-        )
-        log(f"Pipeline status is:{message}, {response.text}")
-        log(response.headers)
-        if not response.ok:
-            msg = f"Bad response code on callback: {response}"
-            log(msg=msg)
-            raise signals.FAIL(msg)
-    return ns
-
-
-def notify_api_completion(flow: Flow, old_state, new_state) -> State:
-    """
-    Prefect workflows transition from State to State, see:
-    https://docs.prefect.io/core/concepts/states.html#overview.
-    This method checks if the State being transitioned into is an is_finished state.
-    If it is, a notification is sent stating the workflow is finished.
-    Is a static method because signiture much conform as above, see:
-    https://docs.prefect.io/core/concepts/notifications.html#state-handlers
-
-    """
-    if new_state.is_finished():
-        if new_state.is_successful():
-            status = "success"
-        else:
-            status = "error"
-        if prefect.context.parameters.get("no_api"):
-            log(f"no_api flag used, completion: {status}")
-        else:
-            callback_url = prefect.context.parameters.get("callback_url")
-            token = prefect.context.parameters.get("token")
-            headers = {
-                "Authorization": "Bearer " + token,
-                "Content-Type": "application/json",
-            }
-            response = requests.post(
-                callback_url, headers=headers, data=json.dumps({"status": status})
-            )
-            log(f"Pipeline status is:{status}")
-            log(response.text)
-            log(response.headers)
-            if not response.ok:
-                msg = f"Bad response code on callback: {response}"
-                log(msg=msg)
-                raise signals.FAIL(msg)
-    return new_state
+# def notify_api_running(flow: Flow, old_state, new_state) -> State:
+#     """
+#     tells API the workflow has started to run.
+#     """
+#     if new_state.is_running():
+#         if prefect.context.parameters.get("no_api"):
+#             log("no_api flag used, not interacting with API")
+#         else:
+#             callback_url = prefect.context.parameters.get("callback_url")
+#             token = prefect.context.parameters.get("token")
+#             headers = {
+#                 "Authorization": "Bearer " + token,
+#                 "Content-Type": "application/json",
+#             }
+#             response = requests.post(
+#                 callback_url, headers=headers, data=json.dumps({"status": "running"})
+#             )
+#             log(response.text)
+#             log(response.headers)
+#             if not response.ok:
+#                 msg = f"Bad response code on notify_api_running: {response}"
+#                 log(msg=msg)
+#                 raise signals.FAIL(msg)
+#     return new_state
+#
+#
+# def custom_terminal_state_handler(
+#     flow: Flow,
+#     state: State,
+#     reference_task_states: Set[State],
+# ) -> Optional[State]:
+#     """
+#     we define any success at all to be a success
+#     """
+#     success = False
+#     # iterate through reference task states looking for successes
+#     for task_state in reference_task_states:
+#         if task_state.is_successful():
+#             success = True
+#     if success:
+#         message = "success"
+#         ns = Success(
+#             message=message,
+#             result=state.result,
+#             context=state.context,
+#             cached_inputs=state.cached_inputs,
+#         )
+#     else:
+#         message = "error"
+#         ns = state
+#     if prefect.context.parameters.get("no_api"):
+#         log(f"no_api flag used, terminal: success is {message}")
+#     else:
+#         callback_url = prefect.context.parameters.get("callback_url")
+#         token = prefect.context.parameters.get("token")
+#         headers = {
+#             "Authorization": "Bearer " + token,
+#             "Content-Type": "application/json",
+#         }
+#         response = requests.post(
+#             callback_url, headers=headers, data=json.dumps({"status": message})
+#         )
+#         log(f"Pipeline status is:{message}, {response.text}")
+#         log(response.headers)
+#         if not response.ok:
+#             msg = f"Bad response code on callback: {response}"
+#             log(msg=msg)
+#             raise signals.FAIL(msg)
+#     return ns
+#
+#
+# def notify_api_completion(flow: Flow, old_state, new_state) -> State:
+#     """
+#     Prefect workflows transition from State to State, see:
+#     https://docs.prefect.io/core/concepts/states.html#overview.
+#     This method checks if the State being transitioned into is an is_finished state.
+#     If it is, a notification is sent stating the workflow is finished.
+#     Is a static method because signiture much conform as above, see:
+#     https://docs.prefect.io/core/concepts/notifications.html#state-handlers
+#
+#     """
+#     if new_state.is_finished():
+#         if new_state.is_successful():
+#             status = "success"
+#         else:
+#             status = "error"
+#         if prefect.context.parameters.get("no_api"):
+#             log(f"no_api flag used, completion: {status}")
+#         else:
+#             callback_url = prefect.context.parameters.get("callback_url")
+#             token = prefect.context.parameters.get("token")
+#             headers = {
+#                 "Authorization": "Bearer " + token,
+#                 "Content-Type": "application/json",
+#             }
+#             response = requests.post(
+#                 callback_url, headers=headers, data=json.dumps({"status": status})
+#             )
+#             log(f"Pipeline status is:{status}")
+#             log(response.text)
+#             log(response.headers)
+#             if not response.ok:
+#                 msg = f"Bad response code on callback: {response}"
+#                 log(msg=msg)
+#                 raise signals.FAIL(msg)
+#     return new_state
 
 
 def get_environment() -> str:
@@ -925,11 +913,12 @@ def gen_fps(input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
 #     return dest
 
 
-@task(max_retries=3, retry_delay=datetime.timedelta(minutes=1), trigger=any_successful)
+@task(retries=3, retry_delay_seconds=60)  # @todo Handle "trigger=any_successful"
 def send_callback_body(
     files_elts: List[Dict],
     token: str = None,
     callback_url: str = None,
+    no_api: bool = False,
 ) -> None:
     """
     Upon completion of file conversion a callback is made to the calling
@@ -962,7 +951,7 @@ def send_callback_body(
 
     """
     data = {"files": files_elts}
-    if prefect.context.parameters.get("no_api"):
+    if no_api:
         log("no_api flag used, not interacting with API")
         log(json.dumps(data))
     elif callback_url and token:
@@ -979,8 +968,8 @@ def send_callback_body(
         if not response.ok:
             msg = f"Bad response code on callback: {response}"
             log(msg=msg)
-            raise signals.FAIL(msg)
+            raise RuntimeError(msg)
     else:
-        raise signals.FAIL(
+        raise RuntimeError(
             "Invalid state - need callback_url and token, OR set no_api to True."
         )
