@@ -65,9 +65,7 @@ def bioformats_gen_zarr(file_path: FilePath):
     FilePath.run(cmd, log_fp)
     cmd = ["zarr_rechunk", "--chunk-size", "512", output_zarr]
     log_fp = f"{file_path.working_dir}/{file_path.base}_rechunk.log"
-    utils.log(f"Generated cmd {cmd}")
     FilePath.run(cmd, log_fp)
-    utils.log(f"Generated cmd {cmd}")
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
     ng_asset = file_path.gen_asset(asset_type="neuroglancerZarr", asset_fp=asset_fp)
     return ng_asset
