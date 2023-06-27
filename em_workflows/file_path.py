@@ -8,7 +8,7 @@ from prefect.engine import signals
 import subprocess
 from em_workflows.config import Config
 
-from prefect import context
+import prefect
 
 
 def log(msg: str) -> None:
@@ -17,7 +17,7 @@ def log(msg: str) -> None:
     :param msg: str to be written
     :return: None
     """
-    context.logger.info(msg)
+    prefect.context.logger.info(msg)
 
 
 class FilePath:
@@ -146,41 +146,6 @@ class FilePath:
             d = shutil.copyfile(fp_to_cp, dest)
         return Path(d)
 
-    # def add_assets_entry(
-    #     self, asset_path: Path, asset_type: str, metadata: Dict[str, str] = None
-    # ) -> Dict:
-    #     """
-    #     Suspect to be redundant - TODO
-    #     """
-    #     # TODO move valid_types to Config.valid_callback_asset_types
-    #     valid_typs = [
-    #         "averagedVolume",
-    #         "keyImage",
-    #         "thumbnail",
-    #         "keyThumbnail",
-    #         "recMovie",
-    #         "tiltMovie",
-    #         "volume",
-    #         "neuroglancerPrecomputed",
-    #     ]
-    #     if asset_type not in valid_typs:
-    #         raise ValueError(
-    #             f"Asset type: {asset_type} is not a valid type. {valid_typs}"
-    #         )
-    #     fp_no_mount_point = asset_path.relative_to(
-    #         Config.assets_dir(env=self.environment)
-    #     )
-    #     if metadata:
-    #         asset = {
-    #             "type": asset_type,
-    #             "path": fp_no_mount_point.as_posix(),
-    #             "metadata": metadata,
-    #         }
-    #     else:
-    #         asset = {"type": asset_type, "path": fp_no_mount_point.as_posix()}
-    #     self.prim_fp_elt["assets"].append(asset)
-    #     return asset
-
     def gen_output_fp(self, output_ext: str = None, out_fname: str = None) -> Path:
         """
         cat working_dir to input_fp.name, but swap the extension to output_ext
@@ -196,14 +161,6 @@ class FilePath:
         output_fp = f"{self.working_dir.as_posix()}/{f_name}"
         return Path(output_fp)
 
-    # @staticmethod
-    # def filter_by_suffix(fp: Path, suffixes: List[str]) -> bool:
-    #     """This method currently isn't used"""
-    #     for ext in suffixes:
-    #         if fp.suffix.lower() == ext:
-    #             return True
-    #     return False
-
     def gen_asset(self, asset_type: str, asset_fp) -> Dict:
         """
         Construct and return an asset (dict) based on the asset "type" and FilePath
@@ -214,16 +171,6 @@ class FilePath:
         assets_fp_no_root = asset_fp.relative_to(self.asset_root)
         asset = {"type": asset_type, "path": assets_fp_no_root.as_posix()}
         return asset
-
-    # def add_asset2(self, prim_fp: dict, asset: dict) -> dict:
-    #     prim_fp["assets"].append(asset)
-    #     return prim_fp
-    #
-    # def add_asset(self, prim_fp: dict, asset_fp: Path, asset_type: str) -> dict:
-    #     assets_fp_no_root = asset_fp.relative_to(self.asset_root)
-    #     asset = {"type": asset_type, "path": assets_fp_no_root.as_posix()}
-    #     prim_fp["assets"].append(asset)
-    #     return prim_fp
 
     def gen_prim_fp_elt(self) -> Dict:
         """

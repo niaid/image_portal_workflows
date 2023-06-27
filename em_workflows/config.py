@@ -106,6 +106,7 @@ class Config:
     ]
     fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
 
+    valid_lrg_2d_rgb_inputs = ["png", "PNG"]
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     user = os.environ["USER"]
     tmp_dir = f"/gs1/Scratch/{user}_scratch/"
