@@ -102,7 +102,7 @@ def gen_thumb(file_path: FilePath):
         compressionLevel=Config.JPEG_QUAL,
     )
     asset_fp_sm = file_path.copy_to_assets_dir(fp_to_cp=Path(output_jpeg_sm))
-    asset_fp_lg = file_path.copy_to_assets_dir(fp_to_cp=Path(output_jpeg_sm))
+    asset_fp_lg = file_path.copy_to_assets_dir(fp_to_cp=Path(output_jpeg_lg))
     thumb_asset = file_path.gen_asset(asset_type="thumbnail", asset_fp=asset_fp_sm)
     keyImage_asset = file_path.gen_asset(asset_type="keyImage", asset_fp=asset_fp_lg)
     return [thumb_asset, keyImage_asset]
