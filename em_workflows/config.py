@@ -135,6 +135,5 @@ class Config:
         share = Config._share_name(env=env)
         return f"{Config.mount_point}{share}/Assets/"
 
-    # repo_dir = os.path.join(os.path.dirname(__file__), "..")
     repo_dir = Path(os.path.dirname(__file__))
     template_dir = Path(f"{repo_dir.as_posix()}/templates")

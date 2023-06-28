@@ -1,3 +1,3 @@
 [flake8]
 max-line-length = 120
-per-file-ignores = ./test/test_utils.py:F841
+per-file-ignores = ./em_workflows/config.py:E501
