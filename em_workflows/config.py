@@ -77,9 +77,16 @@ class Config:
     brt_width = 256
     brt_height = 256
 
-    # the path to the Projects dir - can vary depending on mount point.
-    # assets_dir = "/hedwigqa_data/Assets/"
     # Image sizes, just large and small for now
+    # used in lrg_2d_color
+    LARGE_THUMB_X = 1024
+    LARGE_THUMB_Y = 1024
+    SMALL_THUMB_X = 300
+    SMALL_THUMB_Y = 300
+
+    # JPEG image quality
+    JPEG_QUAL = 90
+
     LARGE_DIM = 1024
     SMALL_DIM = 300
     LARGE_2D = f"{LARGE_DIM}x{LARGE_DIM}"
