@@ -22,4 +22,5 @@ setup(
     python_requires=">=3.8",
     install_requires=requirements,
     packages=find_packages(include=["em_workflows", "em_workflows.*"]),
+    package_data={"em_workflows": ["templates/*.adoc"]},
 )
