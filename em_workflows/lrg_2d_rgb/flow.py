@@ -74,20 +74,38 @@ def bioformats_gen_zarr(file_path: FilePath):
 @task
 def gen_thumb(file_path: FilePath):
     input_zarr = f"{file_path.working_dir}/{file_path.base}.zarr"
-    output_jpeg = f"{file_path.working_dir}/{file_path.base}_sm.jpeg"
-    thumbnail_size = [300, 300]
-    jpeg_quality = 90
+    output_jpeg_sm = f"{file_path.working_dir}/{file_path.base}_sm.jpeg"
+    output_jpeg_lg = f"{file_path.working_dir}/{file_path.base}_lg.jpeg"
 
-    sitk_image = pytools.zarr_extract_2d(
-        input_zarr, target_size_x=thumbnail_size[0], target_size_y=thumbnail_size[1]
+    sitk_image_sm = pytools.zarr_extract_2d(
+        input_zarr,
+        target_size_x=Config.SMALL_THUMB_X,
+        target_size_y=Config.SMALL_THUMB_Y,
     )
+    sitk_image_lg = pytools.zarr_extract_2d(
+        input_zarr,
+        target_size_x=Config.LARGE_THUMB_X,
+        target_size_y=Config.LARGE_THUMB_Y,
+    )
+    utils.log(f"trying to create {output_jpeg_sm}")
     SimpleITK.WriteImage(
-        sitk_image, output_jpeg, useCompression=True, compressionLevel=jpeg_quality
+        sitk_image_sm,
+        output_jpeg_sm,
+        useCompression=True,
+        compressionLevel=Config.JPEG_QUAL,
     )
-    utils.log(f"trying to create {output_jpeg}")
-    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(output_jpeg))
-    thumb_asset = file_path.gen_asset(asset_type="thumbnail", asset_fp=asset_fp)
-    return thumb_asset
+    utils.log(f"trying to create {output_jpeg_lg}")
+    SimpleITK.WriteImage(
+        sitk_image_lg,
+        output_jpeg_lg,
+        useCompression=True,
+        compressionLevel=Config.JPEG_QUAL,
+    )
+    asset_fp_sm = file_path.copy_to_assets_dir(fp_to_cp=Path(output_jpeg_sm))
+    asset_fp_lg = file_path.copy_to_assets_dir(fp_to_cp=Path(output_jpeg_sm))
+    thumb_asset = file_path.gen_asset(asset_type="thumbnail", asset_fp=asset_fp_sm)
+    keyImage_asset = file_path.gen_asset(asset_type="keyImage", asset_fp=asset_fp_lg)
+    return [thumb_asset, keyImage_asset]
 
 
 with Flow(

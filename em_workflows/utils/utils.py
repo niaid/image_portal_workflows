@@ -144,7 +144,10 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
     funtional style avoids this. This is why the callback data structure is not built inside
     the FilePath object at runtime.
     """
-    prim_fp["assets"].append(asset)
+    if type(asset) is list:
+        prim_fp["assets"].extend(asset)
+    else:
+        prim_fp["assets"].append(asset)
     log(f"Added fp elt {asset} to {prim_fp}.")
     return prim_fp
 
