@@ -289,9 +289,15 @@ def sem_flow(
 
     # finally filter error states, and convert to JSON and send.
     filtered_callback = utils.filter_results(callback_with_corr_movies)
-    utils.send_callback_body(
+    callback_state = utils.send_callback_body.submit(
         no_api=no_api,
         token=token,
         callback_url=callback_url,
         files_elts=filtered_callback,
+        return_state=True,
+    )
+
+    utils.log(f"callback_state = {callback_state}")
+    utils.notify_api_completion(
+        callback_state, token, callback_url, no_api, wait_for=callback_state
     )

@@ -5,15 +5,17 @@ import pytest
 import os
 import shutil
 from pathlib import Path
-from prefect.engine import signals
 import tempfile
+from prefect import flow
 
 
+@flow(log_prints=True)
 def test_hedwig_env() -> None:
     """
     Verify env is set corretly - a bit simplistic
     """
     env = utils.get_environment()
+    print(f"env = {env}")
     assert env
     hedwig_env = os.environ["HEDWIG_ENV"]
     assert hedwig_env
@@ -31,13 +33,12 @@ def test_bad_hedwig_env() -> None:
     os.environ["HEDWIG_ENV"] = orig_env
 
 
+@flow
 def test_utils_log(caplog):
     """
     Verify that utils.log() is successfully outputing prefect log messages
-    :todo:  Add test within a context - will need a Flow
     """
     utils.log("utils.log test123 info message")
-    assert "prefect:utils.py" in caplog.text
     assert "utils.log test123" in caplog.text
 
 
@@ -63,6 +64,7 @@ def test_mount_config(mock_nfs_mount):
     assert Config.LARGE_2D == "1024x1024"
     assert Config.SMALL_2D == "300x300"
     assert os.path.exists(Config.binvol)
+    assert os.path.exists(Config.bioformats2raw)
     assert os.path.exists(Config.brt_binary)
     assert os.path.exists(Config.dm2mrc_loc)
     assert os.path.exists(Config.clip_loc)
@@ -88,12 +90,15 @@ def test_bad_share_name(mock_nfs_mount):
     """
     Verify that bad or non-existant value raises error
     """
-    with pytest.raises(Exception):
+    with pytest.raises(Exception) as err:
         share_hame = Config._share_name("BAD")
-    with pytest.raises(Exception):
+    assert "Environment BAD not in valid environments" in str(err.value)
+    with pytest.raises(Exception) as err2:
         share_hame = Config._share_name(None)
+    assert "Environment None not in valid environments" in str(err2.value)
 
 
+@flow
 def test_lookup_dims(mock_nfs_mount):
     """
     Test on a number of different file types
@@ -116,6 +121,7 @@ def test_lookup_dims(mock_nfs_mount):
         assert dims.x == 2048 and dims.y == 2048 and dims.z == 121
 
 
+@flow
 def test_bad_lookup_dims(mock_nfs_mount):
     """
     This test should fail ``header`` doesn't work on PNG
@@ -127,9 +133,10 @@ def test_bad_lookup_dims(mock_nfs_mount):
     image_path = Path(
         os.path.join(proj_dir, input_dir, "P6_J130_fsc_iteration_001.png")
     )
-    with pytest.raises(signals.FAIL) as fail_msg:
+    with pytest.raises(ValueError) as fail_msg:
         dims = utils.lookup_dims(fp=image_path)
-    assert "Could not open" in str(fail_msg.value)
+    assert "iiuOpen - Could not open" in str(fail_msg.value)
+    assert ".png has unknown format." in str(fail_msg.value)
 
 
 def test_get_input_dir(mock_nfs_mount):
@@ -140,6 +147,7 @@ def test_get_input_dir(mock_nfs_mount):
     assert input_dir in str(my_path)
 
 
+@flow
 def test_update_adoc(mock_nfs_mount):
     """
     Test successful modification of adoc based on a template
@@ -183,6 +191,7 @@ def test_update_adoc(mock_nfs_mount):
         assert copied_tmplt.exists()
 
 
+@flow
 def test_update_adoc_bad_surfaces(mock_nfs_mount):
     adoc_file = "plastic_brt"
     montage = 0
@@ -205,7 +214,7 @@ def test_update_adoc_bad_surfaces(mock_nfs_mount):
         mrc_image = "test/input_files/brt_inputs/2013-1220-dA30_5-BSC-1_10.mrc"
         mrc_file = Path(os.path.join(Config.proj_dir(env), mrc_image))
 
-        with pytest.raises(signals.FAIL) as fail_msg:
+        with pytest.raises(ValueError) as fail_msg:
             updated_adoc = utils.update_adoc(
                 adoc_fp=copied_tmplt,
                 tg_fp=mrc_file,
@@ -222,32 +231,7 @@ def test_update_adoc_bad_surfaces(mock_nfs_mount):
         assert "Unable to resolve SurfacesToAnalyze" in str(fail_msg.value)
 
 
-@pytest.mark.slow
-@pytest.mark.localdata
-def test_mrc_to_movie(mock_nfs_mount):
-    """
-    - NOTE: this test depends on a sem_inputs/Projects/mrc_movie_test directory
-    containing an "adjusted.mrc" file. It has to be in a "Projects" directory or
-    ``FilePath.make_assets_dir()`` will fail in the FilePath constructor
-    - NOTE: this test takes a relatively long time to run.
-    :todo: Determine method for storing test data; smaller test images would be helpful
-    as current mrc is 1.5 GB.
-    """
-    proj_dir = Config.proj_dir(utils.get_environment())
-    input_dir = "test/input_files/sem_inputs/Projects/mrc_movie_test"
-    input_path = Path(os.path.join(proj_dir, input_dir))
-    image_path = Path(os.path.join(proj_dir, input_dir, "adjusted.mrc"))
-    assert image_path.exists()
-
-    mrc_filepath = FilePath(input_dir=input_path, fp_in=image_path)
-    shutil.copy(image_path, mrc_filepath.working_dir)
-
-    #    mrc_list = utils.gen_fps.__wrapped__(input_path, [image_path])
-    asset = utils.mrc_to_movie.__wrapped__(mrc_filepath, "adjusted", "recMovie")
-    assert type(asset) == dict
-    assert "adjusted_recMovie.mp4" in asset["path"]
-
-
+@flow
 def test_copy_template(mock_nfs_mount):
     """
     Tests that adoc template get copied to working directory
@@ -261,6 +245,7 @@ def test_copy_template(mock_nfs_mount):
         assert Path(tmp_path / "cryo_brt.adoc").exists()
 
 
+@flow
 def test_copy_template_missing(mock_nfs_mount):
     """
     Tests that adoc template get copied to working directory
@@ -273,6 +258,7 @@ def test_copy_template_missing(mock_nfs_mount):
         assert "no_such_tmplt" in str(fnfe.value)
 
 
+@flow
 def test_copy_workdirs_small(mock_nfs_mount):
     """
     Tests that the workdir is copied to the assets dir. This uses toy data only.

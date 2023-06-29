@@ -42,7 +42,7 @@ def test_dm4_conv_bad_tif(mock_nfs_mount, caplog):
     )
     os.remove(empty_tif)
     assert state.is_failed()
-    assert "Cannot read TIFF header" in caplog.text
+    assert "Unable to determine ImageIO reader" in caplog.text
     # todo: assert <Assets files ("1-As-70-007_LG.jpeg", ..., etc.) exist>
 
 
@@ -93,7 +93,7 @@ def test_fname_bad_tif(mock_nfs_mount, caplog):
     )
     os.remove(empty_tif)
     assert state.is_failed()
-    assert "Cannot read TIFF header" in caplog.text
+    assert "Unable to determine ImageIO reader" in caplog.text
     # todo: assert <Assets files ("1-As-70-007_LG.jpeg", ..., etc.) exist>
 
 

@@ -596,16 +596,19 @@ def brt_flow(
     # finally filter error states, and convert to JSON and send.
     filtered_callback = utils.filter_results(callback_with_tilt_mov)
 
-    cb = utils.send_callback_body(
+    callback_state = utils.send_callback_body.submit(
         token=token,
         callback_url=callback_url,
         no_api=no_api,
         files_elts=filtered_callback,
+        return_state=True,
     )
+
     utils.cleanup_workdir(
         fps,
+        keep_workdir,
         wait_for=[
-            cb,
+            callback_state,
             cp_wd_to_assets,
             clean_align_mrc,
             clean_ali_jpg,
@@ -613,6 +616,12 @@ def brt_flow(
             clean_mp4,
         ],
     )
+
+    utils.log(f"callback_state = {callback_state}")
+    utils.notify_api_completion(
+        callback_state, token, callback_url, no_api, wait_for=callback_state
+    )
+    utils.log("COMPLETED")
 
 
 # the other tasks might be always run or something,

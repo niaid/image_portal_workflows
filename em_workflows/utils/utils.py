@@ -16,7 +16,9 @@ Header = namedtuple("Header", "x y z")
 
 
 def filter_results(results):
-    return filter(lambda x: not isinstance(x, (BaseException, type(None))), results)
+    return list(
+        filter(lambda x: not isinstance(x, (BaseException, type(None))), results)
+    )
 
 
 def lookup_dims(fp: Path) -> Header:
@@ -721,7 +723,7 @@ def notify_api_completion(state: State, token: str, callback_url: str, no_api: b
 
     if no_api:
         log("In 'notify_api_completion()' no_api flag used")
-        log(f"state = {state}")
+        log(f"utils.notify_api_completion: state = {state}")
     else:
         headers = {
             "Authorization": "Bearer " + token,

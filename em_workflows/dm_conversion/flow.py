@@ -272,7 +272,7 @@ def dm_flow(
 
     # finally filter error states, and convert to JSON and send.
     utils.cleanup_workdir(fps, keep_workdir, wait_for=[callback_with_keyimgs])
-    filtered_callback = list(utils.filter_results(callback_with_keyimgs))
+    filtered_callback = utils.filter_results(callback_with_keyimgs)
 
     callback_state = utils.send_callback_body.submit(
         token=token,
@@ -286,4 +286,3 @@ def dm_flow(
     utils.notify_api_completion(
         callback_state, token, callback_url, no_api, wait_for=callback_state
     )
-    utils.log("COMPLETED")
