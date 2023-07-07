@@ -20,7 +20,7 @@ def SLURM_exec():
         death_timeout=121,
         local_directory=f"{home}/dask_tmp/",
         queue="gpu",
-        walltime="4:00:00",
+        walltime="24:00:00",
         job_extra_directives=["--gres=gpu:1"],
     )
     cluster.scale(1)
