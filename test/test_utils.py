@@ -27,7 +27,7 @@ def test_bad_hedwig_env() -> None:
     orig_env = os.environ["HEDWIG_ENV"]
     del os.environ["HEDWIG_ENV"]
     with pytest.raises(Exception):
-        env = utils.get_environment()
+        utils.get_environment()
     os.environ["HEDWIG_ENV"] = orig_env
 
 
@@ -63,6 +63,7 @@ def test_mount_config(mock_nfs_mount):
     assert Config.LARGE_2D == "1024x1024"
     assert Config.SMALL_2D == "300x300"
     assert os.path.exists(Config.binvol)
+    assert os.path.exists(Config.bioformats2raw)
     assert os.path.exists(Config.brt_binary)
     assert os.path.exists(Config.dm2mrc_loc)
     assert os.path.exists(Config.clip_loc)
@@ -89,9 +90,9 @@ def test_bad_share_name(mock_nfs_mount):
     Verify that bad or non-existant value raises error
     """
     with pytest.raises(Exception):
-        share_hame = Config._share_name("BAD")
+        Config._share_name("BAD")
     with pytest.raises(Exception):
-        share_hame = Config._share_name(None)
+        Config._share_name(None)
 
 
 def test_lookup_dims(mock_nfs_mount):
@@ -122,18 +123,17 @@ def test_bad_lookup_dims(mock_nfs_mount):
     """
     proj_dir = Config.proj_dir(utils.get_environment())
     input_dir = "test/input_files/dm_inputs/Projects/Lab/PI/"
-    image_path = Path(os.path.join(proj_dir, input_dir, "1-As-70-007.tif"))
     # Error case - PNG not valid input
     image_path = Path(
         os.path.join(proj_dir, input_dir, "P6_J130_fsc_iteration_001.png")
     )
     with pytest.raises(signals.FAIL) as fail_msg:
-        dims = utils.lookup_dims(fp=image_path)
+        utils.lookup_dims(fp=image_path)
     assert "Could not open" in str(fail_msg.value)
 
 
 def test_get_input_dir(mock_nfs_mount):
-    hedwig_env = utils.get_environment()
+    utils.get_environment()
     input_dir = "/test/input_files/dm_inputs"
     my_path = utils.get_input_dir.__wrapped__(input_dir=input_dir)
     assert "image_portal_workflows" in str(my_path)
@@ -206,7 +206,7 @@ def test_update_adoc_bad_surfaces(mock_nfs_mount):
         mrc_file = Path(os.path.join(Config.proj_dir(env), mrc_image))
 
         with pytest.raises(signals.FAIL) as fail_msg:
-            updated_adoc = utils.update_adoc(
+            utils.update_adoc(
                 adoc_fp=copied_tmplt,
                 tg_fp=mrc_file,
                 montage=montage,
@@ -253,8 +253,8 @@ def test_copy_template(mock_nfs_mount):
     Tests that adoc template get copied to working directory
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
-        adoc_fp = utils.copy_template(working_dir=tmp_dir, template_name="plastic_brt")
-        adoc_fp = utils.copy_template(working_dir=tmp_dir, template_name="cryo_brt")
+        utils.copy_template(working_dir=tmp_dir, template_name="plastic_brt")
+        utils.copy_template(working_dir=tmp_dir, template_name="cryo_brt")
         tmp_path = Path(tmp_dir)
         assert tmp_path.exists()
         assert Path(tmp_path / "plastic_brt.adoc").exists()
@@ -267,9 +267,7 @@ def test_copy_template_missing(mock_nfs_mount):
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         with pytest.raises(FileNotFoundError) as fnfe:
-            adoc_fp = utils.copy_template(
-                working_dir=tmp_dir, template_name="no_such_tmplt"
-            )
+            utils.copy_template(working_dir=tmp_dir, template_name="no_such_tmplt")
         assert "no_such_tmplt" in str(fnfe.value)
 
 
