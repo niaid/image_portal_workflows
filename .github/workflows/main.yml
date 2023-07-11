@@ -59,8 +59,13 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
       - uses: actions/setup-python@v4
-
+        with:
+          python-version: 3.8
       - name: Create LFS file list
         run: |
           git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
@@ -102,15 +107,22 @@ jobs:
           export IMOD_DIR=/usr/local/IMOD
           export PATH=$IMOD_DIR/bin:$PATH
           wget https://bio3d.colorado.edu/imod/AMD64-RHEL5/${IMOD} &&  sudo sh ${IMOD} -yes &&  rm -f ${IMOD}
+          BIO2R_V=0.7.0
+          BIO2R_Z=bioformats2raw-${BIO2R_V}.zip
+          export BIO2R_DIR=/usr/local/BIO2R
+          export PATH=$BIO2R_DIR/bioformats2raw-${BIO2R_V}/bin:$PATH
+          wget https://github.com/glencoesoftware/bioformats2raw/releases/download/v${BIO2R_V}/${BIO2R_Z} &&  sudo unzip ${BIO2R_Z} -d ${BIO2R_DIR} &&  rm -f ${BIO2R_Z}
           python -m pip install --upgrade pip
           pip install -e . -r requirements.txt
-          sudo apt -y update && sudo apt -y install libgl-dev graphicsmagick
+          sudo apt -y update && sudo apt -y install libgl-dev graphicsmagick libblosc1
 
       - name: Test Coverage
         continue-on-error: true
         run: |
+          BIO2R_V=0.7.0
+          export BIO2R_DIR=/usr/local/BIO2R/bioformats2raw-${BIO2R_V}
           export IMOD_DIR=/usr/local/IMOD
-          export PATH=$IMOD_DIR/bin:$PATH
+          export PATH=$BIO2R_DIR/bin:$IMOD_DIR/bin:$PATH
           python -m pytest -v --log-cli-level=INFO -m "not (slow or localdata)" --cov-report term --cov=.
 
       - name: Coverage Badge
