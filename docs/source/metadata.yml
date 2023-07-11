@@ -1,0 +1,92 @@
+# Examples of new metadata provided by the pipelines for Neuroglancer configuration
+
+# Legacy meta-data
+# Note:
+# - Floor/Limit is used for window, while Min/Max is used for range.
+# - Floor/Limit has a range wider or equal to Min/Max
+"metadata": {
+  "neuroglancerPrecomputedMin": "-53",
+  "neuroglancerPrecomputedMax": "58",
+  "neuroglancerPrecomputedFloor": "-571",
+  "neuroglancerPrecomputedLimit": "370"
+}
+
+
+# Preferred update to legacy specification
+# - removed "neuroglancerPrecomputed" prefix as that format is no longer being used
+# - Changed two values to an array of integers for stringified number
+# - Renamed to the parameter name of the invlerp
+"metadata": {
+      "shader": "Grayscale",
+      "dimensions": "XYZ",
+      "shaderParameters": {
+          "window": [ -571, 370 ],
+          "range" : [ -53, 58]
+      }
+  }
+
+
+  # Close to legacy metadata specifications - not preferred
+"metadata": {
+    "shader": "Grayscale",
+    "dimensions": "XYZ",
+    "shaderParameters": {
+      "neuroglancerPrecomputedFloor": "-53",
+      "neuroglancerPrecomputedLimit": "58",
+      "neuroglancerPrecomputedMax": "-571",
+      "neuroglancerPrecomputedMin": "370"
+    }
+  }
+
+
+# Proposed RGB specification ( could be dimension:XYZ in the future )
+"metadata": {
+    "shader" : "RGB",
+    "dimensions" : "XY",
+    "shaderParameters" : {}
+  }
+
+
+# Proposed MultiChannel metadata
+"metadata": {
+  "shader": "MultiChannel",
+  "dimensions": "XY",
+  "shaderParameters": {
+    "contrast": 0,
+    "brightness": 0,
+    "channelArray": [
+      {
+        "range": [ 0, 600 ],
+        "window": [ 0,600 ],
+        "name": "syto_13",
+        "color": "red", # This will generally cycle through [ red, green, blue, cyan, yellow, magenta ]
+        "channel": 0, # Generally the index of the shaderParameter array
+        "clamp": false, # Always this value?
+        "enabled": true # Always this value?
+      },    {
+        "range": [ 0, 600 ],
+        "window": [ 0,600 ],
+        "name": "alexa_fluor_594",
+        "color": "green",
+        "channel": 1,
+        "clamp": false,
+        "enabled": true
+      },    {
+        "range": [ 0, 600 ],
+        "window": [ 0,600 ],
+        "name": "alexa_fluor_647",
+        "color": "blue",
+        "channel": 2,
+        "clamp": false,
+        "enabled": true
+      },    {
+        "range": [ 0, 600 ],
+        "window": [ 0,600 ],
+        "name": "alexa_fluor_532",
+        "color": "yellow",
+        "channel": 3,
+        "clamp": false,
+        "enabled": true
+      } ]
+  }
+}
