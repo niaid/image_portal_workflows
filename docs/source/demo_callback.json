@@ -1,90 +1,49 @@
 {
     "files": [
         {
-            "primaryFilePath": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005.czi",
+            "primaryFilePath": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005.czi",
             "things_we_dont_know_the_name_of": [
                 {
                     "title": "F13-TS002_a",
                     "assets": [
                         {
                             "type": "thumbnail",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_a_s.jpg"
+                            "path": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_a_s.jpg"
                         },
                         {
                             "type": "keyImage",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_a.jpg"
+                            "path": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_a.jpg"
                         },
                         {
                             "type": "neuroglancerZarr",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_a.zarr",
+                            "path": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_a.zarr",
                             "metadata": {
-                                "neuroglancerPrecomputedMin": "-55",
-                                "neuroglancerPrecomputedMax": "60",
-                                "neuroglancerPrecomputedFloor": "-638",
-                                "neuroglancerPrecomputedLimit": "460"
+                                "TBD": "TBD"
                             }
-                        },
-                        {
-                            "type": "averagedVolume",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/ave_F13-TS005_a.mrc"
-                        },
-                        {
-                            "type": "volume",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/avebin8_F13-TS005_a.mrc"
-                        },
-                        {
-                            "type": "recMovie",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/keyMov_F13-TS005_a.mp4"
-                        },
-                        {
-                            "type": "tiltMovie",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/tiltMov_F13-TS005_a.mp4"
                         }
                     ]
-
                 },
                 {
                     "title": "F13-TS002_b",
                     "assets": [
                         {
                             "type": "thumbnail",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_b_s.jpg"
+                            "path": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_b_s.jpg"
                         },
                         {
                             "type": "keyImage",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_b.jpg"
+                            "path": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_b.jpg"
                         },
                         {
                             "type": "neuroglancerZarr",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_b.zarr",
+                            "path": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_b.zarr",
                             "metadata": {
-                                "neuroglancerPrecomputedMin": "-55",
-                                "neuroglancerPrecomputedMax": "60",
-                                "neuroglancerPrecomputedFloor": "-638",
-                                "neuroglancerPrecomputedLimit": "460"
+                                "TBD": "TBD"
                             }
-                        },
-                        {
-                            "type": "averagedVolume",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/ave_F13-TS005_b.mrc"
-                        },
-                        {
-                            "type": "volume",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/avebin8_F13-TS005_b.mrc"
-                        },
-                        {
-                            "type": "recMovie",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/keyMov_F13-TS005_b.mp4"
-                        },
-                        {
-                            "type": "tiltMovie",
-                            "path": "LNII/sbest/sbest-2023-0526-Rename/TEM-Tomo-2023-0526-Rename1/LNII/F13-TS005/tiltMov_F13-TS005_b.mp4"
                         }
                     ]
-
                 }
-
-             ]
+            ]
         }
     ]
 }
