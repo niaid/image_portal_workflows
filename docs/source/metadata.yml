@@ -52,8 +52,8 @@
   "shader": "MultiChannel",
   "dimensions": "XY",
   "shaderParameters": {
-    "contrast": 0,
-    "brightness": 0,
+    "contrast": 0.0,
+    "brightness": 0.0,
     "channelArray": [
       {
         "range": [ 0, 600 ],
