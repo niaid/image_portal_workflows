@@ -31,10 +31,10 @@
     "shader": "Grayscale",
     "dimensions": "XYZ",
     "shaderParameters": {
-      "neuroglancerPrecomputedFloor": "-53",
-      "neuroglancerPrecomputedLimit": "58",
-      "neuroglancerPrecomputedMax": "-571",
-      "neuroglancerPrecomputedMin": "370"
+      "neuroglancerPrecomputedMin": "-53",
+      "neuroglancerPrecomputedMax": "58",
+      "neuroglancerPrecomputedFloor": "-571",
+      "neuroglancerPrecomputedLimit": "370"
     }
   }
 
