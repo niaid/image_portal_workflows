@@ -8,7 +8,7 @@
       "imageSet": [
         {
           "title": "Scene #1",
-          "imageRecordMetadata": {
+          "imageMetadata": {
             "TBD": "TBD"
           },
           "assets": [
@@ -31,7 +31,7 @@
         },
         {
           "title": "Scene #2",
-          "imageRecordMetadata": {
+          "imageMetadata": {
             "TBD": "TBD"
           },
           "assets": [
