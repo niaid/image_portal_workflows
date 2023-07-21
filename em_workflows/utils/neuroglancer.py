@@ -77,33 +77,22 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int = None) -> Dic
     handler.setFormatter(formatter)
     pytools.logger.addHandler(handler)
 
-    metadata = visual_min_max(mad_scale=5, input_image=first_zarr_arr)
+    ori = visual_min_max(mad_scale=5, input_image=first_zarr_arr)
+    metadata = {
+        "shader": "Grayscale",
+        "dimensions": "XYZ",
+        "shaderParameters": {
+            "window": [
+                ori["neuroglancerPrecomputedFloor"],
+                ori["neuroglancerPrecomputedLimit"],
+            ],
+            "range": [
+                ori["neuroglancerPrecomputedMin"],
+                ori["neuroglancerPrecomputedMax"],
+            ],
+        },
+    }
     ng_asset = fp_in.gen_asset(asset_type="neuroglancerZarr", asset_fp=asset_fp)
 
     ng_asset["metadata"] = metadata
     return ng_asset
-
-
-#  @task
-#  def gen_pyramid_outdir(fp: Path) -> Path:
-#      outdir = Path(f"{fp.parent}/neuro-{fp.stem}")
-#      if outdir.exists():
-#          shutil.rmtree(outdir)
-#          prefect.context.get("logger").info(
-#              f"Pyramid dir {outdir} already exists, overwriting."
-#          )
-#      return outdir
-
-
-#  @task
-#  def gen_archive_pyr(file_path: FilePath) -> None:
-#      """
-#      zip  --compression-method store  -r archive_name  ./* && cd -
-#      """
-#      ng_dir = f"{file_path.working_dir}/neuro-{file_path.fp_in.stem}"
-#      archive_name = f"{file_path.base}.zip"
-#
-#      cmd = ["zip", "-q", "--compression-method", "store", "-r", archive_name, ng_dir]
-#      logger = prefect.context.get("logger")
-#      logger.info(f"compressing : {cmd}")
-#      subprocess.run(cmd, cwd=file_path.working_dir)

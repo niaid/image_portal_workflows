@@ -68,6 +68,8 @@ def bioformats_gen_zarr(file_path: FilePath):
     FilePath.run(cmd, log_fp)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
     ng_asset = file_path.gen_asset(asset_type="neuroglancerZarr", asset_fp=asset_fp)
+    metadata = {"shader": "RGB", "dimensions": "XY"}
+    ng_asset["metadata"] = metadata
     return ng_asset
 
 
