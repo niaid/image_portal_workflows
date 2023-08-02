@@ -235,8 +235,8 @@ def dm_flow(
     fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_fps)
     # logs = utils.init_log.map(file_path=fps)
 
-    # tiffs_converted = convert_if_int16_tiff.map(fps)
-    tiffs_converted = utils.filter_results(convert_if_int16_tiff.map(fps))
+    tiffs_converted = convert_if_int16_tiff.map(fps)
+    # tiffs_converted = utils.filter_results(convert_if_int16_tiff.map(fps))
 
     # dm* to mrc conversion
     dm_to_mrc_converted = convert_dms_to_mrc.map(fps, wait_for=[tiffs_converted])
@@ -285,4 +285,56 @@ def dm_flow(
     utils.log(f"callback_state = {callback_state}")
     utils.notify_api_completion(
         callback_state, token, callback_url, no_api, wait_for=callback_state
+    )
+
+
+@flow(log_prints=True)
+def notify_started_flow(param1: str):
+    print(f"param1 = {param1}")
+    print("**** Placeholder: Notify API Started *****")
+
+
+@flow(log_prints=True)
+def notify_completed_flow(dm_state):
+    print(f"dm_state = {dm_state}")
+    print("**** Placeholder: Notify API Completed *****")
+
+
+@flow(log_prints=True)
+def main_flow(
+    input_dir: str,
+    file_name: str = None,
+    callback_url: str = None,
+    token: str = None,
+    no_api: bool = None,
+    # keep workdir if set true, useful to look at outputs
+    keep_workdir: bool = False,
+):
+    notify_started_flow(input_dir)
+
+    dm_flow_result = dm_flow(
+        input_dir,
+        file_name,
+        callback_url,
+        token,
+        no_api,
+        # keep workdir if set true, useful to look at outputs
+        keep_workdir,
+        return_state=True,
+    )
+
+    if dm_flow_result.is_completed():
+        print("dm_flow completed successfully")
+    else:
+        print("dm_flow did NOT complete")
+        print(f"dm_flow_result = {dm_flow_result}")
+
+    notify_completed_flow(dm_flow_result)
+
+
+if __name__ == "__main__":
+    main_flow(
+        input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
+        no_api=True,
+        return_state=True,
     )
