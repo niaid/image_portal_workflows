@@ -1,0 +1,37 @@
+type: object
+description: JSON emitted by pipeline upon completion.
+required:
+  - status
+  - files
+properties:
+  status:
+    description: Success is considered true if ANY conversion is successful.
+    type: string
+    enum: [success, error]
+  files:
+    description: Input file paths, relative to projects_dir, grouped with generated outputs.
+    type: array
+    required:
+      - primaryFilePath
+      - sample
+      - fileMetadata
+      - imageSet
+
+    items:
+      type: object
+      properties:
+        primaryFilePath:
+          description: Input file path, relative to projects_dir
+          type: string
+        sample:
+          description: name of sample, usually file name minus path and extension.
+          type: string
+        fileMetadata:
+          description: Per file information (as apposed to per imageSet element).
+          type: object
+          additionalProperties: {}
+        imageSet:
+          description: Set of images contained within input file, eg 1 for PNGs, n for CZIs.
+          type: array
+          items:
+            $ref: ImageSet.yaml

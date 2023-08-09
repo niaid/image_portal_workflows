@@ -1,0 +1,24 @@
+type: object
+required:
+  - type
+  - url
+properties:
+  type:
+    $ref: AssetType.yaml
+  url:
+    description: authenticated URL
+    type: string
+    enum:
+      - thumbnail
+      - averagedVolume
+      - keyImage
+      - thumbnail
+      - recMovie
+      - tiltMovie
+      - volume
+      - neuroglancerPrecomputed
+      - neuroglancerZarr
+
+  metadata:
+    $ref: NeuroglancerMetadata.yaml
+    type: object
