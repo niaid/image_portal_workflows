@@ -7,7 +7,7 @@ import shutil
 import json
 from typing import List, Dict
 from pathlib import Path
-from prefect import task, get_run_logger, State
+from prefect import task, get_run_logger, flow
 from em_workflows.config import Config
 from collections import namedtuple
 
@@ -636,32 +636,28 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
 #     raise signals.FAIL(f"Expecting file: {fp_to_check}, not found in input_dir")
 
 
-# def notify_api_running(flow: Flow, old_state, new_state) -> State:
-#     """
-#     tells API the workflow has started to run.
-#     """
-#     if new_state.is_running():
-#         if prefect.context.parameters.get("no_api"):
-#             log("no_api flag used, not interacting with API")
-#         else:
-#             callback_url = prefect.context.parameters.get("callback_url")
-#             token = prefect.context.parameters.get("token")
-#             headers = {
-#                 "Authorization": "Bearer " + token,
-#                 "Content-Type": "application/json",
-#             }
-#             response = requests.post(
-#                 callback_url, headers=headers, data=json.dumps({"status": "running"})
-#             )
-#             log(response.text)
-#             log(response.headers)
-#             if not response.ok:
-#                 msg = f"Bad response code on notify_api_running: {response}"
-#                 log(msg=msg)
-#                 raise signals.FAIL(msg)
-#     return new_state
-#
-#
+def notify_api_running(no_api: bool, token: str, callback_url: str):
+    """
+    tells API the workflow has started to run.
+    """
+    if no_api:
+        log("no_api flag used, not interacting with API")
+    else:
+        headers = {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json",
+        }
+        response = requests.post(
+            callback_url, headers=headers, data=json.dumps({"state": "running"})
+        )
+        log(response.text)
+        log(response.headers)
+        if not response.ok:
+            msg = f"Bad response code on notify_api_running: {response}"
+            log(msg=msg)
+            raise RuntimeError(msg)
+
+
 # def custom_terminal_state_handler(
 #     flow: Flow,
 #     state: State,
@@ -696,9 +692,9 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
 #             "Content-Type": "application/json",
 #         }
 #         response = requests.post(
-#             callback_url, headers=headers, data=json.dumps({"status": message})
+#             callback_url, headers=headers, data=json.dumps({"state": message})
 #         )
-#         log(f"Pipeline status is:{message}, {response.text}")
+#         log(f"Pipeline state is:{message}, {response.text}")
 #         log(response.headers)
 #         if not response.ok:
 #             msg = f"Bad response code on callback: {response}"
@@ -709,18 +705,14 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
 #
 
 
-@task
-def notify_api_completion(state: State, token: str, callback_url: str, no_api: bool):
+def notify_api_completion(state: str, token: str, callback_url: str, no_api: bool):
     """
-    Prefect workflows transition from State to State, see:
-    https://docs.prefect.io/core/concepts/states.html#overview.
-    This method checks if the State being transitioned into is an is_finished state.
-    If it is, a notification is sent stating the workflow is finished.
-    Is a static method because signiture much conform as above, see:
-    https://docs.prefect.io/core/concepts/notifications.html#state-handlers
-
+    Tell the API that we have completed the run, one way or another
+    :param state: "Completed" or "Failed"
+    :param token: Authorization token
+    :param callback_url: location of callback
+    :param no_api: If ``True`` do not call API
     """
-
     if no_api:
         log("In 'notify_api_completion()' no_api flag used")
         log(f"utils.notify_api_completion: state = {state}")
@@ -926,7 +918,7 @@ def send_callback_body(
     .. code-block::
 
         {
-            "status": "success",
+            "state": "success",
             "files":
             [
                 {
@@ -971,3 +963,18 @@ def send_callback_body(
         raise RuntimeError(
             "Invalid state - need callback_url and token, OR set no_api to True."
         )
+
+
+@flow
+def notify_started_flow(no_api, token, callback_url):
+    notify_api_running(no_api, token, callback_url)
+
+
+@flow
+def notify_completed_flow(status_msg, token, callback_url, no_api):
+    notify_api_completion(
+        status_msg,
+        token,
+        callback_url,
+        no_api,
+    )

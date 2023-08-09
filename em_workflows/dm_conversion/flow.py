@@ -283,21 +283,6 @@ def dm_flow(
     )
 
     utils.log(f"callback_state = {callback_state}")
-    utils.notify_api_completion(
-        callback_state, token, callback_url, no_api, wait_for=callback_state
-    )
-
-
-@flow(log_prints=True)
-def notify_started_flow(param1: str):
-    print(f"param1 = {param1}")
-    print("**** Placeholder: Notify API Started *****")
-
-
-@flow(log_prints=True)
-def notify_completed_flow(dm_state):
-    print(f"dm_state = {dm_state}")
-    print("**** Placeholder: Notify API Completed *****")
 
 
 @flow(log_prints=True)
@@ -310,7 +295,7 @@ def main_flow(
     # keep workdir if set true, useful to look at outputs
     keep_workdir: bool = False,
 ):
-    notify_started_flow(input_dir)
+    utils.notify_started_flow(no_api, token, callback_url)
 
     dm_flow_result = dm_flow(
         input_dir,
@@ -323,13 +308,16 @@ def main_flow(
         return_state=True,
     )
 
+    # Note: passing "dm_flow_result" will cause it to be evaluated, which will cause
+    #       any Exception with be thrown immediately, and the call will not go
+    #       through. So we pass a simple "Complete" or "Failed" string instead.
     if dm_flow_result.is_completed():
-        print("dm_flow completed successfully")
-    else:
-        print("dm_flow did NOT complete")
+        print("**** dm_flow COMPLETED")
         print(f"dm_flow_result = {dm_flow_result}")
-
-    notify_completed_flow(dm_flow_result)
+        utils.notify_completed_flow("Completed", token, callback_url, no_api)
+    else:
+        print("**** dm_flow did NOT complete")
+        utils.notify_completed_flow("Failed", token, callback_url, no_api)
 
 
 if __name__ == "__main__":

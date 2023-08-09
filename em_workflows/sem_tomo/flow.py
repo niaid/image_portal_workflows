@@ -298,6 +298,40 @@ def sem_flow(
     )
 
     utils.log(f"callback_state = {callback_state}")
-    utils.notify_api_completion(
-        callback_state, token, callback_url, no_api, wait_for=callback_state
+
+
+@flow(log_prints=True)
+def main_flow(
+    input_dir: str,
+    file_name: str = None,
+    callback_url: str = None,
+    token: str = None,
+    no_api: bool = None,
+    tilt_angle: float = 0,
+    # keep workdir if set true, useful to look at outputs
+    keep_workdir: bool = False,
+):
+    utils.notify_started_flow(no_api, token, callback_url)
+
+    sem_flow_result = sem_flow(
+        input_dir=input_dir,
+        file_name=file_name,
+        callback_url=callback_url,
+        token=token,
+        no_api=no_api,
+        tilt_angle=tilt_angle,
+        # keep workdir if set true, useful to look at outputs
+        keep_workdir=keep_workdir,
+        return_state=True,
     )
+
+    # Note: passing "sem_flow_result" will cause it to be evaluated, which will cause
+    #       any Exception with be thrown immediately, and the call will not go
+    #       through. So we pass a simple "Complete" or "Failed" string instead.
+    if sem_flow_result.is_completed():
+        print("sem_flow COMPLETED")
+        print(f"sem_flow_result = {sem_flow_result}")
+        utils.notify_completed_flow("Completed", token, callback_url, no_api)
+    else:
+        print("**** sem_flow NOT completed")
+        utils.notify_completed_flow("Failed", token, callback_url, no_api)

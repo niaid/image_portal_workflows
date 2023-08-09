@@ -456,25 +456,26 @@ def brt_flow(
     # Note the ugly names, these parameters are lifted verbatim from
     # https://bio3d.colorado.edu/imod/doc/directives.html where possible.
     # (there are two thickness args, these are not verbatim.)
-    montage: int,
-    gold: int,
-    focus: int,
-    fiducialless: int,
-    trackingMethod: int,
-    TwoSurfaces: int,
-    TargetNumberOfBeads: int,
-    LocalAlignments: int,
-    THICKNESS: int,
-    # end user facing adoc params
     input_dir: str,
-    adoc_template: str = "plastic_brt",
+    file_name: str = None,
     callback_url: str = None,
     token: str = None,
-    file_name: str = None,
     # debugging options:
     # run workflow without an api.
     no_api: bool = False,
     keep_workdir: bool = False,
+    # user-facing adoc params
+    adoc_template: str = "plastic_brt",
+    montage: int = 0,
+    gold: int = 15,
+    focus: int = 0,
+    fiducialless: int = 1,
+    trackingMethod: int = 0,
+    TwoSurfaces: int = 0,
+    TargetNumberOfBeads: int = 20,
+    LocalAlignments: int = 0,
+    THICKNESS: int = 30,
+    # end user facing adoc params
 ):
 
     # a single input_dir will have n tomograms
@@ -618,13 +619,70 @@ def brt_flow(
     )
 
     utils.log(f"callback_state = {callback_state}")
-    utils.notify_api_completion(
-        callback_state, token, callback_url, no_api, wait_for=callback_state
+
+
+@flow(log_prints=True)
+def main_flow(
+    input_dir: str,
+    file_name: str = None,
+    callback_url: str = None,
+    token: str = None,
+    no_api: bool = None,
+    # keep workdir if set true, useful to look at outputs
+    keep_workdir: bool = False,
+    adoc_template: str = "plastic_brt",
+    montage: int = 0,
+    gold: int = 15,
+    focus: int = 0,
+    fiducialless: int = 1,
+    trackingMethod: int = 0,
+    # NOTE: passing these as ints, so can't default to None
+    #       should the type be "str"?
+    # trackingMethod=None,
+    TwoSurfaces: int = 0,
+    TargetNumberOfBeads: int = 20,
+    LocalAlignments: int = 0,
+    THICKNESS: int = 30,
+):
+
+    # Call the actual flow; the "tramp data" is getting excessive - we should consider
+    # refactoring; perhaps add an "Adoc" class.
+    brt_flow_result = brt_flow(
+        input_dir=input_dir,
+        file_name=file_name,
+        callback_url=callback_url,
+        token=token,
+        no_api=no_api,
+        # keep workdir if set true, useful to look at outputs
+        keep_workdir=keep_workdir,
+        adoc_template=adoc_template,
+        montage=montage,
+        gold=gold,
+        focus=focus,
+        fiducialless=fiducialless,
+        trackingMethod=trackingMethod,
+        TwoSurfaces=TwoSurfaces,
+        TargetNumberOfBeads=TargetNumberOfBeads,
+        LocalAlignments=LocalAlignments,
+        THICKNESS=THICKNESS,
+        return_state=True,
     )
-    utils.log("COMPLETED")
+    utils.notify_started_flow(no_api, token, callback_url)
+
+    # Note: passing "brt_flow_result" will cause it to be evaluated, which will cause
+    #       any Exception with be thrown immediately, and the call will not go
+    #       through. So we pass a simple "Complete" or "Failed" string instead.
+    if brt_flow_result.is_completed():
+        print("**** brt_flow COMPLETED")
+        print(f"brt_flow_result = {brt_flow_result}")
+        utils.notify_completed_flow("Completed", token, callback_url, no_api)
+    else:
+        print("**** brt_flow did NOT complete")
+        utils.notify_completed_flow("Failed", token, callback_url, no_api)
 
 
 # the other tasks might be always run or something,
 # this is far enough along to get an idea of success.
-# @todo - Not sure what to do with this in Prefect 2
+# @todo - ``set_reference_tasks`` is not available in Prefect 2. The final
+#         state of the flow is determined by its return value.
 # flow.set_reference_tasks([callback_with_tilt_mov])

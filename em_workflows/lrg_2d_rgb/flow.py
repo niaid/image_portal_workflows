@@ -149,7 +149,38 @@ def lrg_2d_flow(
     utils.cleanup_workdir(fps, wait_for=[callback_state])
 
     utils.log(f"callback_state = {callback_state}")
-    utils.notify_api_completion(
-        callback_state, token, callback_url, no_api, wait_for=callback_state
+
+
+@flow(log_prints=True)
+def main_flow(
+    input_dir: str,
+    file_name: str = None,
+    callback_url: str = None,
+    token: str = None,
+    no_api: bool = None,
+    # keep workdir if set true, useful to look at outputs
+    keep_workdir: bool = False,
+):
+    utils.notify_started_flow(no_api, token, callback_url)
+
+    lrg2d_flow_result = lrg_2d_flow(
+        input_dir,
+        file_name,
+        callback_url,
+        token,
+        no_api,
+        # keep workdir if set true, useful to look at outputs
+        keep_workdir,
+        return_state=True,
     )
-    utils.log("COMPLETED")
+
+    # Note: passing "lrg2d_flow_result" will cause it to be evaluated, which will cause
+    #       any Exception with be thrown immediately, and the call will not go
+    #       through. So we pass a simple "Complete" or "Failed" string instead.
+    if lrg2d_flow_result.is_completed():
+        print("**** lrg_2d_flow COMPLETED")
+        print(f"lrg2d_flow_result = {lrg2d_flow_result}")
+        utils.notify_completed_flow("Completed", token, callback_url, no_api)
+    else:
+        print("**** lrg_2d_flow did NOT complete")
+        utils.notify_completed_flow("Failed", token, callback_url, no_api)
