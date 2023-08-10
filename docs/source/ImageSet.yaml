@@ -1,24 +1,16 @@
 type: object
 required:
-  - type
-  - url
+  - title
+  - assets
+  - imageMetadata
 properties:
-  type:
-    $ref: AssetType.yaml
-  url:
-    description: authenticated URL
+  title:
+    description: Readable name or identifier of the asset
+  assets:
+    description: List of generated image assets
+    type: array
+    items:
+      $ref: Asset.yaml
+  imageMetadata:
+    description: TODO - `object` field yet to be discussed
     type: string
-    enum:
-      - thumbnail
-      - averagedVolume
-      - keyImage
-      - thumbnail
-      - recMovie
-      - tiltMovie
-      - volume
-      - neuroglancerPrecomputed
-      - neuroglancerZarr
-
-  metadata:
-    $ref: NeuroglancerMetadata.yaml
-    type: object

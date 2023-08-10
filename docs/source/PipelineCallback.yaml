@@ -7,12 +7,15 @@ properties:
   status:
     description: Success is considered true if ANY conversion is successful.
     type: string
-    enum: [success, error]
+    enum:
+      - success
+      - error
   files:
     description: Input file paths, relative to projects_dir, grouped with generated outputs.
     type: array
     required:
       - primaryFilePath
+      - thumbnailIndex
       - sample
       - fileMetadata
       - imageSet
@@ -23,15 +26,22 @@ properties:
         primaryFilePath:
           description: Input file path, relative to projects_dir
           type: string
+        thumbnailIndex:
+          description: The index of the image in imageSet which consists of the "label image" thumbnail
+          type: integer
         sample:
           description: name of sample, usually file name minus path and extension.
           type: string
         fileMetadata:
-          description: Per file information (as apposed to per imageSet element).
+          description: >
+            Per file information (as apposed to per imageSet element).
+            OMEXMLMetadataFile: `Location of METADATA.ome.xml`
           type: object
           additionalProperties: {}
         imageSet:
-          description: Set of images contained within input file, eg 1 for PNGs, n for CZIs.
+          description: >
+            Set of images contained within input file
+            Example: 1 for PNGs, n for CZIs
           type: array
           items:
             $ref: ImageSet.yaml

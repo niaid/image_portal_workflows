@@ -23,6 +23,9 @@ def hpc_env(monkeypatch):
         Get partial results based on machine type. Alternately could use a HOME env. variable.
         :return: The full path where the previously-created output files are stored
         """
+        # FIXME these strings should not be user specific.
+        # Fix: Setup a envinronment variable called $PROJECT_HOME
+        # FIXME two strings are different in structure: test/input_files/... vs data/...
         if platform.system() == "Linux":
             return "/home/macmenaminpe/code/image_portal_workflows/test/input_files/brt_outputs/"
         elif platform.system() == "Darwin":
@@ -81,4 +84,5 @@ def test_brt(mock_nfs_mount, hpc_env):
         no_api=True,
         keep_workdir=True,
     )
-    assert result.is_successful()
+    # FIXME: input_dir .../brt_inputs/Projects/ is missing!
+    assert result.is_successful(), "`result` is not successful!"

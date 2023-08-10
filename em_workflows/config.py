@@ -49,12 +49,14 @@ def command_loc(cmd: str) -> str:
 
 class Config:
     # location in RML HPC
+    # FIXME The locations are hard-coded
+    # Check nih_3d config at https://probable-chainsaw-db6dd000.pages.github.io/API_documentation/
     binvol = "/opt/rml/imod/bin/binvol"
     bioformats2raw = "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw"
     brt_binary = "/opt/rml/imod/bin/batchruntomo"
     dm2mrc_loc = "/opt/rml/imod/bin/dm2mrc"
     clip_loc = "/opt/rml/imod/bin/clip"
-    convert_loc = "/usr/bin/convert"
+    convert_loc = "/usr/bin/convert"  # requires imagemagick
     header_loc = "/opt/rml/imod/bin/header"
     mrc2tif_loc = "/opt/rml/imod/bin/mrc2tif"
     newstack_loc = "/opt/rml/imod/bin/newstack"

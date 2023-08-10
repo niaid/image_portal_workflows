@@ -1,0 +1,12 @@
+description: Type of Asset
+type: string
+enum:
+  - thumbnail
+  - averagedVolume
+  - keyImage
+  - thumbnail
+  - recMovie
+  - tiltMovie
+  - volume
+  - neuroglancerPrecomputed
+  - neuroglancerZarr

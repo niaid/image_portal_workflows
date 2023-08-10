@@ -1,6 +1,8 @@
 Workflows related to project previously referred to as "Hedwig".
 
-Sphinx Docs: https://niaid.github.io/image_portal_workflows/
+Please refer to Spinx Docs below for _Installation_, _Local Set-up_, _Sending Pull Requests_, and _Testing_.
+
+_Sphinx Docs_: https://niaid.github.io/image_portal_workflows/
 
 Build/Test:
 
