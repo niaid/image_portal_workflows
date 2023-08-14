@@ -20,10 +20,94 @@ which is a member of the NIAID organization is required.
 
 pip install -e <path_to_clone>
 git+https://github.com/niaid/tomojs-pytools.git@master in requirements.txt
-￼
 
+Git LFS
+=======
+
+Git `Large File Storage <https://git-lfs.github.com>`_ (LFS) is used to store larger files in the repository such as
+test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
+be installed on the system and set up on the users account. The `tool's documentation <https://git-lfs.github.com>`_
+provides details on installation, set up, and usage that is not duplicated here. Once set up the git usage is usually
+transparent with operation such as cloning, adding files, and changing branches.
+
+The ``.gitattributes`` configuration file automatically places files in the ``test/input_files`` directory to
+be stored in Git LFS.
+
+Flake8
+======
+
+`Flake8 <https://pypi.org/project/flake8/>`_ is a CLI utility used to enforce style and do linting.
+
+Black
+=====
+
+`Black <https://pypi.org/project/black/>`_ is a CLI utility that enforces a standard formatting on Python which helps with code consistancy.
+
+pre-commit
+==========
+
+`pre-commit <https://pre-commit.com/>`_ is a framework for managing pre-commit hooks that will check code for code
+format compliance at commit time. It is configured via a top-level ``.pre-commit-config.yaml`` file that runs ``black``,
+``Flake8`` and other checks.
+
+*******
+Testing
+*******
+
+There are currently four ``pytest`` files in the `test` directory:
+
+- ``test_brt``: end-to-end test of batchruntomo pipeline
+- ``test_dm``: 2D end-to-end pipeline test
+- ``test_sem``: end-to-end test of FIBSEM pipeline
+- ``test_utils``: unit tests of utils/utils.py module
+
+There is test data for `test_dm` in the Git repo, but not for the others. These files need to be
+downloaded from the HPC machines. The following script will copy them:
+
+`test/copy_test_data.sh`
+
+These files are quite large, so you may want to run each line separately at the command line. Some unit tests also
+require the results of previous ``test_brt`` runs, specifically in the Assets directory. So you must run ''test_brt''
+before the complete test suite will work.
+
+To run the entire test suite, in the portal_image_workflows directory, run::
+
+    $ pytest
+
+To determine the test coverage, in the portal_image_workflows directory, run::
+
+    $ pytest --cov="." --cov-config=.coveragerc test
+
+There are also a couple ways to select specific types of tests based on pytest `markers
+<https://docs.pytest.org/en/7.1.x/example/markers.html#registering-markers>`_.
+Certain tests use the following decorators to "mark" it:
+
+    - ``@pytest.mark.slow`` : Test takes a long time to run
+    - ``@pytest.mark.localdata`` : Test requires large test file not stored in the repository
+
+So to run tests in GitHub Actions that don't have all the data, run::
+
+    $ pytest -m "not localdata"
+
+To run just run relatively quick tests, run::
+
+    $ pytest -m "not slow"
+
+To run everything, along with verbose pytest output and logging turned on, run::
+
+    $ pytest -v --log-cli-level=INFO
+
+You can also run tests by "keyword" based on the name of the test. For example, the following will run two
+tests in ``test_utils.py`` named ``test_lookup_dims`` and ``test_bad_lookup_dims``::
+
+    $ pytest -k lookup_dims
+
+In addition, temporarily "broken" tests are marked with ``@pytest.mark.skip``. These will be skipped
+every time; comment out or delete the decorator to run them.
+
+*************
 Local Set-up
-============
+*************
 
 You will need a minimal Python (3.8+) installation to run the `generate_venv.sh` script.
 The following programs need to be available locally:
@@ -32,6 +116,7 @@ The following programs need to be available locally:
 - ffmpeg (in order to create movies)
 - IMOD package: https://bio3d.colorado.edu/imod/
 - bioformats2raw package: https://github.com/glencoesoftware/bioformats2raw
+- imagemagick: https://imagemagick.org/script/download.php
 
 Similar to the HPC Set up below, you can locally set up `dev` and `qa` virtual envs.
 
@@ -43,8 +128,9 @@ is no fix or workaround for this issue.
 HPC Set up
 ==========
 
-NOTE, THIS IS **ONLY** relevant for HPC. Added for completeness.
-----------------------------------------------------------------
+**NOTE, THIS IS ONLY relevant for HPC. Added for completeness.**
+
+NOTE: *Similar to the HPC Set, you can locally set up `dev` and `qa` virtual envs. This step can be skipped for testing purposes.*
 
 Workflows are currently run on RML HPC ("BigSky").
 
@@ -68,6 +154,9 @@ They were set up as follows:
 A script exists to help set up `dev`, `qa`, or `prod` environments in
 `$HOME/code/hedwig/<HEDWIG_ENV>`
 Insure `$HOME/code/hedwig` exists. Runs on Linux.
+
+
+**Note**: generate_vevn.sh is not used as of 08/11/2023, setup is documented in `hpc.rst`.
 
 .. code-block:: sh
 
@@ -130,36 +219,6 @@ Currently dask jobqueue is configured with a yaml file.
   Python 3.8.6
   $ spack unload -a
 
-
-Git LFS
-=======
-
-Git `Large File Storage <https://git-lfs.github.com>`_ (LFS) is used to store larger files in the repository such as
-test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
-be installed on the system and set up on the users account. The `tool's documentation <https://git-lfs.github.com>`_
-provides details on installation, set up, and usage that is not duplicated here. Once set up the git usage is usually
-transparent with operation such as cloning, adding files, and changing branches.
-
-The ``.gitattributes`` configuration file automatically places files in the ``test/input_files`` directory to
-be stored in Git LFS.
-
-Flake8
-======
-
-`Flake8 <https://pypi.org/project/flake8/>`_ is a CLI utility used to enforce style and do linting.
-
-Black
-=====
-
-`Black <https://pypi.org/project/black/>`_ is a CLI utility that enforces a standard formatting on Python which helps with code consistancy.
-
-pre-commit
-==========
-
-`pre-commit <https://pre-commit.com/>`_ is a framework for managing pre-commit hooks that will check code for code
-format compliance at commit time. It is configured via a top-level ``.pre-commit-config.yaml`` file that runs ``black``,
-``Flake8`` and other checks.
-
 *****************
 Pull Requests
 *****************
@@ -212,63 +271,6 @@ To contribute to the project first ensure your fork is in good shape, and then t
 - Feel free to let a niaid repo admin (currently Philip MacM and Bradley Lowenkamp) know there's a PR waiting for review.
 
 Thanks! :)
-
-*******
-Testing
-*******
-
-There are currently four ``pytest`` files in the `test` directory:
-
-- ``test_brt``: end-to-end test of batchruntomo pipeline
-- ``test_dm``: 2D end-to-end pipeline test
-- ``test_sem``: end-to-end test of FIBSEM pipeline
-- ``test_utils``: unit tests of utils/utils.py module
-
-There is test data for `test_dm` in the Git repo, but not for the others. These files need to be
-downloaded from the HPC machines. The following script will copy them:
-
-`test/copy_test_data.sh`
-
-These files are quite large, so you may want to run each line separately at the command line. Some unit tests also
-require the results of previous ``test_brt`` runs, specifically in the Assets directory. So you must run ''test_brt''
-before the complete test suite will work.
-
-To run the entire test suite, in the portal_image_workflows directory, run::
-
-    $ pytest
-
-To determine the test coverage, in the portal_image_workflows directory, run::
-
-    $ pytest --cov="." --cov-config=.coveragerc test
-
-There are also a couple ways to select specific types of tests based on pytest `markers
-<https://docs.pytest.org/en/7.1.x/example/markers.html#registering-markers>`_.
-Certain tests use the following decorators to "mark" it:
-
-    - ``@pytest.mark.slow`` : Test takes a long time to run
-    - ``@pytest.mark.localdata`` : Test requires large test file not stored in the repository
-
-So to run tests in GitHub Actions that don't have all the data, run::
-
-    $ pytest -m "not localdata"
-
-To run just run relatively quick tests, run::
-
-    $ pytest -m "not slow"
-
-To run everything, along with verbose pytest output and logging turned on, run::
-
-    $ pytest -v --log-cli-level=INFO
-
-You can also run tests by "keyword" based on the name of the test. For example, the following will run two
-tests in ``test_utils.py`` named ``test_lookup_dims`` and ``test_bad_lookup_dims``::
-
-    $ pytest -k lookup_dims
-
-In addition, temporarily "broken" tests are marked with ``@pytest.mark.skip``. These will be skipped
-every time; comment out or delete the decorator to run them.
-
-
 
 ********************
 Sphinx Documentation

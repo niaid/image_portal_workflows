@@ -47,22 +47,23 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Development</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#github-com">Github.com</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#local-set-up">Local Set-up</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#hpc-set-up">HPC Set up</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#note-this-is-only-relevant-for-hpc-added-for-completeness">NOTE, THIS IS <strong>ONLY</strong> relevant for HPC. Added for completeness.</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#updating-venvs">Updating venvs:</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#prefect-agent">Prefect Agent:</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#register-workflows">Register Workflows:</a></li>
-</ul>
-</li>
 <li class="toctree-l3"><a class="reference internal" href="#git-lfs">Git LFS</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#flake8">Flake8</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#black">Black</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pre-commit">pre-commit</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#pull-requests">Pull Requests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#local-set-up">Local Set-up</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#hpc-set-up">HPC Set up</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#updating-venvs">Updating venvs:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#prefect-agent">Prefect Agent:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#register-workflows">Register Workflows:</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pull-requests">Pull Requests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#sphinx-documentation">Sphinx Documentation</a></li>
 </ul>
 </li>
@@ -108,11 +109,86 @@ or Mac OS.</p>
 <p>The repository is located in the NIAID Github.com enterprise organization. Having a github.com account
 which is a member of the NIAID organization is required.</p>
 <p>pip install -e &lt;path_to_clone&gt;
-git+https://github.com/niaid/tomojs-pytools.git&#64;master in requirements.txt
-￼</p>
+git+https://github.com/niaid/tomojs-pytools.git&#64;master in requirements.txt</p>
+</section>
+<section id="git-lfs">
+<h3>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this heading"></a></h3>
+<p>Git <a class="reference external" href="https://git-lfs.github.com">Large File Storage</a> (LFS) is used to store larger files in the repository such as
+test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
+be installed on the system and set up on the users account. The <a class="reference external" href="https://git-lfs.github.com">tool’s documentation</a>
+provides details on installation, set up, and usage that is not duplicated here. Once set up the git usage is usually
+transparent with operation such as cloning, adding files, and changing branches.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">.gitattributes</span></code> configuration file automatically places files in the <code class="docutils literal notranslate"><span class="pre">test/input_files</span></code> directory to
+be stored in Git LFS.</p>
+</section>
+<section id="flake8">
+<h3>Flake8<a class="headerlink" href="#flake8" title="Permalink to this heading"></a></h3>
+<p><a class="reference external" href="https://pypi.org/project/flake8/">Flake8</a> is a CLI utility used to enforce style and do linting.</p>
+</section>
+<section id="black">
+<h3>Black<a class="headerlink" href="#black" title="Permalink to this heading"></a></h3>
+<p><a class="reference external" href="https://pypi.org/project/black/">Black</a> is a CLI utility that enforces a standard formatting on Python which helps with code consistancy.</p>
+</section>
+<section id="pre-commit">
+<h3>pre-commit<a class="headerlink" href="#pre-commit" title="Permalink to this heading"></a></h3>
+<p><a class="reference external" href="https://pre-commit.com/">pre-commit</a> is a framework for managing pre-commit hooks that will check code for code
+format compliance at commit time. It is configured via a top-level <code class="docutils literal notranslate"><span class="pre">.pre-commit-config.yaml</span></code> file that runs <code class="docutils literal notranslate"><span class="pre">black</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Flake8</span></code> and other checks.</p>
+</section>
+</section>
+<section id="testing">
+<h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading"></a></h2>
+<p>There are currently four <code class="docutils literal notranslate"><span class="pre">pytest</span></code> files in the <cite>test</cite> directory:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">test_brt</span></code>: end-to-end test of batchruntomo pipeline</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_dm</span></code>: 2D end-to-end pipeline test</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_sem</span></code>: end-to-end test of FIBSEM pipeline</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_utils</span></code>: unit tests of utils/utils.py module</p></li>
+</ul>
+<p>There is test data for <cite>test_dm</cite> in the Git repo, but not for the others. These files need to be
+downloaded from the HPC machines. The following script will copy them:</p>
+<p><cite>test/copy_test_data.sh</cite></p>
+<p>These files are quite large, so you may want to run each line separately at the command line. Some unit tests also
+require the results of previous <code class="docutils literal notranslate"><span class="pre">test_brt</span></code> runs, specifically in the Assets directory. So you must run ‘’test_brt’’
+before the complete test suite will work.</p>
+<p>To run the entire test suite, in the portal_image_workflows directory, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest
+</pre></div>
+</div>
+<p>To determine the test coverage, in the portal_image_workflows directory, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest --cov=&quot;.&quot; --cov-config=.coveragerc test
+</pre></div>
+</div>
+<p>There are also a couple ways to select specific types of tests based on pytest <a class="reference external" href="https://docs.pytest.org/en/7.1.x/example/markers.html#registering-markers">markers</a>.
+Certain tests use the following decorators to “mark” it:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.slow</span></code> : Test takes a long time to run</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.localdata</span></code> : Test requires large test file not stored in the repository</p></li>
+</ul>
+</div></blockquote>
+<p>So to run tests in GitHub Actions that don’t have all the data, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -m &quot;not localdata&quot;
+</pre></div>
+</div>
+<p>To run just run relatively quick tests, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -m &quot;not slow&quot;
+</pre></div>
+</div>
+<p>To run everything, along with verbose pytest output and logging turned on, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -v --log-cli-level=INFO
+</pre></div>
+</div>
+<p>You can also run tests by “keyword” based on the name of the test. For example, the following will run two
+tests in <code class="docutils literal notranslate"><span class="pre">test_utils.py</span></code> named <code class="docutils literal notranslate"><span class="pre">test_lookup_dims</span></code> and <code class="docutils literal notranslate"><span class="pre">test_bad_lookup_dims</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -k lookup_dims
+</pre></div>
+</div>
+<p>In addition, temporarily “broken” tests are marked with <code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.skip</span></code>. These will be skipped
+every time; comment out or delete the decorator to run them.</p>
 </section>
 <section id="local-set-up">
-<h3>Local Set-up<a class="headerlink" href="#local-set-up" title="Permalink to this heading"></a></h3>
+<h2>Local Set-up<a class="headerlink" href="#local-set-up" title="Permalink to this heading"></a></h2>
 <p>You will need a minimal Python (3.8+) installation to run the <cite>generate_venv.sh</cite> script.
 The following programs need to be available locally:</p>
 <ul class="simple">
@@ -120,17 +196,17 @@ The following programs need to be available locally:</p>
 <li><p>ffmpeg (in order to create movies)</p></li>
 <li><p>IMOD package: <a class="reference external" href="https://bio3d.colorado.edu/imod/">https://bio3d.colorado.edu/imod/</a></p></li>
 <li><p>bioformats2raw package: <a class="reference external" href="https://github.com/glencoesoftware/bioformats2raw">https://github.com/glencoesoftware/bioformats2raw</a></p></li>
+<li><p>imagemagick: <a class="reference external" href="https://imagemagick.org/script/download.php">https://imagemagick.org/script/download.php</a></p></li>
 </ul>
 <p>Similar to the HPC Set up below, you can locally set up <cite>dev</cite> and <cite>qa</cite> virtual envs.</p>
 <p>Special note for <strong>Mac M1</strong>: The <cite>tomojs-pytools</cite> library depends on imagecodecs which does
 not have binaries built for the M1. Need to install using an x86_64 version of Python. Also, there
 are issues installing <cite>biofomats2raw</cite> as there is no OpenCV package for arm64 chip. There currently
 is no fix or workaround for this issue.</p>
-</section>
 <section id="hpc-set-up">
 <h3>HPC Set up<a class="headerlink" href="#hpc-set-up" title="Permalink to this heading"></a></h3>
-<section id="note-this-is-only-relevant-for-hpc-added-for-completeness">
-<h4>NOTE, THIS IS <strong>ONLY</strong> relevant for HPC. Added for completeness.<a class="headerlink" href="#note-this-is-only-relevant-for-hpc-added-for-completeness" title="Permalink to this heading"></a></h4>
+<p><strong>NOTE, THIS IS ONLY relevant for HPC. Added for completeness.</strong></p>
+<p>NOTE: <em>Similar to the HPC Set, you can locally set up `dev` and `qa` virtual envs. This step can be skipped for testing purposes.</em></p>
 <p>Workflows are currently run on RML HPC (“BigSky”).</p>
 <p>There are three environments currently on BigSky: (<cite>dev</cite>, <cite>qa</cite>, <cite>prod</cite>).
 They were set up as follows:
@@ -149,12 +225,12 @@ conda<span class="w"> </span>deactivate
 <p>A script exists to help set up <cite>dev</cite>, <cite>qa</cite>, or <cite>prod</cite> environments in
 <cite>$HOME/code/hedwig/&lt;HEDWIG_ENV&gt;</cite>
 Insure <cite>$HOME/code/hedwig</cite> exists. Runs on Linux.</p>
+<p><strong>Note</strong>: generate_vevn.sh is not used as of 08/11/2023, setup is documented in <cite>hpc.rst</cite>.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:niaid/image_portal_workflows.git
 <span class="c1"># generates venv qa.</span>
 ./image_portal_workflows/helper_scripts/generate_venv.sh<span class="w"> </span>qa
 </pre></div>
 </div>
-</section>
 <section id="updating-venvs">
 <h4>Updating venvs:<a class="headerlink" href="#updating-venvs" title="Permalink to this heading"></a></h4>
 <p>To update your python virtual environment:
@@ -203,30 +279,6 @@ $<span class="w"> </span>spack<span class="w"> </span>unload<span class="w"> </s
 </pre></div>
 </div>
 </section>
-</section>
-<section id="git-lfs">
-<h3>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this heading"></a></h3>
-<p>Git <a class="reference external" href="https://git-lfs.github.com">Large File Storage</a> (LFS) is used to store larger files in the repository such as
-test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
-be installed on the system and set up on the users account. The <a class="reference external" href="https://git-lfs.github.com">tool’s documentation</a>
-provides details on installation, set up, and usage that is not duplicated here. Once set up the git usage is usually
-transparent with operation such as cloning, adding files, and changing branches.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">.gitattributes</span></code> configuration file automatically places files in the <code class="docutils literal notranslate"><span class="pre">test/input_files</span></code> directory to
-be stored in Git LFS.</p>
-</section>
-<section id="flake8">
-<h3>Flake8<a class="headerlink" href="#flake8" title="Permalink to this heading"></a></h3>
-<p><a class="reference external" href="https://pypi.org/project/flake8/">Flake8</a> is a CLI utility used to enforce style and do linting.</p>
-</section>
-<section id="black">
-<h3>Black<a class="headerlink" href="#black" title="Permalink to this heading"></a></h3>
-<p><a class="reference external" href="https://pypi.org/project/black/">Black</a> is a CLI utility that enforces a standard formatting on Python which helps with code consistancy.</p>
-</section>
-<section id="pre-commit">
-<h3>pre-commit<a class="headerlink" href="#pre-commit" title="Permalink to this heading"></a></h3>
-<p><a class="reference external" href="https://pre-commit.com/">pre-commit</a> is a framework for managing pre-commit hooks that will check code for code
-format compliance at commit time. It is configured via a top-level <code class="docutils literal notranslate"><span class="pre">.pre-commit-config.yaml</span></code> file that runs <code class="docutils literal notranslate"><span class="pre">black</span></code>,
-<code class="docutils literal notranslate"><span class="pre">Flake8</span></code> and other checks.</p>
 </section>
 </section>
 <section id="pull-requests">
@@ -279,57 +331,6 @@ upstream     git@github.com:niaid/image_portal_workflows.git (push)
 <li><p>Feel free to let a niaid repo admin (currently Philip MacM and Bradley Lowenkamp) know there’s a PR waiting for review.</p></li>
 </ul>
 <p>Thanks! :)</p>
-</section>
-<section id="testing">
-<h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading"></a></h2>
-<p>There are currently four <code class="docutils literal notranslate"><span class="pre">pytest</span></code> files in the <cite>test</cite> directory:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">test_brt</span></code>: end-to-end test of batchruntomo pipeline</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">test_dm</span></code>: 2D end-to-end pipeline test</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">test_sem</span></code>: end-to-end test of FIBSEM pipeline</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">test_utils</span></code>: unit tests of utils/utils.py module</p></li>
-</ul>
-<p>There is test data for <cite>test_dm</cite> in the Git repo, but not for the others. These files need to be
-downloaded from the HPC machines. The following script will copy them:</p>
-<p><cite>test/copy_test_data.sh</cite></p>
-<p>These files are quite large, so you may want to run each line separately at the command line. Some unit tests also
-require the results of previous <code class="docutils literal notranslate"><span class="pre">test_brt</span></code> runs, specifically in the Assets directory. So you must run ‘’test_brt’’
-before the complete test suite will work.</p>
-<p>To run the entire test suite, in the portal_image_workflows directory, run:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest
-</pre></div>
-</div>
-<p>To determine the test coverage, in the portal_image_workflows directory, run:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest --cov=&quot;.&quot; --cov-config=.coveragerc test
-</pre></div>
-</div>
-<p>There are also a couple ways to select specific types of tests based on pytest <a class="reference external" href="https://docs.pytest.org/en/7.1.x/example/markers.html#registering-markers">markers</a>.
-Certain tests use the following decorators to “mark” it:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.slow</span></code> : Test takes a long time to run</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.localdata</span></code> : Test requires large test file not stored in the repository</p></li>
-</ul>
-</div></blockquote>
-<p>So to run tests in GitHub Actions that don’t have all the data, run:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -m &quot;not localdata&quot;
-</pre></div>
-</div>
-<p>To run just run relatively quick tests, run:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -m &quot;not slow&quot;
-</pre></div>
-</div>
-<p>To run everything, along with verbose pytest output and logging turned on, run:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -v --log-cli-level=INFO
-</pre></div>
-</div>
-<p>You can also run tests by “keyword” based on the name of the test. For example, the following will run two
-tests in <code class="docutils literal notranslate"><span class="pre">test_utils.py</span></code> named <code class="docutils literal notranslate"><span class="pre">test_lookup_dims</span></code> and <code class="docutils literal notranslate"><span class="pre">test_bad_lookup_dims</span></code>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -k lookup_dims
-</pre></div>
-</div>
-<p>In addition, temporarily “broken” tests are marked with <code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.skip</span></code>. These will be skipped
-every time; comment out or delete the decorator to run them.</p>
 </section>
 <section id="sphinx-documentation">
 <h2>Sphinx Documentation<a class="headerlink" href="#sphinx-documentation" title="Permalink to this heading"></a></h2>
