@@ -27,4 +27,5 @@ def test_brt(mock_nfs_mount):
         no_api=True,
         keep_workdir=True,
     )
-    assert result.is_successful()
+    # FIXME: input_dir .../brt_inputs/Projects/ is missing!
+    assert result.is_successful(), "`result` is not successful!"

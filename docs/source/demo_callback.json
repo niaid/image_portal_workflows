@@ -1,0 +1,61 @@
+{
+  "status": "success||error",
+  "files": [
+    {
+      "primaryFilePath": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005.czi",
+      "thumbnailIndex": 0,
+      "sample": "Name of sample, usually file name minus path and extension",
+      "fileMetadata": {
+        "TBD": "TBD"
+      },
+      "imageSet": [
+        {
+          "title": "Scene #1",
+          "imageMetadata": {
+            "TBD": "TBD"
+          },
+          "assets": [
+            {
+              "type": "thumbnail",
+              "path": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_1_s.jpg"
+            },
+            {
+              "type": "keyImage",
+              "path": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_1.jpg"
+            },
+            {
+              "type": "neuroglancerZarr",
+              "path": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_1.zarr",
+              "metadata": {
+                "TBD": "TBD"
+              }
+            }
+          ]
+        },
+        {
+          "title": "image label",
+          "imageMetadata": {
+            "TBD": "TBD"
+          },
+          "assets": [
+            {
+              "type": "thumbnail",
+              "path": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_2_s.jpg"
+            },
+            {
+              "type": "keyImage",
+              "path": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_2.jpg"
+            },
+            {
+              "type": "neuroglancerZarr",
+              "path": "LNII/sbest/sbest-2023-0526-Rename/Spatial_example-2023-0526-Rename1/LNII/F13-TS005/F13-TS005_2.zarr",
+              "metadata": {
+                "TBD": "TBD"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

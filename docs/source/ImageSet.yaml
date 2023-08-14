@@ -1,0 +1,16 @@
+type: object
+required:
+  - title
+  - assets
+  - imageMetadata
+properties:
+  title:
+    description: Readable name or identifier of the asset
+  assets:
+    description: List of generated image assets
+    type: array
+    items:
+      $ref: Asset.yaml
+  imageMetadata:
+    description: TODO - `object` field yet to be discussed
+    type: string

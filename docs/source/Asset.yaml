@@ -1,0 +1,14 @@
+description: Individual asset object that contains path to the image to be displayed
+type: object
+required:
+  - type
+  - path
+properties:
+  type:
+    $ref: AssetType.yaml
+  path:
+    description: Relative path (from Asset folder) of the given image
+    type: string
+  metadata:
+    description: TODO - `object` field yet to be discussed
+    type: string

@@ -8,7 +8,8 @@ def test_input_fname(mock_nfs_mount, caplog):
         no_api=True,
     )
     assert state.is_successful()
-    assert "neuroglancerZarr" in caplog.text
+    # FIXME error documented in error_test_lrg_2d_input_fname.log
+    assert "neuroglancerZarr" in caplog.text, caplog.text
 
 
 def test_bio2r_environ(mock_nfs_mount, caplog):

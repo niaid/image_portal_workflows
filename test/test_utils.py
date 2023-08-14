@@ -236,6 +236,9 @@ def test_mrc_to_movie(mock_nfs_mount):
     proj_dir = Config.proj_dir(utils.get_environment())
     input_dir = "test/input_files/sem_inputs/Projects/mrc_movie_test"
     input_path = Path(os.path.join(proj_dir, input_dir))
+    # FIXME input directory `sem_inputs` in test/input_files is missing
+    assert os.path.exists(input_path)
+    # FIXME adjusted.mrc is missing
     image_path = Path(os.path.join(proj_dir, input_dir, "adjusted.mrc"))
     assert image_path.exists()
 

@@ -1,0 +1,89 @@
+type: object
+description: |
+  The requirements for metadata fields differ depending on the asset type.
+  The authoratative (and versioned) description of the metadata is maintained at
+  https://github.com/niaid/image_portal_workflows/blob/10516a2e4880a705adb58ed271a1fe2a743a894c/docs/source/metadata.yml
+required:
+  - dimensions
+  - shader
+properties:
+  dimensions:
+    type: string
+    enum:
+      - XY
+      - XYZ
+  shader:
+    type: string
+    enum:
+      - Grayscale
+      - RGB
+      - MultiChannel
+
+  shaderParameters:
+    type: object
+    properties:
+      window:
+        description: >
+          These values are used for neuroglancer invlerp method, where the window interval must be contain the range interval.
+          This corresponds to the old `neuroglancerPrecomputedFloor` and `neuroglancerPrecomputedLimit`.
+        type: array
+        minItems: 2
+        maxItems: 2
+        items:
+          type: number
+
+      range:
+        description: >
+          These values correspond to the old `neuroglancerPrecomputedMin` and `neuroglancerPrecomputedMax`.
+        type: array
+        minItems: 2
+        maxItems: 2
+        items:
+          type: number
+
+      contrast:
+        type: number
+
+      brightness:
+        type: number
+
+      channelArray:
+        type: array
+        required:
+          - window
+          - range
+          - name
+          - color
+          - channel
+        items:
+          type: object
+          properties:
+            window:
+              description: >
+                These values are used for neuroglancer invlerp method, where the window interval must be contain the range interval.
+                This corresponds to the old `neuroglancerPrecomputedFloor` and `neuroglancerPrecomputedLimit`.
+              type: array
+              minItems: 2
+              maxItems: 2
+              items:
+                type: number
+            range:
+              description: >
+                These values correspond to the old `neuroglancerPrecomputedMin` and `neuroglancerPrecomputedMax`.
+              type: array
+              minItems: 2
+              maxItems: 2
+              items:
+                type: number
+            name:
+              type: string
+            color:
+              type: string
+              enum: [red, green, blue, cyan, yellow, magenta]
+            channel:
+              description: Generally the index of the shaderParameter array
+              type: integer
+            clamp:
+              type: boolean
+            enabled:
+              type: boolean
