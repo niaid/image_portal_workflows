@@ -1,11 +1,11 @@
 type: object
 required:
-  - title
+  - imageName
   - assets
   - imageMetadata
 properties:
-  title:
-    description: Readable name or identifier of the asset
+  imageName:
+    description: Readable name or identifier of this ImageSet element.
   assets:
     description: List of generated image assets
     type: array

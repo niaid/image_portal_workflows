@@ -16,7 +16,7 @@ properties:
     required:
       - primaryFilePath
       - thumbnailIndex
-      - sample
+      - title
       - fileMetadata
       - imageSet
 
@@ -29,8 +29,8 @@ properties:
         thumbnailIndex:
           description: The index of the image in imageSet which consists of the "label image" thumbnail
           type: integer
-        sample:
-          description: name of sample, usually file name minus path and extension.
+        title:
+          description: File specific, name of file minus path and extension. (Appears redundant.)
           type: string
         fileMetadata:
           description: >
