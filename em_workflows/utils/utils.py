@@ -144,10 +144,12 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
     funtional style avoids this. This is why the callback data structure is not built inside
     the FilePath object at runtime.
     """
+    # TODO - at the moment we're assuming there's only a single image per file.
+    # when czi is implmented, we should pass which imageset to use.
     if type(asset) is list:
-        prim_fp["assets"].extend(asset)
+        prim_fp["imageSet"][0]["assets"].extend(asset)
     else:
-        prim_fp["assets"].append(asset)
+        prim_fp["imageSet"][0]["assets"].append(asset)
     log(f"Added fp elt {asset} to {prim_fp}.")
     return prim_fp
 

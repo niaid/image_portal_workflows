@@ -167,6 +167,7 @@ class FilePath:
         :param asset_type: a string that details the type of output file
         :param asset_fp: the originating FilePath to "hang" the asset on
         :return: the resulting "asset" in the form of a dict
+        TODO: consider changings asset_type to newly created AssetType enum
         """
         assets_fp_no_root = asset_fp.relative_to(self.asset_root)
         asset = {"type": asset_type, "path": assets_fp_no_root.as_posix()}
@@ -184,16 +185,34 @@ class FilePath:
             [
              {
               "primaryFilePath": "Lab/PI/Myproject/MySession/Sample1/file_a.mrc",
-              "title": "file_a",
-              "assets": []
+              "thumbnailIndex": 0,
+              "fileMetadata": {},
+              "imageSet": []
              }
             ]
 
         """
+        # TODO - update this for czi input, parse out title from OMEXML
         title = self.fp_in.stem
         primaryFilePath = self.fp_in.relative_to(self.proj_root)
+        # setting to zero here, most input files will only have a single image elt.
+        # will update val if czi
+        thumbnailIndex = 0
+        fileMetadata = {}
+        imageMetadata = {}
+        assets = []
+        imageSetElement = {
+            "imageName": title,
+            "imageMetadata": imageMetadata,
+            "assets": assets,
+        }
+        imageSet = [imageSetElement]
         return dict(
-            primaryFilePath=primaryFilePath.as_posix(), title=title, assets=list()
+            primaryFilePath=primaryFilePath.as_posix(),
+            thumbnailIndex=thumbnailIndex,
+            title=title,
+            fileMetadata=fileMetadata,
+            imageSet=imageSet,
         )
 
     def copy_workdir_to_assets(self) -> Path:
