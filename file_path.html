@@ -183,7 +183,8 @@ in this case.</p>
 <dd><p>Construct and return an asset (dict) based on the asset “type” and FilePath
 :param asset_type: a string that details the type of output file
 :param asset_fp: the originating FilePath to “hang” the asset on
-:return: the resulting “asset” in the form of a dict</p>
+:return: the resulting “asset” in the form of a dict
+TODO: consider changings asset_type to newly created AssetType enum</p>
 </dd></dl>
 
 <dl class="py method">
@@ -202,8 +203,9 @@ in this case.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
  <span class="p">{</span>
   <span class="s2">&quot;primaryFilePath&quot;</span><span class="p">:</span> <span class="s2">&quot;Lab/PI/Myproject/MySession/Sample1/file_a.mrc&quot;</span><span class="p">,</span>
-  <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;file_a&quot;</span><span class="p">,</span>
-  <span class="s2">&quot;assets&quot;</span><span class="p">:</span> <span class="p">[]</span>
+  <span class="s2">&quot;thumbnailIndex&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+  <span class="s2">&quot;fileMetadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+  <span class="s2">&quot;imageSet&quot;</span><span class="p">:</span> <span class="p">[]</span>
  <span class="p">}</span>
 <span class="p">]</span>
 </pre></div>
