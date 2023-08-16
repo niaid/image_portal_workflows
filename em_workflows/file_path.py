@@ -161,7 +161,7 @@ class FilePath:
         output_fp = f"{self.working_dir.as_posix()}/{f_name}"
         return Path(output_fp)
 
-    def gen_asset(self, asset_type: str, asset_fp) -> Dict:
+    def gen_asset(self, asset_type: str, asset_fp: Path) -> Dict:
         """
         Construct and return an asset (dict) based on the asset "type" and FilePath
         :param asset_type: a string that details the type of output file
