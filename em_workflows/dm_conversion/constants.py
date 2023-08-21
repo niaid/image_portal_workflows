@@ -1,5 +1,5 @@
-LARGE_DIM = 1024
-SMALL_DIM = 300
+from em_workflows.constants import LARGE_DIM, SMALL_DIM
+
 LARGE_2D = f"{LARGE_DIM}x{LARGE_DIM}"
 SMALL_2D = f"{SMALL_DIM}x{SMALL_DIM}"
 

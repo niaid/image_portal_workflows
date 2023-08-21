@@ -1,6 +1,7 @@
 pytest
 coverage
 pytest-env
+python-dotenv
 pytest-cov
 coverage-badge
 prefect==1.*
