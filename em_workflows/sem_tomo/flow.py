@@ -5,8 +5,9 @@ import math
 from typing import Dict
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
-from em_workflows.config import Config
 
+from em_workflows.config import Config
+from .constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_WIDTH
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 
@@ -267,9 +268,9 @@ with Flow(
     # zarr file generation
     pyramid_assets = ng.gen_zarr.map(
         fp_in=fps,
-        depth=unmapped(Config.fibsem_depth),
-        width=unmapped(Config.fibsem_width),
-        height=unmapped(Config.fibsem_height),
+        depth=unmapped(FIBSEM_DEPTH),
+        width=unmapped(FIBSEM_WIDTH),
+        height=unmapped(FIBSEM_HEIGHT),
         upstream_tasks=[base_mrcs],
     )
 

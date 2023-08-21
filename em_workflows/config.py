@@ -72,50 +72,9 @@ class Config:
     }
 
     # bioformats2raw settings
-    fibsem_depth = 128
-    fibsem_height = 128
-    fibsem_width = 128
-    brt_depth = 64
-    brt_width = 256
-    brt_height = 256
+    # All settings moved to respective constants file
+    # fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
 
-    # Image sizes, just large and small for now
-    # used in lrg_2d_color
-    LARGE_THUMB_X = 1024
-    LARGE_THUMB_Y = 1024
-    SMALL_THUMB_X = 300
-    SMALL_THUMB_Y = 300
-
-    # JPEG image quality
-    JPEG_QUAL = 90
-
-    LARGE_DIM = 1024
-    SMALL_DIM = 300
-    LARGE_2D = f"{LARGE_DIM}x{LARGE_DIM}"
-    SMALL_2D = f"{SMALL_DIM}x{SMALL_DIM}"
-
-    # List of 2D extensions we may want to process
-    valid_2d_input_exts = [
-        "DM4",
-        "DM3",
-        "dm4",
-        "dm3",
-        "TIF",
-        "TIFF",
-        "tif",
-        "tiff",
-        "JPEG",
-        "JPG",
-        "jpeg",
-        "jpg",
-        "PNG",
-        "png",
-        "mrc",
-        "MRC",
-    ]
-    fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
-
-    valid_lrg_2d_rgb_inputs = ["png", "PNG"]
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     user = os.environ["USER"]
     tmp_dir = f"/gs1/Scratch/{user}_scratch/"

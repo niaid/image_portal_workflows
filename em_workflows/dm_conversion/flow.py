@@ -5,9 +5,11 @@ from prefect.run_configs import LocalRun
 from prefect.engine import signals
 from pytools.meta import is_int16
 from pytools.convert import file_to_uint8
+
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
 from em_workflows.config import Config
+from .constants import LARGE_DIM, LARGE_2D, SMALL_2D, VALID_2D_INPUT_EXTS
 
 
 @task
@@ -46,7 +48,7 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
 def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     """
     Checks Projects dir for mrc inputs. We assume anything in Projects will be 2D.
-    Converts to tiff file, 1024 in size (using constant Config.LARGE_DIM)
+    Converts to tiff file, 1024 in size (using constant LARGE_DIM)
 
     env IMOD_OUTPUT_FORMAT=TIF newstack \
             --shrink $shrink_factor$ -antialias 6 -mode 0 -meansd 140,50 f_in.mrc f_out.tif
@@ -67,7 +69,7 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
         # use the min dimension of x & y to compute shrink_factor
         min_xy = min(dims.x, dims.y)
         # work out shrink_factor
-        shrink_factor = min_xy / Config.LARGE_DIM
+        shrink_factor = min_xy / LARGE_DIM
         # round to 3 decimal places
         shrink_factor_3 = f"{shrink_factor:.3f}"
         out_fp = f"{file_path.working_dir}/{file_path.base}_mrc_as_tiff.tiff"
@@ -140,10 +142,10 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
             "gm",
             "convert",
             "-size",
-            Config.SMALL_2D,
+            SMALL_2D,
             cur.as_posix(),
             "-resize",
-            Config.SMALL_2D,
+            SMALL_2D,
             "-sharpen",
             "2",
             "-quality",
@@ -158,10 +160,10 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
             "gm",
             "convert",
             "-size",
-            Config.LARGE_2D,
+            LARGE_2D,
             cur.as_posix(),
             "-resize",
-            Config.LARGE_2D,
+            LARGE_2D,
             # "-sharpen",
             # "2",
             "-quality",
@@ -235,7 +237,7 @@ with Flow(
 
     input_fps = utils.list_files(
         input_dir_fp,
-        Config.valid_2d_input_exts,
+        VALID_2D_INPUT_EXTS,
         single_file=file_name,
     )
     fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_fps)

@@ -3,10 +3,18 @@ from em_workflows.file_path import FilePath
 import pytools
 import SimpleITK
 from prefect import Flow, task, Parameter
+from prefect.run_configs import LocalRun
 
 from em_workflows.utils import utils
 from em_workflows.config import Config
-from prefect.run_configs import LocalRun
+from .constants import (
+    LARGE_THUMB_X,
+    LARGE_THUMB_Y,
+    SMALL_THUMB_X,
+    SMALL_THUMB_Y,
+    JPEG_QUAL,
+    VALID_LRG_2D_RGB_INPUTS,
+)
 
 
 @task
@@ -79,27 +87,27 @@ def gen_thumb(file_path: FilePath):
 
     sitk_image_sm = pytools.zarr_extract_2d(
         input_zarr,
-        target_size_x=Config.SMALL_THUMB_X,
-        target_size_y=Config.SMALL_THUMB_Y,
+        target_size_x=SMALL_THUMB_X,
+        target_size_y=SMALL_THUMB_Y,
     )
     sitk_image_lg = pytools.zarr_extract_2d(
         input_zarr,
-        target_size_x=Config.LARGE_THUMB_X,
-        target_size_y=Config.LARGE_THUMB_Y,
+        target_size_x=LARGE_THUMB_X,
+        target_size_y=LARGE_THUMB_Y,
     )
     utils.log(f"trying to create {output_jpeg_sm}")
     SimpleITK.WriteImage(
         sitk_image_sm,
         output_jpeg_sm,
         useCompression=True,
-        compressionLevel=Config.JPEG_QUAL,
+        compressionLevel=JPEG_QUAL,
     )
     utils.log(f"trying to create {output_jpeg_lg}")
     SimpleITK.WriteImage(
         sitk_image_lg,
         output_jpeg_lg,
         useCompression=True,
-        compressionLevel=Config.JPEG_QUAL,
+        compressionLevel=JPEG_QUAL,
     )
     asset_fp_sm = file_path.copy_to_assets_dir(fp_to_cp=Path(output_jpeg_sm))
     asset_fp_lg = file_path.copy_to_assets_dir(fp_to_cp=Path(output_jpeg_lg))
@@ -129,7 +137,7 @@ with Flow(
 
     input_fps = utils.list_files(
         input_dir_fp,
-        Config.valid_lrg_2d_rgb_inputs,
+        VALID_LRG_2D_RGB_INPUTS,
         single_file=file_name,
     )
     fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_fps)

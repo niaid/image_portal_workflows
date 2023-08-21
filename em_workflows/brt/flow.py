@@ -49,8 +49,8 @@ from prefect.engine import signals
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
-
 from em_workflows.config import Config
+from .constants import BRT_DEPTH, BRT_HEIGHT, BRT_WIDTH
 
 """
 Batchruntomo pipeline overview:
@@ -577,9 +577,9 @@ with Flow(
     # START PYRAMID GEN
     pyramid_assets = ng.gen_zarr.map(
         fp_in=fps,
-        depth=unmapped(Config.brt_depth),
-        width=unmapped(Config.brt_width),
-        height=unmapped(Config.brt_height),
+        depth=unmapped(BRT_DEPTH),
+        width=unmapped(BRT_WIDTH),
+        height=unmapped(BRT_HEIGHT),
         upstream_tasks=[brts],
     )
     #  archive_pyramid_cmds = ng.gen_archive_pyr.map(
