@@ -7,10 +7,12 @@
 #  - cd to top-level "image_portal_workflows" dir of your repo
 
 # test_brt - one 970MB file
-rsync -ave ssh ai-rmlsbatch1.niaid.nih.gov:/mnt/ai-fas12/RMLEMHedwigQA/test/input_files/brt_inputs/Projects/2013-1220-dA30_5-BSC-1_10.mrc test/input_files/brt_inputs/
+mkdir -p test/input_files/brt_inputs
+rsync --progress --stats -ave ssh ai-rmlsbatch1.niaid.nih.gov:/mnt/ai-fas12/RMLEMHedwigQA/test/input_files/brt_inputs/Projects/2013-1220-dA30_5-BSC-1_10.mrc test/input_files/brt_inputs/
 
 # test_sem - directory of smallish files, but 1.1GB total
-rsync -ave ssh ai-rmlsbatch1.niaid.nih.gov:/mnt/ai-fas12/RMLEMHedwigDev/Projects/BCBB_TEST/test/input_files/sem_inputs/ test/input_files/sem_inputs/
+mkdir -p test/input_files/sem_inputs
+rsync --progress --stats -ave ssh ai-rmlsbatch1.niaid.nih.gov:/mnt/ai-fas12/RMLEMHedwigDev/Projects/BCBB_TEST/test/input_files/sem_inputs/ test/input_files/sem_inputs/
 
 # test_dm - These were in the repo as of March 2023, but uncomment to copy
 #rsync -ave ssh ai-rmlsbatch1.niaid.nih.gov:/mnt/ai-fas12/RMLEMHedwigQA/test/input_files/dm_inputs/Projects/Lab/PI/  test/input_files/dm_inputs/
