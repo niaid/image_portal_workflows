@@ -198,8 +198,8 @@ class FilePath:
         # setting to zero here, most input files will only have a single image elt.
         # will update val if czi
         thumbnailIndex = 0
-        fileMetadata = {}
-        imageMetadata = {}
+        fileMetadata = None
+        imageMetadata = None
         assets = []
         imageSetElement = {
             "imageName": title,
