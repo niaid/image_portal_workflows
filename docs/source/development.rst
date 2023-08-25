@@ -50,15 +50,21 @@ pre-commit
 format compliance at commit time. It is configured via a top-level ``.pre-commit-config.yaml`` file that runs ``black``,
 ``Flake8`` and other checks.
 
+Docker
+======
+
+`Docker <https://www.docker.com/products/docker-desktop/>`_ is a platform that provides OS-level virtualization so that softwares are developed and packaged in containers. This helps consistent development in different environments.
+
 *******
 Testing
 *******
 
-There are currently four ``pytest`` files in the `test` directory:
+All ``pytest`` files reside in the `test` directory:
 
 - ``test_brt``: end-to-end test of batchruntomo pipeline
 - ``test_dm``: 2D end-to-end pipeline test
 - ``test_sem``: end-to-end test of FIBSEM pipeline
+- ``test_lrg_2d``: Large 2d pipeline test
 - ``test_utils``: unit tests of utils/utils.py module
 
 There is test data for `test_dm` in the Git repo, but not for the others. These files need to be
@@ -124,6 +130,33 @@ Special note for **Mac M1**: The `tomojs-pytools` library depends on imagecodecs
 not have binaries built for the M1. Need to install using an x86_64 version of Python. Also, there
 are issues installing `biofomats2raw` as there is no OpenCV package for arm64 chip. There currently
 is no fix or workaround for this issue.
+
+Docker
+======
+
+You can also choose to use Docker for local development and testing.
+
+In order to build the docker image, use `--platform linux/amd64` option.
+Explanation can be found `here <https://teams.microsoft.com/l/entity/com.microsoft.teamspace.tab.wiki/tab::5f55363b-bb53-4e5b-9564-8bed5289fdd5?context=%7B%22subEntityId%22%3A%22%7B%5C%22pageId%5C%22%3A15%2C%5C%22sectionId%5C%22%3A17%2C%5C%22origin%5C%22%3A2%7D%22%2C%22channelId%22%3A%2219%3A869be6677ee54848bc13f2066d847cc0%40thread.skype%22%7D&tenantId=14b77578-9773-42d5-8507-251ca2dc2b06>`_
+
+The basic usage for testing would look like below. The command assumes that you are running the container from the project directory where the main Dockerfile is located.
+
+.. code-block:: sh
+
+   # To build the image
+   docker build . -t hedwig_pipelines --platform linux/amd64
+
+
+In order to boot up a container with pipeline image, you can run the command below.\
+Note that we are setting a USER environment variable here. This is because `class Config` requires this environment variable set.
+
+.. code-block:: sh
+
+   # To run the container of that image
+   docker run -v "$(pwd):/image_portal_workflows" -e USER=root -it --rm hedwig_pipelines:latest
+
+
+Once you are in the container, you can run the commands you want to. For example: `pytest`.
 
 HPC Set up
 ==========
