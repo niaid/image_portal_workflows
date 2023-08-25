@@ -51,10 +51,12 @@
 <li class="toctree-l3"><a class="reference internal" href="#flake8">Flake8</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#black">Black</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pre-commit">pre-commit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#docker">Docker</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#local-set-up">Local Set-up</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Docker</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#hpc-set-up">HPC Set up</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#updating-venvs">Updating venvs:</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#prefect-agent">Prefect Agent:</a></li>
@@ -135,14 +137,19 @@ be stored in Git LFS.</p>
 format compliance at commit time. It is configured via a top-level <code class="docutils literal notranslate"><span class="pre">.pre-commit-config.yaml</span></code> file that runs <code class="docutils literal notranslate"><span class="pre">black</span></code>,
 <code class="docutils literal notranslate"><span class="pre">Flake8</span></code> and other checks.</p>
 </section>
+<section id="docker">
+<h3>Docker<a class="headerlink" href="#docker" title="Permalink to this heading"></a></h3>
+<p><a class="reference external" href="https://www.docker.com/products/docker-desktop/">Docker</a> is a platform that provides OS-level virtualization so that softwares are developed and packaged in containers. This helps consistent development in different environments.</p>
+</section>
 </section>
 <section id="testing">
 <h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading"></a></h2>
-<p>There are currently four <code class="docutils literal notranslate"><span class="pre">pytest</span></code> files in the <cite>test</cite> directory:</p>
+<p>All <code class="docutils literal notranslate"><span class="pre">pytest</span></code> files reside in the <cite>test</cite> directory:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">test_brt</span></code>: end-to-end test of batchruntomo pipeline</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">test_dm</span></code>: 2D end-to-end pipeline test</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">test_sem</span></code>: end-to-end test of FIBSEM pipeline</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_lrg_2d</span></code>: Large 2d pipeline test</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">test_utils</span></code>: unit tests of utils/utils.py module</p></li>
 </ul>
 <p>There is test data for <cite>test_dm</cite> in the Git repo, but not for the others. These files need to be
@@ -203,6 +210,23 @@ The following programs need to be available locally:</p>
 not have binaries built for the M1. Need to install using an x86_64 version of Python. Also, there
 are issues installing <cite>biofomats2raw</cite> as there is no OpenCV package for arm64 chip. There currently
 is no fix or workaround for this issue.</p>
+<section id="id5">
+<h3>Docker<a class="headerlink" href="#id5" title="Permalink to this heading"></a></h3>
+<p>You can also choose to use Docker for local development and testing.</p>
+<p>In order to build the docker image, use <cite>–platform linux/amd64</cite> option.
+Explanation can be found <a class="reference external" href="https://teams.microsoft.com/l/entity/com.microsoft.teamspace.tab.wiki/tab::5f55363b-bb53-4e5b-9564-8bed5289fdd5?context=%7B%22subEntityId%22%3A%22%7B%5C%22pageId%5C%22%3A15%2C%5C%22sectionId%5C%22%3A17%2C%5C%22origin%5C%22%3A2%7D%22%2C%22channelId%22%3A%2219%3A869be6677ee54848bc13f2066d847cc0%40thread.skype%22%7D&amp;tenantId=14b77578-9773-42d5-8507-251ca2dc2b06">here</a></p>
+<p>The basic usage for testing would look like below. The command assumes that you are running the container from the project directory where the main Dockerfile is located.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># To build the image</span>
+docker<span class="w"> </span>build<span class="w"> </span>.<span class="w"> </span>-t<span class="w"> </span>hedwig_pipelines<span class="w"> </span>--platform<span class="w"> </span>linux/amd64
+</pre></div>
+</div>
+<p>In order to boot up a container with pipeline image, you can run the command below.Note that we are setting a USER environment variable here. This is because <cite>class Config</cite> requires this environment variable set.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># To run the container of that image</span>
+docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">:/image_portal_workflows&quot;</span><span class="w"> </span>-e<span class="w"> </span><span class="nv">USER</span><span class="o">=</span>root<span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span>hedwig_pipelines:latest
+</pre></div>
+</div>
+<p>Once you are in the container, you can run the commands you want to. For example: <cite>pytest</cite>.</p>
+</section>
 <section id="hpc-set-up">
 <h3>HPC Set up<a class="headerlink" href="#hpc-set-up" title="Permalink to this heading"></a></h3>
 <p><strong>NOTE, THIS IS ONLY relevant for HPC. Added for completeness.</strong></p>
