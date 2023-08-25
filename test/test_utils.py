@@ -67,7 +67,7 @@ def test_mount_config(mock_nfs_mount):
     assert os.path.exists(Config.brt_binary)
     assert os.path.exists(Config.dm2mrc_loc)
     assert os.path.exists(Config.clip_loc)
-    assert os.path.exists(Config.convert_loc)
+    # assert os.path.exists(Config.convert_loc) # uses gm instead (graphicsmagick)
     assert os.path.exists(Config.header_loc)
     assert os.path.exists(Config.mrc2tif_loc)
     assert os.path.exists(Config.newstack_loc)
