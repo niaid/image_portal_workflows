@@ -6,6 +6,9 @@ from prefect.executors import DaskExecutor
 import prefect
 import shutil
 
+# loads .env file into os.environ
+load_dotenv()
+
 
 def SLURM_exec():
     """
@@ -48,53 +51,31 @@ def command_loc(cmd: str) -> str:
     return cmd_path
 
 
-class WorkflowConfig:
-    _self = None
+class Config:
+    # location in RML HPC
+    bioformats2raw = os.environ.get(
+        "BIORFORMATS2RAW_LOC",
+        "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw",
+    )
+    brt_binary = os.environ.get("BRT_LOC", "/opt/rml/imod/bin/batchruntomo")
+    header_loc = os.environ.get("HEADER_LOC", "/opt/rml/imod/bin/header")
+    mrc2tif_loc = os.environ.get("MRC2TIF_LOC", "/opt/rml/imod/bin/mrc2tif")
+    newstack_loc = os.environ.get("NEWSTACK_LOC", "/opt/rml/imod/bin/newstack")
 
-    def __new__(cls):
-        # single instance only
-        if cls._self is None:
-            cls._self = super().__new__(cls)
-        return cls._self
+    # environment where the app gets run - used for share selection
+    env_to_share = {
+        "dev": "RMLEMHedwigDev",
+        "qa": "RMLEMHedwigQA",
+        "prod": "RMLEMHedwigProd",
+    }
 
-    def __init__(self):
-        # loads .env file into os.environ
-        load_dotenv()
+    # All settings moved to respective constants file
+    # fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
 
-        # location in RML HPC
-        self.binvol = os.environ.get("BINVOL_LOC", "/opt/rml/imod/bin/binvol")
-        self.bioformats2raw = os.environ.get(
-            "BIORFORMATS2RAW_LOC",
-            "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw",
-        )
-        self.brt_binary = os.environ.get("BRT_LOC", "/opt/rml/imod/bin/batchruntomo")
-        self.dm2mrc_loc = os.environ.get("DM2MRC_LOC", "/opt/rml/imod/bin/dm2mrc")
-        self.clip_loc = os.environ.get("CLIP_LOC", "/opt/rml/imod/bin/clip")
-        self.convert_loc = os.environ.get(
-            "CONVERT_LOC", "/usr/bin/convert"
-        )  # requires imagemagick
-        self.header_loc = os.environ.get("HEADER_LOC", "/opt/rml/imod/bin/header")
-        self.mrc2tif_loc = os.environ.get("MRC2TIF_LOC", "/opt/rml/imod/bin/mrc2tif")
-        self.newstack_loc = os.environ.get("NEWSTACK_LOC", "/opt/rml/imod/bin/newstack")
-        self.tif2mrc_loc = os.environ.get("TIF2MRC_LOC", "/opt/rml/imod/bin/tif2mrc")
-        self.xfalign_loc = os.environ.get("XFALIGN_LOC", "/opt/rml/imod/bin/xfalign")
-        self.xftoxg_loc = os.environ.get("XFTOXG_LOC", "/opt/rml/imod/bin/xftoxg")
-
-        # environment where the app gets run - used for share selection
-        self.env_to_share = {
-            "dev": "RMLEMHedwigDev",
-            "qa": "RMLEMHedwigQA",
-            "prod": "RMLEMHedwigProd",
-        }
-
-        # bioformats2raw settings
-        # All settings moved to respective constants file
-        # fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
-
-        self.SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
-        self.user = os.environ["USER"]
-        self.tmp_dir = f"/gs1/Scratch/{self.user}_scratch/"
-        self.mount_point = "/mnt/ai-fas12/"
+    SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
+    user = os.environ["USER"]
+    tmp_dir = f"/gs1/Scratch/{user}_scratch/"
+    mount_point = "/mnt/ai-fas12/"
 
     @staticmethod
     def _share_name(env: str) -> str:
@@ -121,6 +102,3 @@ class WorkflowConfig:
 
     repo_dir = Path(os.path.dirname(__file__))
     template_dir = Path(f"{repo_dir.as_posix()}/templates")
-
-
-Config = WorkflowConfig()

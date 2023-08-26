@@ -6,7 +6,7 @@ from prefect import Flow, task, Parameter
 from prefect.run_configs import LocalRun
 
 from em_workflows.utils import utils
-from em_workflows.config import Config
+from .config import LRG2DConfig
 from .constants import (
     LARGE_THUMB_X,
     LARGE_THUMB_Y,
@@ -54,7 +54,7 @@ def bioformats_gen_zarr(file_path: FilePath):
     output_zarr = f"{file_path.working_dir}/{file_path.base}.zarr"
     log_fp = f"{file_path.working_dir}/{file_path.base}_as_zarr.log"
     cmd = [
-        Config.bioformats2raw,
+        LRG2DConfig.bioformats2raw,
         "--overwrite",
         "--scale-format-string",
         "%2$d",
@@ -119,7 +119,7 @@ def gen_thumb(file_path: FilePath):
 with Flow(
     "lrg_2d_color",
     state_handlers=[utils.notify_api_completion, utils.notify_api_running],
-    executor=Config.SLURM_EXECUTOR,
+    executor=LRG2DConfig.SLURM_EXECUTOR,
     run_config=LocalRun(labels=[utils.get_environment()]),
 ) as flow:
     """

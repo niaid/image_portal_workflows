@@ -8,8 +8,8 @@ from pytools.convert import file_to_uint8
 
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
-from em_workflows.config import Config
 from em_workflows.constants import LARGE_DIM
+from .config import DMConfig
 from .constants import LARGE_2D, SMALL_2D, VALID_2D_INPUT_EXTS
 
 
@@ -21,7 +21,7 @@ def convert_dms_to_mrc(file_path: FilePath) -> None:
         msg = f"Using dir: {file_path.fp_in}, : creating dm_as_mrc {dm_as_mrc}"
         utils.log(msg=msg)
         log_file = f"{dm_as_mrc.parent}/dm2mrc.log"
-        cmd = [Config.dm2mrc_loc, file_path.fp_in.as_posix(), dm_as_mrc.as_posix()]
+        cmd = [DMConfig.dm2mrc_loc, file_path.fp_in.as_posix(), dm_as_mrc.as_posix()]
         # utils.log(f"Generated cmd {cmd}")
         FilePath.run(cmd=cmd, log_file=log_file)
 
@@ -82,7 +82,7 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
         cmd = [
             "env",
             "IMOD_OUTPUT_FORMAT=TIF",
-            Config.newstack_loc,
+            DMConfig.newstack_loc,
             "-shrink",
             shrink_factor_3,
             "-antialias",
@@ -109,7 +109,7 @@ def convert_dm_mrc_to_jpeg(file_path: FilePath) -> None:
     if dm_as_mrc.exists():
         mrc_as_jpg = file_path.gen_output_fp(out_fname="mrc_as_jpg.jpeg")
         log_fp = f"{mrc_as_jpg.parent}/mrc2tif.log"
-        cmd = [Config.mrc2tif_loc, "-j", dm_as_mrc.as_posix(), mrc_as_jpg.as_posix()]
+        cmd = [DMConfig.mrc2tif_loc, "-j", dm_as_mrc.as_posix(), mrc_as_jpg.as_posix()]
         utils.log(f"Generated cmd {cmd}")
         FilePath.run(cmd, log_fp)
 
@@ -215,7 +215,7 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
 with Flow(
     "dm_to_jpeg",
     state_handlers=[utils.notify_api_completion, utils.notify_api_running],
-    executor=Config.SLURM_EXECUTOR,
+    executor=DMConfig.SLURM_EXECUTOR,
     run_config=LocalRun(labels=[utils.get_environment()]),
 ) as flow:
     """

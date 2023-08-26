@@ -46,10 +46,10 @@ from prefect import task, Flow, Parameter, unmapped
 from prefect.run_configs import LocalRun
 from prefect.engine import signals
 
-
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
-from em_workflows.config import Config
+
+from .config import BRTConfig
 from .constants import BRT_DEPTH, BRT_HEIGHT, BRT_WIDTH
 
 """
@@ -113,7 +113,7 @@ def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
         raise signals.FAIL(
             f"File {mrc_file} does not exist. gen_dimension_command failure."
         )
-    cmd = [Config.header_loc, "-s", mrc_file]
+    cmd = [BRTConfig.header_loc, "-s", mrc_file]
     sp = subprocess.run(cmd, check=False, capture_output=True)
     if sp.returncode != 0:
         stdout = sp.stdout.decode("utf-8")
@@ -147,7 +147,7 @@ def gen_ali_x(file_path: FilePath, z_dim) -> None:
         i_padded = str(i).rjust(3, "0")
         ali_x = f"{file_path.working_dir}/{file_path.base}_align_{i_padded}.mrc"
         log_file = f"{file_path.working_dir}/newstack_mid_pt.log"
-        cmd = [Config.newstack_loc, "-secs", f"{i}-{i}", ali_file, ali_x]
+        cmd = [BRTConfig.newstack_loc, "-secs", f"{i}-{i}", ali_file, ali_x]
         FilePath.run(cmd=cmd, log_file=log_file)
 
 
@@ -161,7 +161,7 @@ def gen_ali_asmbl(file_path: FilePath) -> None:
     alis = glob.glob(f"{file_path.working_dir}/{file_path.base}_align_*.mrc")
     alis.sort()
     ali_asmbl = f"{file_path.working_dir}/ali_{file_path.base}.mrc"
-    ali_base_cmd = [Config.newstack_loc, "-float", "3"]
+    ali_base_cmd = [BRTConfig.newstack_loc, "-float", "3"]
     ali_base_cmd.extend(alis)
     ali_base_cmd.append(ali_asmbl)
     FilePath.run(cmd=ali_base_cmd, log_file=f"{file_path.working_dir}/asmbl.log")
@@ -177,7 +177,7 @@ def gen_mrc2tiff(file_path: FilePath) -> None:
     """
     ali_asmbl = f"{file_path.working_dir}/ali_{file_path.base}.mrc"
     ali = f"{file_path.working_dir}/{file_path.base}_ali"
-    cmd = [Config.mrc2tif_loc, "-j", "-C", "0,255", ali_asmbl, ali]
+    cmd = [BRTConfig.mrc2tif_loc, "-j", "-C", "0,255", ali_asmbl, ali]
     log_file = f"{file_path.working_dir}/mrc2tif_align.log"
     FilePath.run(cmd=cmd, log_file=log_file)
 
@@ -336,7 +336,17 @@ def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
         padded_val = str(i).zfill(4)
         ave_mrc = f"{file_path.working_dir}/{file_path.base}_ave{padded_val}.mrc"
         min_max = f"{str(izmin)}-{str(izmax)}"
-        cmd = [Config.clip_loc, "avg", "-2d", "-iz", min_max, "-m", "1", in_fp, ave_mrc]
+        cmd = [
+            BRTConfig.clip_loc,
+            "avg",
+            "-2d",
+            "-iz",
+            min_max,
+            "-m",
+            "1",
+            in_fp,
+            ave_mrc,
+        ]
         log_file = f"{file_path.working_dir}/clip_avg.error.log"
         FilePath.run(cmd=cmd, log_file=log_file)
 
@@ -353,7 +363,7 @@ def consolidate_ave_mrcs(file_path: FilePath) -> dict:
     aves = glob.glob(f"{file_path.working_dir}/{file_path.base}_ave*")
     aves.sort()
     ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
-    cmd = [Config.newstack_loc, "-float", "3"]
+    cmd = [BRTConfig.newstack_loc, "-float", "3"]
     cmd.extend(aves)
     cmd.append(ave_mrc)
     log_file = f"{file_path.working_dir}/newstack_float.log"
@@ -372,7 +382,7 @@ def gen_ave_8_vol(file_path: FilePath) -> dict:
     """
     ave_8_mrc = f"{file_path.working_dir}/avebin8_{file_path.base}.mrc"
     ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
-    cmd = [Config.binvol, "-binning", "2", ave_mrc, ave_8_mrc]
+    cmd = [BRTConfig.binvol, "-binning", "2", ave_mrc, ave_8_mrc]
     log_file = f"{file_path.working_dir}/ave_8_mrc.log"
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(ave_8_mrc))
@@ -392,7 +402,7 @@ def gen_ave_jpgs_from_ave_mrc(file_path: FilePath):
     mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
     ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
     log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
-    cmd = [Config.mrc2tif_loc, "-j", "-C", "100,255", ave_mrc, mp4]
+    cmd = [BRTConfig.mrc2tif_loc, "-j", "-C", "100,255", ave_mrc, mp4]
     FilePath.run(cmd=cmd, log_file=log_file)
 
 
@@ -456,7 +466,7 @@ def cleanup_files(file_path: FilePath, pattern=str):
 
 with Flow(
     "brt_flow",
-    executor=Config.SLURM_EXECUTOR,
+    executor=BRTConfig.SLURM_EXECUTOR,
     state_handlers=[utils.notify_api_running],
     terminal_state_handler=utils.custom_terminal_state_handler,
     run_config=LocalRun(labels=[utils.get_environment()]),
