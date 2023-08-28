@@ -111,7 +111,7 @@ else return orig Path</p>
 <dt class="sig sig-object py" id="dm_conversion.flow.convert_2d_mrc_to_tiff">
 <span class="sig-prename descclassname"><span class="pre">dm_conversion.flow.</span></span><span class="sig-name descname"><span class="pre">convert_2d_mrc_to_tiff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#dm_conversion.flow.convert_2d_mrc_to_tiff" title="Permalink to this definition"></a></dt>
 <dd><p>Checks Projects dir for mrc inputs. We assume anything in Projects will be 2D.
-Converts to tiff file, 1024 in size (using constant Config.LARGE_DIM)</p>
+Converts to tiff file, 1024 in size (using constant LARGE_DIM)</p>
 <p>env IMOD_OUTPUT_FORMAT=TIF newstack             –shrink $shrink_factor$ -antialias 6 -mode 0 -meansd 140,50 f_in.mrc f_out.tif
 where shrink_factor is input_size/1024
 used the smaller of x and y (4092/1024)</p>
