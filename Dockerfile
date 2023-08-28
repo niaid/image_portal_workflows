@@ -10,7 +10,7 @@ RUN apt update -y && \
   apt install -y openjdk-8-jdk && \
   apt install -y libblosc1 && \
   apt install -y ffmpeg && \
-  apt install -y graphicsmagick && \
+  apt install -y imagemagick graphicsmagick && \
   apt clean && \
   rm -rf /var/lib/apt/lists/*;
 
