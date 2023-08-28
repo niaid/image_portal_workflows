@@ -5,10 +5,11 @@ import math
 from typing import Dict
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
-from em_workflows.config import Config
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
+from .config import SEMConfig
+from .constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_WIDTH
 
 
 @task
@@ -24,7 +25,7 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
     log_file = f"{source_mrc.parent}/xfalign.log"
     utils.log(f"xfalign log_file: {log_file}")
     cmd = [
-        Config.xfalign_loc,
+        SEMConfig.xfalign_loc,
         "-pa",
         "-1",
         "-pr",
@@ -44,7 +45,7 @@ def gen_align_xg(fp_in: FilePath) -> None:
     align_xf = fp_in.gen_output_fp(out_fname="align.xf")
     log_file = f"{align_xg.parent}/xgalign.log"
     cmd = [
-        Config.xftoxg_loc,
+        SEMConfig.xftoxg_loc,
         "-ro",
         "-mi",
         "2",
@@ -67,7 +68,7 @@ def gen_newstack_combi(fp_in: FilePath) -> Dict:
     # output_fp = fp_in.gen_output_fp(out_fname="out.mrc")
     log_file = f"{align_xg.parent}/ns_align.log"
     cmd = [
-        Config.newstack_loc,
+        SEMConfig.newstack_loc,
         "-x",
         align_xg.as_posix(),
         "-x",
@@ -97,7 +98,7 @@ def convert_tif_to_mrc(file_path: FilePath) -> int:
     log_file = f"{output_fp.parent}/tif2mrc.log"
     files = glob.glob(f"{file_path.fp_in.as_posix()}/*.tif")
 
-    cmd = [Config.tif2mrc_loc]
+    cmd = [SEMConfig.tif2mrc_loc]
     cmd.extend(os_sorted(files))
     cmd.append(output_fp.as_posix())
     utils.log(f"Created {cmd}")
@@ -139,7 +140,13 @@ def gen_newstack_mid_mrc_command(fp_in: FilePath) -> None:
     utils.log(tifs_nat_sorted)
     mid_z = str(int(len(tifs_nat_sorted) / 2))
     log_file = f"{base_mrc.parent}/newstack_mid.log"
-    cmd = [Config.newstack_loc, "-secs", mid_z, base_mrc.as_posix(), mid_mrc.as_posix()]
+    cmd = [
+        SEMConfig.newstack_loc,
+        "-secs",
+        mid_z,
+        base_mrc.as_posix(),
+        mid_mrc.as_posix(),
+    ]
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
 
@@ -154,7 +161,7 @@ def gen_keyimg(fp_in: FilePath) -> Dict:
     keyimg_fp = fp_in.gen_output_fp(out_fname="keyimg.jpg")
     log_file = f"{mid_mrc.parent}/mrc2tif.log"
     cmd = [
-        Config.mrc2tif_loc,
+        SEMConfig.mrc2tif_loc,
         "-j",
         "-C",
         "0,255",
@@ -178,7 +185,7 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
     keyimg_sm_fp = fp_in.gen_output_fp(out_fname="keyimg_sm.jpg")
     log_file = f"{keyimg_sm_fp.parent}/convert.log"
     cmd = [
-        Config.convert_loc,
+        SEMConfig.convert_loc,
         "-size",
         "300x300",
         keyimg_fp.as_posix(),
@@ -200,7 +207,7 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
 with Flow(
     "sem_tomo",
     state_handlers=[utils.notify_api_completion, utils.notify_api_running],
-    executor=Config.SLURM_EXECUTOR,
+    executor=SEMConfig.SLURM_EXECUTOR,
     run_config=LocalRun(labels=[utils.get_environment()]),
 ) as flow:
     """
@@ -267,9 +274,9 @@ with Flow(
     # zarr file generation
     pyramid_assets = ng.gen_zarr.map(
         fp_in=fps,
-        depth=unmapped(Config.fibsem_depth),
-        width=unmapped(Config.fibsem_width),
-        height=unmapped(Config.fibsem_height),
+        depth=unmapped(FIBSEM_DEPTH),
+        width=unmapped(FIBSEM_WIDTH),
+        height=unmapped(FIBSEM_HEIGHT),
         upstream_tasks=[base_mrcs],
     )
 

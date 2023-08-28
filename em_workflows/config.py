@@ -1,9 +1,13 @@
 import os
 from pathlib import Path
 from dask_jobqueue import SLURMCluster
+from dotenv import load_dotenv
 from prefect.executors import DaskExecutor
 import prefect
 import shutil
+
+# loads .env file into os.environ
+load_dotenv()
 
 
 def SLURM_exec():
@@ -49,20 +53,14 @@ def command_loc(cmd: str) -> str:
 
 class Config:
     # location in RML HPC
-    # FIXME The locations are hard-coded
-    # Check nih_3d config at https://probable-chainsaw-db6dd000.pages.github.io/API_documentation/
-    binvol = "/opt/rml/imod/bin/binvol"
-    bioformats2raw = "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw"
-    brt_binary = "/opt/rml/imod/bin/batchruntomo"
-    dm2mrc_loc = "/opt/rml/imod/bin/dm2mrc"
-    clip_loc = "/opt/rml/imod/bin/clip"
-    convert_loc = "/usr/bin/convert"  # requires imagemagick
-    header_loc = "/opt/rml/imod/bin/header"
-    mrc2tif_loc = "/opt/rml/imod/bin/mrc2tif"
-    newstack_loc = "/opt/rml/imod/bin/newstack"
-    tif2mrc_loc = "/opt/rml/imod/bin/tif2mrc"
-    xfalign_loc = "/opt/rml/imod/bin/xfalign"
-    xftoxg_loc = "/opt/rml/imod/bin/xftoxg"
+    bioformats2raw = os.environ.get(
+        "BIORFORMATS2RAW_LOC",
+        "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw",
+    )
+    brt_binary = os.environ.get("BRT_LOC", "/opt/rml/imod/bin/batchruntomo")
+    header_loc = os.environ.get("HEADER_LOC", "/opt/rml/imod/bin/header")
+    mrc2tif_loc = os.environ.get("MRC2TIF_LOC", "/opt/rml/imod/bin/mrc2tif")
+    newstack_loc = os.environ.get("NEWSTACK_LOC", "/opt/rml/imod/bin/newstack")
 
     # environment where the app gets run - used for share selection
     env_to_share = {
@@ -71,51 +69,9 @@ class Config:
         "prod": "RMLEMHedwigProd",
     }
 
-    # bioformats2raw settings
-    fibsem_depth = 128
-    fibsem_height = 128
-    fibsem_width = 128
-    brt_depth = 64
-    brt_width = 256
-    brt_height = 256
+    # All settings moved to respective constants file
+    # fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
 
-    # Image sizes, just large and small for now
-    # used in lrg_2d_color
-    LARGE_THUMB_X = 1024
-    LARGE_THUMB_Y = 1024
-    SMALL_THUMB_X = 300
-    SMALL_THUMB_Y = 300
-
-    # JPEG image quality
-    JPEG_QUAL = 90
-
-    LARGE_DIM = 1024
-    SMALL_DIM = 300
-    LARGE_2D = f"{LARGE_DIM}x{LARGE_DIM}"
-    SMALL_2D = f"{SMALL_DIM}x{SMALL_DIM}"
-
-    # List of 2D extensions we may want to process
-    valid_2d_input_exts = [
-        "DM4",
-        "DM3",
-        "dm4",
-        "dm3",
-        "TIF",
-        "TIFF",
-        "tif",
-        "tiff",
-        "JPEG",
-        "JPG",
-        "jpeg",
-        "jpg",
-        "PNG",
-        "png",
-        "mrc",
-        "MRC",
-    ]
-    fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
-
-    valid_lrg_2d_rgb_inputs = ["png", "PNG"]
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     user = os.environ["USER"]
     tmp_dir = f"/gs1/Scratch/{user}_scratch/"
