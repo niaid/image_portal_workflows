@@ -62,7 +62,7 @@ def command_loc(cmd: str) -> str:
 class Config:
     # location in RML HPC
     bioformats2raw = os.environ.get(
-        "BIORFORMATS2RAW_LOC",
+        "BIOFORMATS2RAW_LOC",
         "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw",
     )
     brt_binary = os.environ.get("BRT_LOC", "/opt/rml/imod/bin/batchruntomo")
