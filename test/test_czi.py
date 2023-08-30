@@ -4,6 +4,8 @@ from pathlib import Path
 from em_workflows.file_path import FilePath
 
 
+@pytest.mark.slow
+@pytest.mark.localdata
 def test_input_fname(mock_nfs_mount, caplog):
     from em_workflows.czi.flow import flow
 

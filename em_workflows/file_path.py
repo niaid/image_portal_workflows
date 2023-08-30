@@ -160,13 +160,12 @@ class FilePath:
         output_fp = f"{self.working_dir.as_posix()}/{f_name}"
         return Path(output_fp)
 
-    def gen_asset(self, asset_type: str, asset_fp: Path) -> Dict:
+    def gen_asset(self, asset_type: str, asset_fp) -> Dict:
         """
         Construct and return an asset (dict) based on the asset "type" and FilePath
         :param asset_type: a string that details the type of output file
         :param asset_fp: the originating FilePath to "hang" the asset on
         :return: the resulting "asset" in the form of a dict
-        TODO: consider changings asset_type to newly created AssetType enum
         """
         assets_fp_no_root = asset_fp.relative_to(self.asset_root)
         asset = {"type": asset_type, "path": assets_fp_no_root.as_posix()}

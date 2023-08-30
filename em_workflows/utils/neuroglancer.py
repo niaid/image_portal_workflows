@@ -1,10 +1,11 @@
-from em_workflows.config import Config
-from em_workflows.file_path import FilePath
-from em_workflows.utils import utils
 from typing import Dict
 from pathlib import Path
 from prefect import task
 from pytools.workflow_functions import visual_min_max
+from em_workflows.config import Config
+from em_workflows.file_path import FilePath
+from em_workflows.constants import AssetType
+from em_workflows.utils import utils
 import pytools
 import logging
 import sys
@@ -77,7 +78,9 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int = None) -> Dic
     pytools.logger.addHandler(handler)
 
     metadata = visual_min_max(mad_scale=5, input_image=first_zarr_arr)
-    ng_asset = fp_in.gen_asset(asset_type="neuroglancerZarr", asset_fp=asset_fp)
+    ng_asset = fp_in.gen_asset(
+        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=asset_fp
+    )
 
     ng_asset["metadata"] = metadata
     return ng_asset

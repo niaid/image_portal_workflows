@@ -6,6 +6,7 @@ from prefect.run_configs import LocalRun
 
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
+from em_workflows.constants import AssetType
 from .config import LRG2DConfig
 from .constants import (
     LARGE_THUMB_X,
@@ -75,7 +76,9 @@ def bioformats_gen_zarr(file_path: FilePath):
     zarr_image: HedwigZarrImage = zarr_images[list(zarr_images.get_series_keys())[0]]
     zarr_image.rechunk(512)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
-    ng_asset = file_path.gen_asset(asset_type="neuroglancerZarr", asset_fp=asset_fp)
+    ng_asset = file_path.gen_asset(
+        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=asset_fp
+    )
     ng_asset["metadata"] = dict(
         shader=zarr_image.shader_type,
         dimensions=zarr_image.dims,
@@ -114,8 +117,12 @@ def gen_thumb(file_path: FilePath):
     )
     asset_fp_sm = file_path.copy_to_assets_dir(fp_to_cp=Path(output_jpeg_sm))
     asset_fp_lg = file_path.copy_to_assets_dir(fp_to_cp=Path(output_jpeg_lg))
-    thumb_asset = file_path.gen_asset(asset_type="thumbnail", asset_fp=asset_fp_sm)
-    keyImage_asset = file_path.gen_asset(asset_type="keyImage", asset_fp=asset_fp_lg)
+    thumb_asset = file_path.gen_asset(
+        asset_type=AssetType.THUMBNAIL, asset_fp=asset_fp_sm
+    )
+    keyImage_asset = file_path.gen_asset(
+        asset_type=AssetType.KEY_IMAGE, asset_fp=asset_fp_lg
+    )
     return [thumb_asset, keyImage_asset]
 
 
