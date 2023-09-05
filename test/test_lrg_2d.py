@@ -4,6 +4,7 @@ def test_input_fname(mock_nfs_mount, caplog):
     # monkeypatch.setattr(Config, "convert_loc", command_loc("convert"))
 
     state = flow.run(
+        file_share="test",
         input_dir="/test/input_files/lrg_ROI_pngs/Projects",
         no_api=True,
     )

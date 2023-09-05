@@ -786,7 +786,7 @@ def get_environment() -> str:
 
 
 @task
-def get_input_dir(input_dir: str) -> Path:
+def get_input_dir(share_name: str, input_dir: str) -> Path:
     """
     :param input_dir:
     :return:
@@ -801,12 +801,12 @@ def get_input_dir(input_dir: str) -> Path:
         input_dir = input_dir + "/"
     if not input_dir.startswith("/"):
         input_dir = "/" + input_dir
-    input_path_str = Config.proj_dir(env=get_environment()) + input_dir
+    input_path_str = Config.proj_dir(share_name=share_name) + input_dir
     return Path(input_path_str)
 
 
 @task
-def gen_fps(input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
+def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
     """
     Given in input directory (Path) and a list of input files (Path), return
     a list of FilePaths for the input files. This includes a temporary working
@@ -814,7 +814,7 @@ def gen_fps(input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
     """
     fps = list()
     for fp in fps_in:
-        file_path = FilePath(input_dir=input_dir, fp_in=fp)
+        file_path = FilePath(share_name=share_name, input_dir=input_dir, fp_in=fp)
         msg = f"created working_dir {file_path.working_dir} for {fp.as_posix()}"
         log(msg)
         fps.append(file_path)

@@ -471,7 +471,6 @@ with Flow(
     terminal_state_handler=utils.custom_terminal_state_handler,
     run_config=LocalRun(labels=[utils.get_environment()]),
 ) as flow:
-
     # This block of params map are for adoc file specfication.
     # Note the ugly names, these parameters are lifted verbatim from
     # https://bio3d.colorado.edu/imod/doc/directives.html where possible.
@@ -489,6 +488,7 @@ with Flow(
 
     adoc_template = Parameter("adoc_template", default="plastic_brt")
     input_dir = Parameter("input_dir")
+    file_share = Parameter("file_share")
     callback_url = Parameter("callback_url", default=None)()
     token = Parameter("token", default=None)()
     file_name = Parameter("file_name", default=None)
@@ -499,13 +499,13 @@ with Flow(
     keep_workdir = Parameter("keep_workdir", default=False)()
 
     # a single input_dir will have n tomograms
-    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
+    input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
     # input_dir_fp = utils.get_input_dir(input_dir=input_dir)
     input_fps = utils.list_files(
         input_dir=input_dir_fp, exts=["MRC", "ST", "mrc", "st"], single_file=file_name
     )
 
-    fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_fps)
+    fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
     brts = utils.run_brt.map(
         file_path=fps,
         adoc_template=unmapped(adoc_template),

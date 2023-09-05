@@ -12,7 +12,6 @@ import sys
 
 @task
 def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int = None) -> Dict:
-
     """
     .. code-block::
 

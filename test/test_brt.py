@@ -23,6 +23,7 @@ def test_brt(mock_nfs_mount):
         TargetNumberOfBeads=20,
         LocalAlignments=0,
         THICKNESS=30,
+        file_share="test",
         input_dir="test/input_files/brt_inputs/Projects/",
         no_api=True,
         keep_workdir=True,

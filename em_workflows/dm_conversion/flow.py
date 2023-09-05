@@ -227,6 +227,7 @@ with Flow(
     -convert all mrcs in Projects dir to jpegs.
     -convert all tiffs/pngs/jpegs to correct size for thumbs, "sm" and "lg"
     """
+    file_share = Parameter("file_share")
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url", default=None)()
@@ -234,14 +235,14 @@ with Flow(
     no_api = Parameter("no_api", default=None)()
     # keep workdir if set true, useful to look at outputs
     keep_workdir = Parameter("keep_workdir", default=False)()
-    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
+    input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
 
     input_fps = utils.list_files(
         input_dir_fp,
         VALID_2D_INPUT_EXTS,
         single_file=file_name,
     )
-    fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_fps)
+    fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
     # logs = utils.init_log.map(file_path=fps)
 
     tiffs_converted = convert_if_int16_tiff.map(file_path=fps)
