@@ -8,6 +8,7 @@ import tempfile
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
 from em_workflows.config import Config
+from em_workflows.enums import FileShareEnum
 from em_workflows.brt.config import BRTConfig
 from em_workflows.dm_conversion.config import DMConfig
 from em_workflows.sem_tomo.config import SEMConfig
@@ -81,23 +82,23 @@ def test_mount_config(mock_nfs_mount):
     assert os.path.exists(SEMConfig.xftoxg_loc)
 
 
-def test_share_name(mock_nfs_mount):
+def test_mount_point():
     """
-    Check the share mapping
+    Check mount point is retrieved properly
     """
-    env = utils.get_environment()
-    assert env.lower() in Config._share_name(env).lower()
-    assert "rmlemhedwig" in Config._share_name(env).lower()
+    share_enum = FileShareEnum.RMLEMHedwigDev
+    mnt_point = Config.mount_point(share_name=share_enum.name)
+    assert mnt_point == share_enum.get_mount_point()
 
 
-def test_bad_share_name(mock_nfs_mount):
+def test_bad_mount_point():
     """
     Verify that bad or non-existant value raises error
     """
-    with pytest.raises(Exception):
-        Config._share_name("BAD")
-    with pytest.raises(Exception):
-        Config._share_name(None)
+    with pytest.raises(KeyError):
+        Config.mount_point("BAD")
+    with pytest.raises(KeyError):
+        Config.mount_point(None)
 
 
 def test_lookup_dims(mock_nfs_mount):
@@ -138,9 +139,11 @@ def test_bad_lookup_dims(mock_nfs_mount):
 
 
 def test_get_input_dir(mock_nfs_mount):
-    utils.get_environment()
+    share_name = FileShareEnum.RMLSOHedwigDev.name
     input_dir = "/test/input_files/dm_inputs"
-    my_path = utils.get_input_dir.__wrapped__(input_dir=input_dir)
+    my_path = utils.get_input_dir.__wrapped__(
+        share_name=share_name, input_dir=input_dir
+    )
     assert "image_portal_workflows" in str(my_path)
     assert input_dir in str(my_path)
 

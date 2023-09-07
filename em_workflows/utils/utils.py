@@ -788,14 +788,14 @@ def get_environment() -> str:
 @task
 def get_input_dir(share_name: str, input_dir: str) -> Path:
     """
+    :param share_name:
     :param input_dir:
-    :return:
+    :return: Path to complete project directory (obtained from share-name)
+        combined with relative input directory
 
     | Concat the POSTed input file path to the mount point.
     | create working dir
-    | set up logger
     | returns Path obj
-
     """
     if not input_dir.endswith("/"):
         input_dir = input_dir + "/"

@@ -80,16 +80,14 @@ class Config:
                 f"{share_name} is a bad Share name which is not under consideration yet."
             )
             raise e
-        # TODO change the return values as necessary
-        mapper = {
-            FileShareEnum.RMLSOHedwigDev: f"/mnt/ai-fas12-so/{share_name}",
-            FileShareEnum.RMLSOHedwigQA: f"/mnt/ai-fas12-so/{share_name}",
-            FileShareEnum.RMLSOHedwigProd: f"/mnt/ai-fas12-so/{share_name}",
-        }
-        return mapper.get(share_enum, f"/mnt/ai-fas12/{share_name}")
+        return share_enum.get_mount_point()
 
     @staticmethod
     def proj_dir(share_name: str) -> str:
+        """
+        :param share_name: FileShareEnum string
+        :return: Projects folder mount point based on the file-share name
+        """
         return f"{Config.mount_point(share_name)}/Projects/"
 
     @staticmethod
