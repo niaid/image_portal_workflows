@@ -1,5 +1,6 @@
 [run]
 source = em_workflows
+relative_files = true
 omit =
     # Omit test code
     test/*,

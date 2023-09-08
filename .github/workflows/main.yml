@@ -16,6 +16,7 @@ env:
 jobs:
   docs:
     runs-on: ubuntu-latest
+    name: Docs
     needs: test
     steps:
       - uses: actions/checkout@v2
@@ -52,6 +53,15 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    name: Check coverage
+    permissions:
+      # Gives the action the necessary permissions for publishing new
+      # comments in pull requests.
+      pull-requests: write
+      # Gives the action the necessary permissions for pushing data to the
+      # python-coverage-comment-action branch, and for editing existing
+      # comments (to avoid publishing multiple comments in the same PR)
+      contents: write
     strategy:
       matrix:
         python-version: ["3.8"]
@@ -79,30 +89,9 @@ jobs:
       - name: Git LFS Pull
         run: |
           git lfs pull
-#      - name: IMOD Container Build
-#        id: docker-build-imod
-#        env:
-#          DOCKERFILE_PATH: utils/imod/
-#        run: |
-#          docker build -t imod $DOCKERFILE_PATH
-#      - name: IMOD Container Test
-#        run: |
-#          docker run imod dm2mrc -h
-#      - name: Graphicsmagick Container Build
-#        id: docker-build-graphicsmagick
-#        env:
-#          DOCKERFILE_PATH: utils/graphicsmagick/
-#        run: |
-#          docker build -t graphicsmagick $DOCKERFILE_PATH
-#      - name: Graphicsmagick Container Test
-#        run: |
-#          docker run graphicsmagick gm -version
-#      - name: Set up Python ${{ matrix.python-version }}
-#        uses: actions/setup-python@v2
-#        with:
-#          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
+          sudo apt -y update && sudo apt -y install libgl-dev graphicsmagick libblosc1
           IMOD=imod_4.11.24_RHEL7-64_CUDA10.1.sh
           export IMOD_DIR=/usr/local/IMOD
           export PATH=$IMOD_DIR/bin:$PATH
@@ -114,7 +103,6 @@ jobs:
           wget https://github.com/glencoesoftware/bioformats2raw/releases/download/v${BIO2R_V}/${BIO2R_Z} &&  sudo unzip ${BIO2R_Z} -d ${BIO2R_DIR} &&  rm -f ${BIO2R_Z}
           python -m pip install --upgrade pip
           pip install -e . -r requirements.txt
-          sudo apt -y update && sudo apt -y install libgl-dev graphicsmagick libblosc1
 
       - name: Test Coverage
         continue-on-error: true
@@ -127,3 +115,18 @@ jobs:
 
       - name: Coverage Badge
         uses: tj-actions/coverage-badge-py@v2
+
+      - name: Coverage comment
+        id: coverage_comment
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Store Pull Request comment to be posted
+        uses: actions/upload-artifact@v3
+        if: steps.coverage_comment.outputs.COMMENT_FILE_WRITTEN == 'true'
+        with:
+          # If you use a different name, update COMMENT_ARTIFACT_NAME accordingly
+          name: python-coverage-comment-action
+          # If you use a different name, update COMMENT_FILENAME accordingly
+          path: python-coverage-comment-action.txt
