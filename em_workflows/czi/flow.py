@@ -43,7 +43,7 @@ def gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> d
 
 def gen_imageSet(file_path: FilePath) -> List:
     zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
-    imageSet = list()
+    image_set = list()
     zarr_images = HedwigZarrImages(Path(zarr_fp))
     # for image_name, image in zarr_images.series():
     for k_idx, image_name in enumerate(zarr_images.get_series_keys()):
@@ -80,12 +80,11 @@ def gen_imageSet(file_path: FilePath) -> List:
             )
             assets.append(ng_asset)
         image_elt["assets"] = assets
-        imageSet.append(image_elt)
-    return imageSet
+        image_set.append(image_elt)
+    return image_set
 
 
-@task
-def generate_czi_imageset(file_path: FilePath):
+def bioformats_gen_zarr(file_path: FilePath):
     """
     TODO, refactor this into ng.gen_zarr
     bioformats2raw --max_workers=$nproc  --downsample-type AREA
@@ -93,7 +92,6 @@ def generate_czi_imageset(file_path: FilePath):
     --compression-properties clevel=5 --compression-properties shuffle=1
     input.tiff output.zarr
     """
-
     input_czi = f"{file_path.proj_dir}/{file_path.base}.czi"
     output_zarr = f"{file_path.working_dir}/{file_path.base}.zarr"
     log_fp = f"{file_path.working_dir}/{file_path.base}_as_zarr.log"
@@ -114,8 +112,14 @@ def generate_czi_imageset(file_path: FilePath):
         output_zarr,
     ]
     FilePath.run(cmd, log_fp)
-    rechunk_zarr(zarr_fp=Path(output_zarr))
+    output_zarr = f"{file_path.working_dir}/{file_path.base}.zarr"
     file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
+    rechunk_zarr(zarr_fp=Path(output_zarr))
+
+
+@task
+def generate_czi_imageset(file_path: FilePath):
+    bioformats_gen_zarr(file_path)
     imageSet = gen_imageSet(file_path=file_path)
     # extract images from input file, used to create imageSet elements
     return imageSet
