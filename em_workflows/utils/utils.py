@@ -115,7 +115,18 @@ def gen_prim_fps(fp_in: FilePath) -> Dict:
 
 
 @task
-def add_asset(prim_fp: dict, asset: dict) -> dict:
+def add_imageSet(prim_fp: dict, imageSet: list) -> Dict:
+    """
+    :param prim_fp: the 'primary' element, describing input file location
+    :param imageSet: list of scenes
+    :return: prim_fp with asset added
+    """
+    prim_fp["imageSet"] = imageSet
+    return prim_fp
+
+
+@task
+def add_asset(prim_fp: dict, asset: dict, image_idx: int = None) -> dict:
     """
     :param prim_fp: the 'primary' element (dict) to which assets are appended
     :param asset: The actual asset (output) to be added in the form of another dict
@@ -144,13 +155,14 @@ def add_asset(prim_fp: dict, asset: dict) -> dict:
     funtional style avoids this. This is why the callback data structure is not built inside
     the FilePath object at runtime.
     """
-    # TODO - at the moment we're assuming there's only a single image per file.
-    # when czi is implmented, we should pass which imageset to use.
+
+    if not image_idx:
+        image_idx = 0
     if type(asset) is list:
-        prim_fp["imageSet"][0]["assets"].extend(asset)
+        prim_fp["imageSet"][image_idx]["assets"].extend(asset)
     else:
-        prim_fp["imageSet"][0]["assets"].append(asset)
-    log(f"Added fp elt {asset} to {prim_fp}.")
+        prim_fp["imageSet"][image_idx]["assets"].append(asset)
+    log(f"Added fp elt {asset} to {prim_fp}, at index {image_idx}.")
     return prim_fp
 
 
