@@ -7,25 +7,34 @@ from pytools.HedwigZarrImages import HedwigZarrImages
 from em_workflows.file_path import FilePath
 from em_workflows.utils import utils
 from prefect.run_configs import LocalRun
-from .constants import VALID_CZI_INPUTS
+from .constants import (
+    BIOFORMATS_NUM_WORKERS,
+    RECHUNK_SIZE,
+    VALID_CZI_INPUTS,
+    THUMB_X_DIM,
+    THUMB_Y_DUM,
+    SITK_COMPRESSION_LVL,
+)
 from .config import CZIConfig
 
 
 def rechunk_zarr(zarr_fp: Path) -> None:
     images = HedwigZarrImages(zarr_fp, read_only=False)
     for _, image in images.series():
-        image.rechunk(512)  # config.CHUNK_SIZE
+        image.rechunk(RECHUNK_SIZE)
 
 
 def gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> dict:
-    sitk_image = image.extract_2d(target_size_x=300, target_size_y=300, auto_uint8=True)
+    sitk_image = image.extract_2d(
+        target_size_x=THUMB_X_DIM, target_size_y=THUMB_Y_DUM, auto_uint8=True
+    )
     if sitk_image:
         output_jpeg = f"{file_path.working_dir}/{file_path.base}_{image_name}_sm.jpeg"
         sitk.WriteImage(
             sitk_image,
             output_jpeg,
             useCompression=True,
-            compressionLevel=90,
+            compressionLevel=SITK_COMPRESSION_LVL,
         )
         asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(output_jpeg))
         thumb_asset = file_path.gen_asset(asset_type="thumbnail", asset_fp=asset_fp)
@@ -76,9 +85,8 @@ def gen_imageSet(file_path: FilePath) -> List:
 
 
 @task
-def bioformats_gen_zarr(file_path: FilePath):
+def generate_czi_imageset(file_path: FilePath):
     """
-    TODO sort ot the num workers
     TODO, refactor this into ng.gen_zarr
     bioformats2raw --max_workers=$nproc  --downsample-type AREA
     --compression=blosc --compression-properties cname=zstd
@@ -91,7 +99,7 @@ def bioformats_gen_zarr(file_path: FilePath):
     log_fp = f"{file_path.working_dir}/{file_path.base}_as_zarr.log"
     cmd = [
         CZIConfig.bioformats2raw,
-        "--max_workers=19",
+        f"--max_workers={BIOFORMATS_NUM_WORKERS}",
         "--overwrite",
         "--downsample-type",
         "AREA",
@@ -145,7 +153,7 @@ with Flow(
     )
     fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_fps)
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
-    imageSets = bioformats_gen_zarr.map(file_path=fps)
+    imageSets = generate_czi_imageset.map(file_path=fps)
     callback_with_zarrs = utils.add_imageSet.map(prim_fp=prim_fps, imageSet=imageSets)
     callback_with_zarrs = find_thumb_idx(callback=callback_with_zarrs)
     filtered_callback = utils.filter_results(callback_with_zarrs)
