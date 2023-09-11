@@ -17,10 +17,10 @@ def rechunk_zarr(zarr_fp: Path) -> None:
         image.rechunk(512)  # config.CHUNK_SIZE
 
 
-def gen_thumb(image: HedwigZarrImage, file_path: FilePath) -> dict:
+def gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> dict:
     sitk_image = image.extract_2d(target_size_x=300, target_size_y=300, auto_uint8=True)
     if sitk_image:
-        output_jpeg = f"{file_path.working_dir}/{file_path.base}_sm.jpeg"
+        output_jpeg = f"{file_path.working_dir}/{file_path.base}_{image_name}_sm.jpeg"
         sitk.WriteImage(
             sitk_image,
             output_jpeg,
@@ -33,11 +33,18 @@ def gen_thumb(image: HedwigZarrImage, file_path: FilePath) -> dict:
 
 
 def gen_imageSet(file_path: FilePath) -> List:
-
     zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
     imageSet = list()
-    zarrImages = HedwigZarrImages(Path(zarr_fp))
-    for image_name, image in zarrImages.series():
+    zarr_images = HedwigZarrImages(Path(zarr_fp))
+    # for image_name, image in zarr_images.series():
+    for k_idx, image_name in enumerate(zarr_images.get_series_keys()):
+        # The relative path of the zarr group from the root zarr
+        # this assumes a valid zarr group with OME directory inside
+        ome_index_to_zarr_group = zarr_images.zarr_root["OME"].attrs["series"]
+        zarr_idx = ome_index_to_zarr_group[k_idx]
+        image = HedwigZarrImage(
+            zarr_images.zarr_root[zarr_idx], zarr_images.ome_info, k_idx
+        )
         # single image element
         image_elt = dict()
         image_elt["imageMetadata"] = None
@@ -45,12 +52,17 @@ def gen_imageSet(file_path: FilePath) -> List:
         if image_name == "macro image":
             # we don't care about the macro image
             continue
-        assets.append(gen_thumb(image=image, file_path=file_path))
+        if not image_name:
+            image_name = f"Scene {k_idx}"
         image_elt["imageName"] = image_name
+
+        assets.append(
+            gen_thumb(image=image, file_path=file_path, image_name=image_name)
+        )
 
         if image_name != "label image":
             ng_asset = file_path.gen_asset(
-                asset_type="neuroglancerZarr", asset_fp=Path(zarr_fp)
+                asset_type="neuroglancerZarr", asset_fp=Path(zarr_fp) / zarr_idx
             )
             ng_asset["metadata"] = dict(
                 shader=image.shader_type,
@@ -107,6 +119,7 @@ def find_thumb_idx(callback: List[Dict]) -> List[Dict]:
         for i, image_elt in enumerate(elt["imageSet"]):
             if image_elt["imageName"] == "label image":
                 elt["thumbnailIndex"] = i
+                return callback
     return callback
 
 
@@ -116,7 +129,6 @@ with Flow(
     executor=CZIConfig.SLURM_EXECUTOR,
     run_config=LocalRun(labels=[utils.get_environment()]),
 ) as flow:
-
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url", default=None)()
