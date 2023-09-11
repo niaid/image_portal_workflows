@@ -1,11 +1,11 @@
 from pathlib import Path
-from em_workflows.file_path import FilePath
-import pytools
-import SimpleITK
+import SimpleITK as sitk
+from pytools import HedwigZarrImage, HedwigZarrImages
 from prefect import Flow, task, Parameter
 from prefect.run_configs import LocalRun
 
 from em_workflows.utils import utils
+from em_workflows.file_path import FilePath
 from .config import LRG2DConfig
 from .constants import (
     LARGE_THUMB_X,
@@ -71,39 +71,42 @@ def bioformats_gen_zarr(file_path: FilePath):
         output_zarr,
     ]
     FilePath.run(cmd, log_fp)
-    cmd = ["zarr_rechunk", "--chunk-size", "512", output_zarr]
-    log_fp = f"{file_path.working_dir}/{file_path.base}_rechunk.log"
-    FilePath.run(cmd, log_fp)
+    zarr_images = HedwigZarrImages(zarr_path=Path(output_zarr), read_only=False)
+    zarr_image: HedwigZarrImage = zarr_images[list(zarr_images.get_series_keys())[0]]
+    zarr_image.rechunk(512)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
     ng_asset = file_path.gen_asset(asset_type="neuroglancerZarr", asset_fp=asset_fp)
+    ng_asset["metadata"] = dict(
+        shader=zarr_image.shader_type,
+        dimensions=zarr_image.dims,
+        # shaderParameters=zarr_image.neuroglancer_shader_parameters()
+    )
     return ng_asset
 
 
 @task
 def gen_thumb(file_path: FilePath):
     input_zarr = f"{file_path.working_dir}/{file_path.base}.zarr"
-    output_jpeg_sm = f"{file_path.working_dir}/{file_path.base}_sm.jpeg"
-    output_jpeg_lg = f"{file_path.working_dir}/{file_path.base}_lg.jpeg"
+    zarr_images = HedwigZarrImages(zarr_path=Path(input_zarr), read_only=False)
+    zarr_image: HedwigZarrImage = zarr_images[list(zarr_images.get_series_keys())[0]]
 
-    sitk_image_sm = pytools.zarr_extract_2d(
-        input_zarr,
-        target_size_x=SMALL_THUMB_X,
-        target_size_y=SMALL_THUMB_Y,
+    sitk_image_sm: sitk.Image = zarr_image.extract_2d(
+        target_size_x=SMALL_THUMB_X, target_size_y=SMALL_THUMB_Y
     )
-    sitk_image_lg = pytools.zarr_extract_2d(
-        input_zarr,
-        target_size_x=LARGE_THUMB_X,
-        target_size_y=LARGE_THUMB_Y,
+    sitk_image_lg: sitk.Image = zarr_image.extract_2d(
+        target_size_x=LARGE_THUMB_X, target_size_y=LARGE_THUMB_Y
     )
+    output_jpeg_sm = f"{file_path.working_dir}/{file_path.base}_sm.jpeg"
     utils.log(f"trying to create {output_jpeg_sm}")
-    SimpleITK.WriteImage(
+    sitk.WriteImage(
         sitk_image_sm,
         output_jpeg_sm,
         useCompression=True,
         compressionLevel=JPEG_QUAL,
     )
+    output_jpeg_lg = f"{file_path.working_dir}/{file_path.base}_lg.jpeg"
     utils.log(f"trying to create {output_jpeg_lg}")
-    SimpleITK.WriteImage(
+    sitk.WriteImage(
         sitk_image_lg,
         output_jpeg_lg,
         useCompression=True,
