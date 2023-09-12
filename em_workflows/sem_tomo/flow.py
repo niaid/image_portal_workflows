@@ -227,6 +227,7 @@ with Flow(
     - Firstly create nifti file using the base mrc, then convert this to ng format.
     - To conclude, send callback stating the location of the various outputs.
     """
+    file_share = Parameter("file_share")
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url", default=None)()
@@ -237,13 +238,15 @@ with Flow(
     keep_workdir = Parameter("keep_workdir", default=False)()
 
     # dir to read from.
-    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
+    input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
     # note FIBSEM is different to other flows in that it uses *directories*
     # to define stacks. Therefore, will have to list dirs to discover stacks
     # (rather than eg mrc files)
     input_dir_fps = utils.list_dirs(input_dir_fp=input_dir_fp)
 
-    fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_dir_fps)
+    fps = utils.gen_fps(
+        share_name=file_share, input_dir=input_dir_fp, fps_in=input_dir_fps
+    )
     tif_to_mrc = convert_tif_to_mrc.map(fps)
 
     # using source.mrc gen align.xf

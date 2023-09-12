@@ -17,10 +17,10 @@ def mock_nfs_mount(monkeypatch):
     from em_workflows.dm_conversion.config import DMConfig
     from em_workflows.sem_tomo.config import SEMConfig
 
-    def _mock_proj_dir(env: str) -> str:
+    def _mock_proj_dir(share_name: str) -> str:
         return os.getcwd()
 
-    def _mock_assets_dir(env: str) -> str:
+    def _mock_assets_dir(share_name: str) -> str:
         return os.getcwd()
 
     monkeypatch.setattr(Config, "proj_dir", _mock_proj_dir)

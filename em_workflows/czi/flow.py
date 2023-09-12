@@ -138,20 +138,21 @@ with Flow(
     run_config=LocalRun(labels=[utils.get_environment()]),
 ) as flow:
     input_dir = Parameter("input_dir")
+    file_share = Parameter("file_share")
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url", default=None)()
     token = Parameter("token", default=None)()
     no_api = Parameter("no_api", default=None)()
     # keep workdir if set true, useful to look at outputs
     keep_workdir = Parameter("keep_workdir", default=False)()
-    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
+    input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
 
     input_fps = utils.list_files(
         input_dir_fp,
         VALID_CZI_INPUTS,
         single_file=file_name,
     )
-    fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_fps)
+    fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     imageSets = generate_czi_imageset.map(file_path=fps)
     callback_with_zarrs = utils.add_imageSet.map(prim_fp=prim_fps, imageSet=imageSets)

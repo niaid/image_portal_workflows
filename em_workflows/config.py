@@ -6,6 +6,8 @@ from prefect.executors import DaskExecutor
 import prefect
 import shutil
 
+from em_workflows.enums import FileShareEnum
+
 # loads .env file into os.environ
 load_dotenv()
 
@@ -62,43 +64,35 @@ class Config:
     mrc2tif_loc = os.environ.get("MRC2TIF_LOC", "/opt/rml/imod/bin/mrc2tif")
     newstack_loc = os.environ.get("NEWSTACK_LOC", "/opt/rml/imod/bin/newstack")
 
-    # environment where the app gets run - used for share selection
-    env_to_share = {
-        "dev": "RMLEMHedwigDev",
-        "qa": "RMLEMHedwigQA",
-        "prod": "RMLEMHedwigProd",
-    }
-
     # All settings moved to respective constants file
     # fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
 
     SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     user = os.environ["USER"]
     tmp_dir = f"/gs1/Scratch/{user}_scratch/"
-    mount_point = "/mnt/ai-fas12/"
 
     @staticmethod
-    def _share_name(env: str) -> str:
-        """
-        gets the path of the location of input based on environment
-        """
-        val = Config.env_to_share.get(env)
-        if not val:
-            raise ValueError(
-                f"Environment {env} not in valid environments: \
-                    {Config.env_to_share.keys()}"
+    def mount_point(share_name: str) -> str:
+        try:
+            share_enum = FileShareEnum[share_name]
+        except KeyError as e:
+            prefect.context.logger.info(
+                f"{share_name} is a bad Share name which is not under consideration yet."
             )
-        return val
+            raise e
+        return share_enum.get_mount_point()
 
     @staticmethod
-    def proj_dir(env: str) -> str:
-        share = Config._share_name(env=env)
-        return f"{Config.mount_point}{share}/Projects/"
+    def proj_dir(share_name: str) -> str:
+        """
+        :param share_name: FileShareEnum string
+        :return: Projects folder mount point based on the file-share name
+        """
+        return f"{Config.mount_point(share_name)}/Projects/"
 
     @staticmethod
-    def assets_dir(env: str) -> str:
-        share = Config._share_name(env=env)
-        return f"{Config.mount_point}{share}/Assets/"
+    def assets_dir(share_name: str) -> str:
+        return f"{Config.mount_point(share_name)}/Assets/"
 
     repo_dir = Path(os.path.dirname(__file__))
     template_dir = Path(f"{repo_dir.as_posix()}/templates")

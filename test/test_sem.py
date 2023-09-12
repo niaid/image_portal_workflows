@@ -8,6 +8,7 @@ def test_sem(mock_nfs_mount):
 
     result = flow.run(
         # FIXME `sem_inputs` directory is missing
+        file_share="test",
         input_dir="/test/input_files/sem_inputs/Projects/",
         tilt_angle="30.2",
         no_api=True,

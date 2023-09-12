@@ -35,7 +35,7 @@ class FilePath:
     :todo: Consider making entire class immutable
     """
 
-    def __init__(self, input_dir: Path, fp_in: Path) -> None:
+    def __init__(self, share_name: str, input_dir: Path, fp_in: Path) -> None:
         """
         sets up:
 
@@ -51,10 +51,9 @@ class FilePath:
         self._working_dir = self.make_work_dir()
         self._assets_dir = self.make_assets_dir()
         self.environment = self.get_environment()
-        self.proj_root = Path(Config.proj_dir(env=self.environment))
-        self.asset_root = Path(Config.assets_dir(env=self.environment))
+        self.proj_root = Path(Config.proj_dir(share_name=share_name))
+        self.asset_root = Path(Config.assets_dir(share_name=share_name))
         self.prim_fp_elt = self.gen_prim_fp_elt()
-        # log(self.__repr__())
 
     def __str__(self) -> str:
         return f"FilePath: proj_root:{self.proj_root}\n\

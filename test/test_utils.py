@@ -8,6 +8,7 @@ import tempfile
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
 from em_workflows.config import Config
+from em_workflows.enums import FileShareEnum
 from em_workflows.brt.config import BRTConfig
 from em_workflows.dm_conversion.config import DMConfig
 from em_workflows.sem_tomo.config import SEMConfig
@@ -52,12 +53,11 @@ def test_mount_config(mock_nfs_mount):
     Limited checks of Config constants
     :todo: Rewrite using @pytest.mark.parametrize to limit repetition
     """
-    env = utils.get_environment()
-    proj_dir = Config.proj_dir(env=env)
+    proj_dir = Config.proj_dir("test")
     assert "image_portal_workflows" in proj_dir
     #    assert env in proj_dir    # Not true in GitHub Actions test
 
-    assets_dir = Config.assets_dir(env=env)
+    assets_dir = Config.assets_dir(share_name="/mocked")
     assert "image_portal_workflows" in assets_dir
     #    assert env in assets_dir    # Not true in GitHub Actions test
 
@@ -82,23 +82,23 @@ def test_mount_config(mock_nfs_mount):
     assert os.path.exists(SEMConfig.xftoxg_loc)
 
 
-def test_share_name(mock_nfs_mount):
+def test_mount_point():
     """
-    Check the share mapping
+    Check mount point is retrieved properly
     """
-    env = utils.get_environment()
-    assert env.lower() in Config._share_name(env).lower()
-    assert "rmlemhedwig" in Config._share_name(env).lower()
+    share_enum = FileShareEnum.RMLEMHedwigDev
+    mnt_point = Config.mount_point(share_name=share_enum.name)
+    assert mnt_point == share_enum.get_mount_point()
 
 
-def test_bad_share_name(mock_nfs_mount):
+def test_bad_mount_point():
     """
     Verify that bad or non-existant value raises error
     """
-    with pytest.raises(Exception):
-        Config._share_name("BAD")
-    with pytest.raises(Exception):
-        Config._share_name(None)
+    with pytest.raises(KeyError):
+        Config.mount_point("BAD")
+    with pytest.raises(KeyError):
+        Config.mount_point(None)
 
 
 def test_lookup_dims(mock_nfs_mount):
@@ -106,7 +106,7 @@ def test_lookup_dims(mock_nfs_mount):
     Test on a number of different file types
     :todo: Consider rewriting this test to use @pytest.mark.parametrize to limit repetition
     """
-    proj_dir = Config.proj_dir(utils.get_environment())
+    proj_dir = Config.proj_dir("test")
     input_dir = "test/input_files/dm_inputs/Projects/Lab/PI/"
     image_path = Path(os.path.join(proj_dir, input_dir, "1-As-70-007.tif"))
     dims = utils.lookup_dims(fp=image_path)
@@ -127,7 +127,7 @@ def test_bad_lookup_dims(mock_nfs_mount):
     """
     This test should fail ``header`` doesn't work on PNG
     """
-    proj_dir = Config.proj_dir(utils.get_environment())
+    proj_dir = Config.proj_dir("test")
     input_dir = "test/input_files/dm_inputs/Projects/Lab/PI/"
     # Error case - PNG not valid input
     image_path = Path(
@@ -139,9 +139,11 @@ def test_bad_lookup_dims(mock_nfs_mount):
 
 
 def test_get_input_dir(mock_nfs_mount):
-    utils.get_environment()
+    share_name = FileShareEnum.RMLSOHedwigDev.name
     input_dir = "/test/input_files/dm_inputs"
-    my_path = utils.get_input_dir.__wrapped__(input_dir=input_dir)
+    my_path = utils.get_input_dir.__wrapped__(
+        share_name=share_name, input_dir=input_dir
+    )
     assert "image_portal_workflows" in str(my_path)
     assert input_dir in str(my_path)
 
@@ -239,7 +241,7 @@ def test_mrc_to_movie(mock_nfs_mount):
     :todo: Determine method for storing test data; smaller test images would be helpful
     as current mrc is 1.5 GB.
     """
-    proj_dir = Config.proj_dir(utils.get_environment())
+    proj_dir = Config.proj_dir("test")
     input_dir = "test/input_files/sem_inputs/Projects/mrc_movie_test"
     input_path = Path(os.path.join(proj_dir, input_dir))
     # FIXME input directory `sem_inputs` in test/input_files is missing
@@ -248,7 +250,7 @@ def test_mrc_to_movie(mock_nfs_mount):
     image_path = Path(os.path.join(proj_dir, input_dir, "adjusted.mrc"))
     assert image_path.exists()
 
-    mrc_filepath = FilePath(input_dir=input_path, fp_in=image_path)
+    mrc_filepath = FilePath(share_name="Test", input_dir=input_path, fp_in=image_path)
     shutil.copy(image_path, mrc_filepath.working_dir)
 
     #    mrc_list = utils.gen_fps.__wrapped__(input_path, [image_path])
@@ -284,14 +286,14 @@ def test_copy_workdirs_small(mock_nfs_mount):
     """
     Tests that the workdir is copied to the assets dir. This uses toy data only.
     """
-    proj_dir = Config.proj_dir(utils.get_environment())
+    proj_dir = Config.proj_dir("test")
     test_dir = "test/input_files/dm_inputs/Projects/Lab/PI/"
     test_image = "P6_J130_fsc_iteration_001.png"
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         input_path = Path(tmp_dir) / "Projects"
         image_path = Path(proj_dir) / test_dir / test_image
-        image_filepath = FilePath(input_dir=input_path, fp_in=image_path)
+        image_filepath = FilePath(share_name="", input_dir=input_path, fp_in=image_path)
         shutil.copy(image_path, image_filepath.working_dir)
 
         workdest = utils.copy_workdirs.__wrapped__(image_filepath)

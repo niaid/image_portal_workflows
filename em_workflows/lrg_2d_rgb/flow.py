@@ -130,20 +130,21 @@ with Flow(
     -create tmp dir for each.
     -convert to tiff -> zarr -> jpegs (thumb)
     """
+    file_share = Parameter("file_share")
     input_dir = Parameter("input_dir")
     file_name = Parameter("file_name", default=None)
     callback_url = Parameter("callback_url", default=None)()
     token = Parameter("token", default=None)()
     no_api = Parameter("no_api", default=None)()
     keep_workdir = Parameter("keep_workdir", default=False)()
-    input_dir_fp = utils.get_input_dir(input_dir=input_dir)
+    input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
 
     input_fps = utils.list_files(
         input_dir_fp,
         VALID_LRG_2D_RGB_INPUTS,
         single_file=file_name,
     )
-    fps = utils.gen_fps(input_dir=input_dir_fp, fps_in=input_fps)
+    fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
     tiffs = convert_png_to_tiff.map(file_path=fps)
     zarr_assets = bioformats_gen_zarr.map(file_path=fps, upstream_tasks=[tiffs])
     thumb_assets = gen_thumb.map(file_path=fps, upstream_tasks=[zarr_assets])
