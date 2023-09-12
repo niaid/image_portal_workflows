@@ -17,12 +17,12 @@ class FileShareEnum(Enum):
     RMLSOHedwigProd = 6
 
     def get_mount_point(self):
-        # TODO change the return values as necessary
+        # TODO change the return values when decided
         mapper = {
-            # each of the values might be different
-            FileShareEnum.RMLSOHedwigDev: f"/mnt/ai-fas12-so/{self.name}",
-            FileShareEnum.RMLSOHedwigQA: f"/mnt/ai-fas12-so/{self.name}",
-            FileShareEnum.RMLSOHedwigProd: f"/mnt/ai-fas12-so/{self.name}",
+            # each of the values will be different
+            FileShareEnum.RMLSOHedwigDev: "/mnt/ai-fas12/RMLEMHedwigDev",
+            FileShareEnum.RMLSOHedwigQA: "/mnt/ai-fas12/RMLEMHedwigQA",
+            FileShareEnum.RMLSOHedwigProd: "/mnt/ai-fas12/RMLEMHedwigProd",
         }
         # default
         return mapper.get(self, f"/mnt/ai-fas12/{self.name}")

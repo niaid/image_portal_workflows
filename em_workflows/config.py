@@ -71,8 +71,8 @@ class Config:
     user = os.environ["USER"]
     tmp_dir = f"/gs1/Scratch/{user}_scratch/"
 
-    @classmethod
-    def mount_point(cls, share_name: str) -> str:
+    @staticmethod
+    def mount_point(share_name: str) -> str:
         try:
             share_enum = FileShareEnum[share_name]
         except KeyError as e:
