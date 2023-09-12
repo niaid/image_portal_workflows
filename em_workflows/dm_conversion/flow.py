@@ -8,7 +8,7 @@ from pytools.convert import file_to_uint8
 
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
-from em_workflows.constants import LARGE_DIM
+from em_workflows.constants import LARGE_DIM, AssetType
 from .config import DMConfig
 from .constants import LARGE_2D, SMALL_2D, VALID_2D_INPUT_EXTS
 
@@ -138,7 +138,7 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     if size.lower() == "s":
         output = file_path.gen_output_fp("_SM.jpeg")
         log = f"{output.parent}/jpeg_sm.log"
-        asset_type = "thumbnail"
+        asset_type = AssetType.THUMBNAIL
         cmd = [
             "gm",
             "convert",
@@ -156,7 +156,7 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     elif size.lower() == "l":
         output = file_path.gen_output_fp("_LG.jpeg")
         log = f"{output.parent}/jpeg_lg.log"
-        asset_type = "keyImage"
+        asset_type = AssetType.KEY_IMAGE
         cmd = [
             "gm",
             "convert",

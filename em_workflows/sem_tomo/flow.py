@@ -8,6 +8,7 @@ from prefect.run_configs import LocalRun
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
+from em_workflows.constants import AssetType
 from .config import SEMConfig
 from .constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_WIDTH
 
@@ -83,7 +84,9 @@ def gen_newstack_combi(fp_in: FilePath) -> Dict:
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     assets_fp_adjusted_mrc = fp_in.copy_to_assets_dir(fp_to_cp=base_mrc)
-    return fp_in.gen_asset(asset_type="averagedVolume", asset_fp=assets_fp_adjusted_mrc)
+    return fp_in.gen_asset(
+        asset_type=AssetType.AVERAGED_VOLUME, asset_fp=assets_fp_adjusted_mrc
+    )
 
 
 @task
@@ -171,7 +174,9 @@ def gen_keyimg(fp_in: FilePath) -> Dict:
     utils.log(f"Created keyimg {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=keyimg_fp)
-    keyimg_asset = fp_in.gen_asset(asset_type="keyImage", asset_fp=asset_fp)
+    keyimg_asset = fp_in.gen_asset(
+        asset_type=AssetType.KEY_IMAGE, asset_fp=asset_fp
+    )
     return keyimg_asset
 
 
@@ -200,7 +205,9 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=keyimg_sm_fp)
-    keyimg_asset = fp_in.gen_asset(asset_type="thumbnail", asset_fp=asset_fp)
+    keyimg_asset = fp_in.gen_asset(
+        asset_type=AssetType.THUMBNAIL, asset_fp=asset_fp
+    )
     return keyimg_asset
 
 
@@ -262,7 +269,7 @@ with Flow(
     corrected_movie_assets = utils.mrc_to_movie.map(
         file_path=fps,
         root=unmapped("adjusted"),
-        asset_type=unmapped("recMovie"),
+        asset_type=unmapped(AssetType.REC_MOVIE),
         upstream_tasks=[base_mrcs],
     )
 

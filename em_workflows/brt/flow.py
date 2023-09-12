@@ -48,6 +48,7 @@ from prefect.engine import signals
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
+from em_workflows.constants import AssetType
 
 from .config import BRTConfig
 from .constants import BRT_DEPTH, BRT_HEIGHT, BRT_WIDTH
@@ -210,7 +211,9 @@ def gen_thumbs(file_path: FilePath, z_dim) -> dict:
     log_file = f"{file_path.working_dir}/thumb.log"
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(thumb))
-    keyimg_asset = file_path.gen_asset(asset_type="thumbnail", asset_fp=asset_fp)
+    keyimg_asset = file_path.gen_asset(
+        asset_type=AssetType.THUMBNAIL, asset_fp=asset_fp
+    )
     return keyimg_asset
 
 
@@ -227,7 +230,9 @@ def gen_copy_keyimages(file_path: FilePath, z_dim: str) -> dict:
     middle_i = calc_middle_i(z_dim=z_dim)
     middle_i_jpg = f"{file_path.working_dir}/{file_path.base}_ali.{middle_i}.jpg"
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(middle_i_jpg))
-    keyimg_asset = file_path.gen_asset(asset_type="keyImage", asset_fp=asset_fp)
+    keyimg_asset = file_path.gen_asset(
+        asset_type=AssetType.KEY_IMAGE, asset_fp=asset_fp
+    )
     return keyimg_asset
 
 
@@ -273,7 +278,9 @@ def gen_tilt_movie(file_path: FilePath) -> dict:
     ]
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(movie_file))
-    tilt_movie_asset = file_path.gen_asset(asset_type="tiltMovie", asset_fp=asset_fp)
+    tilt_movie_asset = file_path.gen_asset(
+        asset_type=AssetType.TILT_MOVIE, asset_fp=asset_fp
+    )
     return tilt_movie_asset
 
 
@@ -312,7 +319,9 @@ def gen_recon_movie(file_path: FilePath) -> dict:
     log_file = f"{file_path.working_dir}/{file_path.base}_keyMov.log"
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(key_mov))
-    recon_movie_asset = file_path.gen_asset(asset_type="recMovie", asset_fp=asset_fp)
+    recon_movie_asset = file_path.gen_asset(
+        asset_type=AssetType.REC_MOVIE, asset_fp=asset_fp
+    )
     return recon_movie_asset
 
 
@@ -369,7 +378,9 @@ def consolidate_ave_mrcs(file_path: FilePath) -> dict:
     log_file = f"{file_path.working_dir}/newstack_float.log"
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(ave_mrc))
-    ave_vol_asset = file_path.gen_asset(asset_type="averagedVolume", asset_fp=asset_fp)
+    ave_vol_asset = file_path.gen_asset(
+        asset_type=AssetType.AVERAGED_VOLUME, asset_fp=asset_fp
+    )
     return ave_vol_asset
 
 
@@ -386,7 +397,9 @@ def gen_ave_8_vol(file_path: FilePath) -> dict:
     log_file = f"{file_path.working_dir}/ave_8_mrc.log"
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(ave_8_mrc))
-    bin_vol_asset = file_path.gen_asset(asset_type="volume", asset_fp=asset_fp)
+    bin_vol_asset = file_path.gen_asset(
+        asset_type=AssetType.VOLUME, asset_fp=asset_fp
+    )
     return bin_vol_asset
 
 

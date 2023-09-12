@@ -15,8 +15,9 @@ from prefect.triggers import any_successful, always_run
 from prefect.engine.state import State, Success
 from prefect.engine import signals
 from prefect.engine.signals import SKIP, TRIGGERFAIL
-from em_workflows.config import Config
 from prefect.tasks.control_flow.filter import FilterTask
+
+from em_workflows.config import Config
 from collections import namedtuple
 
 # used for keeping outputs of imod's header command (dimensions of image).
@@ -867,10 +868,6 @@ def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePa
 #         "volume",
 #         "neuroglancerPrecomputed",
 #     ]
-#     if asset_type not in valid_typs:
-#         raise signals.FAIL(
-#             f"Asset type: {asset_type} is not a valid type. {valid_typs}"
-#         )
 #     fp_no_mount_point = path.relative_to(Config.assets_dir(env=get_environment()))
 #     if metadata:
 #         asset = {
