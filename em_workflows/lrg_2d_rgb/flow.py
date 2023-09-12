@@ -7,8 +7,8 @@ from prefect.run_configs import LocalRun
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
 from em_workflows.constants import AssetType
-from .config import LRG2DConfig
-from .constants import (
+from em_workflows.lrg_2d_rgb.config import LRG2DConfig
+from em_workflows.lrg_2d_rgb.constants import (
     LARGE_THUMB_X,
     LARGE_THUMB_Y,
     SMALL_THUMB_X,

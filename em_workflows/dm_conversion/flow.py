@@ -9,8 +9,8 @@ from pytools.convert import file_to_uint8
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
 from em_workflows.constants import LARGE_DIM, AssetType
-from .config import DMConfig
-from .constants import LARGE_2D, SMALL_2D, VALID_2D_INPUT_EXTS
+from em_workflows.dm_conversion.config import DMConfig
+from em_workflows.dm_conversion.constants import LARGE_2D, SMALL_2D, VALID_2D_INPUT_EXTS
 
 
 @task

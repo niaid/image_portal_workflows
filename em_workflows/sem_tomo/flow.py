@@ -9,8 +9,8 @@ from prefect.run_configs import LocalRun
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 from em_workflows.constants import AssetType
-from .config import SEMConfig
-from .constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_WIDTH
+from em_workflows.sem_tomo.config import SEMConfig
+from em_workflows.sem_tomo.constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_WIDTH
 
 
 @task
@@ -174,9 +174,7 @@ def gen_keyimg(fp_in: FilePath) -> Dict:
     utils.log(f"Created keyimg {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=keyimg_fp)
-    keyimg_asset = fp_in.gen_asset(
-        asset_type=AssetType.KEY_IMAGE, asset_fp=asset_fp
-    )
+    keyimg_asset = fp_in.gen_asset(asset_type=AssetType.KEY_IMAGE, asset_fp=asset_fp)
     return keyimg_asset
 
 
@@ -205,9 +203,7 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=keyimg_sm_fp)
-    keyimg_asset = fp_in.gen_asset(
-        asset_type=AssetType.THUMBNAIL, asset_fp=asset_fp
-    )
+    keyimg_asset = fp_in.gen_asset(asset_type=AssetType.THUMBNAIL, asset_fp=asset_fp)
     return keyimg_asset
 
 
