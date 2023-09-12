@@ -50,8 +50,8 @@ from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 from em_workflows.constants import AssetType
 
-from .config import BRTConfig
-from .constants import BRT_DEPTH, BRT_HEIGHT, BRT_WIDTH
+from em_workflows.brt.config import BRTConfig
+from em_workflows.brt.constants import BRT_DEPTH, BRT_HEIGHT, BRT_WIDTH
 
 """
 Batchruntomo pipeline overview:
@@ -397,9 +397,7 @@ def gen_ave_8_vol(file_path: FilePath) -> dict:
     log_file = f"{file_path.working_dir}/ave_8_mrc.log"
     FilePath.run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(ave_8_mrc))
-    bin_vol_asset = file_path.gen_asset(
-        asset_type=AssetType.VOLUME, asset_fp=asset_fp
-    )
+    bin_vol_asset = file_path.gen_asset(asset_type=AssetType.VOLUME, asset_fp=asset_fp)
     return bin_vol_asset
 
 

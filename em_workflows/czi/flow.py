@@ -7,7 +7,7 @@ from pytools.HedwigZarrImages import HedwigZarrImages
 from em_workflows.file_path import FilePath
 from em_workflows.utils import utils
 from prefect.run_configs import LocalRun
-from .constants import (
+from em_workflows.czi.constants import (
     BIOFORMATS_NUM_WORKERS,
     RECHUNK_SIZE,
     VALID_CZI_INPUTS,
@@ -15,7 +15,7 @@ from .constants import (
     THUMB_Y_DUM,
     SITK_COMPRESSION_LVL,
 )
-from .config import CZIConfig
+from em_workflows.czi.config import CZIConfig
 
 
 def rechunk_zarr(zarr_fp: Path) -> None:
