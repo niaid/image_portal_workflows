@@ -76,9 +76,9 @@ class Config:
     def _mount_point(share_name: str) -> str:
         share = NFS_MOUNT.get(share_name)
         if not share:
-            raise signals.FAIL(f"{share_name} is not available. Failing!")
+            raise signals.FAIL(f"{share_name} is not a valid name. Failing!")
         elif not Path(share).exists():
-            raise signals.FAIL(f"{share_name} does't exist. Failing!")
+            raise signals.FAIL(f"{share_name} doesn't exist. Failing!")
         return share
 
     @staticmethod

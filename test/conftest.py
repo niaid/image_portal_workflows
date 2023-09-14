@@ -11,21 +11,12 @@ from em_workflows.config import command_loc
 
 
 @pytest.fixture
-def mock_nfs_mount(monkeypatch):
+def mock_binaries(monkeypatch):
     from em_workflows.config import Config
     from em_workflows.brt.config import BRTConfig
     from em_workflows.dm_conversion.config import DMConfig
     from em_workflows.sem_tomo.config import SEMConfig
 
-    def _mock_proj_dir(share_name: str) -> str:
-        return os.getcwd()
-
-    def _mock_assets_dir(share_name: str) -> str:
-        return os.getcwd()
-
-    monkeypatch.setattr(Config, "proj_dir", _mock_proj_dir)
-    monkeypatch.setattr(Config, "assets_dir", _mock_assets_dir)
-    monkeypatch.setattr(Config, "_mount_point", os.getcwd() + "/test/input_files")
     monkeypatch.setattr(Config, "tmp_dir", "/tmp")
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
 
@@ -41,3 +32,18 @@ def mock_nfs_mount(monkeypatch):
     monkeypatch.setattr(SEMConfig, "xftoxg_loc", command_loc("xftoxg"))
     monkeypatch.setattr(SEMConfig, "convert_loc", command_loc("convert"))
     monkeypatch.setattr(Config, "bioformats2raw", command_loc("bioformats2raw"))
+
+
+@pytest.fixture
+def mock_nfs_mount(monkeypatch, mock_binaries):
+    from em_workflows.config import Config
+
+    def _mock_proj_dir(share_name: str) -> str:
+        return os.getcwd()
+
+    def _mock_assets_dir(share_name: str) -> str:
+        return os.getcwd()
+
+    monkeypatch.setattr(Config, "proj_dir", _mock_proj_dir)
+    monkeypatch.setattr(Config, "assets_dir", _mock_assets_dir)
+    monkeypatch.setattr(Config, "_mount_point", os.getcwd() + "/test/input_files")
