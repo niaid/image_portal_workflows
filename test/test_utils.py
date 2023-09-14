@@ -12,7 +12,7 @@ from em_workflows.enums import FileShareEnum
 from em_workflows.brt.config import BRTConfig
 from em_workflows.dm_conversion.config import DMConfig
 from em_workflows.sem_tomo.config import SEMConfig
-from em_workflows.constants import LARGE_DIM, SMALL_DIM
+from em_workflows.constants import LARGE_DIM, SMALL_DIM, NFS_MOUNT
 from em_workflows.dm_conversion.constants import LARGE_2D, SMALL_2D
 
 
@@ -86,19 +86,19 @@ def test_mount_point():
     """
     Check mount point is retrieved properly
     """
-    share_enum = FileShareEnum.RMLEMHedwigDev
-    mnt_point = Config.mount_point(share_name=share_enum.name)
-    assert mnt_point == share_enum.get_mount_point()
+    share = NFS_MOUNT["RMLEMHedwigDev"]
+    mnt_point = Config._mount_point(share_name="RMLEMHedwigDev")
+    assert mnt_point == share == "/mnt/ai-fas12/RMLEMHedwigDev"
 
 
 def test_bad_mount_point():
     """
     Verify that bad or non-existant value raises error
     """
-    with pytest.raises(KeyError):
-        Config.mount_point("BAD")
-    with pytest.raises(KeyError):
-        Config.mount_point(None)
+    with pytest.raises(signals.FAIL):
+        Config._mount_point("BAD")
+    with pytest.raises(signals.FAIL):
+        Config._mount_point(None)
 
 
 def test_lookup_dims(mock_nfs_mount):

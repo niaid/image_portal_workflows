@@ -1,4 +1,5 @@
 import os
+from prefect.engine import signals
 from pathlib import Path
 from dask_jobqueue import SLURMCluster
 from dotenv import load_dotenv
@@ -6,7 +7,7 @@ from prefect.executors import DaskExecutor
 import prefect
 import shutil
 
-from em_workflows.enums import FileShareEnum
+from em_workflows.constants import NFS_MOUNT
 
 # loads .env file into os.environ
 load_dotenv()
@@ -72,15 +73,13 @@ class Config:
     tmp_dir = f"/gs1/Scratch/{user}_scratch/"
 
     @staticmethod
-    def mount_point(share_name: str) -> str:
-        try:
-            share_enum = FileShareEnum[share_name]
-        except KeyError as e:
-            prefect.context.logger.info(
-                f"{share_name} is a bad Share name which is not under consideration yet."
-            )
-            raise e
-        return share_enum.get_mount_point()
+    def _mount_point(share_name: str) -> str:
+        share = NFS_MOUNT.get(share_name)
+        if not share:
+            raise signals.FAIL(f"{share_name} is not available. Failing!")
+        elif not Path(share).exists():
+            raise signals.FAIL(f"{share_name} does't exist. Failing!")
+        return share
 
     @staticmethod
     def proj_dir(share_name: str) -> str:
@@ -88,11 +87,11 @@ class Config:
         :param share_name: FileShareEnum string
         :return: Projects folder mount point based on the file-share name
         """
-        return f"{Config.mount_point(share_name)}/Projects/"
+        return f"{Config._mount_point(share_name)}/Projects/"
 
     @staticmethod
     def assets_dir(share_name: str) -> str:
-        return f"{Config.mount_point(share_name)}/Assets/"
+        return f"{Config._mount_point(share_name)}/Assets/"
 
     repo_dir = Path(os.path.dirname(__file__))
     template_dir = Path(f"{repo_dir.as_posix()}/templates")
