@@ -7,8 +7,8 @@ from pytools.HedwigZarrImages import HedwigZarrImages
 from em_workflows.file_path import FilePath
 from em_workflows.utils import utils
 from prefect.run_configs import LocalRun
+from em_workflows.constants import BIOFORMATS_NUM_WORKERS
 from em_workflows.czi.constants import (
-    BIOFORMATS_NUM_WORKERS,
     RECHUNK_SIZE,
     VALID_CZI_INPUTS,
     THUMB_X_DIM,
