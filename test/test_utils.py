@@ -12,7 +12,7 @@ from em_workflows.brt.config import BRTConfig
 from em_workflows.dm_conversion.config import DMConfig
 from em_workflows.sem_tomo.config import SEMConfig
 from em_workflows.constants import LARGE_DIM, SMALL_DIM
-from em_workflows.dm_conversion.constants import LARGE_2D, SMALL_2D
+from em_workflows.dm_conversion.constants import LARGE_2D, SMALL_2D, VALID_2D_INPUT_EXTS
 
 
 def test_hedwig_env() -> None:
@@ -289,3 +289,20 @@ def test_copy_workdirs_small(mock_nfs_mount):
         assert (workdest / test_image).exists()
         assert image_path.stem in str(workdest)
         assert "work_dir" in str(workdest.parent)
+
+
+def test_list_files(mock_nfs_mount):
+    """
+    Tests list files only gets one file if it has file_name argument
+    """
+    input_dir = Path("test/input_files/dm_inputs/Projects/Lab/PI")
+    exts = VALID_2D_INPUT_EXTS
+    file_name = "20210525_1416_A000_G000.dm4"
+
+    files = utils.list_files.__wrapped__(input_dir=input_dir, exts=exts)
+    assert len(files) > 1
+
+    files = utils.list_files.__wrapped__(
+        input_dir=input_dir, exts=exts, single_file=file_name
+    )
+    assert len(files) == 1
