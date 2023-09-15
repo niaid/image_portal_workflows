@@ -948,29 +948,7 @@ def send_callback_body(
     the body of the callback should look something like this:
 
     .. code-block::
-
-        {
-            "status": "success",
-            "files":
-            [
-                {
-                    "primaryFilePath: "Lab/PI/Myproject/MySession/Sample1/file_a.dm4",
-                    "title": "file_a",
-                    "assets":
-                    [
-                        {
-                            "type": "keyImage",
-                            "path": "Lab/PI/Myproject/MySession/Sample1/file_a.jpg"
-                        },
-                        {
-                            "type": "thumbnail",
-                            "path": "Lab/PI/Myproject/MySession/Sample1/file_a_s.jpg"
-                        }
-                    ]
-                }
-            ]
-        }
-
+        Refer to docs/demo_callback.json for expected
     """
     data = {"files": files_elts}
     if prefect.context.parameters.get("no_api"):
