@@ -287,29 +287,6 @@ directory for each file to keep the files separate on the HPC.</p>
 <dd><p>Upon completion of file conversion a callback is made to the calling
 API specifying the locations of files, along with metadata about the files.
 the body of the callback should look something like this:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;files&quot;</span><span class="p">:</span>
-    <span class="p">[</span>
-        <span class="p">{</span>
-            <span class="s2">&quot;primaryFilePath: &quot;</span><span class="n">Lab</span><span class="o">/</span><span class="n">PI</span><span class="o">/</span><span class="n">Myproject</span><span class="o">/</span><span class="n">MySession</span><span class="o">/</span><span class="n">Sample1</span><span class="o">/</span><span class="n">file_a</span><span class="o">.</span><span class="n">dm4</span><span class="s2">&quot;,</span>
-            <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;file_a&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;assets&quot;</span><span class="p">:</span>
-            <span class="p">[</span>
-                <span class="p">{</span>
-                    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;keyImage&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;Lab/PI/Myproject/MySession/Sample1/file_a.jpg&quot;</span>
-                <span class="p">},</span>
-                <span class="p">{</span>
-                    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;thumbnail&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="s2">&quot;Lab/PI/Myproject/MySession/Sample1/file_a_s.jpg&quot;</span>
-                <span class="p">}</span>
-            <span class="p">]</span>
-        <span class="p">}</span>
-    <span class="p">]</span>
-<span class="p">}</span>
-</pre></div>
-</div>
 </dd></dl>
 
 <dl class="py class">
