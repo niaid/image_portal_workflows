@@ -6,7 +6,7 @@ from prefect.run_configs import LocalRun
 
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
-from em_workflows.constants import AssetType
+from em_workflows.constants import AssetType, BIOFORMATS_NUM_WORKERS
 from em_workflows.lrg_2d_rgb.config import LRG2DConfig
 from em_workflows.lrg_2d_rgb.constants import (
     LARGE_THUMB_X,
@@ -56,6 +56,7 @@ def bioformats_gen_zarr(file_path: FilePath):
     log_fp = f"{file_path.working_dir}/{file_path.base}_as_zarr.log"
     cmd = [
         LRG2DConfig.bioformats2raw,
+        f"--max_workers={BIOFORMATS_NUM_WORKERS}",
         "--overwrite",
         "--scale-format-string",
         "%2$d",

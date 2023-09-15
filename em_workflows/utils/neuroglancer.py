@@ -4,7 +4,7 @@ from prefect import task
 from pytools.workflow_functions import visual_min_max
 from em_workflows.config import Config
 from em_workflows.file_path import FilePath
-from em_workflows.constants import AssetType
+from em_workflows.constants import AssetType, BIOFORMATS_NUM_WORKERS
 from em_workflows.utils import utils
 import pytools
 import logging
@@ -37,6 +37,7 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int = None) -> Dic
 
     cmd = [
         Config.bioformats2raw,
+        f"--max_workers={BIOFORMATS_NUM_WORKERS}",
         "--scale-format-string",
         "%2$d",
         "--compression",
