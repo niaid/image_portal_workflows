@@ -1,7 +1,9 @@
+import pytest
+
+
+@pytest.mark.slow
 def test_input_fname(mock_nfs_mount, caplog):
     from em_workflows.lrg_2d_rgb.flow import flow
-
-    # monkeypatch.setattr(Config, "convert_loc", command_loc("convert"))
 
     state = flow.run(
         file_share="test",

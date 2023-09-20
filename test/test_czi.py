@@ -6,9 +6,29 @@ import pytest
 from em_workflows.file_path import FilePath
 
 
+@pytest.fixture
+def mock_reuse_zarr(monkeypatch):
+    """
+    Reuses zarr generated from bioformats2raw
+    One of the most expensive operation in tests is using bf2raw command
+    This test assumes that we have already ran the test once. If the .zarr
+    converted file is found, reuses the file without re-executing bf2raw command
+    """
+    from em_workflows.czi import flow
+
+    def _mock_bioformats_gen_zarr(file_path: FilePath):
+        zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
+        if Path(zarr_fp).exists():
+            print("Reusing existing .zarr files! Avoiding bf2raw command.")
+            return
+        flow.bioformats_gen_zarr(file_path)
+
+    monkeypatch.setattr(flow, "bioformats_gen_zarr", _mock_bioformats_gen_zarr)
+
+
 @pytest.mark.slow
 @pytest.mark.localdata
-def test_input_fname(mock_nfs_mount, caplog):
+def test_input_fname(mock_nfs_mount, caplog, mock_reuse_zarr):
     from em_workflows.czi.flow import flow
 
     state = flow.run(
@@ -19,21 +39,21 @@ def test_input_fname(mock_nfs_mount, caplog):
     assert state.is_successful()
 
 
-@pytest.mark.skip(reason="input dirs need to be put in place properly.")
 def test_rechunk(mock_nfs_mount, caplog):
     from em_workflows.czi.flow import gen_imageSet
 
     input_dir = Path(
         "/gs1/home/hedwig_dev/image_portal_workflows/image_portal_workflows/test/input_files/IF_czi/Projects/zarr_dir_2/"  # noqa: E501
     )
+    if not input_dir.exists():
+        pytest.skip("Input dirs need to be put in place properly.")
     fp_in = Path(
         "/gs1/home/hedwig_dev/image_portal_workflows/image_portal_workflows/test/input_files/IF_czi/Projects/zarr_dir_2/"  # noqa: E501
     )
     fp = FilePath(share_name="test", input_dir=input_dir, fp_in=fp_in)
     d = shutil.copytree(fp_in.as_posix(), f"{fp.working_dir.as_posix()}/{fp_in.name}")
-    print(d)
-    zars = gen_imageSet(fp)
-    print(zars)
+    zarrs = gen_imageSet(fp)
+    print(d, zarrs)
 
 
 def test_no_mount_point_flow_fails(mock_binaries, monkeypatch, caplog):
@@ -57,25 +77,6 @@ def test_no_mount_point_flow_fails(mock_binaries, monkeypatch, caplog):
     assert f"{share_name} doesn't exist. Failing!" in caplog.text, caplog.text
 
 
-@pytest.fixture
-def mock_reuse_zarr(monkeypatch):
-    """
-    Reuses zarr generated from bioformats2raw
-    One of the most expensive operation in tests is using bf2raw command
-    This test assumes that we have already ran the test once. If the .zarr
-    converted file is found, reuses the file without re-executing bf2raw command
-    """
-    from em_workflows.czi import flow
-
-    def _mock_bioformats_gen_zarr(file_path: FilePath):
-        zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
-        if Path(zarr_fp).exists():
-            return
-        flow.bioformats_gen_zarr(file_path)
-
-    monkeypatch.setattr(flow, "bioformats_gen_zarr", _mock_bioformats_gen_zarr)
-
-
 def test_czi_workflow_callback_structure(
     mock_nfs_mount, caplog, mock_reuse_zarr, mock_callback_data
 ):
@@ -87,6 +88,7 @@ def test_czi_workflow_callback_structure(
 
     input_dir = "test/input_files/IF_czi/Projects/smaller"
     state = flow.run(
+        file_share="test",
         input_dir=input_dir,
         no_api=True,
     )

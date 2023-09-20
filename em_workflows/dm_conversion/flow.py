@@ -180,38 +180,6 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     return asset_elt
 
 
-# @task
-# def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
-#    """
-#    List all files within input_dir with spefified extension.
-#    if a specific file is requested that file is returned only.
-#    This allows workflows run on single files rather than entire dirs (default).
-#    Note, if no files are found does NOT raise exception. Function can be called
-#    multiple times, sometimes there will be no files of that extension.
-#    """
-#    _files = list()
-#    logger = prefect.context.get("logger")
-#    logger.info(f"Looking for *.{exts} in {input_dir}")
-#    if single_file:
-#        fp = Path(f"{input_dir}/{single_file}")
-#        ext = fp.suffix.strip(".")
-#        if ext in exts:
-#            if not fp.exists():
-#                raise signals.FAIL(
-#                    f"Expected file: {single_file}, not found in input_dir"
-#                )
-#            else:
-#                _files.append(fp)
-#    else:
-#        for ext in exts:
-#            _files.extend(input_dir.glob(f"*.{ext}"))
-#    if not _files:
-#        raise signals.FAIL(f"Input dir does not contain anything to process.")
-#    logger.info("found files")
-#    logger.info(_files)
-#    return _files
-
-
 with Flow(
     "dm_to_jpeg",
     state_handlers=[utils.notify_api_completion, utils.notify_api_running],
@@ -273,7 +241,7 @@ with Flow(
     rm_workdirs = utils.cleanup_workdir(fps, upstream_tasks=[callback_with_keyimgs])
     filtered_callback = utils.filter_results(callback_with_keyimgs)
 
-    callback_sent = utils.send_callback_body(
+    utils.send_callback_body(
         token=token,
         callback_url=callback_url,
         files_elts=filtered_callback,
