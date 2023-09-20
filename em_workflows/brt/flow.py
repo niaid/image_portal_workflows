@@ -35,6 +35,7 @@ Batchruntomo pipeline overview:
 - Finally, we ``POST`` the JSON datastructure to the API, and cleanup temp dirs.
 """
 
+from typing import Dict
 import glob
 import os
 from em_workflows.file_path import FilePath
@@ -45,6 +46,7 @@ from pathlib import Path
 from prefect import task, Flow, Parameter, unmapped
 from prefect.run_configs import LocalRun
 from prefect.engine import signals
+from pytools.workflow_functions import visual_min_max
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
@@ -475,6 +477,41 @@ def cleanup_files(file_path: FilePath, pattern=str):
 #    return inputs_paired
 
 
+@task
+def gen_zarr(fp_in: FilePath):
+    file_path = fp_in
+    # fallback mrc file
+    input_file = file_path.fp_in.as_posix()
+
+    rec_mrc = file_path.gen_output_fp(output_ext="_rec.mrc")
+    if rec_mrc.is_file():
+        input_file = rec_mrc.as_posix()
+
+    ng.bioformats_gen_zarr(
+        file_path=file_path,
+        input_fname=input_file,
+        depth=BRT_DEPTH,
+        width=BRT_WIDTH,
+        height=BRT_HEIGHT,
+        resolutions=1,
+    )
+    ng.zarr_build_multiscales(file_path)
+
+
+@task
+def gen_ng_metadata(fp_in: FilePath) -> Dict:
+    file_path = fp_in
+    asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
+
+    first_zarr_arr = Path(asset_fp.as_posix() + "/0")
+
+    ng_asset = file_path.gen_asset(
+        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=asset_fp
+    )
+    ng_asset["metadata"] = visual_min_max(mad_scale=5, input_image=first_zarr_arr)
+    return ng_asset
+
+
 with Flow(
     "brt_flow",
     executor=BRTConfig.SLURM_EXECUTOR,
@@ -595,14 +632,8 @@ with Flow(
     )
     # finished volslicer inputs.
 
-    # START PYRAMID GEN
-    pyramid_assets = ng.gen_zarr.map(
-        fp_in=fps,
-        depth=unmapped(BRT_DEPTH),
-        width=unmapped(BRT_WIDTH),
-        height=unmapped(BRT_HEIGHT),
-        upstream_tasks=[brts],
-    )
+    zarrs = gen_zarr.map(fp_in=fps, upstream_tasks=[brts])
+    pyramid_assets = gen_ng_metadata.map(fp_in=fps, upstream_tasks=[zarrs])
     #  archive_pyramid_cmds = ng.gen_archive_pyr.map(
     #      file_path=fps, upstream_tasks=[pyramid_assets]
     #  )

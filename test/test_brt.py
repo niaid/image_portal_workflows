@@ -5,12 +5,17 @@ test_brt.py runs an end-to-end test of the batchruntomo pipeline
 NOTE: These tests depend on setup performed in conftest.py
 """
 import pytest
+from pathlib import Path
 
 
 @pytest.mark.localdata
 @pytest.mark.slow
 def test_brt(mock_nfs_mount):
     from em_workflows.brt.flow import flow
+
+    input_dir = "test/input_files/brt_inputs/Projects/"
+    if not Path(input_dir).exists():
+        pytest.skip("Directory doesn't exist")
 
     result = flow.run(
         adoc_template="plastic_brt",
@@ -24,7 +29,7 @@ def test_brt(mock_nfs_mount):
         LocalAlignments=0,
         THICKNESS=30,
         file_share="test",
-        input_dir="test/input_files/brt_inputs/Projects/",
+        input_dir=input_dir,
         no_api=True,
         keep_workdir=True,
     )

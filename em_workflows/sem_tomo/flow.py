@@ -1,13 +1,15 @@
-from em_workflows.file_path import FilePath
+from pathlib import Path
 import glob
 from natsort import os_sorted
 import math
 from typing import Dict
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
+from pytools.workflow_functions import visual_min_max
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
+from em_workflows.file_path import FilePath
 from em_workflows.constants import AssetType
 from em_workflows.sem_tomo.config import SEMConfig
 from em_workflows.sem_tomo.constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_WIDTH
@@ -207,6 +209,41 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
     return keyimg_asset
 
 
+@task
+def gen_zarr(fp_in: FilePath) -> None:
+    file_path = fp_in
+    # fallback mrc file
+    input_file = file_path.fp_in.as_posix()
+
+    base_mrc = file_path.gen_output_fp(output_ext=".mrc", out_fname="adjusted.mrc")
+    if base_mrc.is_file():
+        input_file = base_mrc.as_posix()
+
+    ng.bioformats_gen_zarr(
+        file_path=file_path,
+        input_fname=input_file,
+        depth=FIBSEM_DEPTH,
+        width=FIBSEM_WIDTH,
+        height=FIBSEM_HEIGHT,
+        resolutions=1,
+    )
+    ng.zarr_build_multiscales(fp_in)
+
+
+@task
+def gen_ng_metadata(fp_in: FilePath) -> Dict:
+    file_path = fp_in
+    asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
+
+    first_zarr_arr = Path(asset_fp.as_posix() + "/0")
+
+    ng_asset = file_path.gen_asset(
+        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=asset_fp
+    )
+    ng_asset["metadata"] = visual_min_max(mad_scale=5, input_image=first_zarr_arr)
+    return ng_asset
+
+
 with Flow(
     "sem_tomo",
     state_handlers=[utils.notify_api_completion, utils.notify_api_running],
@@ -278,13 +315,8 @@ with Flow(
     thumb_assets = gen_keyimg_small.map(fp_in=fps, upstream_tasks=[keyimg_assets])
 
     # zarr file generation
-    pyramid_assets = ng.gen_zarr.map(
-        fp_in=fps,
-        depth=unmapped(FIBSEM_DEPTH),
-        width=unmapped(FIBSEM_WIDTH),
-        height=unmapped(FIBSEM_HEIGHT),
-        upstream_tasks=[base_mrcs],
-    )
+    zarrs = gen_zarr.map(fp_in=fps, upstream_tasks=[base_mrcs])
+    pyramid_assets = gen_ng_metadata.map(fp_in=fps, upstream_tasks=[zarrs])
 
     # this is the toplevel element (the input file basically) onto which
     # the "assets" (ie the outputs derived from this file) are hung.

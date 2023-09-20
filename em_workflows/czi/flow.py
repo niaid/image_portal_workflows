@@ -6,22 +6,15 @@ from pytools.HedwigZarrImage import HedwigZarrImage
 from pytools.HedwigZarrImages import HedwigZarrImages
 from em_workflows.file_path import FilePath
 from em_workflows.utils import utils
+from em_workflows.utils import neuroglancer as ng
 from prefect.run_configs import LocalRun
-from em_workflows.constants import BIOFORMATS_NUM_WORKERS
 from em_workflows.czi.constants import (
-    RECHUNK_SIZE,
     VALID_CZI_INPUTS,
     THUMB_X_DIM,
     THUMB_Y_DUM,
     SITK_COMPRESSION_LVL,
 )
 from em_workflows.czi.config import CZIConfig
-
-
-def rechunk_zarr(zarr_fp: Path) -> None:
-    images = HedwigZarrImages(zarr_fp, read_only=False)
-    for _, image in images.series():
-        image.rechunk(RECHUNK_SIZE)
 
 
 def gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> dict:
@@ -84,42 +77,14 @@ def gen_imageSet(file_path: FilePath) -> List:
     return image_set
 
 
-def bioformats_gen_zarr(file_path: FilePath):
-    """
-    TODO, refactor this into ng.gen_zarr
-    bioformats2raw --max_workers=$nproc  --downsample-type AREA
-    --compression=blosc --compression-properties cname=zstd
-    --compression-properties clevel=5 --compression-properties shuffle=1
-    input.tiff output.zarr
-    """
-    input_czi = f"{file_path.proj_dir}/{file_path.base}.czi"
-    output_zarr = f"{file_path.working_dir}/{file_path.base}.zarr"
-    log_fp = f"{file_path.working_dir}/{file_path.base}_as_zarr.log"
-    cmd = [
-        CZIConfig.bioformats2raw,
-        f"--max_workers={BIOFORMATS_NUM_WORKERS}",
-        "--overwrite",
-        "--downsample-type",
-        "AREA",
-        "--compression=blosc",
-        "--compression-properties",
-        "cname=zstd",
-        "--compression-properties",
-        "clevel=5",
-        "--compression-properties",
-        "shuffle=1",
-        input_czi,
-        output_zarr,
-    ]
-    FilePath.run(cmd, log_fp)
-    output_zarr = f"{file_path.working_dir}/{file_path.base}.zarr"
-    file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
-    rechunk_zarr(zarr_fp=Path(output_zarr))
-
-
 @task
 def generate_czi_imageset(file_path: FilePath):
-    bioformats_gen_zarr(file_path)
+    input_czi = f"{file_path.proj_dir}/{file_path.base}.czi"
+    ng.bioformats_gen_zarr(
+        file_path=file_path,
+        input_fname=input_czi,
+        rechunk=True,
+    )
     imageSet = gen_imageSet(file_path=file_path)
     # extract images from input file, used to create imageSet elements
     return imageSet

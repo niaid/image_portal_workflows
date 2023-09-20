@@ -14,16 +14,16 @@ def mock_reuse_zarr(monkeypatch):
     This test assumes that we have already ran the test once. If the .zarr
     converted file is found, reuses the file without re-executing bf2raw command
     """
-    from em_workflows.czi import flow
+    from em_workflows.utils import neuroglancer as ng
 
     def _mock_bioformats_gen_zarr(file_path: FilePath):
         zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
         if Path(zarr_fp).exists():
             print("Reusing existing .zarr files! Avoiding bf2raw command.")
             return
-        flow.bioformats_gen_zarr(file_path)
+        ng.bioformats_gen_zarr(file_path)
 
-    monkeypatch.setattr(flow, "bioformats_gen_zarr", _mock_bioformats_gen_zarr)
+    monkeypatch.setattr(ng, "bioformats_gen_zarr", _mock_bioformats_gen_zarr)
 
 
 @pytest.mark.slow
@@ -87,6 +87,9 @@ def test_czi_workflow_callback_structure(
     from em_workflows.czi.flow import flow
 
     input_dir = "test/input_files/IF_czi/Projects/smaller"
+    if not Path(input_dir).exists():
+        pytest.skip("Missing input files")
+
     state = flow.run(
         file_share="test",
         input_dir=input_dir,
