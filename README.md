@@ -4,6 +4,7 @@
 
 | Name                                      |    Stmts |     Miss |   Branch |   BrPart |   Cover |   Missing |
 |------------------------------------------ | -------: | -------: | -------: | -------: | ------: | --------: |
+| em\_workflows/\_\_init\_\_.py             |        0 |        0 |        0 |        0 |    100% |           |
 | em\_workflows/brt/config.py               |        5 |        0 |        0 |        0 |    100% |           |
 | em\_workflows/config.py                   |       48 |        9 |       12 |        4 |     78% |26-43, 58, 81->80, 90->89, 98->97, 99 |
 | em\_workflows/constants.py                |        8 |        0 |        0 |        0 |    100% |           |
