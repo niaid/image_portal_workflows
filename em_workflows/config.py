@@ -16,14 +16,19 @@ load_dotenv()
 def SLURM_exec():
     """
     brings up a dynamically sized cluster.
-    For some reason processes > 1 crash BRT. Be careful optimizing this.
+
+    The job_script() for the given cluster generates:
+    python -m distributed.cli.dask_worker tcp://<some-IP> --nthreads 15 --nworkers 4 --memory-limit 96.62GiB ...
+
+    The processes determins number of dask workers, and nthreads = cores / processes
+    The memory limit is also divided among the workers
     """
     home = os.environ["HOME"]
     cluster = SLURMCluster(
         name="dask-worker",
-        cores=60,
-        memory="32G",
-        # processes=1,
+        cores=62,
+        memory="430G",
+        processes=4,
         death_timeout=121,
         local_directory=f"{home}/dask_tmp/",
         queue="gpu",

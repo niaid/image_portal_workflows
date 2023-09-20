@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import SimpleITK as sitk
 from pytools import HedwigZarrImage, HedwigZarrImages
@@ -6,7 +7,7 @@ from prefect.run_configs import LocalRun
 
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
-from em_workflows.constants import AssetType, BIOFORMATS_NUM_WORKERS
+from em_workflows.constants import AssetType, BIOFORMATS_NUM_WORKERS, JAVA_MAX_HEAP_SIZE
 from em_workflows.lrg_2d_rgb.config import LRG2DConfig
 from em_workflows.lrg_2d_rgb.constants import (
     LARGE_THUMB_X,
@@ -22,6 +23,7 @@ from em_workflows.lrg_2d_rgb.constants import (
 def convert_png_to_tiff(file_path: FilePath):
     """
     convert input.png -background white -alpha remove -alpha off ouput.tiff
+    Adding argument: -define tiff:tile-geometry=128x128
     """
     input_png = file_path.fp_in.as_posix()
     output_tiff = f"{file_path.working_dir}/{file_path.base}.tiff"
@@ -29,6 +31,8 @@ def convert_png_to_tiff(file_path: FilePath):
     cmd = [
         "convert",
         input_png,
+        "-define",
+        "tiff:tile-geometry=128x128",
         "-background",
         "white",
         "-alpha",
@@ -54,6 +58,8 @@ def bioformats_gen_zarr(file_path: FilePath):
     input_tiff = f"{file_path.working_dir}/{file_path.base}.tiff"
     output_zarr = f"{file_path.working_dir}/{file_path.base}.zarr"
     log_fp = f"{file_path.working_dir}/{file_path.base}_as_zarr.log"
+    # increase java max heap size for bf2raw command (just in case)
+    os.environ["_JAVA_OPTIONS"] = JAVA_MAX_HEAP_SIZE
     cmd = [
         LRG2DConfig.bioformats2raw,
         f"--max_workers={BIOFORMATS_NUM_WORKERS}",
