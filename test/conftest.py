@@ -8,31 +8,14 @@ import os
 from pathlib import Path
 import pytest
 from prefect.executors import LocalExecutor
-from em_workflows.config import command_loc
 
 
 @pytest.fixture
 def mock_binaries(monkeypatch):
     from em_workflows.config import Config
-    from em_workflows.brt.config import BRTConfig
-    from em_workflows.dm_conversion.config import DMConfig
-    from em_workflows.sem_tomo.config import SEMConfig
 
     monkeypatch.setattr(Config, "tmp_dir", "/tmp")
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
-
-    monkeypatch.setattr(BRTConfig, "binvol", command_loc("binvol"))
-    monkeypatch.setattr(Config, "brt_binary", command_loc("batchruntomo"))
-    monkeypatch.setattr(BRTConfig, "clip_loc", command_loc("clip"))
-    monkeypatch.setattr(DMConfig, "dm2mrc_loc", command_loc("dm2mrc"))
-    monkeypatch.setattr(Config, "header_loc", command_loc("header"))
-    monkeypatch.setattr(Config, "mrc2tif_loc", command_loc("mrc2tif"))
-    monkeypatch.setattr(Config, "newstack_loc", command_loc("newstack"))
-    monkeypatch.setattr(SEMConfig, "tif2mrc_loc", command_loc("tif2mrc"))
-    monkeypatch.setattr(SEMConfig, "xfalign_loc", command_loc("xfalign"))
-    monkeypatch.setattr(SEMConfig, "xftoxg_loc", command_loc("xftoxg"))
-    monkeypatch.setattr(SEMConfig, "convert_loc", command_loc("convert"))
-    # monkeypatch.setattr(Config, "bioformats2raw", command_loc("bioformats2raw"))
 
 
 @pytest.fixture
@@ -70,3 +53,26 @@ def mock_callback_data(monkeypatch, tmp_path):
 
     monkeypatch.setattr(utils_json, "dumps", _mock_dumps)
     return str(filename)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def check_env_setup(request):
+    assert os.path.isfile(
+        ".env"
+    ), "Make sure you have .env file setup with \
+            necessary binary filepaths"
+
+    with open(".env", mode="r") as env_file:
+        content = env_file.read()
+        assert "BIOFORMATS2RAW_LOC" in content
+        assert "BRT_LOC" in content
+        assert "HEADER_LOC" in content
+        assert "MRC2TIF_LOC" in content
+        assert "NEWSTACK_LOC" in content
+        assert "DM2MRC_LOC" in content
+        assert "BINVOL_LOC" in content
+        assert "CLIP_LOC" in content
+        assert "CONVERT_LOC" in content
+        assert "TIF2MRC_LOC" in content
+        assert "XFALIGN_LOC" in content
+        assert "XFTOXG_LOC" in content
