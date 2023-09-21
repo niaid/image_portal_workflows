@@ -205,6 +205,9 @@ The following programs need to be available locally:</p>
 <li><p>bioformats2raw package: <a class="reference external" href="https://github.com/glencoesoftware/bioformats2raw">https://github.com/glencoesoftware/bioformats2raw</a></p></li>
 <li><p>imagemagick: <a class="reference external" href="https://imagemagick.org/script/download.php">https://imagemagick.org/script/download.php</a></p></li>
 </ul>
+<p>All configurations for binary executables that workflows depend on are considered to exist in environment variables.
+For this you will need a <cite>.env</cite> file in the project root directory. For simplicity, you can copy the <cite>.env.sample</cite>
+contents into the <cite>.env</cite> file.</p>
 <p>Similar to the HPC Set up below, you can locally set up <cite>dev</cite> and <cite>qa</cite> virtual envs.</p>
 <p>Special note for <strong>Mac M1</strong>: The <cite>tomojs-pytools</cite> library depends on imagecodecs which does
 not have binaries built for the M1. Need to install using an x86_64 version of Python. Also, there
