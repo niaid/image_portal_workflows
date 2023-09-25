@@ -54,8 +54,8 @@ elif [[ $ACTION == "register" ]]; then
 	prefect register --project $PROJ  --path $WFLOWS/brt/
 	prefect register --project $PROJ  --path $WFLOWS/sem_tomo/
 	prefect register --project $PROJ  --path $WFLOWS/dm_conversion/
-        prefect register --project $PROJ  --path $WFLOWS/lrg_2d_rgb/
-        prefect register --project $PROJ  --path $WFLOWS/czi/
+	prefect register --project $PROJ  --path $WFLOWS/lrg_2d_rgb/
+	prefect register --project $PROJ  --path $WFLOWS/czi/
 elif [[ $ACTION == "create_proj" ]]; then
 	prefect create project $PROJ
 fi
