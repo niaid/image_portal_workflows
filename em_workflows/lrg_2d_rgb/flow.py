@@ -1,4 +1,4 @@
-import os
+from typing import Dict
 from pathlib import Path
 import SimpleITK as sitk
 from pytools import HedwigZarrImage, HedwigZarrImages
@@ -6,8 +6,9 @@ from prefect import Flow, task, Parameter
 from prefect.run_configs import LocalRun
 
 from em_workflows.utils import utils
+from em_workflows.utils import neuroglancer as ng
 from em_workflows.file_path import FilePath
-from em_workflows.constants import AssetType, BIOFORMATS_NUM_WORKERS, JAVA_MAX_HEAP_SIZE
+from em_workflows.constants import AssetType
 from em_workflows.lrg_2d_rgb.config import LRG2DConfig
 from em_workflows.lrg_2d_rgb.constants import (
     LARGE_THUMB_X,
@@ -46,45 +47,23 @@ def convert_png_to_tiff(file_path: FilePath):
 
 
 @task
-def bioformats_gen_zarr(file_path: FilePath):
-    """
-    TODO, refactor this into ng.gen_zarr
-    bioformats2raw --scale-format-string '%2$d' --downsample-type AREA
-    --compression=blosc --compression-properties cname=zstd
-    --compression-properties clevel=5 --compression-properties shuffle=1
-    input.tiff output.zarr
-    """
-
+def gen_zarr(file_path: FilePath) -> None:
     input_tiff = f"{file_path.working_dir}/{file_path.base}.tiff"
-    output_zarr = f"{file_path.working_dir}/{file_path.base}.zarr"
-    log_fp = f"{file_path.working_dir}/{file_path.base}_as_zarr.log"
-    # increase java max heap size for bf2raw command (just in case)
-    os.environ["_JAVA_OPTIONS"] = JAVA_MAX_HEAP_SIZE
-    cmd = [
-        LRG2DConfig.bioformats2raw,
-        f"--max_workers={BIOFORMATS_NUM_WORKERS}",
-        "--overwrite",
-        "--scale-format-string",
-        "%2$d",
-        "--downsample-type",
-        "AREA",
-        "--compression=blosc",
-        "--compression-properties",
-        "cname=zstd",
-        "--compression-properties",
-        "clevel=5",
-        "--compression-properties",
-        "shuffle=1",
-        input_tiff,
-        output_zarr,
-    ]
-    FilePath.run(cmd, log_fp)
-    zarr_images = HedwigZarrImages(zarr_path=Path(output_zarr), read_only=False)
-    zarr_image: HedwigZarrImage = zarr_images[list(zarr_images.get_series_keys())[0]]
-    zarr_image.rechunk(512)
-    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
+
+    ng.bioformats_gen_zarr(
+        file_path=file_path,
+        input_fname=input_tiff,
+        rechunk=True,
+    )
+
+
+@task
+def generate_ng_asset(file_path: FilePath) -> Dict:
+    output_zarr = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
+    zarr_images = HedwigZarrImages(zarr_path=output_zarr, read_only=False)
+    zarr_image = zarr_images[list(zarr_images.get_series_keys())[0]]
     ng_asset = file_path.gen_asset(
-        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=asset_fp
+        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=output_zarr
     )
     ng_asset["metadata"] = dict(
         shader=zarr_image.shader_type,
@@ -160,7 +139,8 @@ with Flow(
     )
     fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
     tiffs = convert_png_to_tiff.map(file_path=fps)
-    zarr_assets = bioformats_gen_zarr.map(file_path=fps, upstream_tasks=[tiffs])
+    zarrs = gen_zarr.map(file_path=fps, upstream_tasks=[tiffs])
+    zarr_assets = generate_ng_asset.map(file_path=fps, upstream_tasks=[zarrs])
     thumb_assets = gen_thumb.map(file_path=fps, upstream_tasks=[zarr_assets])
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)

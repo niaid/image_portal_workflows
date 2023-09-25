@@ -1,45 +1,44 @@
-from typing import Dict
 from pathlib import Path
-from prefect import task
-from pytools.workflow_functions import visual_min_max
+from pytools.HedwigZarrImages import HedwigZarrImages
 from em_workflows.config import Config
 from em_workflows.file_path import FilePath
-from em_workflows.constants import AssetType, BIOFORMATS_NUM_WORKERS
+from em_workflows.constants import BIOFORMATS_NUM_WORKERS, RECHUNK_SIZE
 from em_workflows.utils import utils
-import pytools
-import logging
-import sys
 
 
-@task
-def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int = None) -> Dict:
+def rechunk_zarr(zarr_fp: Path) -> None:
+    images = HedwigZarrImages(zarr_fp, read_only=False)
+    for _, image in images.series():
+        image.rechunk(RECHUNK_SIZE)
+
+
+def bioformats_gen_zarr(
+    file_path: FilePath,
+    input_fname: str,
+    rechunk: bool = False,
+    width: int = None,
+    height: int = None,
+    resolutions: int = None,
+    depth: int = None,
+):
     """
-    .. code-block::
+    Following params alter based on what kind of flow is running...
 
-        bioformats2raw --scale-format-string '%2$d' --compression=blosc --compression-properties cname=zstd
-                       --compression-properties clevel=5 --compression-properties shuffle=1  --resolutions 1
-                       --chunk_depth 128 --tile_width 128 --tile_height 128 input.mrc output.zarr
+    :param input_fname: Depending on the flow, input fname might be different
+    :param rechunk: Rechunk zarrs if required
+    :param width:
+    :param height:
+    :param resolutions:
+    :param depth: These arguments are only used by BRT and SEM flows
     """
-    zarr = fp_in.gen_output_fp(output_ext=".zarr")
-    rec_mrc = fp_in.gen_output_fp(output_ext="_rec.mrc")
-    base_mrc = fp_in.gen_output_fp(output_ext=".mrc", out_fname="adjusted.mrc")
-    input_mrc = fp_in.fp_in
-
-    utils.log("Created zarr ")
-    if rec_mrc.is_file():
-        input_file = rec_mrc.as_posix()
-    elif base_mrc.is_file():
-        input_file = base_mrc.as_posix()
-    elif input_mrc.is_file():
-        input_file = input_mrc.as_posix()
-    else:
-        raise ValueError("unable to find input for zarr generation.")
-
+    output_zarr = f"{file_path.working_dir}/{file_path.base}.zarr"
+    log_fp = f"{file_path.working_dir}/{file_path.base}_as_zarr.log"
     cmd = [
         Config.bioformats2raw,
         f"--max_workers={BIOFORMATS_NUM_WORKERS}",
         "--scale-format-string",
         "%2$d",
+        "--overwrite",
         "--compression",
         "blosc",
         "--compression-properties",
@@ -48,43 +47,36 @@ def gen_zarr(fp_in: FilePath, width: int, height: int, depth: int = None) -> Dic
         "clevel=5",
         "--compression-properties",
         "shuffle=1",
-        "--resolutions",
-        "1",
-        "--tile_width",
-        str(width),
-        "--tile_height",
-        str(height),
     ]
+    if resolutions is not None:
+        cmd.extend(["--resolutions", str(resolutions)])
+    if width is not None:
+        cmd.extend(["--tile_width", str(width)])
+    if height is not None:
+        cmd.extend(["--tile_height", str(height)])
+
     if depth:
         cmd.extend(["--chunk_depth", str(depth)])
     else:
-        # if there's no depth we know it's a 2dmrc input
         cmd.extend(["--downsample-type", "AREA"])
 
-    cmd.extend([input_file, zarr.as_posix()])
+    utils.log("Creating zarr...")
+    cmd.extend([input_fname, output_zarr])
+    FilePath.run(cmd=cmd, log_file=log_fp)
 
-    log_file = f"{zarr.parent}/mrc2zarr.log"
-    utils.log(f"Created zarr {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
-    utils.log("biulding multiscales")
+    if rechunk:
+        rechunk_zarr(zarr_fp=Path(output_zarr))
+
+    file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
+
+
+def zarr_build_multiscales(file_path: FilePath) -> None:
+    zarr = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
+    log_file = f"{file_path.working_dir}/{file_path.base}.log"
+
+    utils.log("Building multiscales...")
     cmd_ms = ["zarr_build_multiscales", zarr.as_posix()]
     FilePath.run(cmd=cmd_ms, log_file=log_file)
-    asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=zarr)
-    first_zarr_arr = Path(zarr.as_posix() + "/0")
-    pytools.logger.level = logging.DEBUG
-    BASIC_FORMAT = "%(levelname)s:%(name)s:%(message)s"
-    formatter = logging.Formatter(BASIC_FORMAT)
-    handler = logging.StreamHandler(stream=sys.stdout)
-    handler.setFormatter(formatter)
-    pytools.logger.addHandler(handler)
-
-    metadata = visual_min_max(mad_scale=5, input_image=first_zarr_arr)
-    ng_asset = fp_in.gen_asset(
-        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=asset_fp
-    )
-
-    ng_asset["metadata"] = metadata
-    return ng_asset
 
 
 #  @task

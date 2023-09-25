@@ -104,6 +104,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e . -r requirements.txt
 
+      - name: Directory setup
+        run: |
+          cp .env.sample .env
+
       - name: Test Coverage
         continue-on-error: true
         run: |

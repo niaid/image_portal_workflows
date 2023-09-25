@@ -2,6 +2,7 @@ from collections import namedtuple
 
 LARGE_DIM = 1024
 SMALL_DIM = 300
+RECHUNK_SIZE = 512
 
 BIOFORMATS_NUM_WORKERS = 3
 # This is expected to be less than the available memory for a dask worker
