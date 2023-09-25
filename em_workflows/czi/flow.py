@@ -84,6 +84,8 @@ def generate_czi_imageset(file_path: FilePath):
         file_path=file_path,
         input_fname=input_czi,
         rechunk=True,
+        width=4096,
+        height=4096,
     )
     imageSet = gen_imageSet(file_path=file_path)
     # extract images from input file, used to create imageSet elements
