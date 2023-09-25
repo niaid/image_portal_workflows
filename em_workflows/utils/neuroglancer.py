@@ -77,28 +77,3 @@ def zarr_build_multiscales(file_path: FilePath) -> None:
     utils.log("Building multiscales...")
     cmd_ms = ["zarr_build_multiscales", zarr.as_posix()]
     FilePath.run(cmd=cmd_ms, log_file=log_file)
-
-
-#  @task
-#  def gen_pyramid_outdir(fp: Path) -> Path:
-#      outdir = Path(f"{fp.parent}/neuro-{fp.stem}")
-#      if outdir.exists():
-#          shutil.rmtree(outdir)
-#          prefect.context.get("logger").info(
-#              f"Pyramid dir {outdir} already exists, overwriting."
-#          )
-#      return outdir
-
-
-#  @task
-#  def gen_archive_pyr(file_path: FilePath) -> None:
-#      """
-#      zip  --compression-method store  -r archive_name  ./* && cd -
-#      """
-#      ng_dir = f"{file_path.working_dir}/neuro-{file_path.fp_in.stem}"
-#      archive_name = f"{file_path.base}.zip"
-#
-#      cmd = ["zip", "-q", "--compression-method", "store", "-r", archive_name, ng_dir]
-#      logger = prefect.context.get("logger")
-#      logger.info(f"compressing : {cmd}")
-#      subprocess.run(cmd, cwd=file_path.working_dir)
