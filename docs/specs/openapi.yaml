@@ -1,0 +1,24 @@
+openapi: 3.1.0
+info:
+  title: Hedwig Workflow API
+  description: REST API for Hedwig Workflows
+  version: 0.1.0
+  license:
+    name: BSD 3-Clause License
+    identifier: BSD 3-Clause License
+
+servers:
+  - url: https://prefect1.hedwig-workflow-api.niaiddev.net/default/flow/
+    description: Dev API
+
+paths:
+  /11bab698-95bd-47a2-95b4-e7188cb4903d:
+    $ref: BRTFlowEndpoint.yaml
+  /966ec553-3e8e-42ce-80e1-263f6d4ea58f:
+    $ref: CZIFlowEndpoint.yaml
+  /de6e9025-715a-49c1-88cf-58213e0003ed:
+    $ref: DMFlowEndpoint.yaml
+  /375bec74-d33d-4a3d-893a-b4a64e4628fc:
+    $ref: LRGFlowEndpoint.yaml
+  /090d8f02-c46c-4464-866f-b268e2b5d5be:
+    $ref: SEMFlowEndpoint.yaml
