@@ -1,0 +1,32 @@
+type: object
+required:
+  - gold
+  - focus
+  - montage
+  - fiducialless
+  - trackingMethod
+  - TwoSurfaces
+  - TargetNumberOfBeads
+  - LocalAlignments
+  - THICKNESS
+properties:
+  LocalAlignments:
+    type: integer
+  THICKNESS:
+    type: integer
+  TargetNumberOfBeads:
+    type: integer
+  TwoSurfaces:
+    type: integer
+  adoc_template:
+    type: string
+  fiducialless:
+    type: integer
+  focus:
+    type: integer
+  gold:
+    type: integer
+  montage:
+    type: integer
+  trackingMethod:
+    type: integer

@@ -1,0 +1,19 @@
+type: object
+required:
+  - input_dir
+  - file_share
+properties:
+  input_dir:
+    type: string
+  file_share:
+    type: string
+  file_name:
+    type: string
+  callback_url:
+    type: string
+  token:
+    type: string
+  no_api:
+    type: string
+  keep_workdir:
+    type: boolean

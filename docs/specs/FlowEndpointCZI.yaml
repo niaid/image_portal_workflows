@@ -1,0 +1,21 @@
+post:
+  summary: Create a CZI workflow run
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: "#definitions/RequestBody"
+  response:
+    200:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: PipelineCallback.yaml
+
+definitions:
+  RequestBody:
+    allOf:
+      - $ref: RequestBodyShared.yaml
+      # - $ref: RequestBodyCZI.yaml

@@ -4,7 +4,7 @@
 # Note:
 # - Floor/Limit is used for window, while Min/Max is used for range.
 # - Floor/Limit has a range wider or equal to Min/Max
-"metadata": {
+"metadata 1": {
   "neuroglancerPrecomputedMin": "-53",
   "neuroglancerPrecomputedMax": "58",
   "neuroglancerPrecomputedFloor": "-571",
@@ -16,7 +16,7 @@
 # - removed "neuroglancerPrecomputed" prefix as that format is no longer being used
 # - Changed two values to an array of integers for stringified number
 # - Renamed to the parameter name of the invlerp
-"metadata": {
+"metadata 2": {
       "shader": "Grayscale",
       "dimensions": "XYZ",
       "shaderParameters": {
@@ -27,7 +27,7 @@
 
 
   # Close to legacy metadata specifications - not preferred
-"metadata": {
+"metadata 3": {
     "shader": "Grayscale",
     "dimensions": "XYZ",
     "shaderParameters": {
@@ -40,7 +40,7 @@
 
 
 # Proposed RGB specification ( could be dimension:XYZ in the future )
-"metadata": {
+"metadata 4": {
     "shader" : "RGB",
     "dimensions" : "XY",
     "shaderParameters" : {}
@@ -48,7 +48,7 @@
 
 
 # Proposed MultiChannel metadata
-"metadata": {
+"metadata 5": {
   "shader": "MultiChannel",
   "dimensions": "XY",
   "shaderParameters": {
