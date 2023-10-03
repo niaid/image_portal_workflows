@@ -36,8 +36,6 @@ def bioformats_gen_zarr(
     cmd = [
         Config.bioformats2raw,
         f"--max_workers={BIOFORMATS_NUM_WORKERS}",
-        "--scale-format-string",
-        "%2$d",
         "--overwrite",
         "--compression",
         "blosc",
