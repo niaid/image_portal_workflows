@@ -58,6 +58,7 @@ def bioformats_gen_zarr(
     if depth:
         cmd.extend(["--chunk_depth", str(depth)])
     else:
+        # FIXME if there's no depth we know it's a 2dmrc input
         cmd.extend(["--downsample-type", "AREA"])
 
     utils.log("Creating zarr...")

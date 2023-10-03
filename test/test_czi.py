@@ -16,12 +16,20 @@ def mock_reuse_zarr(monkeypatch):
     """
     from em_workflows.utils import neuroglancer as ng
 
-    def _mock_bioformats_gen_zarr(file_path: FilePath):
+    original = ng.bioformats_gen_zarr
+
+    def _mock_bioformats_gen_zarr(
+        file_path: FilePath, input_fname: str, *args, **kwargs
+    ):
         zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
         if Path(zarr_fp).exists():
-            print("Reusing existing .zarr files! Avoiding bf2raw command.")
+            print(
+                "*" * 10
+                + "\nReusing existing .zarr files! Avoiding bf2raw command.\n"
+                + "*" * 10
+            )
             return
-        ng.bioformats_gen_zarr(file_path)
+        original(file_path=file_path, input_fname=input_fname, *args, **kwargs)
 
     monkeypatch.setattr(ng, "bioformats_gen_zarr", _mock_bioformats_gen_zarr)
 
@@ -33,7 +41,7 @@ def test_input_fname(mock_nfs_mount, caplog, mock_reuse_zarr):
 
     state = flow.run(
         file_share="test",
-        input_dir="test/input_files/IF_czi/Projects/smaller",
+        input_dir="test/input_files/IF_czi/Projects/Cropped_Image/",
         no_api=True,
     )
     assert state.is_successful()
@@ -70,15 +78,22 @@ def test_no_mount_point_flow_fails(mock_binaries, monkeypatch, caplog):
 
     state = flow.run(
         file_share=share_name,
-        input_dir="test/input_files/IF_czi/Projects/smaller",
+        input_dir="test/input_files/IF_czi/Projects/Cropped_Image/",
         no_api=True,
     )
     assert not state.is_successful()
     assert f"{share_name} doesn't exist. Failing!" in caplog.text, caplog.text
 
 
+@pytest.mark.parametrize(
+    "input_dir",
+    [
+        "test/input_files/IF_czi/Projects/Large_Image/",
+        # "test/input_files/IF_czi/Projects/Cropped_Image/",
+    ],
+)
 def test_czi_workflow_callback_structure(
-    mock_nfs_mount, caplog, mock_reuse_zarr, mock_callback_data
+    mock_nfs_mount, caplog, mock_reuse_zarr, mock_callback_data, input_dir
 ):
     """
     Tests that appropriate structure exists in the callback output
@@ -86,7 +101,6 @@ def test_czi_workflow_callback_structure(
     """
     from em_workflows.czi.flow import flow
 
-    input_dir = "test/input_files/IF_czi/Projects/smaller"
     if not Path(input_dir).exists():
         pytest.skip("Missing input files")
 
