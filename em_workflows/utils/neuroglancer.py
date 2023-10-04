@@ -69,7 +69,7 @@ def bioformats_gen_zarr(
 
 
 def zarr_build_multiscales(file_path: FilePath) -> None:
-    zarr = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
+    zarr = Path(f"{file_path.assets_dir}/{file_path.base}.zarr/0")
     log_file = f"{file_path.working_dir}/{file_path.base}.log"
 
     utils.log("Building multiscales...")

@@ -235,7 +235,7 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     file_path = fp_in
     asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
 
-    first_zarr_arr = Path(asset_fp.as_posix() + "/0")
+    first_zarr_arr = Path(asset_fp.as_posix() + "/0/0")
 
     ng_asset = file_path.gen_asset(
         asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=asset_fp
