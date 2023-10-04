@@ -508,7 +508,31 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     ng_asset = file_path.gen_asset(
         asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=asset_fp
     )
-    ng_asset["metadata"] = visual_min_max(mad_scale=5, input_image=first_zarr_arr)
+    shader_params = visual_min_max(mad_scale=5, input_image=first_zarr_arr)
+    # visual_min_max currently returns an dict like:
+    # "metadata": {
+    #  "neuroglancerPrecomputedMin": "-53",
+    #  "neuroglancerPrecomputedMax": "58",
+    #  "neuroglancerPrecomputedFloor": "-571",
+    #  "neuroglancerPrecomputedLimit": "370"
+    # }
+    # this needs to be converted to the new format, below.
+    sp_massaged = {
+        "window": [
+            shader_params["neuroglancerPrecomputedFloor"],
+            shader_params["neuroglancerPrecomputedLimit"],
+        ],
+        "range": [
+            shader_params["neuroglancerPrecomputedMin"],
+            shader_params["neuroglancerPrecomputedMax"],
+        ],
+    }
+    metadata = {
+        "shader": "Grayscale",
+        "dimensions": "XYZ",
+        "shaderParameters": sp_massaged,
+    }
+    ng_asset["metadata"] = metadata
     return ng_asset
 
 
