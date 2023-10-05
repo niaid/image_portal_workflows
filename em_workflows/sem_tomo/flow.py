@@ -5,7 +5,7 @@ import math
 from typing import Dict
 from prefect import Flow, task, Parameter, unmapped
 from prefect.run_configs import LocalRun
-from pytools.workflow_functions import visual_min_max
+from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
@@ -232,15 +232,28 @@ def gen_zarr(fp_in: FilePath) -> None:
 
 @task
 def gen_ng_metadata(fp_in: FilePath) -> Dict:
+    # Note; the seemingly redundancy of working and asset fp here.
+    # However asset fp is in the network file system and is deployed for access to the users
+    # Working fp is actually used for getting the metadata
+
     file_path = fp_in
     asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
+    working_fp = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
+    hw_images = HedwigZarrImages(zarr_path=working_fp, read_only=False)
+    hw_image = hw_images[list(hw_images.get_series_keys())[0]]
 
-    first_zarr_arr = Path(asset_fp.as_posix() + "/0/0")
+    # NOTE: this could be replaced by hw_image.path
+    # but hw_image is part of working dir (temporary)
+    first_zarr_arr = asset_fp / "0"
 
     ng_asset = file_path.gen_asset(
-        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=asset_fp
+        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=first_zarr_arr
     )
-    ng_asset["metadata"] = visual_min_max(mad_scale=5, input_image=first_zarr_arr)
+    ng_asset["metadata"] = dict(
+        shader=hw_image.shader_type,
+        dimensions=hw_image.dims,
+        shaderParameters=hw_image.neuroglancer_shader_parameters(),
+    )
     return ng_asset
 
 

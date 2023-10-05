@@ -59,16 +59,26 @@ def gen_zarr(file_path: FilePath) -> None:
 
 @task
 def generate_ng_asset(file_path: FilePath) -> Dict:
-    output_zarr = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
-    zarr_images = HedwigZarrImages(zarr_path=output_zarr, read_only=False)
-    zarr_image = zarr_images[list(zarr_images.get_series_keys())[0]]
+    # Note; the seemingly redundancy of working and asset fp here.
+    # However asset fp is in the network file system and is deployed for access to the users
+    # Working fp is actually used for getting the metadata
+
+    asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
+    working_fp = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
+    hw_images = HedwigZarrImages(zarr_path=working_fp, read_only=False)
+    hw_image = hw_images[list(hw_images.get_series_keys())[0]]
+
+    # NOTE: this could be replaced by hw_image.path
+    # but hw_image is part of working dir (temporary)
+    first_zarr_arr = asset_fp / "0"
+
     ng_asset = file_path.gen_asset(
-        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=output_zarr
+        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=first_zarr_arr
     )
     ng_asset["metadata"] = dict(
-        shader=zarr_image.shader_type,
-        dimensions=zarr_image.dims,
-        # shaderParameters=zarr_image.neuroglancer_shader_parameters()
+        shader=hw_image.shader_type,
+        dimensions=hw_image.dims,
+        shaderParameters=hw_image.neuroglancer_shader_parameters(),
     )
     return ng_asset
 
