@@ -75,9 +75,11 @@ def generate_ng_asset(file_path: FilePath) -> Dict:
     ng_asset = file_path.gen_asset(
         asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=first_zarr_arr
     )
+    # the GUI / API does not want to see dims XYC, will set to 'XY' for now
+    # should be hw_image.dims
     ng_asset["metadata"] = dict(
         shader=hw_image.shader_type,
-        dimensions=hw_image.dims,
+        dimensions="XY",
         shaderParameters=hw_image.neuroglancer_shader_parameters(),
     )
     return ng_asset

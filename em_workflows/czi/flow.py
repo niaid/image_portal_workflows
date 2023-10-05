@@ -66,9 +66,11 @@ def gen_imageSet(file_path: FilePath) -> List:
             ng_asset = file_path.gen_asset(
                 asset_type="neuroglancerZarr", asset_fp=Path(zarr_fp) / zarr_idx
             )
+            # note - dims should be image.dims, but GUI does not want XYC
+            # hardcoding in XY for now.
             ng_asset["metadata"] = dict(
                 shader=image.shader_type,
-                dimensions=image.dims,
+                dimensions="XY",
                 shaderParameters=image.neuroglancer_shader_parameters(),
             )
             assets.append(ng_asset)
