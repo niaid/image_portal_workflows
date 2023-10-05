@@ -39,7 +39,6 @@ from typing import Dict
 import glob
 import os
 
-from pytools.HedwigZarrImages import HedwigZarrImages
 from em_workflows.file_path import FilePath
 import subprocess
 import math
@@ -48,6 +47,7 @@ from pathlib import Path
 from prefect import task, Flow, Parameter, unmapped
 from prefect.run_configs import LocalRun
 from prefect.engine import signals
+from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
@@ -501,21 +501,28 @@ def gen_zarr(fp_in: FilePath):
 
 @task
 def gen_ng_metadata(fp_in: FilePath) -> Dict:
+    # Note; the seemingly redundancy of working and asset fp here.
+    # However asset fp is in the network file system and is deployed for access to the users
+    # Working fp is actually used for getting the metadata
+
     file_path = fp_in
     asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
-    zarr_fp = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
-    hw_images = HedwigZarrImages(zarr_fp)
-    _, hw_image = next(hw_images.series())
+    working_fp = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
+    hw_images = HedwigZarrImages(zarr_path=working_fp, read_only=False)
+    hw_image = hw_images[list(hw_images.get_series_keys())[0]]
+
+    # NOTE: this could be replaced by hw_image.path
+    # but hw_image is part of working dir (temporary)
+    first_zarr_arr = asset_fp / "0"
 
     ng_asset = file_path.gen_asset(
-        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=asset_fp
+        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=first_zarr_arr
     )
-    metadata = {
-        "shader": "Grayscale",
-        "dimensions": "XYZ",
+    ng_asset["metadata"] = {
+        "shader": hw_image.shader_type,
+        "dimensions": hw_image.dims,
         "shaderParameters": hw_image.neuroglancer_shader_parameters(),
     }
-    ng_asset["metadata"] = metadata
     return ng_asset
 
 

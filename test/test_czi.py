@@ -101,7 +101,7 @@ def test_czi_workflow_callback_structure(
     with open(mock_callback_data) as fd:
         callback_output = json.load(fd)
 
-    # Belwo, assert possible structures and data sanitation checks
+    # Below, assert possible structures and data sanitation checks
     assert "files" in callback_output
     # .czi files and length of the callback.files is equal
     assert len(
