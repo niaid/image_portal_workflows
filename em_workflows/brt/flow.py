@@ -38,6 +38,8 @@ Batchruntomo pipeline overview:
 from typing import Dict
 import glob
 import os
+
+from pytools.HedwigZarrImages import HedwigZarrImages
 from em_workflows.file_path import FilePath
 import subprocess
 import math
@@ -46,7 +48,6 @@ from pathlib import Path
 from prefect import task, Flow, Parameter, unmapped
 from prefect.run_configs import LocalRun
 from prefect.engine import signals
-from pytools.workflow_functions import visual_min_max
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
@@ -502,13 +503,19 @@ def gen_zarr(fp_in: FilePath):
 def gen_ng_metadata(fp_in: FilePath) -> Dict:
     file_path = fp_in
     asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
-
-    first_zarr_arr = Path(asset_fp.as_posix() + "/0/0")
+    zarr_fp = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
+    hw_images = HedwigZarrImages(zarr_fp)
+    _, hw_image = next(hw_images.series())
 
     ng_asset = file_path.gen_asset(
         asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=asset_fp
     )
-    ng_asset["metadata"] = visual_min_max(mad_scale=5, input_image=first_zarr_arr)
+    metadata = {
+        "shader": "Grayscale",
+        "dimensions": "XYZ",
+        "shaderParameters": hw_image.neuroglancer_shader_parameters(),
+    }
+    ng_asset["metadata"] = metadata
     return ng_asset
 
 
