@@ -521,7 +521,7 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     ng_asset["metadata"] = {
         "shader": hw_image.shader_type,
         "dimensions": hw_image.dims,
-        "shaderParameters": hw_image.neuroglancer_shader_parameters(),
+        "shaderParameters": hw_image.neuroglancer_shader_parameters(mad_scale=5.0),
     }
     return ng_asset
 
