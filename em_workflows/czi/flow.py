@@ -23,6 +23,9 @@ def gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> d
     )
     if sitk_image:
         output_jpeg = f"{file_path.working_dir}/{file_path.base}_{image_name}_sm.jpeg"
+        if image_name == "label image":
+            # Rotate the image 90 CW
+            sitk_image = sitk.Flip(sitk.PermuteAxes(sitk_image, [1, 0]), [True, False])
         sitk.WriteImage(
             sitk_image,
             output_jpeg,
