@@ -69,7 +69,7 @@ def gen_imageSet(file_path: FilePath) -> List:
             ng_asset["metadata"] = dict(
                 shader=image.shader_type,
                 dimensions=image.dims,
-                shaderParameters=image.neuroglancer_shader_parameters(),
+                shaderParameters=image.neuroglancer_shader_parameters(mad_scale=5.0),
             )
             assets.append(ng_asset)
         image_elt["assets"] = assets
