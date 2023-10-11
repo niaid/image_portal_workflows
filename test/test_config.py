@@ -1,4 +1,3 @@
-from prefect.engine import signals
 import pytest
 
 from em_workflows import config
@@ -15,7 +14,7 @@ class TestConfig:
         monkeypatch.setattr(config, "NFS_MOUNT", _mock_NFS_MOUNT)
 
         assert Config._mount_point("valid") == _mock_NFS_MOUNT["valid"]
-        with pytest.raises(signals.FAIL) as excinfo:
+        with pytest.raises(RuntimeError) as excinfo:
             Config._mount_point("invalid")
         assert "invalid doesn't exist." in str(excinfo.value)
 
@@ -28,11 +27,11 @@ class TestConfig:
         assert Config._mount_point("valid") == _mock_NFS_MOUNT["valid"]
 
         share_name = "Bad"
-        with pytest.raises(signals.FAIL) as excinfo:
+        with pytest.raises(RuntimeError) as excinfo:
             Config._mount_point(share_name)
         assert f"{share_name} is not a valid name. Failing!" in str(excinfo)
 
         share_name = None
-        with pytest.raises(signals.FAIL) as excinfo:
+        with pytest.raises(RuntimeError) as excinfo:
             Config._mount_point(share_name)
         assert f"{share_name} is not a valid name. Failing!" in str(excinfo)
