@@ -4,7 +4,8 @@ pytest-env
 python-dotenv
 pytest-cov
 coverage-badge
-prefect==1.*
+prefect==2.*
+prefect_dask
 dask
 distributed
 dask-jobqueue
