@@ -1,8 +1,6 @@
 import os
-import shutil
 from pathlib import Path
 
-import prefect
 from prefect_dask.task_runners import DaskTaskRunner
 from dotenv import load_dotenv
 from dask_jobqueue import SLURMCluster
@@ -13,7 +11,7 @@ from em_workflows.constants import NFS_MOUNT
 load_dotenv()
 
 
-def SLURM_exec():
+def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     """
     brings up a dynamically sized cluster.
 
@@ -34,29 +32,15 @@ def SLURM_exec():
         queue="gpu",
         walltime="24:00:00",
         job_extra_directives=["--gres=gpu:1"],
+        asynchronous=asynchronous,
+        **cluster_kwargs,
     )
     cluster.scale(1)
     # cluster.adapt(minimum=1, maximum=6)
-    logging = prefect.context.get("logger")
-    logging.debug("Dask cluster started")
-    logging.debug(f"see dashboard {cluster.dashboard_link}")
+    # to get logger, we must be within an active flow/task run
+    print("Dask cluster started")
+    print(f"see dashboard {cluster.dashboard_link}")
     return cluster
-
-
-def command_loc(cmd: str) -> str:
-    """
-    Given the name of a program that is assumed to be in the current path,
-    return the full path by using the `shutil.which()` operation. It is
-    *assumed* that `shutil` is available and the command is on the path
-    :param cmd: str, the command to be run, often part of the `IMOD` package
-    :return: str, the full path to the program
-    """
-    cmd_path = shutil.which(cmd)
-    if not cmd_path:
-        # if you can't find the command, pass back whatever was passed in.
-        # let the runtime throw an error, and this will end up in the logs.
-        cmd_path = cmd
-    return cmd_path
 
 
 class Config:
@@ -100,3 +84,19 @@ class Config:
 
     repo_dir = Path(os.path.dirname(__file__))
     template_dir = Path(f"{repo_dir.as_posix()}/templates")
+
+
+# def command_loc(cmd: str) -> str:
+#     """
+#     Given the name of a program that is assumed to be in the current path,
+#     return the full path by using the `shutil.which()` operation. It is
+#     *assumed* that `shutil` is available and the command is on the path
+#     :param cmd: str, the command to be run, often part of the `IMOD` package
+#     :return: str, the full path to the program
+#     """
+#     cmd_path = shutil.which(cmd)
+#     if not cmd_path:
+#         # if you can't find the command, pass back whatever was passed in.
+#         # let the runtime throw an error, and this will end up in the logs.
+#         cmd_path = cmd
+#     return cmd_path
