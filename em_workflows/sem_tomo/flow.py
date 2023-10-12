@@ -1,10 +1,10 @@
-from pathlib import Path
 import glob
-from natsort import os_sorted
 import math
+from pathlib import Path
 from typing import Dict
-from prefect import Flow, task, Parameter, unmapped
-from prefect.run_configs import LocalRun
+from natsort import os_sorted
+
+from prefect import flow, task, allow_failure, unmapped
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
@@ -257,12 +257,21 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     return ng_asset
 
 
-with Flow(
-    "sem_tomo",
-    state_handlers=[utils.notify_api_completion, utils.notify_api_running],
-    executor=SEMConfig.SLURM_EXECUTOR,
-    run_config=LocalRun(labels=[utils.get_environment()]),
-) as flow:
+@flow(
+    name="Flow: SEM TOMO",
+    log_prints=True,
+    task_runner=SEMConfig.SLURM_EXECUTOR,
+)
+def sem_tomo_flow(
+    file_share: str,
+    input_dir: str,
+    file_name: str = None,
+    callback_url: str = None,
+    token: str = None,
+    no_api: bool = False,
+    keep_workdir: bool = False,
+    tilt_angle: float = 0,
+):
     """
     General overview:
     - Single directory is used to contain a set of gifs, which make up a single stack.
@@ -280,17 +289,6 @@ with Flow(
     - Firstly create nifti file using the base mrc, then convert this to ng format.
     - To conclude, send callback stating the location of the various outputs.
     """
-    file_share = Parameter("file_share")
-    input_dir = Parameter("input_dir")
-    file_name = Parameter("file_name", default=None)
-    callback_url = Parameter("callback_url", default=None)()
-    token = Parameter("token", default=None)()
-    tilt_angle = Parameter("tilt_angle", default=0)()
-    # debugging options:
-    no_api = Parameter("no_api", default=False)()
-    keep_workdir = Parameter("keep_workdir", default=False)()
-
-    # dir to read from.
     input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
     # note FIBSEM is different to other flows in that it uses *directories*
     # to define stacks. Therefore, will have to list dirs to discover stacks
@@ -303,33 +301,33 @@ with Flow(
     tif_to_mrc = convert_tif_to_mrc.map(fps)
 
     # using source.mrc gen align.xf
-    align_xfs = gen_xfalign_comand.map(fp_in=fps, upstream_tasks=[tif_to_mrc])
+    align_xfs = gen_xfalign_comand.map(fp_in=fps, wait_for=[tif_to_mrc])
 
     # using align.xf create align.xg
-    align_xgs = gen_align_xg.map(fp_in=fps, upstream_tasks=[align_xfs])
+    align_xgs = gen_align_xg.map(fp_in=fps, wait_for=[align_xfs])
 
     # create stretch file using tilt_parameter
     stretchs = create_stretch_file.map(tilt=unmapped(tilt_angle), fp_in=fps)
 
-    base_mrcs = gen_newstack_combi.map(fp_in=fps, upstream_tasks=[stretchs, align_xgs])
+    base_mrcs = gen_newstack_combi.map(fp_in=fps, wait_for=[stretchs, align_xgs])
     corrected_movie_assets = utils.mrc_to_movie.map(
         file_path=fps,
         root=unmapped("adjusted"),
         asset_type=unmapped(AssetType.REC_MOVIE),
-        upstream_tasks=[base_mrcs],
+        wait_for=[base_mrcs],
     )
 
     # generate midpoint mrc file
-    mid_mrcs = gen_newstack_mid_mrc_command.map(fp_in=fps, upstream_tasks=[base_mrcs])
+    mid_mrcs = gen_newstack_mid_mrc_command.map(fp_in=fps, wait_for=[base_mrcs])
 
     # large thumb
-    keyimg_assets = gen_keyimg.map(fp_in=fps, upstream_tasks=[mid_mrcs])
+    keyimg_assets = gen_keyimg.map(fp_in=fps, wait_for=[mid_mrcs])
     # small thumb
-    thumb_assets = gen_keyimg_small.map(fp_in=fps, upstream_tasks=[keyimg_assets])
+    thumb_assets = gen_keyimg_small.map(fp_in=fps, wait_for=[keyimg_assets])
 
     # zarr file generation
-    zarrs = gen_zarr.map(fp_in=fps, upstream_tasks=[base_mrcs])
-    pyramid_assets = gen_ng_metadata.map(fp_in=fps, upstream_tasks=[zarrs])
+    zarrs = gen_zarr.map(fp_in=fps, wait_for=[base_mrcs])
+    pyramid_assets = gen_ng_metadata.map(fp_in=fps, wait_for=[zarrs])
 
     # this is the toplevel element (the input file basically) onto which
     # the "assets" (ie the outputs derived from this file) are hung.
@@ -347,10 +345,13 @@ with Flow(
     callback_with_corr_movies = utils.add_asset.map(
         prim_fp=callback_with_corr_mrcs, asset=corrected_movie_assets
     )
-    rm_workdirs = utils.cleanup_workdir(fps, upstream_tasks=[callback_with_corr_movies])
-
     # finally filter error states, and convert to JSON and send.
     filtered_callback = utils.filter_results(callback_with_corr_movies)
+
     cb = utils.send_callback_body(
-        token=token, callback_url=callback_url, files_elts=filtered_callback
+        no_api=no_api,
+        token=token,
+        callback_url=callback_url,
+        files_elts=filtered_callback,
     )
+    utils.cleanup_workdir(fps, keep_workdir, wait_for=[allow_failure(cb)])
