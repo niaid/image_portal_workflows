@@ -7,6 +7,7 @@ import tempfile
 import subprocess
 
 from prefect import get_run_logger
+from prefect.exceptions import MissingContextError
 
 from em_workflows.config import Config
 
@@ -17,7 +18,10 @@ def log(msg: str) -> None:
     :param msg: str to be written
     :return: None
     """
-    get_run_logger().info(msg)
+    try:
+        get_run_logger().info(msg)
+    except MissingContextError:
+        print(msg)
 
 
 class FilePath:
