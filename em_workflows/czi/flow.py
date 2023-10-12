@@ -1,13 +1,14 @@
 from pathlib import Path
 from typing import List, Dict
+
 import SimpleITK as sitk
-from prefect import Flow, Parameter, task
+from prefect import flow, task, allow_failure
 from pytools.HedwigZarrImage import HedwigZarrImage
 from pytools.HedwigZarrImages import HedwigZarrImages
+
 from em_workflows.file_path import FilePath
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
-from prefect.run_configs import LocalRun
 from em_workflows.czi.constants import (
     VALID_CZI_INPUTS,
     THUMB_X_DIM,
@@ -122,20 +123,22 @@ def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
     return callback_with_zarr
 
 
-with Flow(
-    "czi_to_zarr",
-    state_handlers=[utils.notify_api_completion, utils.notify_api_running],
-    executor=CZIConfig.SLURM_EXECUTOR,
-    run_config=LocalRun(labels=[utils.get_environment()]),
-) as flow:
-    input_dir = Parameter("input_dir")
-    file_share = Parameter("file_share")
-    file_name = Parameter("file_name", default=None)
-    callback_url = Parameter("callback_url", default=None)()
-    token = Parameter("token", default=None)()
-    no_api = Parameter("no_api", default=None)()
-    # keep workdir if set true, useful to look at outputs
-    keep_workdir = Parameter("keep_workdir", default=False)()
+@flow(
+    name="Flow: IF czi",
+    log_prints=True,
+    task_runner=CZIConfig.SLURM_EXECUTOR,
+    on_completion=utils.notify_api_completion,
+    # on_failure=utils.notify_api_completion,
+)
+def czi_flow(
+    file_share: str,
+    input_dir: str,
+    file_name: str = None,
+    callback_url: str = None,
+    token: str = None,
+    no_api: bool = False,
+    keep_workdir: bool = False,
+):
     input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
 
     input_fps = utils.list_files(
@@ -155,4 +158,4 @@ with Flow(
     cb = utils.send_callback_body(
         token=token, callback_url=callback_url, files_elts=filtered_callback
     )
-    rm_workdirs = utils.cleanup_workdir(fps, upstream_tasks=[cb])
+    utils.cleanup_workdir(fps, wait_for=[allow_failure(cb)])
