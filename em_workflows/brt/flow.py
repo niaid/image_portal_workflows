@@ -38,61 +38,19 @@ Batchruntomo pipeline overview:
 from typing import Dict
 import glob
 import os
-
-from em_workflows.file_path import FilePath
 import subprocess
 import math
-
 from pathlib import Path
-from prefect import task, Flow, Parameter, unmapped
-from prefect.run_configs import LocalRun
-from prefect.engine import signals
+
+from prefect import task, flow, unmapped, allow_failure
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 from em_workflows.constants import AssetType
-
+from em_workflows.file_path import FilePath
 from em_workflows.brt.config import BRTConfig
 from em_workflows.brt.constants import BRT_DEPTH, BRT_HEIGHT, BRT_WIDTH
-
-"""
-Batchruntomo pipeline overview:
-- Takes an `input_dir` containing 1 or more .mrc or .st files
-- IMOD batchruntomo (BRT) https://bio3d.colorado.edu/imod/doc/man/batchruntomo.html is run on each file in dir.
-- BRT has a large number of parameters, which are provided using an .adoc parameter file.
-- Some of these parameters are provided to the pipeline on a per run basis, the remaining of
-    these parameters are defaulted using the templated adoc file.
-- There are two templates, ../templates/plastic_brt.adoc and ../templates/cryo_brt.adoc
-    (Note, currently these are identical, we expect this to change.) The template chosen is defined by parameter
-    adoc_template.
-- The run time parameters are interpolated into the template, and this file is then run with BRT.
-- BRT produces two output files that we care about: _ali.mrc and _rec.mrc
-- Using the ali (alignment) file we generate a tilt movie:
-    look up dimensionality of alignment file, and generate n sections in gen_ali_x()
-    we assemble these sections into a single aligned mrc file, in gen_ali_asmbl()
-    we convert this into a stack of jpegs, in gen_mrc2tiff()
-    we compile these jpegs into a tilt movie in gen_tilt_movie()
-    ADDITIONALLY
-    we take the mid point of the stack jpeg to use as the display thumbnail.
-    we clean up intermediate files now.
-- Using the _rec (reconstructed) file we generate a reconstructed movie (in a similar fashion to the above):
-    look up dimensionality of the reconstructed (_rec) file,
-    create a stack of averaged mrc files in gen_clip_avgs().
-    create single mrc using the above averaged stack, in consolidate_ave_mrcs()
-    convert this mrc to a stack of jpegs, in gen_ave_jpgs_from_ave_mrc()
-    compile jpegs into reconstructed movie, in gen_recon_movie()
-    clean up after ourselves in cleanup_files()
-- Use average (created above) reconstructed mrc file to create input for volslicer.k in gen_ave_8_vol()
-- need to produce pyramid files with reconstructed mrc.
-    convert _rec.mrc file to nifti, in neuroglancer.gen_niftis()
-    convert nifti file to pyramid file, in gen_pyramids()
-    compress pyramid assets, in gen_archive_pyr()
-- Now we need to copy the outputs to the right place, and tell the API where they are. We use JSON to talk to the API.
-- build a json datastructure, containing the locations of the inputs we key on "primaryFilePath", and we append
-    every output that's generated for *this* input into the "assets" json key.
-- Finally, we POST the JSON datastructure to the API, and cleanup temp dirs.
-"""
 
 
 @task
@@ -105,7 +63,7 @@ def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
     """
 
     if ali_or_rec not in ["ali", "rec"]:
-        raise signals.FAIL(
+        raise RuntimeError(
             f"gen_dimension_command must be called with ali or rec, not {ali_or_rec}"
         )
     mrc_file = f"{file_path.working_dir}/{file_path.base}_{ali_or_rec}.mrc"
@@ -114,7 +72,7 @@ def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
         utils.log(f"{mrc_file} exists")
     else:
         utils.log(f"{mrc_file} DOES NOT exist")
-        raise signals.FAIL(
+        raise RuntimeError(
             f"File {mrc_file} does not exist. gen_dimension_command failure."
         )
     cmd = [BRTConfig.header_loc, "-s", mrc_file]
@@ -124,7 +82,7 @@ def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
         stderr = sp.stderr.decode("utf-8")
         msg = f"ERROR : {stderr} -- {stdout}"
         utils.log(msg)
-        raise signals.FAIL(msg)
+        raise RuntimeError(msg)
     else:
         stdout = sp.stdout.decode("utf-8")
         stderr = sp.stderr.decode("utf-8")
@@ -526,39 +484,39 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     return ng_asset
 
 
-with Flow(
-    "brt_flow",
-    executor=BRTConfig.SLURM_EXECUTOR,
-    state_handlers=[utils.notify_api_running],
-    terminal_state_handler=utils.custom_terminal_state_handler,
-    run_config=LocalRun(labels=[utils.get_environment()]),
-) as flow:
+# run_config=LocalRun(labels=[utils.get_environment()]),
+@flow(
+    name="Flow: BRT",
+    log_prints=True,
+    task_runner=BRTConfig.SLURM_EXECUTOR,
+    on_completion=utils.notify_api_completion,
+    # on_failure=utils.notify_api_completion,
+)
+def brt_flow(
     # This block of params map are for adoc file specfication.
     # Note the ugly names, these parameters are lifted verbatim from
     # https://bio3d.colorado.edu/imod/doc/directives.html where possible.
     # (there are two thickness args, these are not verbatim.)
-    montage = Parameter("montage")
-    gold = Parameter("gold")
-    focus = Parameter("focus")
-    fiducialless = Parameter("fiducialless")
-    trackingMethod = Parameter("trackingMethod")
-    TwoSurfaces = Parameter("TwoSurfaces")
-    TargetNumberOfBeads = Parameter("TargetNumberOfBeads")
-    LocalAlignments = Parameter("LocalAlignments")
-    THICKNESS = Parameter("THICKNESS")
+    montage: int,
+    gold: int,
+    focus: int,
+    fiducialless: int,
+    trackingMethod: int,
+    TwoSurfaces: int,
+    TargetNumberOfBeads: int,
+    LocalAlignments: int,
+    THICKNESS: int,
     # end user facing adoc params
-
-    adoc_template = Parameter("adoc_template", default="plastic_brt")
-    input_dir = Parameter("input_dir")
-    file_share = Parameter("file_share")
-    callback_url = Parameter("callback_url", default=None)()
-    token = Parameter("token", default=None)()
-    file_name = Parameter("file_name", default=None)
-
-    # debugging options:
-    # run workflow without an api.
-    no_api = Parameter("no_api", default=False)()
-    keep_workdir = Parameter("keep_workdir", default=False)()
+    file_share: str,
+    input_dir: str,
+    file_name: str = None,
+    callback_url: str = None,
+    token: str = None,
+    no_api: bool = False,
+    keep_workdir: bool = False,
+    adoc_template: str = "plastic_brt",
+):
+    utils.notify_api_running(no_api, token, callback_url)
 
     # a single input_dir will have n tomograms
     input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
@@ -586,70 +544,62 @@ with Flow(
     # stack dimensions - used in movie creation
     # alignment z dimension, this is only used for the tilt movie.
     ali_z_dims = gen_dimension_command.map(
-        file_path=fps, ali_or_rec=unmapped("ali"), upstream_tasks=[brts]
+        file_path=fps, ali_or_rec=unmapped("ali"), wait_for=[brts]
     )
 
     # START TILT MOVIE GENERATION:
-    ali_xs = gen_ali_x.map(file_path=fps, z_dim=ali_z_dims, upstream_tasks=[brts])
-    asmbls = gen_ali_asmbl.map(file_path=fps, upstream_tasks=[ali_xs])
-    mrc2tiffs = gen_mrc2tiff.map(file_path=fps, upstream_tasks=[asmbls])
-    thumb_assets = gen_thumbs.map(
-        file_path=fps, z_dim=ali_z_dims, upstream_tasks=[mrc2tiffs]
-    )
+    ali_xs = gen_ali_x.map(file_path=fps, z_dim=ali_z_dims, wait_for=[brts])
+    asmbls = gen_ali_asmbl.map(file_path=fps, wait_for=[ali_xs])
+    mrc2tiffs = gen_mrc2tiff.map(file_path=fps, wait_for=[asmbls])
+    thumb_assets = gen_thumbs.map(file_path=fps, z_dim=ali_z_dims, wait_for=[mrc2tiffs])
     keyimg_assets = gen_copy_keyimages.map(
-        file_path=fps, z_dim=ali_z_dims, upstream_tasks=[mrc2tiffs]
+        file_path=fps, z_dim=ali_z_dims, wait_for=[mrc2tiffs]
     )
-    tilt_movie_assets = gen_tilt_movie.map(
-        file_path=fps, upstream_tasks=[keyimg_assets]
-    )
+    tilt_movie_assets = gen_tilt_movie.map(file_path=fps, wait_for=[keyimg_assets])
     clean_align_mrc = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_align_*.mrc"),
-        upstream_tasks=[tilt_movie_assets, thumb_assets, keyimg_assets],
+        wait_for=[tilt_movie_assets, thumb_assets, keyimg_assets],
     )
     clean_ali_jpg = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*ali*.jpg"),
-        upstream_tasks=[tilt_movie_assets, thumb_assets, keyimg_assets],
+        wait_for=[tilt_movie_assets, thumb_assets, keyimg_assets],
     )
     # END TILT MOVIE GENERATION
 
     # START RECONSTR MOVIE GENERATION:
     rec_z_dims = gen_dimension_command.map(
-        file_path=fps, ali_or_rec=unmapped("rec"), upstream_tasks=[brts]
+        file_path=fps, ali_or_rec=unmapped("rec"), wait_for=[brts]
     )
-    clip_avgs = gen_clip_avgs.map(
-        file_path=fps, z_dim=rec_z_dims, upstream_tasks=[asmbls]
-    )
+    clip_avgs = gen_clip_avgs.map(file_path=fps, z_dim=rec_z_dims, wait_for=[asmbls])
     averagedVolume_assets = consolidate_ave_mrcs.map(
-        file_path=fps, upstream_tasks=[clip_avgs]
+        file_path=fps, wait_for=[clip_avgs]
     )
     ave_jpgs = gen_ave_jpgs_from_ave_mrc.map(
-        file_path=fps, upstream_tasks=[averagedVolume_assets]
+        file_path=fps, wait_for=[averagedVolume_assets]
     )
-    recon_movie_assets = gen_recon_movie.map(file_path=fps, upstream_tasks=[ave_jpgs])
+    recon_movie_assets = gen_recon_movie.map(file_path=fps, wait_for=[ave_jpgs])
     clean_mp4 = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_mp4.*.jpg"),
-        upstream_tasks=[recon_movie_assets, ave_jpgs],
+        wait_for=[recon_movie_assets, ave_jpgs],
     )
     clean_ave_mrc = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_ave*.mrc"),
-        upstream_tasks=[recon_movie_assets, ave_jpgs],
+        wait_for=[recon_movie_assets, ave_jpgs],
     )
     #    # END RECONSTR MOVIE
 
     # Binned volume assets, for volslicer.
-    bin_vol_assets = gen_ave_8_vol.map(
-        file_path=fps, upstream_tasks=[averagedVolume_assets]
-    )
+    bin_vol_assets = gen_ave_8_vol.map(file_path=fps, wait_for=[averagedVolume_assets])
     # finished volslicer inputs.
 
-    zarrs = gen_zarr.map(fp_in=fps, upstream_tasks=[brts])
-    pyramid_assets = gen_ng_metadata.map(fp_in=fps, upstream_tasks=[zarrs])
+    zarrs = gen_zarr.map(fp_in=fps, wait_for=[brts])
+    pyramid_assets = gen_ng_metadata.map(fp_in=fps, wait_for=[zarrs])
     #  archive_pyramid_cmds = ng.gen_archive_pyr.map(
-    #      file_path=fps, upstream_tasks=[pyramid_assets]
+    #      file_path=fps, wait_for=[pyramid_assets]
     #  )
 
     # now we've done the computational work.
@@ -677,27 +627,32 @@ with Flow(
         prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
 
-    cp_wd_to_assets = utils.copy_workdirs.map(
-        fps, upstream_tasks=[callback_with_tilt_mov]
-    )
+    cp_wd_to_assets = utils.copy_workdirs.map(fps, wait_for=[callback_with_tilt_mov])
     # finally filter error states, and convert to JSON and send.
     filtered_callback = utils.filter_results(callback_with_tilt_mov)
 
     cb = utils.send_callback_body(
-        token=token, callback_url=callback_url, files_elts=filtered_callback
+        no_api=no_api,
+        token=token,
+        callback_url=callback_url,
+        files_elts=filtered_callback,
     )
-    rm_workdirs = utils.cleanup_workdir(
+    utils.cleanup_workdir(
         fps,
-        upstream_tasks=[
-            cb,
-            cp_wd_to_assets,
-            clean_align_mrc,
-            clean_ali_jpg,
-            clean_ave_mrc,
-            clean_mp4,
+        keep_workdir,
+        wait_for=[
+            allow_failure(cb),
+            allow_failure(cp_wd_to_assets),
+            allow_failure(clean_align_mrc),
+            allow_failure(clean_ali_jpg),
+            allow_failure(clean_ave_mrc),
+            allow_failure(clean_mp4),
         ],
     )
-
-# the other tasks might be always run or something,
-# this is far enough along to get an idea of success.
-flow.set_reference_tasks([callback_with_tilt_mov])
+    """
+    # if the callback is not empty (that is one of the files passed), final=success
+    final_state = bool(callback_with_tilt_mov)
+    # Previously, this was done by `set_reference_tasks`
+    # flow.set_reference_tasks([callback_with_tilt_mov])
+    return Completed(message="Success") if final_state else Failed(message="Failed")
+    """
