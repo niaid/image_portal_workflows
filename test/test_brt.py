@@ -12,19 +12,19 @@ from pathlib import Path
 @pytest.mark.localdata
 @pytest.mark.slow
 def test_brt(mock_nfs_mount):
-    from em_workflows.brt.flow import flow
+    from em_workflows.brt.flow import brt_flow
 
-    input_dir = "test/input_files/brt_inputs/Projects/"
+    input_dir = "test/input_files/brt/Projects/RT_TOMO/"
     if not Path(input_dir).exists():
         pytest.skip("Directory doesn't exist")
 
-    result = flow.run(
+    result = brt_flow(
         adoc_template="plastic_brt",
         montage=0,
         gold=15,
         focus=0,
         fiducialless=1,
-        trackingMethod=None,
+        trackingMethod=0,
         TwoSurfaces=0,
         TargetNumberOfBeads=20,
         LocalAlignments=0,
@@ -34,25 +34,25 @@ def test_brt(mock_nfs_mount):
         no_api=True,
         keep_workdir=True,
     )
-    assert result.is_successful(), "`result` is not successful!"
+    assert result.is_completed(), "`result` is not successful!"
 
 
 @pytest.mark.localdata
 @pytest.mark.slow
-def test_brt_callback(mock_nfs_mount, mock_callback_data):
-    from em_workflows.brt.flow import flow
+def test_brt_callback(mock_nfs_mount, caplog, mock_callback_data, mock_reuse_zarr):
+    from em_workflows.brt.flow import brt_flow
 
-    input_dir = "test/input_files/brt_inputs/Projects/"
+    input_dir = "test/input_files/brt/Projects/RT_TOMO/"
     if not Path(input_dir).exists():
         pytest.skip("Directory doesn't exist")
 
-    result = flow.run(
+    result = brt_flow(
         adoc_template="plastic_brt",
         montage=0,
         gold=15,
         focus=0,
         fiducialless=1,
-        trackingMethod=None,
+        trackingMethod=0,
         TwoSurfaces=0,
         TargetNumberOfBeads=20,
         LocalAlignments=0,
@@ -62,7 +62,7 @@ def test_brt_callback(mock_nfs_mount, mock_callback_data):
         no_api=True,
         keep_workdir=True,
     )
-    assert result.is_successful(), "`result` is not successful!"
+    assert result.is_completed(), "`result` is not successful!"
 
     callback_output = {}
     with open(mock_callback_data) as fd:

@@ -9,6 +9,8 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 from prefect import task, get_run_logger
+from prefect.states import State
+from prefect.flows import Flow, FlowRun
 
 from em_workflows.config import Config
 from em_workflows.file_path import FilePath
@@ -501,15 +503,20 @@ def notify_api_running(no_api: bool, token: str, callback_url: str):
 #     return ns
 
 
-@task(retries=1, retry_delay_seconds=60)
-def notify_api_completion(status: bool, no_api: bool, token: str, callback_url: str):
+def notify_api_completion(flow: Flow, flow_run: FlowRun, final_state: State):
     """
-    Prefect workflows transition from State to State, see:
     https://docs.prefect.io/core/concepts/states.html#overview.
     https://docs.prefect.io/core/concepts/notifications.html#state-handlers
     """
+    status = "Completed" if final_state.is_completed else "Failed"
+    print("\n\nParams", flow_run.parameters)
+    print("\n\nContext", flow_run.context)
+    no_api = flow_run.context.get("no_api", True)
+    token = flow_run.context.get("token", "")
+    callback_url = flow_run.context.get("callback_url", "")
+
     if no_api:
-        log(f"no_api flag used, completion status: {status}")
+        log(f"no_api flag used\nCompletion status: {status}")
         return
 
     headers = {
