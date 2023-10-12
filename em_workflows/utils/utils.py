@@ -9,6 +9,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 from prefect import task, get_run_logger
+from prefect.exceptions import MissingContextError
 from prefect.states import State
 from prefect.flows import Flow, FlowRun
 
@@ -27,7 +28,10 @@ def log(msg):
     :param msg: string to output
     :return: None
     """
-    get_run_logger().info(msg)
+    try:
+        get_run_logger().info(msg)
+    except MissingContextError:
+        print(msg)
 
 
 def filter_results(results):
@@ -50,7 +54,7 @@ def lookup_dims(fp: Path) -> Header:
         stderr = sp.stderr.decode("utf-8")
         msg = f"ERROR : {stderr} -- {stdout}"
         log(msg)
-        raise ValueError(msg)
+        raise RuntimeError(msg)
     else:
         stdout = sp.stdout.decode("utf-8")
         stderr = sp.stderr.decode("utf-8")
