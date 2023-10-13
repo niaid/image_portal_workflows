@@ -489,8 +489,8 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     name="Flow: BRT",
     log_prints=True,
     task_runner=BRTConfig.SLURM_EXECUTOR,
-    on_completion=utils.notify_api_completion,
-    # on_failure=utils.notify_api_completion,
+    on_completion=[utils.notify_api_completion],
+    on_failure=[utils.notify_api_completion],
 )
 def brt_flow(
     # This block of params map are for adoc file specfication.
