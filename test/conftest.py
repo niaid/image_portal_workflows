@@ -6,8 +6,10 @@ in the test files.
 """
 import os
 from pathlib import Path
+
 import pytest
 from prefect.task_runners import ConcurrentTaskRunner
+from prefect.testing.utilities import prefect_test_harness
 
 from em_workflows.file_path import FilePath
 
@@ -79,6 +81,15 @@ def mock_reuse_zarr(monkeypatch):
         original_gen_zarr(file_path, *a, **kw)
 
     monkeypatch.setattr(ng, "bioformats_gen_zarr", _mock_bioformats_gen_zarr)
+
+
+@pytest.fixture
+def prefect_test():
+    """
+    Reference: https://docs.prefect.io/2.13.5/guides/testing/
+    """
+    with prefect_test_harness():
+        yield
 
 
 @pytest.fixture(scope="session", autouse=True)
