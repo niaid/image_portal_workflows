@@ -183,6 +183,8 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     name="Flow: DM Conversion",
     log_prints=True,
     task_runner=DMConfig.SLURM_EXECUTOR,
+    on_completion=[utils.notify_api_completion],
+    on_failure=[utils.notify_api_completion],
 )
 def dm_flow(
     file_share: str,
