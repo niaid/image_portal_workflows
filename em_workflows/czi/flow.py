@@ -127,8 +127,8 @@ def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
     name="Flow: IF czi",
     log_prints=True,
     task_runner=CZIConfig.SLURM_EXECUTOR,
-    on_completion=utils.notify_api_completion,
-    # on_failure=utils.notify_api_completion,
+    on_completion=[utils.notify_api_completion],
+    on_failure=[utils.notify_api_completion],
 )
 def czi_flow(
     file_share: str,
