@@ -313,3 +313,45 @@ def test_list_files(mock_nfs_mount):
         input_dir=input_dir, exts=exts, single_file=file_name
     )
     assert len(files) == 1
+
+
+def test_state_hooks_calls(prefect_test):
+    """
+    Tests whether states hooks are called appropriately
+    """
+    from prefect import flow, task
+    from unittest.mock import Mock
+
+    my_hook = Mock(return_value=None)
+    # Kept getting error: AttributeError `__name__`
+    my_hook.__name__ = "foo"
+
+    @task
+    def my_task(param1, param2):
+        print(param1, param2)
+
+    @flow(
+        name="hooks_test",
+        on_completion=[my_hook],
+        on_failure=[my_hook],
+    )
+    def my_flow(param1: int, param2: int):
+        my_task.submit(param1, param2)
+
+    params = dict(param1=1, param2=2)
+    my_flow(**params)
+
+    my_hook.assert_called_once()
+    print(my_hook.call_args)
+    # the call args are sent as (flow, flow_run, state)
+    # in case of unitest, they are received in args and kwargs
+    _, kw = my_hook.call_args
+    assert "flow" in kw
+    assert "flow_run" in kw
+    flow_run = kw["flow_run"]
+    assert "state" in kw
+    state = kw["state"]
+
+    assert flow_run.parameters == params
+    assert flow_run.context == {}
+    assert str(state.type) == "StateType.COMPLETED"
