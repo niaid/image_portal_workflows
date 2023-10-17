@@ -61,11 +61,12 @@ def gen_imageSet(file_path: FilePath) -> List:
             image_name = f"Scene {k_idx}"
         image_elt["imageName"] = image_name
 
-        assets.append(
-            gen_thumb(image=image, file_path=file_path, image_name=image_name)
-        )
+        if image_name == "label image":
+            assets.append(
+                gen_thumb(image=image, file_path=file_path, image_name=image_name)
+            )
 
-        if image_name != "label image":
+        else:
             ng_asset = file_path.gen_asset(
                 asset_type="neuroglancerZarr", asset_fp=Path(zarr_fp) / zarr_idx
             )
