@@ -103,7 +103,6 @@ def find_thumb_idx(callback: List[Dict]) -> List[Dict]:
         for i, image_elt in enumerate(elt["imageSet"]):
             if image_elt["imageName"] == "label image":
                 elt["thumbnailIndex"] = i
-                return callback
     return callback
 
 
