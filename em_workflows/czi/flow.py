@@ -107,6 +107,18 @@ def find_thumb_idx(callback: List[Dict]) -> List[Dict]:
     return callback
 
 
+@task
+def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
+    zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
+    zarr_images = HedwigZarrImages(Path(zarr_fp))
+    callback_with_zarr["fileMetadata"]["omeXml"] = None
+    ome_xml_path = zarr_images.ome_xml_path
+    if ome_xml_path:
+        xml_path = ome_xml_path.relative_to(file_path.asset_root)
+        callback_with_zarr["fileMetadata"]["omeXml"] = xml_path.as_posix()
+    return callback_with_zarr
+
+
 with Flow(
     "czi_to_zarr",
     state_handlers=[utils.notify_api_completion, utils.notify_api_running],
@@ -132,6 +144,9 @@ with Flow(
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     imageSets = generate_czi_imageset.map(file_path=fps)
     callback_with_zarrs = utils.add_imageSet.map(prim_fp=prim_fps, imageSet=imageSets)
+    callback_with_zarrs = update_file_metadata.map(
+        file_path=fps, callback_with_zarr=callback_with_zarrs
+    )
     callback_with_zarrs = find_thumb_idx(callback=callback_with_zarrs)
     filtered_callback = utils.filter_results(callback_with_zarrs)
     cb = utils.send_callback_body(
