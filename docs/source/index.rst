@@ -14,5 +14,6 @@ Image Portal Workflows's documentation
 
    development
    workflows
+   usage
    api
    hpc
