@@ -144,3 +144,9 @@ dmypy.json
 
 # tags
 tags
+
+# prefect artifacts
+.prefectignore
+
+# Dask
+dask-worker-space/
