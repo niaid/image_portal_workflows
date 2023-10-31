@@ -8,9 +8,8 @@ The docs related to development and testing are contained in this section.
 Prerequisites
 *************
 
-Please read this Development section before cloning. The `generate_venv.sh` script referenced below
-automates much of the process. Current system assumes that you are locally running either a Linux
-or Mac OS.
+Please read this Development section before cloning.
+Current system assumes that you are locally running either a Linux or Mac OS.
 
 Github.com
 ==========
@@ -18,11 +17,10 @@ Github.com
 The repository is located in the NIAID Github.com enterprise organization. Having a github.com account
 which is a member of the NIAID organization is required.
 
-pip install -e <path_to_clone>
-git+https://github.com/niaid/tomojs-pytools.git@master in requirements.txt
-
 Git LFS
 =======
+
+*We are aiming to use s3 (with rsync capabilities) over git-lfs for test data storage*
 
 Git `Large File Storage <https://git-lfs.github.com>`_ (LFS) is used to store larger files in the repository such as
 test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
@@ -65,6 +63,7 @@ All ``pytest`` files reside in the `test` directory:
 - ``test_dm``: 2D end-to-end pipeline test
 - ``test_sem``: end-to-end test of FIBSEM pipeline
 - ``test_lrg_2d``: Large 2d pipeline test
+- ``test_czi``: Spatial Omics (IF - immunofluoroscene) pipeline test
 - ``test_utils``: unit tests of utils/utils.py module
 
 There is test data for `test_dm` in the Git repo, but not for the others. These files need to be
@@ -72,8 +71,9 @@ downloaded from the HPC machines. The following script will copy them:
 
 `test/copy_test_data.sh`
 
-These files are quite large, so you may want to run each line separately at the command line. Some unit tests also
-require the results of previous ``test_brt`` runs, specifically in the Assets directory. So you must run ''test_brt''
+These files are quite large, so you may want to run each line separately at the command line.
+
+Some unit tests also require the results of previous ``test_brt`` runs, specifically in the Assets directory. So you must run ''test_brt''
 before the complete test suite will work.
 
 To run the entire test suite, in the portal_image_workflows directory, run::
@@ -168,6 +168,8 @@ HPC Set up
 
 **NOTE, THIS IS ONLY relevant for HPC. Added for completeness.**
 
+**NOTE: generate_vevn.sh is not used as of 08/11/2023, setup is documented in** :doc:`hpc`.
+
 Workflows are currently run on RML HPC ("BigSky").
 
 There are three environments currently on BigSky: (`dev`, `qa`, `prod`).
@@ -187,12 +189,6 @@ They were set up as follows:
    conda deactivate
 
 
-A script exists to help set up `dev`, `qa`, or `prod` environments in
-`$HOME/code/hedwig/<HEDWIG_ENV>`
-Insure `$HOME/code/hedwig` exists. Runs on Linux.
-
-
-**Note**: generate_vevn.sh is not used as of 08/11/2023, setup is documented in `hpc.rst`.
 
 .. code-block:: sh
 

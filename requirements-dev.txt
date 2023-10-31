@@ -1,0 +1,10 @@
+pytest>=6.0
+coverage
+coverage-badge
+flake8
+black
+pytest-cov
+pre-commit
+sphinx-autobuild
+sphinx-rtd-theme
+-r requirements.txt
