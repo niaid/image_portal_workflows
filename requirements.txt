@@ -1,9 +1,5 @@
-pytest
-coverage
 pytest-env
 python-dotenv
-pytest-cov
-coverage-badge
 prefect==2.13.8
 prefect_dask
 dask
@@ -11,4 +7,3 @@ distributed
 dask-jobqueue
 natsort
 pytools@https://github.com/niaid/tomojs-pytools/releases/download/v3.0b03/pytools-3.0b3-py3-none-any.whl
-pre-commit
