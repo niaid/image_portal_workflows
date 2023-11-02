@@ -13,15 +13,13 @@ if [[ ! ( $HEDWIG_ENV == "dev" || $HEDWIG_ENV == "qa" || $HEDWIG_ENV == "prod" )
 fi
 
 
+export PREFECT_API_URL="https://prefect2.hedwig-workflow-api.niaid$HEDWIG_ENV.net/api"
 # this also defines where to register flows.
 if [[ $HEDWIG_ENV == "dev" ]]; then
-	export PREFECT__SERVER__HOST="https://prefect1.hedwig-workflow-api.niaiddev.net"
 	HEDWIG_HOME="/gs1/home/hedwig_dev"
 elif [[ $HEDWIG_ENV == "qa" ]]; then
-	export PREFECT__SERVER__HOST="https://prefect1.hedwig-workflow-api.niaidqa.net"
 	HEDWIG_HOME="/gs1/home/hedwig_qa"
 elif [[ $HEDWIG_ENV == "prod" ]]; then
-	export PREFECT__SERVER__HOST="https://prefect1.hedwig-workflow-api.niaidprod.net"
 	HEDWIG_HOME="/gs1/home/hedwig_prod"
 fi
 
@@ -34,28 +32,25 @@ source $HEDWIG_HOME/$HEDWIG_ENV/bin/activate
 
 export IMOD_DIR=/opt/rml/imod
 
-
 ACTION=$1
-if [[ ! ( $ACTION == "listen" || $ACTION == "register" || $ACTION == "create_proj" ) ]]; then
-	printf "Script must be called with ARG1 as either listen, or register."
+if [[ ! ( $ACTION == "listen" || $ACTION == "register" || $ACTION == "setup" ) ]]; then
+	printf "Script must be called with ARG1 as either listen, register, or setup."
 	printf "Eg ./$SELF listen\nExiting on 1."
 	exit 1
 fi
 
-# start agent specific to THAT venv
+# start worker specific to THAT venv
 WFLOWS="$HEDWIG_HOME/image_portal_workflows/em_workflows"
-PROJ="Spaces_$HEDWIG_ENV"
+WORKPOOL=default-pool
+
 if [[ $ACTION == "listen" ]]; then
-	printf "\nStarting $HEDWIG_ENV Agent\n"
-	prefect backend server
-	prefect agent local start --label $HEDWIG_ENV --api $PREFECT__SERVER__HOST:4200
+	printf "\nStarting $HEDWIG_ENV Worker\n"
+	sh -c "prefect worker start --pool $WORKPOOL"
 elif [[ $ACTION == "register" ]]; then
 	printf "\nRegister $HEDWIG_ENV Agent\n"
-	prefect register --project $PROJ  --path $WFLOWS/brt/
-	prefect register --project $PROJ  --path $WFLOWS/sem_tomo/
-	prefect register --project $PROJ  --path $WFLOWS/dm_conversion/
-	prefect register --project $PROJ  --path $WFLOWS/lrg_2d_rgb/
-	prefect register --project $PROJ  --path $WFLOWS/czi/
-elif [[ $ACTION == "create_proj" ]]; then
-	prefect create project $PROJ
+  # all the configs are in ProjectRoot/prefect.yaml
+	sh -c "prefect deploy --all"
+elif [[ $ACTION == "setup" ]]; then
+	printf "\nSetting up Prefect $WORKPOOL\n"
+	sh -c "prefect work-pool create $WORKPOOL --type process"
 fi
