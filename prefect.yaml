@@ -20,7 +20,7 @@ pull:
 definitions:
   work_pools:
     dask_work_pool: &dask_work_pool
-      name: work-test
+      name: workpool
       work_queue_name:
       job_variables: {}
   tags:
@@ -29,6 +29,7 @@ definitions:
       - image_portal_workflows
 
 # the deployments section allows you to provide configuration for deploying flows
+# TODO: change deployment names
 deployments:
 - name: dep-test
   version:
