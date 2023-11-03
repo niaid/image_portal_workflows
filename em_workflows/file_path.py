@@ -184,7 +184,7 @@ class FilePath:
              {
               "primaryFilePath": "Lab/PI/Myproject/MySession/Sample1/file_a.mrc",
               "thumbnailIndex": 0,
-              "fileMetadata": {},
+              "fileMetadata": null,
               "imageSet": []
              }
             ]
@@ -196,7 +196,9 @@ class FilePath:
         # setting to zero here, most input files will only have a single image elt.
         # will update val if czi
         thumbnailIndex = 0
-        fileMetadata = dict()
+        # Note: `None` are fundamental values and they are expected if no metadata exist
+        # They should be changed where they need to be changed.
+        fileMetadata = None
         imageMetadata = None
         assets = []
         imageSetElement = {
