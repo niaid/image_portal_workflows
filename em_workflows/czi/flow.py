@@ -111,10 +111,11 @@ def find_thumb_idx(callback: List[Dict]) -> List[Dict]:
 def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
     zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
     zarr_images = HedwigZarrImages(Path(zarr_fp))
-    callback_with_zarr["fileMetadata"]["omeXml"] = None
     ome_xml_path = zarr_images.ome_xml_path
     if ome_xml_path:
         xml_path = ome_xml_path.relative_to(file_path.asset_root)
+        if callback_with_zarr["fileMetadata"] is None:
+            callback_with_zarr["fileMetadata"] = dict()
         callback_with_zarr["fileMetadata"]["omeXml"] = xml_path.as_posix()
     return callback_with_zarr
 
