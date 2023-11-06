@@ -14,6 +14,7 @@ def test_dm4_conv(mock_nfs_mount):
         file_share="test",
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
         no_api=True,
+        return_state=True,
     )
     assert state.is_completed()
 
@@ -29,6 +30,7 @@ def test_dm4_conv_clean_workdir(mock_nfs_mount):
             file_name="20210525_1416_A000_G000.dm4",
             no_api=True,
             keep_workdir=False,
+            return_state=True,
         )
         assert state.is_completed()
     # keep_workdir = False removes the workdir
@@ -41,6 +43,7 @@ def test_dm4_conv_clean_workdir(mock_nfs_mount):
             file_name="20210525_1416_A000_G000.dm4",
             no_api=True,
             keep_workdir=True,
+            return_state=True,
         )
         assert state.is_completed()
     # keep_workdir keeps the workdir
