@@ -41,7 +41,7 @@ fi
 
 # start worker specific to THAT venv
 WFLOWS="$HEDWIG_HOME/image_portal_workflows/em_workflows"
-WORKPOOL=default-pool
+WORKPOOL=workpool
 
 if [[ $ACTION == "listen" ]]; then
 	printf "\nStarting $HEDWIG_ENV Worker\n"

@@ -13,10 +13,11 @@ def test_input_fname(mock_nfs_mount, caplog, mock_reuse_zarr):
 
     state = czi_flow(
         file_share="test",
-        input_dir="test/input_files/IF_czi/Projects/smaller",
+        input_dir="test/input_files/IF_czi/Projects/Cropped_Image/",
         no_api=True,
+        return_state=True,
     )
-    assert state.is_successful()
+    assert state.is_completed()
 
 
 def test_rechunk(mock_nfs_mount, caplog):
@@ -48,12 +49,12 @@ def test_no_mount_point_flow_fails(mock_binaries, monkeypatch, caplog):
 
     monkeypatch.setattr(config, "NFS_MOUNT", _mock_NFS_MOUNT)
 
-    state = czi_flow(
-        file_share=share_name,
-        input_dir="test/input_files/IF_czi/Projects/smaller",
-        no_api=True,
-    )
-    assert not state.is_successful()
+    with pytest.raises(RuntimeError):
+        czi_flow(
+            file_share=share_name,
+            input_dir="test/input_files/IF_czi/Projects/Cropped_Image/",
+            no_api=True,
+        )
     assert f"{share_name} doesn't exist. Failing!" in caplog.text, caplog.text
 
 
@@ -66,7 +67,7 @@ def test_czi_workflow_callback_structure(
     """
     from em_workflows.czi.flow import czi_flow
 
-    input_dir = "test/input_files/IF_czi/Projects/smaller"
+    input_dir = "test/input_files/IF_czi/Projects/Cropped_Image"
     if not Path(input_dir).exists():
         pytest.skip("Missing input files")
 
@@ -74,8 +75,9 @@ def test_czi_workflow_callback_structure(
         file_share="test",
         input_dir=input_dir,
         no_api=True,
+        return_state=True,
     )
-    assert state.is_successful()
+    assert state.is_completed()
 
     callback_output = {}
     with open(mock_callback_data) as fd:
@@ -104,15 +106,10 @@ def test_czi_workflow_callback_structure(
     # scene structures
     first_scene = scene_elements[0]
     assert "imageName" in first_scene
-    assert (
-        len(first_scene["assets"]) == 2
-    ), "One thumbnail and one zarr file should have existed"
+    assert len(first_scene["assets"]) == 1, "Only one zarr file should have existed"
     assets = first_scene["assets"]
-    assert sorted([assets[0]["type"], assets[1]["type"]]) == [
-        "neuroglancerZarr",
-        "thumbnail",
-    ]
-    nzarr = [asset for asset in assets if asset["type"] == "neuroglancerZarr"][0]
+    assert assets[0]["type"] == "neuroglancerZarr"
+    nzarr = assets[0]
     assert "path" in nzarr
     assert (
         nzarr["path"] != first["primaryFilePath"]
