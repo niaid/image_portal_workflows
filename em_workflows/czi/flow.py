@@ -156,6 +156,9 @@ def czi_flow(
     callback_with_zarrs = find_thumb_idx(callback=callback_with_zarrs)
     filtered_callback = utils.filter_results(callback_with_zarrs)
     cb = utils.send_callback_body(
-        token=token, callback_url=callback_url, files_elts=filtered_callback
+        no_api=no_api,
+        token=token,
+        callback_url=callback_url,
+        files_elts=filtered_callback,
     )
-    utils.cleanup_workdir(fps, wait_for=[allow_failure(cb)])
+    utils.cleanup_workdir(fps, keep_workdir, wait_for=[allow_failure(cb)])

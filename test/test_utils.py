@@ -14,6 +14,19 @@ from em_workflows.constants import LARGE_DIM, SMALL_DIM
 from em_workflows.dm_conversion.constants import LARGE_2D, SMALL_2D, VALID_2D_INPUT_EXTS
 
 
+def test_bio2r_environ(mock_nfs_mount, caplog):
+    from em_workflows.config import Config
+    from em_workflows.file_path import FilePath
+    import os
+    import tempfile
+
+    assert os.path.exists(Config.bioformats2raw)
+    with tempfile.NamedTemporaryFile() as logfile:
+        cmd = [Config.bioformats2raw, "--version"]
+        FilePath.run(cmd=cmd, log_file=logfile.name)
+        assert "Bio-Formats version" in caplog.text
+
+
 def test_hedwig_env() -> None:
     """
     Verify env is set corretly - a bit simplistic
