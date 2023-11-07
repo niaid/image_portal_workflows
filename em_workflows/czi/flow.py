@@ -154,6 +154,7 @@ def czi_flow(
         file_path=fps, callback_with_zarr=callback_with_zarrs
     )
     callback_with_zarrs = find_thumb_idx(callback=callback_with_zarrs)
+    utils.copy_workdirs.map(fps, wait_for=[callback_with_zarrs])
     filtered_callback = utils.filter_results(callback_with_zarrs)
     cb = utils.send_callback_body(
         no_api=no_api,
