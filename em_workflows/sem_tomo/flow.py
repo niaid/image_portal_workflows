@@ -347,6 +347,15 @@ def sem_tomo_flow(
     callback_with_corr_movies = utils.add_asset.map(
         prim_fp=callback_with_corr_mrcs, asset=corrected_movie_assets
     )
+    utils.copy_workdirs.map(
+        fps,
+        wait_for=[
+            callback_with_corr_movies,
+            callback_with_corr_mrcs,
+            callback_with_pyramids,
+            callback_with_keyimgs,
+        ],
+    )
     # finally filter error states, and convert to JSON and send.
     filtered_callback = utils.filter_results(callback_with_corr_movies)
 

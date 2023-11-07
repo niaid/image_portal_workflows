@@ -164,6 +164,7 @@ def lrg_2d_flow(
     callback_with_pyramids = utils.add_asset.map(
         prim_fp=callback_with_thumbs, asset=zarr_assets
     )
+    utils.copy_workdirs.map(fps, wait_for=[callback_with_pyramids])
     filtered_callback = utils.filter_results(callback_with_pyramids)
 
     cb = utils.send_callback_body(
