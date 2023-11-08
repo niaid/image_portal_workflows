@@ -29,6 +29,7 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
         processes=4,
         death_timeout=121,
         local_directory=f"{home}/dask_tmp/",
+        log_directory="/tmp/test/",
         queue="gpu",
         walltime="24:00:00",
         job_extra_directives=["--gres=gpu:1"],
