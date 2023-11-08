@@ -7,6 +7,8 @@ import json
 from typing import List, Dict
 from pathlib import Path
 
+import time
+
 from jinja2 import Environment, FileSystemLoader
 from prefect import task, get_run_logger
 from prefect.exceptions import MissingContextError
@@ -403,6 +405,7 @@ def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> Lis
     - Note, if no files are found does NOT raise exception. Function can be called
       multiple times, sometimes there will be no files of that extension.
     """
+    time.sleep(60)
     _files = list()
     if single_file:
         log(f"Looking for single file: {single_file} in {input_dir}")
@@ -566,6 +569,7 @@ def get_input_dir(share_name: str, input_dir: str) -> Path:
     | create working dir
     | returns Path obj
     """
+    time.sleep(60)
     if not input_dir.endswith("/"):
         input_dir = input_dir + "/"
     if not input_dir.startswith("/"):
@@ -581,6 +585,7 @@ def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePa
     a list of FilePaths for the input files. This includes a temporary working
     directory for each file to keep the files separate on the HPC.
     """
+    time.sleep(60)
     fps = list()
     for fp in fps_in:
         file_path = FilePath(share_name=share_name, input_dir=input_dir, fp_in=fp)
