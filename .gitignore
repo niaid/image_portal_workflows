@@ -134,13 +134,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# image stuff
-*tif
-*tiff
-*jpeg
-*jpg
-*mp4
-*mrc
+# test input files
+test/input_files/*
+!test/input_files/.gitattributes
 
 # tags
 tags
