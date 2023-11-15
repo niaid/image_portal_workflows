@@ -454,6 +454,9 @@ def gen_zarr(fp_in: FilePath):
         height=BRT_HEIGHT,
         resolutions=1,
     )
+    output_zarr = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
+    file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
+
     ng.zarr_build_multiscales(file_path)
 
 
