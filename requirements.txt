@@ -1,6 +1,6 @@
 pytest-env
 python-dotenv
-prefect==2.13.8
+prefect
 prefect_dask
 dask
 distributed
