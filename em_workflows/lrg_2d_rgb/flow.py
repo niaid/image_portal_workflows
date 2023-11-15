@@ -164,7 +164,7 @@ def lrg_2d_flow(
     callback_with_pyramids = utils.add_asset.map(
         prim_fp=callback_with_thumbs, asset=zarr_assets
     )
-    utils.copy_workdirs.map(fps, wait_for=[callback_with_pyramids])
+    cp_wd_to_assets = utils.copy_workdirs.map(fps, wait_for=[callback_with_pyramids])
     filtered_callback = utils.filter_results(callback_with_pyramids)
 
     cb = utils.send_callback_body(
@@ -173,7 +173,9 @@ def lrg_2d_flow(
         callback_url=callback_url,
         files_elts=filtered_callback,
     )
-    utils.cleanup_workdir(fps, keep_workdir, wait_for=[allow_failure(cb)])
+    utils.cleanup_workdir(
+        fps, keep_workdir, wait_for=[allow_failure(cb), allow_failure(cp_wd_to_assets)]
+    )
 
     """
     # TODO which of the results above "actually" determines the state of the workflow run
