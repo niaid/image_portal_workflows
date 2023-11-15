@@ -58,14 +58,19 @@ def bioformats_gen_zarr(
     else:
         cmd.extend(["--downsample-type", "AREA"])
 
-    utils.log("Creating zarr...")
+    utils.log("\nCreating zarr")
     cmd.extend([input_fname, output_zarr])
     FilePath.run(cmd=cmd, log_file=log_fp)
+    utils.log("\n\nZarr creation complete...")
 
     if rechunk:
+        utils.log("\nZarr rechunking started")
         rechunk_zarr(zarr_fp=Path(output_zarr))
+        utils.log("\n\nZarr rechunking complete...")
 
+    utils.log("\nCopying assets started")
     file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
+    utils.log("\n\nCopying assets completed...")
 
 
 def zarr_build_multiscales(file_path: FilePath) -> None:
