@@ -4,12 +4,13 @@ from pathlib import Path
 from typing import Dict
 from natsort import os_sorted
 
-from prefect import flow, task, allow_failure, unmapped
+from prefect import flow, task, unmapped
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 from em_workflows.file_path import FilePath
+from em_workflows.flow import callback_with_cleanup
 from em_workflows.constants import AssetType
 from em_workflows.sem_tomo.config import SEMConfig
 from em_workflows.sem_tomo.constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_WIDTH
@@ -350,29 +351,12 @@ def sem_tomo_flow(
     callback_with_corr_movies = utils.add_asset.map(
         prim_fp=callback_with_corr_mrcs, asset=corrected_movie_assets
     )
-    cp_wd_to_assets = utils.copy_workdirs.map(
-        fps,
-        wait_for=[
-            callback_with_corr_movies,
-            callback_with_corr_mrcs,
-            callback_with_pyramids,
-            callback_with_keyimgs,
-        ],
-    )
-    # finally filter error states, and convert to JSON and send.
-    filtered_callback = utils.filter_results(callback_with_corr_movies)
 
-    cb = utils.send_callback_body(
+    callback_with_cleanup(
+        fps=fps,
+        callback_result=callback_with_corr_movies,
         no_api=no_api,
-        token=token,
         callback_url=callback_url,
-        files_elts=filtered_callback,
-    )
-    utils.cleanup_workdir(
-        fps,
-        keep_workdir,
-        wait_for=[
-            allow_failure(cb),
-            allow_failure(cp_wd_to_assets),
-        ],
+        token=token,
+        keep_workdir=keep_workdir,
     )

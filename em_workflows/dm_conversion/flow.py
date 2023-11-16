@@ -1,12 +1,13 @@
 from pathlib import Path
 from typing import Optional
 
-from prefect import flow, task, allow_failure, unmapped
+from prefect import flow, task, unmapped
 from pytools.meta import is_int16
 from pytools.convert import file_to_uint8
 
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
+from em_workflows.flow import callback_with_cleanup
 from em_workflows.constants import LARGE_DIM, AssetType
 from em_workflows.dm_conversion.config import DMConfig
 from em_workflows.dm_conversion.constants import LARGE_2D, SMALL_2D, VALID_2D_INPUT_EXTS
@@ -239,16 +240,12 @@ def dm_flow(
     callback_with_keyimgs = utils.add_asset.map(
         prim_fp=callback_with_thumbs, asset=keyimg_assets
     )
-    # finally filter error states, and convert to JSON and send.
-    cp_wd_to_assets = utils.copy_workdirs.map(fps, wait_for=[callback_with_keyimgs])
-    filtered_callback = utils.filter_results(callback_with_keyimgs)
 
-    cb = utils.send_callback_body(
+    callback_with_cleanup(
+        fps=fps,
+        callback_result=callback_with_keyimgs,
         no_api=no_api,
-        token=token,
         callback_url=callback_url,
-        files_elts=filtered_callback,
-    )
-    utils.cleanup_workdir(
-        fps, keep_workdir, wait_for=[allow_failure(cb), allow_failure(cp_wd_to_assets)]
+        token=token,
+        keep_workdir=keep_workdir,
     )

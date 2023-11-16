@@ -108,8 +108,10 @@ def generate_imageset(file_path: FilePath):
 async def generate_czi_imageset(file_path: FilePath):
     zarr_result = generate_zarr.submit(file_path)
     rechunk_result = rechunk_zarr.submit(file_path, wait_for=[zarr_result])
-    copy_zarr_to_assets_dir.submit(file_path, wait_for=[rechunk_result])
-    return generate_imageset.submit(file_path, wait_for=[copy_zarr_to_assets_dir])
+    copy_to_assets = copy_zarr_to_assets_dir.submit(
+        file_path, wait_for=[rechunk_result]
+    )
+    return generate_imageset.submit(file_path, wait_for=[copy_to_assets])
 
 
 @task

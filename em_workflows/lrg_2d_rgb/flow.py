@@ -2,11 +2,12 @@ from typing import Dict
 from pathlib import Path
 import SimpleITK as sitk
 from pytools import HedwigZarrImage, HedwigZarrImages
-from prefect import flow, task, allow_failure
+from prefect import flow, task
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 from em_workflows.file_path import FilePath
+from em_workflows.flow import callback_with_cleanup
 from em_workflows.constants import AssetType
 from em_workflows.lrg_2d_rgb.config import LRG2DConfig
 from em_workflows.lrg_2d_rgb.constants import (
@@ -177,17 +178,14 @@ def lrg_2d_flow(
     callback_with_pyramids = utils.add_asset.map(
         prim_fp=callback_with_thumbs, asset=zarr_assets
     )
-    cp_wd_to_assets = utils.copy_workdirs.map(fps, wait_for=[callback_with_pyramids])
-    filtered_callback = utils.filter_results(callback_with_pyramids)
 
-    cb = utils.send_callback_body(
+    callback_with_cleanup(
+        fps=fps,
+        callback_result=callback_with_pyramids,
         no_api=no_api,
-        token=token,
         callback_url=callback_url,
-        files_elts=filtered_callback,
-    )
-    utils.cleanup_workdir(
-        fps, keep_workdir, wait_for=[allow_failure(cb), allow_failure(cp_wd_to_assets)]
+        token=token,
+        keep_workdir=keep_workdir,
     )
 
     """
