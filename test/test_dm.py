@@ -3,7 +3,6 @@ test_dm.py runs a number of 2D pipeline tests
 
 NOTE: These tests depend on setup performed in conftest.py
 """
-import pytest
 from unittest.mock import patch
 
 
@@ -50,27 +49,29 @@ def test_dm4_conv_clean_workdir(mock_nfs_mount):
     patch_rm.assert_not_called()
 
 
-@pytest.mark.skip(reason="Skipping: strange failure error")
 def test_single_file_no_ext_not_found_gens_exception(mock_nfs_mount):
-    from em_workflows.dm_conversion.flow import flow
+    from em_workflows.dm_conversion.flow import dm_flow
 
-    state = flow.run(
+    state = dm_flow(
         file_share="test",
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
         file_name="file_with_no_ext",
         no_api=True,
+        keep_workdir=True,
+        return_state=True,
     )
     assert state.is_failed()
 
 
-@pytest.mark.skip(reason="Skipping: strange failure error")
 def test_single_file_not_found_gens_exception(mock_nfs_mount):
-    from em_workflows.dm_conversion.flow import flow
+    from em_workflows.dm_conversion.flow import dm_flow
 
-    state = flow.run(
+    state = dm_flow(
         file_share="test",
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
         file_name="does_not_exist.test",
         no_api=True,
+        keep_workdir=True,
+        return_state=True,
     )
     assert state.is_failed()
