@@ -10,7 +10,7 @@
 | em\_workflows/constants.py                |        9 |        0 |        0 |        0 |    100% |           |
 | em\_workflows/czi/config.py               |        3 |        0 |        0 |        0 |    100% |           |
 | em\_workflows/czi/constants.py            |        4 |        0 |        0 |        0 |    100% |           |
-| em\_workflows/czi/flow.py                 |       89 |       50 |       30 |        4 |     36% |21-37, 41-83, 87->86, 88-98, 102->101, 103-107, 111->110, 112-120, 123->exit |
+| em\_workflows/czi/flow.py                 |       89 |       50 |       30 |        4 |     36% |21-37, 41-85, 89->88, 90-100, 104->103, 105-109, 113->112, 114-122, 125->exit |
 | em\_workflows/dm\_conversion/config.py    |        4 |        0 |        0 |        0 |    100% |           |
 | em\_workflows/dm\_conversion/constants.py |        4 |        0 |        0 |        0 |    100% |           |
 | em\_workflows/dm\_conversion/flow.py      |      113 |       23 |       36 |       12 |     75% |17->16, 30->29, 49->48, 67-98, 102->101, 110-114, 118->117, 128, 132, 136-137, 175-176, 183->189, 183->exit |
