@@ -75,7 +75,9 @@ def gen_imageSet(file_path: FilePath) -> List:
             ng_asset["metadata"] = dict(
                 shader=image.shader_type,
                 dimensions="XY",
-                shaderParameters=image.neuroglancer_shader_parameters(middle_quantile=(0.01,0.99)),
+                shaderParameters=image.neuroglancer_shader_parameters(
+                    middle_quantile=(0.01, 0.99)
+                ),
             )
             assets.append(ng_asset)
         image_elt["assets"] = assets
@@ -90,8 +92,8 @@ def generate_czi_imageset(file_path: FilePath):
         file_path=file_path,
         input_fname=input_czi,
         rechunk=True,
-        width=4096,
-        height=4096,
+        width=512,
+        height=512,
     )
     imageSet = gen_imageSet(file_path=file_path)
     # extract images from input file, used to create imageSet elements
