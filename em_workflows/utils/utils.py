@@ -8,7 +8,7 @@ from typing import List, Dict
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
-from prefect import task, get_run_logger
+from prefect import task, get_run_logger, allow_failure
 from prefect.exceptions import MissingContextError
 from prefect.states import State
 from prefect.flows import Flow, FlowRun
@@ -631,3 +631,27 @@ def send_callback_body(
         raise RuntimeError(
             "Invalid state - need callback_url and token, OR set no_api to True."
         )
+
+
+def callback_with_cleanup(
+    fps: List[FilePath],
+    callback_result: List,
+    no_api: bool = False,
+    callback_url: str = None,
+    token: str = None,
+    keep_workdir: bool = False,
+):
+    cp_wd_logs_to_assets = copy_workdir_logs.map(fps, wait_for=[callback_result])
+    filtered_callback = filter_results(callback_result)
+
+    cb = send_callback_body(
+        no_api=no_api,
+        token=token,
+        callback_url=callback_url,
+        files_elts=filtered_callback,
+    )
+    cleanup_workdir(
+        fps,
+        keep_workdir,
+        wait_for=[allow_failure(cb), allow_failure(cp_wd_logs_to_assets)],
+    )
