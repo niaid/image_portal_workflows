@@ -15,11 +15,13 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     """
     brings up a dynamically sized cluster.
 
-    The job_script() for the given cluster generates:
-    python -m distributed.cli.dask_worker tcp://<some-IP> --nthreads 15 --nworkers 4 --memory-limit 96.62GiB ...
+    Docs: https://jobqueue.dask.org/en/latest/generated/dask_jobqueue.SLURMCluster.html
+    python -c "from em_workflows import config; c = config.SLURM_exec(); print(c.job_script())"
 
     The processes determins number of dask workers, and nthreads = cores / processes
     The memory limit is also divided among the workers
+
+    More about the cluster: https://bigskywiki.niaid.nih.gov/big-sky-architecture
     """
     home = os.environ["HOME"]
     env_name = os.environ["HEDWIG_ENV"]
@@ -30,16 +32,14 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     ]
     cluster = SLURMCluster(
         name="dask-worker",
-        cores=62,
-        memory="430G",
-        processes=4,
+        # processes=4,
         death_timeout=121,
         local_directory=f"{home}/dask_tmp/",
         log_directory=f"{home}/slurm-log/{flowrun_id}",
         job_script_prologue=job_script_prologue,
-        queue="gpu",
-        walltime="24:00:00",
-        job_extra_directives=["--gres=gpu:1"],
+        queue="int",  # SBATCH --partition; run `sinfo` for more options
+        walltime="4:00:00",
+        # job_extra_directives=["--gres=gpu:1"],
         asynchronous=asynchronous,
         **cluster_kwargs,
     )
@@ -62,10 +62,20 @@ class Config:
     mrc2tif_loc = os.environ.get("MRC2TIF_LOC", "/opt/rml/imod/bin/mrc2tif")
     newstack_loc = os.environ.get("NEWSTACK_LOC", "/opt/rml/imod/bin/newstack")
 
-    # All settings moved to respective constants file
-    # fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
-
-    SLURM_EXECUTOR = DaskTaskRunner(cluster_class=SLURM_exec)
+    HIGH_SLURM_EXECUTOR = DaskTaskRunner(
+        cluster_class=SLURM_exec,
+        cluster_kwargs=dict(
+            cores=40,
+            memory="512G",
+        ),
+    )
+    SLURM_EXECUTOR = DaskTaskRunner(
+        cluster_class=SLURM_exec,
+        cluster_kwargs=dict(
+            cores=20,
+            memory="256G",
+        ),
+    )
     user = os.environ["USER"]
     tmp_dir = f"/gs1/Scratch/{user}_scratch/"
 
@@ -92,19 +102,3 @@ class Config:
 
     repo_dir = Path(os.path.dirname(__file__))
     template_dir = Path(f"{repo_dir.as_posix()}/templates")
-
-
-# def command_loc(cmd: str) -> str:
-#     """
-#     Given the name of a program that is assumed to be in the current path,
-#     return the full path by using the `shutil.which()` operation. It is
-#     *assumed* that `shutil` is available and the command is on the path
-#     :param cmd: str, the command to be run, often part of the `IMOD` package
-#     :return: str, the full path to the program
-#     """
-#     cmd_path = shutil.which(cmd)
-#     if not cmd_path:
-#         # if you can't find the command, pass back whatever was passed in.
-#         # let the runtime throw an error, and this will end up in the logs.
-#         cmd_path = cmd
-#     return cmd_path

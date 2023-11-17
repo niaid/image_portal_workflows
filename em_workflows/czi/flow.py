@@ -103,7 +103,7 @@ def generate_imageset(file_path: FilePath):
 @flow(
     name="SubFlow: Generate czi imageset",
     log_prints=True,
-    task_runner=CZIConfig.SLURM_EXECUTOR,
+    task_runner=CZIConfig.HIGH_SLURM_EXECUTOR,
 )
 async def generate_czi_imageset(file_path: FilePath):
     zarr_result = generate_zarr.submit(file_path)
