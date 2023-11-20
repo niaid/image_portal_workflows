@@ -6,6 +6,7 @@ in the test files.
 """
 import os
 from pathlib import Path
+import shutil
 
 import pytest
 from prefect.task_runners import ConcurrentTaskRunner
@@ -72,6 +73,7 @@ def mock_reuse_zarr(monkeypatch):
     from em_workflows.utils import neuroglancer as ng
 
     original_gen_zarr = ng.bioformats_gen_zarr
+    original_rechunk = ng.rechunk_zarr
 
     def _mock_bioformats_gen_zarr(file_path: FilePath, *a, **kw):
         zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
@@ -80,7 +82,17 @@ def mock_reuse_zarr(monkeypatch):
             return
         original_gen_zarr(file_path, *a, **kw)
 
+    def _mock_rechunk(file_path: FilePath, *a, **kw):
+        zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
+        work_fp = f"{file_path.working_dir}/{file_path.base}.zarr"
+        if Path(zarr_fp).exists():
+            shutil.copytree(zarr_fp, work_fp)
+            print("No need to rechunk!")
+            return
+        original_rechunk(zarr_fp, *a, **kw)
+
     monkeypatch.setattr(ng, "bioformats_gen_zarr", _mock_bioformats_gen_zarr)
+    monkeypatch.setattr(ng, "rechunk_zarr", _mock_rechunk)
 
 
 @pytest.fixture(autouse=True, scope="session")
