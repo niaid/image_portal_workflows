@@ -14,7 +14,7 @@ def callback_with_cleanup(
     token: str = None,
     keep_workdir: bool = False,
 ):
-    cp_wd_to_assets = utils.copy_workdirs.map(fps, wait_for=[callback_result])
+    cp_wd_logs_to_assets = utils.copy_workdir_logs.map(fps, wait_for=[callback_result])
     filtered_callback = utils.filter_results(callback_result)
 
     cb = utils.send_callback_body(
@@ -24,5 +24,7 @@ def callback_with_cleanup(
         files_elts=filtered_callback,
     )
     utils.cleanup_workdir(
-        fps, keep_workdir, wait_for=[allow_failure(cb), allow_failure(cp_wd_to_assets)]
+        fps,
+        keep_workdir,
+        wait_for=[allow_failure(cb), allow_failure(cp_wd_logs_to_assets)],
     )

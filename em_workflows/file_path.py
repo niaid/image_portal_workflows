@@ -236,6 +236,24 @@ class FilePath:
         shutil.copytree(self.working_dir, dest)
         return dest
 
+    def copy_workdir_logs_to_assets(self) -> Path:
+        """
+        - copies all working dir logs to Assets dir.
+        - tests to see if the destination dir exists prior to copy
+        - removes work dir upon completion.
+        - returns newly created dir
+        """
+        dir_name_as_date = datetime.datetime.now().strftime("logs_%I_%M%p_%B_%d_%Y")
+        dest = Path(
+            f"{self.assets_dir.as_posix()}/{dir_name_as_date}/{self.fp_in.stem}"
+        )
+        if dest.exists():
+            log(f"Output assets directory already exists! removing: {dest}")
+            shutil.rmtree(dest)
+        for f in self.working_dir.glob("*.log"):
+            shutil.copy(self.working_dir, dest)
+        return dest
+
     def rm_workdir(self):
         """Removes the the entire working directory"""
         log(f"Removing working dir: {self.working_dir}")
