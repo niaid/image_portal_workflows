@@ -9,7 +9,7 @@ from em_workflows.utils import utils
 def rechunk_zarr(zarr_fp: Path) -> None:
     images = HedwigZarrImages(zarr_fp, read_only=False)
     for _, image in images.series():
-        image.rechunk(RECHUNK_SIZE)
+        image.rechunk(RECHUNK_SIZE, in_memory=True)
 
 
 def bioformats_gen_zarr(
