@@ -1,9 +1,7 @@
 pytest-env
 python-dotenv
-prefect==2.14
+prefect==2.14.*
 prefect_dask
-dask
-distributed
 dask-jobqueue
 natsort
 pytools@https://github.com/niaid/tomojs-pytools/releases/download/v3.1/pytools-3.1-py3-none-any.whl
