@@ -16,7 +16,7 @@ def test_brt(mock_nfs_mount):
 
     input_dir = "test/input_files/brt/Projects/RT_TOMO/"
     if not Path(input_dir).exists():
-        pytest.skip("Directory doesn't exist")
+        pytest.skip(f"Directory {input_dir} doesn't exist")
 
     result = brt_flow(
         adoc_template="plastic_brt",
@@ -33,18 +33,19 @@ def test_brt(mock_nfs_mount):
         input_dir=input_dir,
         no_api=True,
         keep_workdir=True,
+        return_state=True,
     )
     assert result.is_completed(), "`result` is not successful!"
 
 
 @pytest.mark.localdata
 @pytest.mark.slow
-def test_brt_callback(mock_nfs_mount, caplog, mock_callback_data, mock_reuse_zarr):
+def test_brt_callback(mock_nfs_mount, caplog, mock_callback_data):
     from em_workflows.brt.flow import brt_flow
 
     input_dir = "test/input_files/brt/Projects/RT_TOMO/"
     if not Path(input_dir).exists():
-        pytest.skip("Directory doesn't exist")
+        pytest.skip(f"Directory {input_dir} doesn't exist")
 
     result = brt_flow(
         adoc_template="plastic_brt",
@@ -61,6 +62,7 @@ def test_brt_callback(mock_nfs_mount, caplog, mock_callback_data, mock_reuse_zar
         input_dir=input_dir,
         no_api=True,
         keep_workdir=True,
+        return_state=True,
     )
     assert result.is_completed(), "`result` is not successful!"
 
