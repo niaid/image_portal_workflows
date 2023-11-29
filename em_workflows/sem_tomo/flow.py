@@ -261,7 +261,8 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
 
 
 @flow(
-    name="Flow: SEM TOMO",
+    name="SEM TOMO",
+    flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
     task_runner=SEMConfig.SLURM_EXECUTOR,
     on_completion=[utils.notify_api_completion],
