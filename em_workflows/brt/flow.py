@@ -490,7 +490,8 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
 
 # run_config=LocalRun(labels=[utils.get_environment()]),
 @flow(
-    name="Flow: BRT",
+    name="BRT",
+    flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
     task_runner=BRTConfig.SLURM_EXECUTOR,
     on_completion=[utils.notify_api_completion],
