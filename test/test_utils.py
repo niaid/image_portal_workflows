@@ -26,8 +26,12 @@ def test_bio2r_environ(mock_nfs_mount, caplog):
     assert os.path.exists(Config.bioformats2raw)
     with tempfile.NamedTemporaryFile() as logfile:
         cmd = [Config.bioformats2raw, "--version"]
-        FilePath.run(cmd=cmd, log_file=logfile.name)
-        assert "Bio-Formats version" in caplog.text
+        out = FilePath.run(cmd=cmd, log_file=logfile.name)
+        assert out == 0, "Command output is not success code"
+        print(logfile.name)
+        assert os.path.exists(logfile.name)
+        with open(logfile.name, "r") as _file:
+            assert "Bio-Formats version" in _file.read()
 
 
 def test_hedwig_env() -> None:
