@@ -201,7 +201,8 @@ def convert_intermediate_files(fps):
 
 
 @flow(
-    name="Flow: DM Conversion",
+    name="DM Conversion",
+    flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
     task_runner=DMConfig.SLURM_EXECUTOR,
     on_completion=[utils.notify_api_completion],
