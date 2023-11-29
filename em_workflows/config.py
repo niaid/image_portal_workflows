@@ -70,7 +70,7 @@ class Config:
     HIGH_SLURM_EXECUTOR = DaskTaskRunner(
         cluster_class=SLURM_exec,
         cluster_kwargs=dict(
-            cores=40,
+            cores=64,
             memory="512G",
         ),
     )
