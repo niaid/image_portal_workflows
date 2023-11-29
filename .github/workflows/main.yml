@@ -3,12 +3,12 @@ name: Python Test and Package
 on:
   push:
     branches:
-      - main
+      - dev
     tags:
       - "v*"
   pull_request:
     branches:
-      - main
+      - dev
 
 env:
   HEDWIG_ENV: dev
@@ -39,7 +39,7 @@ jobs:
           name: sphinx-docs
           path: docs/_build/html
       - name: Update gh-pages
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/dev'
         run: |
           rm docs/_build/html/.buildinfo
           touch docs/_build/html/.nojekyll
@@ -102,7 +102,7 @@ jobs:
           export PATH=$BIO2R_DIR/bioformats2raw-${BIO2R_V}/bin:$PATH
           wget https://github.com/glencoesoftware/bioformats2raw/releases/download/v${BIO2R_V}/${BIO2R_Z} &&  sudo unzip ${BIO2R_Z} -d ${BIO2R_DIR} &&  rm -f ${BIO2R_Z}
           python -m pip install --upgrade pip
-          pip install -e . -r requirements.txt
+          pip install -e . -r requirements-dev.txt
 
       - name: Directory setup
         run: |
