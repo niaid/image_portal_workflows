@@ -1,3 +1,23 @@
+#!/usr/bin/env python3
+"""
+Sem Tomo pipeline overview:
+---------------------------
+    - Single directory is used to contain a set of gifs, which make up a single stack.
+    - tifs compiled into a single mrc file (source.mrc) in convert_tif_to_mrc()
+    - two metadata files (align xf, and align xg, are generated to allow creation
+        of aligned mrc file (align.mrc)
+    - another mrc file is created, which tries to correct for stage tilt (needs stretch file).
+    This file is called corrected.mrc. Note, if no correction is needed, a correction.mrc is
+    still created, but without any actual correction of angle.
+    - The corrected mrc file is then contrast adjusted with mean std dev magic numbers "150,40"
+        in gen_newstack_norm_command(), this is referred to as the base mrc
+    - A movie is created using the base.mrc file.
+    - the midpoint of that file is computed, and snapshots are created using this midpoint.
+    - We now want to create the pyramid assets, for neuroglancer / viewer.
+    - Firstly create nifti file using the base mrc, then convert this to ng format.
+    - To conclude, send callback stating the location of the various outputs.
+"""
+
 import glob
 import math
 from pathlib import Path
@@ -18,8 +38,9 @@ from em_workflows.sem_tomo.constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_
 @task
 def gen_xfalign_comand(fp_in: FilePath) -> None:
     """
-    hardcoded
-    xfalign -pa -1 -pr source.mrc align.xf
+    eg::
+
+        xfalign -pa -1 -pr source.mrc align.xf
     """
     source_mrc = fp_in.gen_output_fp(out_fname="source.mrc")
     if not source_mrc.exists():
@@ -41,8 +62,9 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
 @task
 def gen_align_xg(fp_in: FilePath) -> None:
     """
-    hardcoded
-    xftoxg -ro -mi 2 {WORKDIR}/align.xf {WORKDIR}/align.xg
+    eg::
+
+        xftoxg -ro -mi 2 {WORKDIR}/align.xf {WORKDIR}/align.xg
     """
     align_xg = fp_in.gen_output_fp(out_fname="align.xg")
     align_xf = fp_in.gen_output_fp(out_fname="align.xf")
@@ -62,7 +84,9 @@ def gen_align_xg(fp_in: FilePath) -> None:
 @task
 def gen_newstack_combi(fp_in: FilePath) -> Dict:
     """
-    newstack -x align.xg -x stretch.xf -meansd 150,40 -mo 0 source.mrc out.mrc
+    eg::
+
+        newstack -x align.xg -x stretch.xf -meansd 150,40 -mo 0 source.mrc out.mrc
     """
     align_xg = fp_in.gen_output_fp(out_fname="align.xg")
     stretch_xf = fp_in.gen_output_fp(out_fname="stretch.xf")
@@ -94,10 +118,11 @@ def gen_newstack_combi(fp_in: FilePath) -> Dict:
 @task
 def convert_tif_to_mrc(file_path: FilePath) -> int:
     """
-    generates source.mrc
-    assumes there's tifs in input dir
-    uses all the tifs in dir
-    # tif2mrc {DATAPATH}/*.tif {WORKDIR}/Source.mrc
+    | Generates source.mrc
+    | assumes there's tifs in input dir, uses all the tifs in dir
+    | eg::
+
+        tif2mrc {DATAPATH}/*.tif {WORKDIR}/Source.mrc
     """
     output_fp = file_path.gen_output_fp(out_fname="source.mrc")
     log_file = f"{output_fp.parent}/tif2mrc.log"
@@ -114,13 +139,13 @@ def convert_tif_to_mrc(file_path: FilePath) -> int:
 @task
 def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
     """
-    creates stretch.xf
-    used to gen corrected.mrc
-    file looks like:
-    1 0 0 {TILT_PARAMETER} 0 0
+    | Creates stretch.xf used to gen corrected.mrc
+    | File looks like:
 
-    where TILT_PARAMETER is calculated as 1/cos({TILT_ANGLE}).
-    Note that tilt angle is input in degrees, however cos method expects radians
+    ``1 0 0 {TILT_PARAMETER} 0 0``
+
+    | where TILT_PARAMETER is calculated as 1/cos({TILT_ANGLE}).
+    | Note that tilt angle is input in degrees, however cos method expects radians
     """
     # math.cos expects radians, convert to degrees first.
     tilt_angle = 1 / math.cos(math.degrees(float(tilt)))
@@ -133,8 +158,9 @@ def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
 @task
 def gen_newstack_mid_mrc_command(fp_in: FilePath) -> None:
     """
-    generates mid.mrc
-    newstack -secs {MIDZ}-{MIDZ} {WORKDIR}/{BASENAME}.mrc {WORKDIR}/mid.mrc
+    Generates mid.mrc. eg::
+
+        newstack -secs {MIDZ}-{MIDZ} {WORKDIR}/{BASENAME}.mrc {WORKDIR}/mid.mrc
     """
     mid_mrc = fp_in.gen_output_fp(out_fname="mid.mrc")
     base_mrc = fp_in.gen_output_fp(output_ext=".mrc", out_fname="adjusted.mrc")
@@ -159,8 +185,9 @@ def gen_newstack_mid_mrc_command(fp_in: FilePath) -> None:
 @task
 def gen_keyimg(fp_in: FilePath) -> Dict:
     """
-    generates keyimg (large thumb)
-    mrc2tif -j -C 0,255 mid.mrc {WORKDIR}/keyimg_{BASENAME}.jpg
+    Generates keyimg (large thumb), eg::
+
+        mrc2tif -j -C 0,255 mid.mrc {WORKDIR}/keyimg_{BASENAME}.jpg
     """
     mid_mrc = fp_in.gen_output_fp(out_fname="mid.mrc")
     keyimg_fp = fp_in.gen_output_fp(out_fname="keyimg.jpg")
@@ -183,8 +210,10 @@ def gen_keyimg(fp_in: FilePath) -> Dict:
 @task
 def gen_keyimg_small(fp_in: FilePath) -> Dict:
     """
-    convert -size 300x300 {WORKDIR}/hedwig/keyimg_{BASENAME}.jpg \
-            -resize 300x300 -sharpen 2 -quality 70 {WORKDIR}/hedwig/keyimg_{BASENAME}_s.jpg
+    eg::
+
+        convert -size 300x300 {WORKDIR}/hedwig/keyimg_{BASENAME}.jpg \
+                -resize 300x300 -sharpen 2 -quality 70 {WORKDIR}/hedwig/keyimg_{BASENAME}_s.jpg
     """
     keyimg_fp = fp_in.gen_output_fp(out_fname="keyimg.jpg")
     keyimg_sm_fp = fp_in.gen_output_fp(out_fname="keyimg_sm.jpg")
@@ -235,9 +264,17 @@ def gen_zarr(fp_in: FilePath) -> None:
 
 @task
 def gen_ng_metadata(fp_in: FilePath) -> Dict:
-    # Note; the seemingly redundancy of working and asset fp here.
-    # However asset fp is in the network file system and is deployed for access to the users
-    # Working fp is actually used for getting the metadata
+    """
+    | Initialize HedwigZarrImages instace from .zarr group array
+    | For each HedwigZarrImage obtain their metadata, consisting of:
+    - shader_type
+    - dimension
+    - neuroglancer shader parameters
+
+    | Note; the seemingly redundancy of working and asset fp here.
+    | However asset fp is in the network file system and is deployed for access to the users
+    | Working fp is actually used for getting the metadata
+    """
 
     file_path = fp_in
     asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
@@ -278,23 +315,6 @@ def sem_tomo_flow(
     keep_workdir: bool = False,
     tilt_angle: float = 0,
 ):
-    """
-    General overview:
-    - Single directory is used to contain a set of gifs, which make up a single stack.
-    - tifs compiled into a single mrc file (source.mrc) in convert_tif_to_mrc()
-    - two metadata files (align xf, and align xg, are generated to allow creation
-        of aligned mrc file (align.mrc)
-    - another mrc file is created, which tries to correct for stage tilt (needs stretch file).
-    This file is called corrected.mrc. Note, if no correction is needed, a correction.mrc is
-    still created, but without any actual correction of angle.
-    - The corrected mrc file is then contrast adjusted with mean std dev magic numbers "150,40"
-        in gen_newstack_norm_command(), this is referred to as the base mrc
-    - A movie is created using the base.mrc file.
-    - the midpoint of that file is computed, and snapshots are created using this midpoint.
-    - We now want to create the pyramid assets, for neuroglancer / viewer.
-    - Firstly create nifti file using the base mrc, then convert this to ng format.
-    - To conclude, send callback stating the location of the various outputs.
-    """
     input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
     # note FIBSEM is different to other flows in that it uses *directories*
     # to define stacks. Therefore, will have to list dirs to discover stacks

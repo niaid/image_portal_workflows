@@ -10,3 +10,4 @@ em_workflows
    dm_conversion
    brt
    sem_tomo
+   czi
