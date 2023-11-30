@@ -1,4 +1,4 @@
-file\_path module
+File\_path module
 =================
 
 .. automodule:: file_path
