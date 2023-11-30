@@ -1,7 +1,8 @@
-SEM_TOMO
+SEM Tomo
 ========
 
 .. toctree::
    :maxdepth: 4
 
-   sem_flow
+   flow
+   constants

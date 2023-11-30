@@ -1,7 +1,7 @@
-brt.flow
+BRT flow
 ========
 
-.. automodule:: brt.flow
+.. automodule:: em_workflows.brt.flow
    :members:
    :undoc-members:
    :show-inheritance:

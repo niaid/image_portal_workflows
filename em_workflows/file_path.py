@@ -15,8 +15,6 @@ from em_workflows.config import Config
 def log(msg: str) -> None:
     """
     Convenience method to write an INFO message to a Prefect log.
-    :param msg: str to be written
-    :return: None
     """
     try:
         get_run_logger().info(msg)
