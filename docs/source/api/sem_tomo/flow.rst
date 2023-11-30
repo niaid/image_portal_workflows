@@ -1,7 +1,7 @@
-sem_tomo.flow
+sem tomo flow
 =============
 
-.. automodule:: sem_tomo.flow
+.. automodule:: em_workflows.sem_tomo.flow
    :members:
    :undoc-members:
    :show-inheritance:
@@ -13,3 +13,4 @@ sem_tomo.flow
    .. autofunction:: gen_newstack_mid_mrc_command(fp_in: FilePath) -> None
    .. autofunction:: gen_keyimg(fp_in: FilePath) -> Dict
    .. autofunction:: gen_keyimg_small(fp_in: FilePath) -> Dict
+   .. autofunction:: gen_ng_metadata(fp_in: FilePath) -> Dict

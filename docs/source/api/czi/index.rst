@@ -1,7 +1,8 @@
-BRT
+CZI
 ===
 
 .. toctree::
    :maxdepth: 4
 
-   brt_flow
+   flow
+   constants

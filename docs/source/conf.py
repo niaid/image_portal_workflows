@@ -15,8 +15,6 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../../"))
 sys.path.insert(0, os.path.abspath("../../em_workflows"))
-sys.path.insert(0, os.path.abspath("../../em_workflows/utils"))
-sys.path.insert(0, os.path.abspath("../../em_workflows/dm_conversion"))
 
 
 # -- Project information -----------------------------------------------------
