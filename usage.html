@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Submitting Jobs &mdash; Image Portal Workflows  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API" href="api.html" />
+    <link rel="prev" title="Workflows" href="workflows/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Image Portal Workflows
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/index.html">Workflows</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Submitting Jobs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#manual-submission">Manual Submission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cli-sdk-submission">CLI/SDK Submission</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc.html">RML HPC (Big Sky)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Image Portal Workflows</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Submitting Jobs</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/usage.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="submitting-jobs">
+<h1>Submitting Jobs<a class="headerlink" href="#submitting-jobs" title="Permalink to this heading"></a></h1>
+<p>NOTE: You need to be in NIH VPN to be able to submit jobs for your workflow runs.</p>
+<p>Workflow servers are deployed in <a class="reference external" href="https://prefect2.hedwig-workflow-api.niaiddev.net">development</a>, <a class="reference external" href="https://prefect2.hedwig-workflow-api.niaidqa.net">qa</a>, and <a class="reference external" href="https://prefect2.hedwig-workflow-api.niaidprod.net">production</a> environments separately.</p>
+<section id="manual-submission">
+<h2>Manual Submission<a class="headerlink" href="#manual-submission" title="Permalink to this heading"></a></h2>
+<p>Depending on the environment, go to the deployment section. Click on the <cite>Kebab menu</cite> icon next to your desired deployment and do a <cite>Custom Run</cite>. Here you can add appropriate values for the fields and submit your job. For manual submission, do not forget to add <cite>no_api: true</cite> value.</p>
+</section>
+<section id="cli-sdk-submission">
+<h2>CLI/SDK Submission<a class="headerlink" href="#cli-sdk-submission" title="Permalink to this heading"></a></h2>
+<p>You can also use <cite>curl</cite> to submit a job. The data body you post is same as the manual submission. However, you also need to have the information of <cite>Deployment ID</cite> which you can get from the workflow deployment’s detail page.
+Once you have the deployment id and relevant job information, you can submit a job as,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">~</span> <span class="n">curl</span> <span class="o">-</span><span class="n">X</span> <span class="s1">&#39;POST&#39;</span> \
+<span class="s1">&#39;https://prefect2.hedwig-workflow-api.niaiddev.net/api/deployments/&lt;DEPLOYMENT-ID&gt;/create_flow_run&#39;</span> \
+<span class="o">-</span><span class="n">H</span> <span class="s1">&#39;accept: application/json&#39;</span> \
+<span class="o">-</span><span class="n">H</span> <span class="s1">&#39;Content-Type: application/json&#39;</span> \
+<span class="o">-</span><span class="n">d</span> <span class="s1">&#39;{</span>
+<span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="n">value</span><span class="p">,</span> <span class="s2">&quot;key2&quot;</span><span class="p">:</span> <span class="n">value2</span><span class="p">,</span> <span class="o">...</span><span class="p">}</span>
+<span class="p">}</span><span class="s1">&#39;</span>
+</pre></div>
+</div>
+<p>As same as curl, you can use any other SDK to submit a job. For example, you can use <cite>axios</cite> to <a class="reference external" href="https://axios-http.com/docs/post_example">send a POST request</a> to the workflow server to submit a job.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="workflows/index.html" class="btn btn-neutral float-left" title="Workflows" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api.html" class="btn btn-neutral float-right" title="API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, NIAID.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

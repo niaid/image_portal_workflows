@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>API &mdash; Image Portal Workflows  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -20,7 +22,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="em_workflows" href="em_workflows.html" />
-    <link rel="prev" title="Workflows" href="workflows.html" /> 
+    <link rel="prev" title="Submitting Jobs" href="usage.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -45,7 +47,8 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
-<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/index.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Submitting Jobs</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="em_workflows.html">em_workflows</a></li>
 </ul>
@@ -102,6 +105,7 @@
 <li class="toctree-l4"><a class="reference internal" href="file_path.html#file_path.FilePath.gen_asset"><code class="docutils literal notranslate"><span class="pre">FilePath.gen_asset()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="file_path.html#file_path.FilePath.gen_prim_fp_elt"><code class="docutils literal notranslate"><span class="pre">FilePath.gen_prim_fp_elt()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="file_path.html#file_path.FilePath.copy_workdir_to_assets"><code class="docutils literal notranslate"><span class="pre">FilePath.copy_workdir_to_assets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_path.html#file_path.FilePath.copy_workdir_logs_to_assets"><code class="docutils literal notranslate"><span class="pre">FilePath.copy_workdir_logs_to_assets()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="file_path.html#file_path.FilePath.rm_workdir"><code class="docutils literal notranslate"><span class="pre">FilePath.rm_workdir()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="file_path.html#file_path.FilePath.run"><code class="docutils literal notranslate"><span class="pre">FilePath.run()</span></code></a></li>
 </ul>
@@ -128,15 +132,15 @@
 <li class="toctree-l4"><a class="reference internal" href="utils.html#utils.gen_fps"><code class="docutils literal notranslate"><span class="pre">gen_fps()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils.html#utils.send_callback_body"><code class="docutils literal notranslate"><span class="pre">send_callback_body()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils.html#utils.Header"><code class="docutils literal notranslate"><span class="pre">Header</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="utils.html#utils.log"><code class="docutils literal notranslate"><span class="pre">log()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils.html#utils.lookup_dims"><code class="docutils literal notranslate"><span class="pre">lookup_dims()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils.html#utils.update_adoc"><code class="docutils literal notranslate"><span class="pre">update_adoc()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils.html#utils.copy_tg_to_working_dir"><code class="docutils literal notranslate"><span class="pre">copy_tg_to_working_dir()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils.html#utils.copy_template"><code class="docutils literal notranslate"><span class="pre">copy_template()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="utils.html#utils.log"><code class="docutils literal notranslate"><span class="pre">log()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="utils.html#utils.notify_api_running"><code class="docutils literal notranslate"><span class="pre">notify_api_running()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="utils.html#utils.custom_terminal_state_handler"><code class="docutils literal notranslate"><span class="pre">custom_terminal_state_handler()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils.html#utils.notify_api_completion"><code class="docutils literal notranslate"><span class="pre">notify_api_completion()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="utils.html#utils.get_environment"><code class="docutils literal notranslate"><span class="pre">get_environment()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="utils.html#utils.callback_with_cleanup"><code class="docutils literal notranslate"><span class="pre">callback_with_cleanup()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="utils.html#utils.generate_flow_run_name"><code class="docutils literal notranslate"><span class="pre">generate_flow_run_name()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -196,7 +200,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="workflows.html" class="btn btn-neutral float-left" title="Workflows" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="usage.html" class="btn btn-neutral float-left" title="Submitting Jobs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="em_workflows.html" class="btn btn-neutral float-right" title="em_workflows" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

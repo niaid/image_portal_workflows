@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Index &mdash; Image Portal Workflows  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -42,7 +44,8 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
-<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/index.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Submitting Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="hpc.html">RML HPC (Big Sky)</a></li>
 </ul>
@@ -127,6 +130,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="brt_flow.html#brt.flow.calc_middle_i">calc_middle_i() (in module brt.flow)</a>
 </li>
+      <li><a href="utils.html#utils.callback_with_cleanup">callback_with_cleanup() (in module utils)</a>
+</li>
       <li><a href="brt_flow.html#brt.flow.cleanup_files">cleanup_files() (in module brt.flow)</a>
 </li>
       <li><a href="utils.html#utils.cleanup_workdir">cleanup_workdir() (in module utils)</a>
@@ -144,10 +149,10 @@
 </li>
       <li><a href="dm_flow.html#dm_conversion.flow.convert_dm_mrc_to_jpeg">convert_dm_mrc_to_jpeg() (in module dm_conversion.flow)</a>
 </li>
-      <li><a href="dm_flow.html#dm_conversion.flow.convert_dms_to_mrc">convert_dms_to_mrc() (in module dm_conversion.flow)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="dm_flow.html#dm_conversion.flow.convert_dms_to_mrc">convert_dms_to_mrc() (in module dm_conversion.flow)</a>
+</li>
       <li><a href="dm_flow.html#dm_conversion.flow.convert_if_int16_tiff">convert_if_int16_tiff() (in module dm_conversion.flow)</a>
 </li>
       <li><a href="sem_flow.html#sem_tomo.flow.convert_tif_to_mrc">convert_tif_to_mrc() (in module sem_tomo.flow)</a>
@@ -158,13 +163,13 @@
 </li>
       <li><a href="file_path.html#file_path.FilePath.copy_to_assets_dir">copy_to_assets_dir() (file_path.FilePath method)</a>
 </li>
+      <li><a href="file_path.html#file_path.FilePath.copy_workdir_logs_to_assets">copy_workdir_logs_to_assets() (file_path.FilePath method)</a>
+</li>
       <li><a href="file_path.html#file_path.FilePath.copy_workdir_to_assets">copy_workdir_to_assets() (file_path.FilePath method)</a>
 </li>
       <li><a href="utils.html#utils.copy_workdirs">copy_workdirs() (in module utils)</a>
 </li>
       <li><a href="sem_flow.html#sem_tomo.flow.create_stretch_file">create_stretch_file() (in module sem_tomo.flow)</a>
-</li>
-      <li><a href="utils.html#utils.custom_terminal_state_handler">custom_terminal_state_handler() (in module utils)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -252,6 +257,8 @@
 </li>
       <li><a href="sem_flow.html#sem_tomo.flow.gen_xfalign_comand">gen_xfalign_comand() (in module sem_tomo.flow)</a>
 </li>
+      <li><a href="utils.html#utils.generate_flow_run_name">generate_flow_run_name() (in module utils)</a>
+</li>
       <li><a href="file_path.html#file_path.FilePath.get_environment">get_environment() (file_path.FilePath method)</a>
 
       <ul>
@@ -337,8 +344,6 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="utils.html#utils.notify_api_completion">notify_api_completion() (in module utils)</a>
-</li>
-      <li><a href="utils.html#utils.notify_api_running">notify_api_running() (in module utils)</a>
 </li>
   </ul></td>
 </tr></table>

@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Development &mdash; Image Portal Workflows  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -19,7 +21,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Workflows" href="workflows.html" />
+    <link rel="next" title="Workflows" href="workflows/index.html" />
     <link rel="prev" title="Image Portal Workflows’s documentation" href="index.html" /> 
 </head>
 
@@ -57,19 +59,15 @@
 <li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#local-set-up">Local Set-up</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id5">Docker</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#hpc-set-up">HPC Set up</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#updating-venvs">Updating venvs:</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#prefect-agent">Prefect Agent:</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#register-workflows">Register Workflows:</a></li>
 </ul>
 </li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#hpc-set-up">HPC Set up</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#pull-requests">Pull Requests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#sphinx-documentation">Sphinx Documentation</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/index.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Submitting Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="hpc.html">RML HPC (Big Sky)</a></li>
 </ul>
@@ -103,18 +101,16 @@
 <p>The docs related to development and testing are contained in this section.</p>
 <section id="prerequisites">
 <h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading"></a></h2>
-<p>Please read this Development section before cloning. The <cite>generate_venv.sh</cite> script referenced below
-automates much of the process. Current system assumes that you are locally running either a Linux
-or Mac OS.</p>
+<p>Please read this Development section before cloning.
+Current system assumes that you are locally running either a Linux or Mac OS.</p>
 <section id="github-com">
 <h3>Github.com<a class="headerlink" href="#github-com" title="Permalink to this heading"></a></h3>
 <p>The repository is located in the NIAID Github.com enterprise organization. Having a github.com account
 which is a member of the NIAID organization is required.</p>
-<p>pip install -e &lt;path_to_clone&gt;
-git+https://github.com/niaid/tomojs-pytools.git&#64;master in requirements.txt</p>
 </section>
 <section id="git-lfs">
 <h3>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this heading"></a></h3>
+<p><em>We are aiming to use s3 (with rsync capabilities) over git-lfs for test data storage</em></p>
 <p>Git <a class="reference external" href="https://git-lfs.github.com">Large File Storage</a> (LFS) is used to store larger files in the repository such as
 test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
 be installed on the system and set up on the users account. The <a class="reference external" href="https://git-lfs.github.com">tool’s documentation</a>
@@ -150,13 +146,14 @@ format compliance at commit time. It is configured via a top-level <code class="
 <li><p><code class="docutils literal notranslate"><span class="pre">test_dm</span></code>: 2D end-to-end pipeline test</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">test_sem</span></code>: end-to-end test of FIBSEM pipeline</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">test_lrg_2d</span></code>: Large 2d pipeline test</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test_czi</span></code>: Spatial Omics (IF - immunofluoroscene) pipeline test</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">test_utils</span></code>: unit tests of utils/utils.py module</p></li>
 </ul>
 <p>There is test data for <cite>test_dm</cite> in the Git repo, but not for the others. These files need to be
 downloaded from the HPC machines. The following script will copy them:</p>
 <p><cite>test/copy_test_data.sh</cite></p>
-<p>These files are quite large, so you may want to run each line separately at the command line. Some unit tests also
-require the results of previous <code class="docutils literal notranslate"><span class="pre">test_brt</span></code> runs, specifically in the Assets directory. So you must run ‘’test_brt’’
+<p>These files are quite large, so you may want to run each line separately at the command line.</p>
+<p>Some unit tests also require the results of previous <code class="docutils literal notranslate"><span class="pre">test_brt</span></code> runs, specifically in the Assets directory. So you must run ‘’test_brt’’
 before the complete test suite will work.</p>
 <p>To run the entire test suite, in the portal_image_workflows directory, run:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest
@@ -230,10 +227,11 @@ docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </sp
 </div>
 <p>Once you are in the container, you can run the commands you want to. For example: <cite>pytest</cite>.</p>
 </section>
+</section>
 <section id="hpc-set-up">
-<h3>HPC Set up<a class="headerlink" href="#hpc-set-up" title="Permalink to this heading"></a></h3>
+<h2>HPC Set up<a class="headerlink" href="#hpc-set-up" title="Permalink to this heading"></a></h2>
 <p><strong>NOTE, THIS IS ONLY relevant for HPC. Added for completeness.</strong></p>
-<p>NOTE: <em>Similar to the HPC Set, you can locally set up `dev` and `qa` virtual envs. This step can be skipped for testing purposes.</em></p>
+<p><strong>NOTE: generate_vevn.sh is not used as of 08/11/2023, setup is documented in</strong> <a class="reference internal" href="hpc.html"><span class="doc">RML HPC (Big Sky)</span></a>.</p>
 <p>Workflows are currently run on RML HPC (“BigSky”).</p>
 <p>There are three environments currently on BigSky: (<cite>dev</cite>, <cite>qa</cite>, <cite>prod</cite>).
 They were set up as follows:
@@ -249,30 +247,18 @@ python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </
 conda<span class="w"> </span>deactivate
 </pre></div>
 </div>
-<p>A script exists to help set up <cite>dev</cite>, <cite>qa</cite>, or <cite>prod</cite> environments in
-<cite>$HOME/code/hedwig/&lt;HEDWIG_ENV&gt;</cite>
-Insure <cite>$HOME/code/hedwig</cite> exists. Runs on Linux.</p>
-<p><strong>Note</strong>: generate_vevn.sh is not used as of 08/11/2023, setup is documented in <cite>hpc.rst</cite>.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:niaid/image_portal_workflows.git
 <span class="c1"># generates venv qa.</span>
 ./image_portal_workflows/helper_scripts/generate_venv.sh<span class="w"> </span>qa
 </pre></div>
 </div>
-<section id="updating-venvs">
-<h4>Updating venvs:<a class="headerlink" href="#updating-venvs" title="Permalink to this heading"></a></h4>
 <p>To update your python virtual environment:
 Change into the correct venv directory, e.g. <cite>~/code/hedwig/dev/image_portal_workflows</cite>.
 Ensure environment is active and run something like:</p>
 <p><cite>pip   install -e . -r requirements.txt –upgrade  –find-links https://github.com/niaid/tomojs-pytools/releases/tag/v1.3</cite></p>
-</section>
-<section id="prefect-agent">
-<h4>Prefect Agent:<a class="headerlink" href="#prefect-agent" title="Permalink to this heading"></a></h4>
 <p>The prefect agent, the thing that reaches out to the prefect API machine, is daemonized on HPC.
 See <cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh</cite> and
 <cite>image_portal_workflows/helper_scripts/hedwig_listener_prod.service</cite> etc.</p>
-</section>
-<section id="register-workflows">
-<h4>Register Workflows:<a class="headerlink" href="#register-workflows" title="Permalink to this heading"></a></h4>
 <p>To register a new workflow, or update an existing one (in <cite>qa</cite> environment):
 (The workflow needs to be registered every time the source is updated.)
 <cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh qa register</cite></p>
@@ -305,8 +291,6 @@ Python<span class="w"> </span><span class="m">3</span>.8.6
 $<span class="w"> </span>spack<span class="w"> </span>unload<span class="w"> </span>-a
 </pre></div>
 </div>
-</section>
-</section>
 </section>
 <section id="pull-requests">
 <h2>Pull Requests<a class="headerlink" href="#pull-requests" title="Permalink to this heading"></a></h2>
@@ -372,7 +356,7 @@ methods.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="Image Portal Workflows’s documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="workflows.html" class="btn btn-neutral float-right" title="Workflows" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="workflows/index.html" class="btn btn-neutral float-right" title="Workflows" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

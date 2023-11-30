@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RML HPC (Big Sky) &mdash; Image Portal Workflows  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -44,7 +46,8 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
-<li class="toctree-l1"><a class="reference internal" href="workflows.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflows/index.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Submitting Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">RML HPC (Big Sky)</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#initial-setup">Initial Setup:</a></li>
@@ -109,6 +112,8 @@ Added these lines to <code class="docutils literal notranslate"><span class="pre
 E.g. for qa <code class="docutils literal notranslate"><span class="pre">helper_scripts/hedwig_listener_qa.service</span></code> would be copied into place.</p>
 <p>It’s a good idea to test the <code class="docutils literal notranslate"><span class="pre">ExecStart</span></code> command can be run, eg:</p>
 <p><code class="docutils literal notranslate"><span class="pre">image_portal_workflows/helper_scripts/hedwig_reg_listen.sh</span> <span class="pre">listen</span></code></p>
+<p>The daemon by default polls prefect server in the given workpool and brings in the flow run details if something
+has been submitted to the server.</p>
 </section>
 <section id="to-update">
 <h2>To update:<a class="headerlink" href="#to-update" title="Permalink to this heading"></a></h2>
@@ -120,37 +125,18 @@ Upon promotion into HPC env do:</p>
 <span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span>
 </pre></div>
 </div>
-<p>Finally register the worlfows with the helper script.</p>
-<p><code class="docutils literal notranslate"><span class="pre">./helper_scripts/hedwig_reg_listen.sh</span> <span class="pre">register</span></code></p>
+<p>When there are changes in the workflows (e.g, a new task is added, task function signature has changed, etc), you should
+redeploy the workflows. It can be done as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="o">~/</span><span class="n">image_portal_workflows</span>
+<span class="o">./</span><span class="n">helper_scripts</span><span class="o">/</span><span class="n">hedwig_reg_listen</span><span class="o">.</span><span class="n">sh</span> <span class="n">register</span>
+</pre></div>
+</div>
 </section>
 <section id="spatialomics-file-layout">
 <h2>Spatialomics file layout.<a class="headerlink" href="#spatialomics-file-layout" title="Permalink to this heading"></a></h2>
 <p>Normally the dir structure is : <code class="docutils literal notranslate"><span class="pre">$lab/$pi/$project/$session/$sample</span></code></p>
-<p>For Spatialomics this is not the case, the $sample is not really a sample, it’s grouping of ROIs,
-PreROIs, etc from each of the slides.
-These grouping directories sit one down from session, in the place a <code class="docutils literal notranslate"><span class="pre">$sample</span></code> normally would be.</p>
-<p>For a single unit of work (eg 8 slides) the set up looks like:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$lab/$pi/$project/$session/Pre_ROI_Selection
-$lab/$pi/$project/$session/Heatmaps
-$lab/$pi/$project/$session/HQ_Images
-$lab/$pi/$project/$session/ROI_Images
-</pre></div>
-</div>
-<p>and eg:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>ls $lab/$pi/$project/$session/HQ_Images/
-slide_1.czi, slide_2.czi, ...
-</pre></div>
-</div>
-<p>and</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>ls $lab/$pi/$project/$session/Pre_ROI_Selection
-slide_1_Pre_ROI_a.png, slide_2_Pre_ROI_a.png, ...
-</pre></div>
-</div>
-<p>Note:
-Different outputs from different slides are split across different dirs.
-The pipeline will not parse out or otherwise link slides together in any way.
-Similarly there is no linking from from heatmaps to any specific slide.</p>
-<p>Also, other directories can exist in this directory, which will be ignored.</p>
+<p>For Spatialomics this is not the case, the $sample is not really a sample, it’s grouping of ROIs, PreROIs, etc from each of the slides.</p>
+<p>More details can be found in <a class="reference internal" href="workflows/index.html#ref-workflow-spatial-omics"><span class="std std-ref">Spatialomics Workflow</span></a>.</p>
 </section>
 </section>
 
