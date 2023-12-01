@@ -2,6 +2,12 @@
 
 set -e -o pipefail
 
+if [ ! -n "$PREFECT_API_KEY" ]; then
+	printf "PREFECT_API_KEY environment var must be set.\n"
+	printf "For example: export PREFECT_API_KEY =<token here>\n"
+	printf "(Exiting on 1.)\n"
+	exit 1
+fi
 
 SELF=`basename "$0"`
 # HEDWIG_ENV=$1
@@ -30,11 +36,9 @@ if [[ ! -d ~/$HEDWIG_ENV ]]; then
 fi
 source $HEDWIG_HOME/$HEDWIG_ENV/bin/activate
 
-export IMOD_DIR=/opt/rml/imod
-
 ACTION=$1
-if [[ ! ( $ACTION == "listen" || $ACTION == "register" || $ACTION == "setup" ) ]]; then
-	printf "Script must be called with ARG1 as either listen, register, or setup."
+if [[ ! ( $ACTION == "listen" || $ACTION == "register" || $ACTION == "setup" || $ACTION == "info" ) ]]; then
+	printf "Script must be called with ARG1 as either listen, register, setup, or info."
 	printf "Eg ./$SELF listen\nExiting on 1."
 	exit 1
 fi
@@ -55,4 +59,7 @@ elif [[ $ACTION == "register" ]]; then
 elif [[ $ACTION == "setup" ]]; then
 	printf "\nSetting up Prefect $WORKPOOL\n"
 	sh -c "prefect work-pool create $WORKPOOL --type process"
+elif [[ $ACTION == "info" ]]; then
+	printf "\nFetching Prefect $WORKPOOL Deployments\n"
+  curl -X 'POST' "$PREFECT_API_URL/deployments/filter" -H 'accept: application/json' -H "Authorization: Bearer $PREFECT_API_KEY" -H 'Content-Type: application/json' -d '{}' | jq -r '.[] | "\(.id) \t\t \(.entrypoint) \t\t \(.description)"'
 fi

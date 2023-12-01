@@ -6,12 +6,9 @@ After=network.target
 Type=simple
 User=hedwig_dev
 Group=hedwig_dev
-Environment="HEDWIG_ENV=dev"
-Environment="REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt"
-Environment="PREFECT_API_URL=https://prefect2.hedwig-workflow-api.niaiddev.net/api"
-Environment="IMOD_DIR=/opt/rml/imod"
+EnvironmentFile=/gs1/home/hedwig_dev/.service.env
 WorkingDirectory=/gs1/home/hedwig_dev/image_portal_workflows
-ExecStart=/gs1/home/hedwig_dev/dev/bin/prefect worker start --pool workpool
+ExecStart=/gs1/home/hedwig_dev/image_portal_workflows/helper_scripts/hedwig_reg_listen.sh listen
 Restart=always
 RestartSec="30min"
 
