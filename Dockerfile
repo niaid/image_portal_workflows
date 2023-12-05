@@ -42,9 +42,10 @@ RUN unzip bioformats2raw-${BIOFORMATS2RAW_VERSION}.zip && \
 
 ENV PATH="/opt/bin/bioformats2raw-${BIOFORMATS2RAW_VERSION}/bin:${PATH}"
 
+COPY requirements-dev.txt .
 COPY requirements.txt .
-RUN pip install -r requirements.txt
-RUN rm requirements.txt
+RUN pip install -r requirements-dev.txt
+RUN rm requirements-dev.txt
 
 WORKDIR /image_portal_workflows
 
