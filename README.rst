@@ -10,6 +10,6 @@
       <br>
   </p>
 
-Workflows related to project previously referred to as "Hedwig".
+Image Analysis Workflows, servicing NIAID's "Hedwig" project.
 
-Please refer to `Spinx Docs <https://niaid.github.io/image_portal_workflows/>`_ for Installation, Local Setup, Sending Pull Requests, and Testing.
+Please see our `Spinx Docs <https://niaid.github.io/image_portal_workflows/>`_ for details.
