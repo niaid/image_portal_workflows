@@ -1,57 +1,65 @@
-###########
-Development
-###########
+####################
+Project Development
+####################
 
-The docs related to development and testing are contained in this section.
+
+We assume you are developing locally, on Linux or Mac OS, with access to Python 3.10 (or later).
+
 
 *************
-Prerequisites
+Local Set-up
 *************
 
-Please read this Development section before cloning.
-Current system assumes that you are locally running either a Linux or Mac OS.
+Here we will set up our virtual environment "dev", and install workflows source.
 
-Github.com
-==========
+.. code-block:: sh
 
-The repository is located in the NIAID Github.com enterprise organization. Having a github.com account
-which is a member of the NIAID organization is required.
+   # create env
+   python3 -m venv dev
 
-Git LFS
-=======
+   # activate env
+   source dev/bin/activate
 
-*We are aiming to use s3 (with rsync capabilities) over git-lfs for test data storage*
+   # add pipelines to this env
+   pip install -e . -r requirements.txt --upgrade
 
-Git `Large File Storage <https://git-lfs.github.com>`_ (LFS) is used to store larger files in the repository such as
-test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
-be installed on the system and set up on the users account. The `tool's documentation <https://git-lfs.github.com>`_
-provides details on installation, set up, and usage that is not duplicated here. Once set up the git usage is usually
-transparent with operation such as cloning, adding files, and changing branches.
 
-The ``.gitattributes`` configuration file automatically places files in the ``test/input_files`` directory to
-be stored in Git LFS.
+********************************
+Required utils and ``.env`` file
+********************************
 
-Flake8
-======
+These pipelines rely on a number of freely available utilities:
 
-`Flake8 <https://pypi.org/project/flake8/>`_ is a CLI utility used to enforce style and do linting.
+- Java runtime (in order to run `etomo` in BRT)
+- ffmpeg (in order to create movies)
+- IMOD package: https://bio3d.colorado.edu/imod/
+- bioformats2raw package: https://github.com/glencoesoftware/bioformats2raw
+- imagemagick: https://imagemagick.org/script/download.php
 
-Black
-=====
+The pipelines use the `.env` file, located in the project root directory, to path these utilities.
+For convenience the file `.env.sample` is provided, and can be used by renaming it to `.env`.
+You can then ensure the paths in this file are appropriate to your system.
 
-`Black <https://pypi.org/project/black/>`_ is a CLI utility that enforces a standard formatting on Python which helps with code consistancy.
 
-pre-commit
-==========
+.. code-block:: sh
 
-`pre-commit <https://pre-commit.com/>`_ is a framework for managing pre-commit hooks that will check code for code
-format compliance at commit time. It is configured via a top-level ``.pre-commit-config.yaml`` file that runs ``black``,
-``Flake8`` and other checks.
+   mv .env.sample .env
 
-Docker
-======
+   # config paths in file
+   vim .env
 
-`Docker <https://www.docker.com/products/docker-desktop/>`_ is a platform that provides OS-level virtualization so that softwares are developed and packaged in containers. This helps consistent development in different environments.
+
+
+Similar to the HPC Set up below, you can locally set up `dev` and `qa` virtual envs.
+
+Special note for **Mac M1**: The `tomojs-pytools` library depends on imagecodecs which does
+not have binaries built for the M1. Need to install using an x86_64 version of Python. Also, there
+are issues installing `biofomats2raw` as there is no OpenCV package for arm64 chip. There currently
+is no fix or workaround for this issue.
+
+
+
+
 
 *******
 Testing
@@ -111,36 +119,16 @@ tests in ``test_utils.py`` named ``test_lookup_dims`` and ``test_bad_lookup_dims
 In addition, temporarily "broken" tests are marked with ``@pytest.mark.skip``. These will be skipped
 every time; comment out or delete the decorator to run them.
 
-*************
-Local Set-up
-*************
 
-You will need a minimal Python (3.8+) installation to run the `generate_venv.sh` script.
-The following programs need to be available locally:
-
-- Java runtime (in order to run `etomo` in BRT)
-- ffmpeg (in order to create movies)
-- IMOD package: https://bio3d.colorado.edu/imod/
-- bioformats2raw package: https://github.com/glencoesoftware/bioformats2raw
-- imagemagick: https://imagemagick.org/script/download.php
-
-All configurations for binary executables that workflows depend on are considered to exist in environment variables.
-For this you will need a `.env` file in the project root directory. For simplicity, you can copy the `.env.sample`
-contents into the `.env` file.
-
-Similar to the HPC Set up below, you can locally set up `dev` and `qa` virtual envs.
-
-Special note for **Mac M1**: The `tomojs-pytools` library depends on imagecodecs which does
-not have binaries built for the M1. Need to install using an x86_64 version of Python. Also, there
-are issues installing `biofomats2raw` as there is no OpenCV package for arm64 chip. There currently
-is no fix or workaround for this issue.
-
-Docker
-======
+Docker and ``.env`` file
+========================
 
 You can also choose to use Docker for local development and testing.
+Note, the container will need an `.env` file similar to any other environment. The easiest way
+to achieve this is copying the existing example file `.env.sample` to `.env`, this should work
+within the container as is.
 
-In order to build the docker image, use `--platform linux/amd64` option.
+To build the docker image, use `--platform linux/amd64` option.
 Explanation can be found `here <https://teams.microsoft.com/l/entity/com.microsoft.teamspace.tab.wiki/tab::5f55363b-bb53-4e5b-9564-8bed5289fdd5?context=%7B%22subEntityId%22%3A%22%7B%5C%22pageId%5C%22%3A15%2C%5C%22sectionId%5C%22%3A17%2C%5C%22origin%5C%22%3A2%7D%22%2C%22channelId%22%3A%2219%3A869be6677ee54848bc13f2066d847cc0%40thread.skype%22%7D&tenantId=14b77578-9773-42d5-8507-251ca2dc2b06>`_
 
 The basic usage for testing would look like below. The command assumes that you are running the container from the project directory where the main Dockerfile is located.
@@ -151,16 +139,64 @@ The basic usage for testing would look like below. The command assumes that you 
    docker build . -t hedwig_pipelines --platform linux/amd64
 
 
-In order to boot up a container with pipeline image, you can run the command below.\
-Note that we are setting a USER environment variable here. This is because `class Config` requires this environment variable set.
-
-.. code-block:: sh
-
    # To run the container of that image
    docker run -v "$(pwd):/image_portal_workflows" -e USER=root -it --rm hedwig_pipelines:latest
 
+I don't think this is still true??
+Note that we are setting a USER environment variable here. This is because `class Config` requires this environment variable set.
 
-Once you are in the container, you can run the commands you want to. For example: `pytest`.
+
+
+
+From within the container command can be run normally, for example: `pytest`.
+
+***********************
+Contributing and GitHub
+***********************
+
+We host our source code and docs on Github: https://github.com/niaid/image_portal_workflows
+and https://niaid.github.io/image_portal_workflows
+
+If you would like to contribute, please see:
+https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request
+along with: https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project
+
+
+pre-commit
+==========
+We use `pre-commit <https://pre-commit.com/>`_, a framework for managing pre-commit hooks that will check code for code
+format compliance at commit time. It is configured via a top-level ``.pre-commit-config.yaml`` file that runs ``black``,
+``Flake8`` and other checks.
+
+
+Thanks! :)
+
+*************
+Documentation
+*************
+
+`Sphinx <https://www.sphinx-doc.org/>`_ documentation as automatically rendered and pushed the the gh-pages branch. The
+API is documented in Sphinx from the the Python docstring automatically for the public module methods and select private
+methods.
+
+to create docs locally
+(note this will continually update the docs as they are saved, where they can be viewed on your browser):
+
+.. code-block:: sh
+
+   # make sure you're in the docs dir
+   pwd
+   /home/macmenaminpe/image_portal_workflows/docs
+
+
+   # clean up anything from last time and create live docs
+   rm -rf _build && make livehtml
+   [I 231205 20:33:41 server:335] Serving on http://0.0.0.0:34733
+   [I 231205 20:33:41 handlers:62] Start watching changes
+   [I 231205 20:33:41 handlers:64] Start detecting changes
+   [I 231205 20:33:53 handlers:135] Browser Connected: http://0.0.0.0:34733/
+
+
 
 *************
 HPC Set up
@@ -251,63 +287,10 @@ Currently dask jobqueue is configured with a yaml file.
   Python 3.8.6
   $ spack unload -a
 
-*****************
-Pull Requests
-*****************
 
-To contribute to the project first ensure your fork is in good shape, and then the generate a Pull Request (PR) to the **niaid** fork. Below is an outline an of the kind of steps that could be followed. More thorough documentation can be found here: https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request
 
-- Fork niaid repo into your gh account using the web interface.
 
-- Clone your repo to local machine, e.g.::
+Git LFS
+=======
 
-    git clone git@github.com:philipmac/nih_3d_workflows.git
-
-- Set `upstream`::
-
-    git remote add upstream git@github.com:niaid/nih_3d_workflows.git
-
-- ensure origin and upstream look something like this::
-
-   $ git remote -v
-   origin	git@github.com:your_uname/image_portal_workflows.git (fetch)
-   origin	git@github.com:your_uname/image_portal_workflows.git (push)
-   upstream	git@github.com:niaid/image_portal_workflows.git (fetch)
-   upstream	git@github.com:niaid/image_portal_workflows.git (push)
-
-- Make edits to local copy.
-
-- Run `flake8`::
-
-    flake8 . --max-line-length=127
-
-- Run `Black`::
-
-    black .
-
-- Ensure neither `black` nor `flake8` are complaining.
-
-- Commit your local work, ensure you're up to date with `upstream`, and push to `origin`::
-
-    git commit -m "Fixes issue 123, ..."
-    git fetch upstream
-    git rebase upstream/master
-    git push origin branch_with_fix
-
-- Initiate creation the Pull Request (PR) via your fork into niaid/nih-3d-main using the web interface.
-
-- Look at your changes, ensure *only* those changes are included in your PR.
-
-- Submit PR with some helpful English. See: https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project
-
-- Feel free to let a niaid repo admin (currently Philip MacM and Bradley Lowenkamp) know there's a PR waiting for review.
-
-Thanks! :)
-
-********************
-Sphinx Documentation
-********************
-
-`Sphinx <https://www.sphinx-doc.org/>`_ documentation as automatically rendered and pushed the the gh-pages branch. The
-API is documented in Sphinx from the the Python docstring automatically for the public module methods and select private
-methods.
+*We are aiming to use s3 (with rsync capabilities) over git-lfs for test data storage*
