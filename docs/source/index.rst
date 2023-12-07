@@ -17,3 +17,4 @@ Image Portal Workflows's documentation
    usage
    api/index
    hpc
+   prefect
