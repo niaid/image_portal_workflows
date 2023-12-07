@@ -13,7 +13,7 @@ async def test_input_fname(mock_nfs_mount, caplog, mock_reuse_zarr):
     state = await czi_flow(
         file_share="test",
         input_dir="test/input_files/IF_czi/Projects/Cropped_Image/",
-        no_api=True,
+        x_no_api=True,
         return_state=True,
     )
     assert state.is_completed()
@@ -35,7 +35,7 @@ async def test_no_mount_point_flow_fails(mock_binaries, monkeypatch, caplog):
         await czi_flow(
             file_share=share_name,
             input_dir="test/input_files/IF_czi/Projects/Cropped_Image/",
-            no_api=True,
+            x_no_api=True,
         )
     assert f"{share_name} doesn't exist. Failing!" in caplog.text, caplog.text
 
@@ -56,7 +56,7 @@ async def test_czi_workflow_callback_structure(
     state = await czi_flow(
         file_share="test",
         input_dir=input_dir,
-        no_api=True,
+        x_no_api=True,
         return_state=True,
     )
     assert state.is_completed()
