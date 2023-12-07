@@ -15,7 +15,7 @@ push:
 # pull section allows you to provide instructions for cloning this project in remote locations
 pull:
 - prefect.deployments.steps.set_working_directory:
-    directory: /gs1/home/hedwig_dev/image_portal_workflows
+    directory: /gs1/home/hedwig_${HEDWIG_ENV}/image_portal_workflows
 # - prefect.deployments.steps.git_clone:
 #     repository: git@github.com:niaid/image_portal_workflows.git
 #     branch: feature/prefect2
@@ -35,7 +35,7 @@ definitions:
 # the deployments section allows you to provide configuration for deploying flows
 # TODO: change deployment names
 deployments:
-- name: dep-test
+- name: hedwig
   version:
   tags: *hedwig_tags
   description: |-
@@ -44,7 +44,7 @@ deployments:
   parameters: {}
   work_pool: *dask_work_pool
   schedule:
-- name: dep-test
+- name: hedwig
   version:
   tags: *hedwig_tags
   description: |-
@@ -53,7 +53,7 @@ deployments:
   parameters: {}
   work_pool: *dask_work_pool
   schedule:
-- name: dep-test
+- name: hedwig
   version:
   tags: *hedwig_tags
   description: |-
@@ -62,7 +62,7 @@ deployments:
   parameters: {}
   work_pool: *dask_work_pool
   schedule:
-- name: dep-test
+- name: hedwig
   version:
   tags: *hedwig_tags
   description: |-
@@ -71,7 +71,7 @@ deployments:
   parameters: {}
   work_pool: *dask_work_pool
   schedule:
-- name: dep-test
+- name: hedwig
   version:
   tags: *hedwig_tags
   description: |-
