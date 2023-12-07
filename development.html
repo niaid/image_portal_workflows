@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Development &mdash; Image Portal Workflows  documentation</title>
+  <title>Project Development &mdash; Image Portal Workflows  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -46,24 +46,18 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Development</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#github-com">Github.com</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#git-lfs">Git LFS</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#flake8">Flake8</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#black">Black</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#pre-commit">pre-commit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#docker">Docker</a></li>
-</ul>
-</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Project Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#virtual-environment-set-up">Virtual environment Set-up</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ancillary-utils-and-env-file">Ancillary utils and <code class="docutils literal notranslate"><span class="pre">.env</span></code> file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#docker-and-env-file">Docker and <code class="docutils literal notranslate"><span class="pre">.env</span></code> file</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#local-set-up">Local Set-up</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id5">Docker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#contributing-and-github">Contributing and GitHub</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pre-commit">pre-commit</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#hpc-set-up">HPC Set up</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pull-requests">Pull Requests</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#sphinx-documentation">Sphinx Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#register-workflows">Register Workflows:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#git-lfs">Git LFS</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="workflows/index.html">Workflows</a></li>
@@ -86,7 +80,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Development</li>
+      <li class="breadcrumb-item active">Project Development</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/development.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -96,47 +90,74 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="development">
-<h1>Development<a class="headerlink" href="#development" title="Permalink to this heading"></a></h1>
-<p>The docs related to development and testing are contained in this section.</p>
-<section id="prerequisites">
-<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading"></a></h2>
-<p>Please read this Development section before cloning.
-Current system assumes that you are locally running either a Linux or Mac OS.</p>
-<section id="github-com">
-<h3>Github.com<a class="headerlink" href="#github-com" title="Permalink to this heading"></a></h3>
-<p>The repository is located in the NIAID Github.com enterprise organization. Having a github.com account
-which is a member of the NIAID organization is required.</p>
+  <section id="project-development">
+<h1>Project Development<a class="headerlink" href="#project-development" title="Permalink to this heading"></a></h1>
+<p>We assume you are developing locally, on Linux or Mac OS, with access to Python 3.10 (or later).</p>
+<section id="virtual-environment-set-up">
+<h2>Virtual environment Set-up<a class="headerlink" href="#virtual-environment-set-up" title="Permalink to this heading"></a></h2>
+<p>Set up virtual environment, for example “dev”, and install workflows source.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># create env</span>
+python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>dev
+
+<span class="c1"># activate env</span>
+<span class="nb">source</span><span class="w"> </span>dev/bin/activate
+
+<span class="c1"># add pipelines to this env</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="w"> </span>-r<span class="w"> </span>requirements.txt<span class="w"> </span>--upgrade
+</pre></div>
+</div>
+<p>Similar to the HPC Set up below, you can locally set up <cite>dev</cite> and <cite>qa</cite> virtual envs.</p>
 </section>
-<section id="git-lfs">
-<h3>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this heading"></a></h3>
-<p><em>We are aiming to use s3 (with rsync capabilities) over git-lfs for test data storage</em></p>
-<p>Git <a class="reference external" href="https://git-lfs.github.com">Large File Storage</a> (LFS) is used to store larger files in the repository such as
-test images, trained models, and other data ( i.e. not text based code ). Before the repository is cloned, git lfs must
-be installed on the system and set up on the users account. The <a class="reference external" href="https://git-lfs.github.com">tool’s documentation</a>
-provides details on installation, set up, and usage that is not duplicated here. Once set up the git usage is usually
-transparent with operation such as cloning, adding files, and changing branches.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">.gitattributes</span></code> configuration file automatically places files in the <code class="docutils literal notranslate"><span class="pre">test/input_files</span></code> directory to
-be stored in Git LFS.</p>
+<section id="ancillary-utils-and-env-file">
+<h2>Ancillary utils and <code class="docutils literal notranslate"><span class="pre">.env</span></code> file<a class="headerlink" href="#ancillary-utils-and-env-file" title="Permalink to this heading"></a></h2>
+<p>Our pipelines rely on a number of freely available utilities:</p>
+<ul class="simple">
+<li><p>Java runtime (in order to run <cite>etomo</cite> in BRT)</p></li>
+<li><p>ffmpeg (in order to create movies)</p></li>
+<li><p><a class="reference external" href="https://bio3d.colorado.edu/imod/">IMOD</a></p></li>
+<li><p><a class="reference external" href="https://github.com/glencoesoftware/bioformats2raw">bioformats2raw</a></p></li>
+<li><p><a class="reference external" href="https://imagemagick.org/script/download.php">imagemagick:</a></p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In order to path the location of utilities like the ones mentioned above the pipelines use the <cite>.env</cite> file.
+This file located in the project root directory, and for convenience an example <cite>.env.sample</cite> is provided.
+To use this example it should be renamed it to <cite>.env</cite>, and you can then ensure the paths listed are appropriate to your system.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1">#copy example for use</span>
+cp<span class="w"> </span>.env.sample<span class="w"> </span>.env
+
+<span class="c1"># config paths in file</span>
+vim<span class="w"> </span>.env
+</pre></div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Special note for <strong>Mac M1</strong>: The <cite>tomojs-pytools</cite> library depends on imagecodecs which does
+not have binaries built for the M1. Need to install using an x86_64 version of Python. Also, there
+are issues installing <cite>biofomats2raw</cite> as there is no OpenCV package for arm64 chip. There currently
+is no fix or workaround for this issue.</p>
+</div>
 </section>
-<section id="flake8">
-<h3>Flake8<a class="headerlink" href="#flake8" title="Permalink to this heading"></a></h3>
-<p><a class="reference external" href="https://pypi.org/project/flake8/">Flake8</a> is a CLI utility used to enforce style and do linting.</p>
-</section>
-<section id="black">
-<h3>Black<a class="headerlink" href="#black" title="Permalink to this heading"></a></h3>
-<p><a class="reference external" href="https://pypi.org/project/black/">Black</a> is a CLI utility that enforces a standard formatting on Python which helps with code consistancy.</p>
-</section>
-<section id="pre-commit">
-<h3>pre-commit<a class="headerlink" href="#pre-commit" title="Permalink to this heading"></a></h3>
-<p><a class="reference external" href="https://pre-commit.com/">pre-commit</a> is a framework for managing pre-commit hooks that will check code for code
-format compliance at commit time. It is configured via a top-level <code class="docutils literal notranslate"><span class="pre">.pre-commit-config.yaml</span></code> file that runs <code class="docutils literal notranslate"><span class="pre">black</span></code>,
-<code class="docutils literal notranslate"><span class="pre">Flake8</span></code> and other checks.</p>
-</section>
-<section id="docker">
-<h3>Docker<a class="headerlink" href="#docker" title="Permalink to this heading"></a></h3>
-<p><a class="reference external" href="https://www.docker.com/products/docker-desktop/">Docker</a> is a platform that provides OS-level virtualization so that softwares are developed and packaged in containers. This helps consistent development in different environments.</p>
-</section>
+<section id="docker-and-env-file">
+<h2>Docker and <code class="docutils literal notranslate"><span class="pre">.env</span></code> file<a class="headerlink" href="#docker-and-env-file" title="Permalink to this heading"></a></h2>
+<p>You can also choose to use Docker for local development and testing.
+Note, the container will need an <cite>.env</cite> file similar to any other environment. The easiest way
+to achieve this is copying the existing example file <cite>.env.sample</cite> to <cite>.env</cite>, this should work
+within the container as is.</p>
+<p>To build the docker image, use <cite>–platform linux/amd63</cite> option.
+Explanation can be found <a class="reference external" href="https://teams.microsoft.com/l/entity/com.microsoft.teamspace.tab.wiki/tab::4f55363b-bb53-4e5b-9564-8bed5289fdd5?context=%7B%22subEntityId%22%3A%22%7B%5C%22pageId%5C%22%3A15%2C%5C%22sectionId%5C%22%3A17%2C%5C%22origin%5C%22%3A2%7D%22%2C%22channelId%22%3A%2219%3A869be6677ee54848bc13f2066d847cc0%40thread.skype%22%7D&amp;tenantId=14b77578-9773-42d5-8507-251ca2dc2b06">here</a></p>
+<p>The basic usage for testing would look like below. The command assumes that you are running the container from the project directory where the main Dockerfile is located.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># To build the image</span>
+docker<span class="w"> </span>build<span class="w"> </span>.<span class="w"> </span>-t<span class="w"> </span>hedwig_pipelines<span class="w"> </span>--platform<span class="w"> </span>linux/amd63
+
+<span class="c1"># Create a container using that image</span>
+docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">:/image_portal_workflows&quot;</span><span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span>hedwig_pipelines:latest
+
+<span class="c1"># run something inside the container</span>
+root@f3a8b5823032:/image_portal_workflows$<span class="w"> </span>pytest<span class="w"> </span>test/test_utils.py
+</pre></div>
+</div>
 </section>
 <section id="testing">
 <h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading"></a></h2>
@@ -191,163 +212,50 @@ tests in <code class="docutils literal notranslate"><span class="pre">test_utils
 <p>In addition, temporarily “broken” tests are marked with <code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.skip</span></code>. These will be skipped
 every time; comment out or delete the decorator to run them.</p>
 </section>
-<section id="local-set-up">
-<h2>Local Set-up<a class="headerlink" href="#local-set-up" title="Permalink to this heading"></a></h2>
-<p>You will need a minimal Python (3.8+) installation to run the <cite>generate_venv.sh</cite> script.
-The following programs need to be available locally:</p>
-<ul class="simple">
-<li><p>Java runtime (in order to run <cite>etomo</cite> in BRT)</p></li>
-<li><p>ffmpeg (in order to create movies)</p></li>
-<li><p>IMOD package: <a class="reference external" href="https://bio3d.colorado.edu/imod/">https://bio3d.colorado.edu/imod/</a></p></li>
-<li><p>bioformats2raw package: <a class="reference external" href="https://github.com/glencoesoftware/bioformats2raw">https://github.com/glencoesoftware/bioformats2raw</a></p></li>
-<li><p>imagemagick: <a class="reference external" href="https://imagemagick.org/script/download.php">https://imagemagick.org/script/download.php</a></p></li>
-</ul>
-<p>All configurations for binary executables that workflows depend on are considered to exist in environment variables.
-For this you will need a <cite>.env</cite> file in the project root directory. For simplicity, you can copy the <cite>.env.sample</cite>
-contents into the <cite>.env</cite> file.</p>
-<p>Similar to the HPC Set up below, you can locally set up <cite>dev</cite> and <cite>qa</cite> virtual envs.</p>
-<p>Special note for <strong>Mac M1</strong>: The <cite>tomojs-pytools</cite> library depends on imagecodecs which does
-not have binaries built for the M1. Need to install using an x86_64 version of Python. Also, there
-are issues installing <cite>biofomats2raw</cite> as there is no OpenCV package for arm64 chip. There currently
-is no fix or workaround for this issue.</p>
-<section id="id5">
-<h3>Docker<a class="headerlink" href="#id5" title="Permalink to this heading"></a></h3>
-<p>You can also choose to use Docker for local development and testing.</p>
-<p>In order to build the docker image, use <cite>–platform linux/amd64</cite> option.
-Explanation can be found <a class="reference external" href="https://teams.microsoft.com/l/entity/com.microsoft.teamspace.tab.wiki/tab::5f55363b-bb53-4e5b-9564-8bed5289fdd5?context=%7B%22subEntityId%22%3A%22%7B%5C%22pageId%5C%22%3A15%2C%5C%22sectionId%5C%22%3A17%2C%5C%22origin%5C%22%3A2%7D%22%2C%22channelId%22%3A%2219%3A869be6677ee54848bc13f2066d847cc0%40thread.skype%22%7D&amp;tenantId=14b77578-9773-42d5-8507-251ca2dc2b06">here</a></p>
-<p>The basic usage for testing would look like below. The command assumes that you are running the container from the project directory where the main Dockerfile is located.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># To build the image</span>
-docker<span class="w"> </span>build<span class="w"> </span>.<span class="w"> </span>-t<span class="w"> </span>hedwig_pipelines<span class="w"> </span>--platform<span class="w"> </span>linux/amd64
-</pre></div>
-</div>
-<p>In order to boot up a container with pipeline image, you can run the command below.Note that we are setting a USER environment variable here. This is because <cite>class Config</cite> requires this environment variable set.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># To run the container of that image</span>
-docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">:/image_portal_workflows&quot;</span><span class="w"> </span>-e<span class="w"> </span><span class="nv">USER</span><span class="o">=</span>root<span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span>hedwig_pipelines:latest
-</pre></div>
-</div>
-<p>Once you are in the container, you can run the commands you want to. For example: <cite>pytest</cite>.</p>
-</section>
-</section>
-<section id="hpc-set-up">
-<h2>HPC Set up<a class="headerlink" href="#hpc-set-up" title="Permalink to this heading"></a></h2>
-<p><strong>NOTE, THIS IS ONLY relevant for HPC. Added for completeness.</strong></p>
-<p><strong>NOTE: generate_vevn.sh is not used as of 08/11/2023, setup is documented in</strong> <a class="reference internal" href="hpc.html"><span class="doc">RML HPC (Big Sky)</span></a>.</p>
-<p>Workflows are currently run on RML HPC (“BigSky”).</p>
-<p>There are three environments currently on BigSky: (<cite>dev</cite>, <cite>qa</cite>, <cite>prod</cite>).
-They were set up as follows:
-(Note, this first step is only required once, and only to work around ancient versions of Python.)</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Obtain and set up Miniconda (to allow setting up of venvs) e.g.</span>
-wget<span class="w"> </span>https://repo.anaconda.com/miniconda/Miniconda3-py39_4.11.0-Linux-x86_64.sh
-<span class="c1"># Activate conda to create the virtual environment</span>
-conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>conda_env
-conda<span class="w"> </span>activate<span class="w"> </span>conda_env
-<span class="c1"># create venv, &quot;some_name&quot; for example</span>
-python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>some_name
-<span class="c1"># don&#39;t need the conda env any more...</span>
-conda<span class="w"> </span>deactivate
-</pre></div>
-</div>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:niaid/image_portal_workflows.git
-<span class="c1"># generates venv qa.</span>
-./image_portal_workflows/helper_scripts/generate_venv.sh<span class="w"> </span>qa
-</pre></div>
-</div>
-<p>To update your python virtual environment:
-Change into the correct venv directory, e.g. <cite>~/code/hedwig/dev/image_portal_workflows</cite>.
-Ensure environment is active and run something like:</p>
-<p><cite>pip   install -e . -r requirements.txt –upgrade  –find-links https://github.com/niaid/tomojs-pytools/releases/tag/v1.3</cite></p>
-<p>The prefect agent, the thing that reaches out to the prefect API machine, is daemonized on HPC.
-See <cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh</cite> and
-<cite>image_portal_workflows/helper_scripts/hedwig_listener_prod.service</cite> etc.</p>
-<p>To register a new workflow, or update an existing one (in <cite>qa</cite> environment):
-(The workflow needs to be registered every time the source is updated.)
-<cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh qa register</cite></p>
-<p>Currently dask jobqueue is configured with a yaml file.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>cat<span class="w"> </span>~/.config/dask/jobqueue.yaml
-<span class="c1"># Dask worker options</span>
-cores:<span class="w"> </span><span class="m">8</span><span class="w">                </span><span class="c1"># Total number of cores per job</span>
-memory:<span class="w"> </span><span class="s2">&quot;64 GB&quot;</span><span class="w">                </span><span class="c1"># Total amount of memory per job</span>
-processes:<span class="w"> </span><span class="m">1</span><span class="w">                </span><span class="c1"># Number of Python processes per job</span>
-
-<span class="c1"># interface: ens160           # Network interface to use like eth0 or ib0</span>
-death-timeout:<span class="w"> </span><span class="m">120</span><span class="w">           </span><span class="c1"># Number of seconds to wait if a worker can not find a scheduler</span>
-local-directory:<span class="w"> </span>/gs1/home/macmenaminpe/tmp<span class="w">       </span><span class="c1"># Location of fast local storage like /scratch or $TMPDIR</span>
-job_extra_directives:<span class="w"> </span><span class="o">[</span><span class="s2">&quot;--gres=gpu:1&quot;</span><span class="o">]</span>
-
-<span class="c1"># SLURM resource manager options</span>
-shebang:<span class="w"> </span><span class="s2">&quot;#!/usr/bin/env bash&quot;</span>
-queue:<span class="w"> </span>gpu
-project:<span class="w"> </span>null
-walltime:<span class="w"> </span><span class="s1">&#39;10:00:00&#39;</span>
-</pre></div>
-</div>
-<ul class="simple">
-<li><p>Note, although unused above, BigSky also has Spack available.</p></li>
-</ul>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">source</span><span class="w"> </span>/gs1/apps/user/rmlspack/share/spack/setup-env.sh
-$<span class="w"> </span>spack<span class="w"> </span>load<span class="w"> </span>-r<span class="w"> </span>python@3.8.6/eg2vaag
-$<span class="w"> </span>python<span class="w"> </span>-V
-Python<span class="w"> </span><span class="m">3</span>.8.6
-$<span class="w"> </span>spack<span class="w"> </span>unload<span class="w"> </span>-a
-</pre></div>
-</div>
-</section>
-<section id="pull-requests">
-<h2>Pull Requests<a class="headerlink" href="#pull-requests" title="Permalink to this heading"></a></h2>
-<p>To contribute to the project first ensure your fork is in good shape, and then the generate a Pull Request (PR) to the <strong>niaid</strong> fork. Below is an outline an of the kind of steps that could be followed. More thorough documentation can be found here: <a class="reference external" href="https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request">https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request</a></p>
-<ul>
-<li><p>Fork niaid repo into your gh account using the web interface.</p></li>
-<li><p>Clone your repo to local machine, e.g.:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">philipmac</span><span class="o">/</span><span class="n">nih_3d_workflows</span><span class="o">.</span><span class="n">git</span>
-</pre></div>
-</div>
-</li>
-<li><p>Set <cite>upstream</cite>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">remote</span> <span class="n">add</span> <span class="n">upstream</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">niaid</span><span class="o">/</span><span class="n">nih_3d_workflows</span><span class="o">.</span><span class="n">git</span>
-</pre></div>
-</div>
-</li>
-<li><p>ensure origin and upstream look something like this:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git remote -v
-origin       git@github.com:your_uname/image_portal_workflows.git (fetch)
-origin       git@github.com:your_uname/image_portal_workflows.git (push)
-upstream     git@github.com:niaid/image_portal_workflows.git (fetch)
-upstream     git@github.com:niaid/image_portal_workflows.git (push)
-</pre></div>
-</div>
-</li>
-<li><p>Make edits to local copy.</p></li>
-<li><p>Run <cite>flake8</cite>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">flake8</span> <span class="o">.</span> <span class="o">--</span><span class="nb">max</span><span class="o">-</span><span class="n">line</span><span class="o">-</span><span class="n">length</span><span class="o">=</span><span class="mi">127</span>
-</pre></div>
-</div>
-</li>
-<li><p>Run <cite>Black</cite>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">black</span> <span class="o">.</span>
-</pre></div>
-</div>
-</li>
-<li><p>Ensure neither <cite>black</cite> nor <cite>flake8</cite> are complaining.</p></li>
-<li><p>Commit your local work, ensure you’re up to date with <cite>upstream</cite>, and push to <cite>origin</cite>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">commit</span> <span class="o">-</span><span class="n">m</span> <span class="s2">&quot;Fixes issue 123, ...&quot;</span>
-<span class="n">git</span> <span class="n">fetch</span> <span class="n">upstream</span>
-<span class="n">git</span> <span class="n">rebase</span> <span class="n">upstream</span><span class="o">/</span><span class="n">master</span>
-<span class="n">git</span> <span class="n">push</span> <span class="n">origin</span> <span class="n">branch_with_fix</span>
-</pre></div>
-</div>
-</li>
-<li><p>Initiate creation the Pull Request (PR) via your fork into niaid/nih-3d-main using the web interface.</p></li>
-<li><p>Look at your changes, ensure <em>only</em> those changes are included in your PR.</p></li>
-<li><p>Submit PR with some helpful English. See: <a class="reference external" href="https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project">https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project</a></p></li>
-<li><p>Feel free to let a niaid repo admin (currently Philip MacM and Bradley Lowenkamp) know there’s a PR waiting for review.</p></li>
-</ul>
+<section id="contributing-and-github">
+<h2>Contributing and GitHub<a class="headerlink" href="#contributing-and-github" title="Permalink to this heading"></a></h2>
+<p><a class="reference external" href="https://github.com/niaid/image_portal_workflows">Source code</a>
+and <a class="reference external" href="https://niaid.github.io/image_portal_workflows">Docs</a></p>
+<p>While contributing find useful information on: <a class="reference external" href="https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request">creating a PR</a>
+along with <a class="reference external" href="https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project">contributing to a project</a>.</p>
+<section id="pre-commit">
+<h3>pre-commit<a class="headerlink" href="#pre-commit" title="Permalink to this heading"></a></h3>
+<p>We use <a class="reference external" href="https://pre-commit.com/">pre-commit</a>, a framework for managing pre-commit hooks that will check code for code
+format compliance at commit time. It is configured via a top-level <code class="docutils literal notranslate"><span class="pre">.pre-commit-config.yaml</span></code> file that runs <code class="docutils literal notranslate"><span class="pre">black</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Flake8</span></code> and other checks.</p>
 <p>Thanks! :)</p>
+</section>
 </section>
 <section id="sphinx-documentation">
 <h2>Sphinx Documentation<a class="headerlink" href="#sphinx-documentation" title="Permalink to this heading"></a></h2>
 <p><a class="reference external" href="https://www.sphinx-doc.org/">Sphinx</a> documentation as automatically rendered and pushed the the gh-pages branch. The
 API is documented in Sphinx from the the Python docstring automatically for the public module methods and select private
 methods.</p>
+<p>to create docs locally
+(note this will continually update the docs as they are saved, where they can be viewed on your browser):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you&#39;re in the docs dir</span>
+<span class="nb">pwd</span>
+/home/macmenaminpe/image_portal_workflows/docs
+
+
+<span class="c1"># clean up anything from last time and create live docs</span>
+rm<span class="w"> </span>-rf<span class="w"> </span>_build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>make<span class="w"> </span>livehtml
+<span class="o">[</span>I<span class="w"> </span><span class="m">231205</span><span class="w"> </span><span class="m">20</span>:33:41<span class="w"> </span>server:335<span class="o">]</span><span class="w"> </span>Serving<span class="w"> </span>on<span class="w"> </span>http://0.0.0.0:34733
+<span class="o">[</span>I<span class="w"> </span><span class="m">231205</span><span class="w"> </span><span class="m">20</span>:33:41<span class="w"> </span>handlers:62<span class="o">]</span><span class="w"> </span>Start<span class="w"> </span>watching<span class="w"> </span>changes
+<span class="o">[</span>I<span class="w"> </span><span class="m">231205</span><span class="w"> </span><span class="m">20</span>:33:41<span class="w"> </span>handlers:64<span class="o">]</span><span class="w"> </span>Start<span class="w"> </span>detecting<span class="w"> </span>changes
+<span class="o">[</span>I<span class="w"> </span><span class="m">231205</span><span class="w"> </span><span class="m">20</span>:33:53<span class="w"> </span>handlers:135<span class="o">]</span><span class="w"> </span>Browser<span class="w"> </span>Connected:<span class="w"> </span>http://0.0.0.0:34733/
+</pre></div>
+</div>
+</section>
+<section id="register-workflows">
+<h2>Register Workflows:<a class="headerlink" href="#register-workflows" title="Permalink to this heading"></a></h2>
+<p>To register a new workflow, or update an existing one (in <cite>qa</cite> environment):
+(The workflow needs to be registered every time the source is updated.)
+<cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh qa register</cite></p>
+</section>
+<section id="git-lfs">
+<h2>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this heading"></a></h2>
+<p><em>We are aiming to use s3 (with rsync capabilities) over git-lfs for test data storage</em></p>
 </section>
 </section>
 
