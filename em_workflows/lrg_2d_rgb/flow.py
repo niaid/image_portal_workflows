@@ -146,19 +146,19 @@ def gen_thumb(file_path: FilePath):
 def lrg_2d_flow(
     file_share: str,
     input_dir: str,
-    file_name: Optional[str] = None,
+    x_file_name: Optional[str] = None,
     callback_url: Optional[str] = None,
     token: Optional[str] = None,
-    no_api: bool = False,
-    keep_workdir: bool = False,
+    x_no_api: bool = False,
+    x_keep_workdir: bool = False,
 ):
     """
     -list all png inputs (assumes all are "large")
     -create tmp dir for each.
     -convert to tiff -> zarr -> jpegs (thumb)
     """
-    if no_api:
-        utils.notify_api_running(no_api=no_api)
+    if x_no_api:
+        utils.notify_api_running(x_no_api=x_no_api)
     else:
         utils.notify_api_running(token=token, callback_url=callback_url)
 
@@ -167,7 +167,7 @@ def lrg_2d_flow(
     input_fps = utils.list_files(
         input_dir_fp,
         VALID_LRG_2D_RGB_INPUTS,
-        single_file=file_name,
+        single_file=x_file_name,
     )
     fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
     tiffs = convert_png_to_tiff.map(file_path=fps)
@@ -185,10 +185,10 @@ def lrg_2d_flow(
     utils.callback_with_cleanup(
         fps=fps,
         callback_result=callback_with_pyramids,
-        no_api=no_api,
+        x_no_api=x_no_api,
         callback_url=callback_url,
         token=token,
-        keep_workdir=keep_workdir,
+        x_keep_workdir=x_keep_workdir,
     )
 
     """

@@ -31,8 +31,8 @@ def test_brt(mock_nfs_mount):
         THICKNESS=30,
         file_share="test",
         input_dir=input_dir,
-        no_api=True,
-        keep_workdir=True,
+        x_no_api=True,
+        x_keep_workdir=True,
         return_state=True,
     )
     assert result.is_completed(), "`result` is not successful!"
@@ -60,8 +60,8 @@ def test_brt_callback(mock_nfs_mount, caplog, mock_callback_data):
         THICKNESS=30,
         file_share="test",
         input_dir=input_dir,
-        no_api=True,
-        keep_workdir=True,
+        x_no_api=True,
+        x_keep_workdir=True,
         return_state=True,
     )
     assert result.is_completed(), "`result` is not successful!"
