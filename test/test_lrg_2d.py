@@ -9,7 +9,7 @@ def test_input_fname(mock_nfs_mount, caplog):
     state = lrg_2d_flow(
         file_share="test",
         input_dir="/test/input_files/lrg_ROI_pngs/Projects",
-        no_api=True,
+        x_no_api=True,
         return_state=True,
     )
     assert state.is_completed()
@@ -23,8 +23,8 @@ def test_only_wd_logs_are_copied(mock_nfs_mount, caplog, mock_reuse_zarr):
     state = lrg_2d_flow(
         file_share="test",
         input_dir="/test/input_files/lrg_ROI_pngs/Projects",
-        file_name="even_smaller.png",
-        no_api=True,
+        x_file_name="even_smaller.png",
+        x_no_api=True,
         return_state=True,
     )
     assert state.is_completed()

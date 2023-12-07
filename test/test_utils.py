@@ -320,17 +320,17 @@ def test_copy_workdirs_small(mock_nfs_mount):
 
 def test_list_files(mock_nfs_mount):
     """
-    Tests list files only gets one file if it has file_name argument
+    Tests list files only gets one file if it has x_file_name argument
     """
     input_dir = Path("test/input_files/dm_inputs/Projects/Lab/PI")
     exts = VALID_2D_INPUT_EXTS
-    file_name = "20210525_1416_A000_G000.dm4"
+    x_file_name = "20210525_1416_A000_G000.dm4"
 
     files = utils.list_files.__wrapped__(input_dir=input_dir, exts=exts)
     assert len(files) > 1
 
     files = utils.list_files.__wrapped__(
-        input_dir=input_dir, exts=exts, single_file=file_name
+        input_dir=input_dir, exts=exts, single_file=x_file_name
     )
     assert len(files) == 1
 
