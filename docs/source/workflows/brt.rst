@@ -9,36 +9,6 @@ A number of parameters can be passed to the "BRT" workflow. There are two types:
 2) params that are used elsewhere within the worflow, providing metadata etc, eg input_dir.
 
 
-Inputs/Outputs
---------------
-
-There are inputs and outputs. We never write to the inputs directory, only to outputs.
-The output dir is defined as input directory with s/Projects/Projects/. For example:
-
-This would be a dev input directory, note the Projects substr.
-Inputs are provided via the parameter input_dir.
-/mnt/ai-fas12/RMLEMHedwigDev/Projects/RTB/darrellh/nguyenm8-2022-0920-test/SEM-2022-0922-Neta_2D_Test/DM4_sample/
-And this would be the corresponding output directory.
-/mnt/ai-fas12/RMLEMHedwigDev/Assets/RTB/darrellh/nguyenm8-2022-0920-test/SEM-2022-0922-Neta_2D_Test/DM4_sample/
-
-For the above example, the workflow input_dir would be provided as:
-/RTB/darrellh/nguyenm8-2022-0920-test/SEM-2022-0922-Neta_2D_Test/DM4_sample/
-
-Note, the partition is not mentioned, and by implication we know this is a Project.
-So to create the input dir, we prepend the <name_of_partition>/Projects/<input_dir_param>
-The above logic is done in utils.get_input_dir()
-
-To find out what we are expected to work on we list this directory, see utils.list_files. Note, FIBSEM uses dirs to define stacks. We filter inputs with file extensions.
-
-The input directory is listed, and a temp working directory is created for each input (a file for the 2D and BRT pipelines, or a directory containing a stack of tiffs for FIBSEM).
-
-
-Working directory / temporary dir.
-----------------------------------
-
-For each input (eg file), I create one temporary directory. All work occurs in this directory. Upon the conclusion of the workflow, the contents of this directory are copied into the Assets directory (see Inputs/Outputs.
-A list of Objects of class FilePath are used to these inputs.
-
 Note: objects passed between Prefect Tasks (eg FilePath objects), must be considered immutable. Updates to state made in one task will be lost and not available to the next task. Create a new object.
 The map function is used extensively, and preserves order.
 
