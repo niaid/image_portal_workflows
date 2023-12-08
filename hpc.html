@@ -51,9 +51,17 @@
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Submitting Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api/index.html">API</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">RML HPC (Big Sky)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#initial-setup">Initial Setup:</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#to-update">To update:</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#spatialomics-file-layout">Spatialomics file layout.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#python-environments">Python environments</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#initial-setup">Initial Setup:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#to-update">To update:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#nfs-filesystem-layout">NFS Filesystem layout</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#spatialomics-file-layout">Spatialomics file layout.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#working-directory-temporary-dir">Working directory / temporary dir.</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#spack">Spack</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="prefect.html">Managing Prefect Server</a></li>
@@ -85,21 +93,29 @@
              
   <section id="rml-hpc-big-sky">
 <h1>RML HPC (Big Sky)<a class="headerlink" href="#rml-hpc-big-sky" title="Permalink to this heading"></a></h1>
+<section id="python-environments">
+<h2>Python environments<a class="headerlink" href="#python-environments" title="Permalink to this heading"></a></h2>
+<p><strong>NOTE, THIS IS ONLY relevant for HPC. Added for completeness.</strong></p>
+<p><strong>NOTE: generate_vevn.sh is not used as of 08/11/2023, setup is documented in</strong> <a class="reference internal" href="#"><span class="doc">RML HPC (Big Sky)</span></a>.</p>
+<p>Workflows are currently run on RML HPC (“BigSky”).</p>
+<p>There are three environments currently on BigSky: (<cite>dev</cite>, <cite>qa</cite>, <cite>prod</cite>).
+They were set up as follows:
+(Note, this first step is only required once, and only to work around old versions of Python.)</p>
 <section id="initial-setup">
-<h2>Initial Setup:<a class="headerlink" href="#initial-setup" title="Permalink to this heading"></a></h2>
+<h3>Initial Setup:<a class="headerlink" href="#initial-setup" title="Permalink to this heading"></a></h3>
 <p>To initialise, typically done only at start per env. Use miniconda to set up venv, clone this repo, and pip install to the newly created venv.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># get miniconda dist</span>
-<span class="n">wget</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">repo</span><span class="o">.</span><span class="n">anaconda</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">miniconda</span><span class="o">/</span><span class="n">Miniconda3</span><span class="o">-</span><span class="n">py310_23</span><span class="mf">.3.1</span><span class="o">-</span><span class="mi">0</span><span class="o">-</span><span class="n">Linux</span><span class="o">-</span><span class="n">x86_64</span><span class="o">.</span><span class="n">sh</span>
-<span class="n">chmod</span> <span class="n">a</span><span class="o">+</span><span class="n">x</span> <span class="n">Miniconda3</span><span class="o">-</span><span class="n">py310_23</span><span class="mf">.3.1</span><span class="o">-</span><span class="mi">0</span><span class="o">-</span><span class="n">Linux</span><span class="o">-</span><span class="n">x86_64</span><span class="o">.</span><span class="n">sh</span>
-<span class="o">./</span><span class="n">Miniconda3</span><span class="o">-</span><span class="n">py310_23</span><span class="mf">.3.1</span><span class="o">-</span><span class="mi">0</span><span class="o">-</span><span class="n">Linux</span><span class="o">-</span><span class="n">x86_64</span><span class="o">.</span><span class="n">sh</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># get miniconda dist</span>
+wget<span class="w"> </span>https://repo.anaconda.com/miniconda/Miniconda3-py310_23.3.1-0-Linux-x86_64.sh
+chmod<span class="w"> </span>a+x<span class="w"> </span>Miniconda3-py310_23.3.1-0-Linux-x86_64.sh
+./Miniconda3-py310_23.3.1-0-Linux-x86_64.sh
 <span class="c1"># use to create venv, eg prod</span>
-<span class="o">/</span><span class="n">gs1</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">hedwig_prod</span><span class="o">/</span><span class="n">miniconda3</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">venv</span> <span class="n">prod</span>
+/gs1/home/hedwig_prod/miniconda3/bin/python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>prod
 <span class="c1"># get this repo</span>
-<span class="n">git</span> <span class="n">clone</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">niaid</span><span class="o">/</span><span class="n">image_portal_workflows</span><span class="o">.</span><span class="n">git</span>
+git<span class="w"> </span>clone<span class="w"> </span>git@github.com:niaid/image_portal_workflows.git
 <span class="c1"># activate the venv, and install in editable mode (--e)</span>
-<span class="n">source</span> <span class="n">prod</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>
-<span class="n">cd</span> <span class="n">image_portal_workflows</span><span class="o">/</span>
-<span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span>
+<span class="nb">source</span><span class="w"> </span>prod/bin/activate
+<span class="nb">cd</span><span class="w"> </span>image_portal_workflows/
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
 </pre></div>
 </div>
 <p>Note <code class="docutils literal notranslate"><span class="pre">ls</span> <span class="pre">~</span></code> should list you <code class="docutils literal notranslate"><span class="pre">image_portal_workflows</span></code></p>
@@ -113,32 +129,70 @@ Added these lines to <code class="docutils literal notranslate"><span class="pre
 <p>Set up daemon to use appropriate service file. You will need to email NIAID RML HPC Support to do this.
 E.g. for qa <code class="docutils literal notranslate"><span class="pre">helper_scripts/hedwig_listener_qa.service</span></code> would be copied into place.</p>
 <p>It’s a good idea to test the <code class="docutils literal notranslate"><span class="pre">ExecStart</span></code> command can be run, eg:</p>
-<p><code class="docutils literal notranslate"><span class="pre">image_portal_workflows/helper_scripts/hedwig_reg_listen.sh</span> <span class="pre">listen</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">image_portal_workflows/helper_scripts/hedwig_listener_dev.service.sh</span></code></p>
 <p>The daemon by default polls prefect server in the given workpool and brings in the flow run details if something
 has been submitted to the server.</p>
 </section>
 <section id="to-update">
-<h2>To update:<a class="headerlink" href="#to-update" title="Permalink to this heading"></a></h2>
+<h3>To update:<a class="headerlink" href="#to-update" title="Permalink to this heading"></a></h3>
 <p>Tag relase, and test in dev etc.
 Upon promotion into HPC env do:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">image_portal_workflows</span><span class="o">/</span>
 <span class="n">git</span> <span class="n">fetch</span>
 <span class="n">git</span> <span class="n">checkout</span> <span class="o">&lt;</span><span class="n">label</span><span class="o">&gt;</span>
-<span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span><span class="n">upgrade</span>
 </pre></div>
 </div>
 <p>When there are changes in the workflows (e.g, a new task is added, task function signature has changed, etc), you should
-redeploy the workflows. It can be done as follows:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="o">~/</span><span class="n">image_portal_workflows</span>
-<span class="o">./</span><span class="n">helper_scripts</span><span class="o">/</span><span class="n">hedwig_reg_listen</span><span class="o">.</span><span class="n">sh</span> <span class="n">register</span>
-</pre></div>
-</div>
+redeploy the workflows. See Prefect section for details.</p>
 </section>
+</section>
+<section id="nfs-filesystem-layout">
+<h2>NFS Filesystem layout<a class="headerlink" href="#nfs-filesystem-layout" title="Permalink to this heading"></a></h2>
+<p>Pipeline inputs and outputs are housed on an Admin User accessable NFS, meaning that the Admin level users of the system can see directly into the same partitions which we read our inputs and ultimately place our outputs. Note, we do not do “work” in this Filesystem, only read in initial inputs, and write out selected outputs.
+Different projects have different filesystem layouts.</p>
+<p>We never write to the inputs (<code class="docutils literal notranslate"><span class="pre">Projects</span></code>) directory, only to outputs (<code class="docutils literal notranslate"><span class="pre">Assets</span></code>).
+For example:</p>
+<p>A workflow input_dir would be provided as:
+<code class="docutils literal notranslate"><span class="pre">/RTB/darrellh/nguyenm8-2022-0920-test/SEM-2022-0922-Neta_2D_Test/DM4_sample/</span></code></p>
+<p>Which is used to define an input directory, note the Projects substr.
+Inputs are provided via the parameter input_dir.
+<code class="docutils literal notranslate"><span class="pre">/mnt/ai-fas12/RMLEMHedwigDev/Projects/RTB/darrellh/nguyenm8-2022-0920-test/SEM-2022-0922-Neta_2D_Test/DM4_sample/</span></code></p>
+<p>And this would be the corresponding output directory.
+<code class="docutils literal notranslate"><span class="pre">/mnt/ai-fas12/RMLEMHedwigDev/Assets/RTB/darrellh/nguyenm8-2022-0920-test/SEM-2022-0922-Neta_2D_Test/DM4_sample/</span></code></p>
+<p>On HPC, each environment (dev,qa,prod) has its own mount point. These are:
+/mnt/ai-fas12/RMLEMHedwigDev/
+/mnt/ai-fas12/RMLEMHedwigQA/
+/mnt/ai-fas12/RMLEMHedwigProd/</p>
+<p>Note, the partition is not mentioned, and by implication we know this is a Project.
+So to create the input dir, we prepend the &lt;name_of_partition&gt;/Projects/&lt;input_dir_param&gt;
+The above logic is done in utils.get_input_dir()</p>
+<p>To find out what we are expected to work on we list this directory, see utils.list_files. Note, FIBSEM uses dirs to define stacks. We filter inputs with file extensions.</p>
+<p>The input directory is listed, and a temp working directory is created for each input (a file for the 2D and BRT pipelines, or a directory containing a stack of tiffs for FIBSEM).</p>
 <section id="spatialomics-file-layout">
-<h2>Spatialomics file layout.<a class="headerlink" href="#spatialomics-file-layout" title="Permalink to this heading"></a></h2>
+<h3>Spatialomics file layout.<a class="headerlink" href="#spatialomics-file-layout" title="Permalink to this heading"></a></h3>
 <p>Normally the dir structure is : <code class="docutils literal notranslate"><span class="pre">$lab/$pi/$project/$session/$sample</span></code></p>
 <p>For Spatialomics this is not the case, the $sample is not really a sample, it’s grouping of ROIs, PreROIs, etc from each of the slides.</p>
 <p>More details can be found in <a class="reference internal" href="workflows/index.html#ref-workflow-spatial-omics"><span class="std std-ref">Spatialomics Workflow</span></a>.</p>
+</section>
+<section id="working-directory-temporary-dir">
+<h3>Working directory / temporary dir.<a class="headerlink" href="#working-directory-temporary-dir" title="Permalink to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">Projects</span></code> directory above is relatively slow. There is a faster partition, which we use for a temporary working directory. For each input (eg file), I create one temporary directory. All work occurs in this directory. Upon the conclusion of the workflow, the contents of this directory are copied into the Assets directory (see Inputs/Outputs.
+A list of Objects of class FilePath are used to these inputs.</p>
+</section>
+</section>
+<section id="spack">
+<h2>Spack<a class="headerlink" href="#spack" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>Note, although unused above, BigSky also has Spack available.</p></li>
+</ul>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">source</span><span class="w"> </span>/gs1/apps/user/rmlspack/share/spack/setup-env.sh
+$<span class="w"> </span>spack<span class="w"> </span>load<span class="w"> </span>-r<span class="w"> </span>python@3.8.6/eg2vaag
+$<span class="w"> </span>python<span class="w"> </span>-V
+Python<span class="w"> </span><span class="m">3</span>.8.6
+$<span class="w"> </span>spack<span class="w"> </span>unload<span class="w"> </span>-a
+</pre></div>
+</div>
 </section>
 </section>
 
