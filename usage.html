@@ -49,8 +49,16 @@
 <li class="toctree-l1"><a class="reference internal" href="development.html">Project Development</a></li>
 <li class="toctree-l1"><a class="reference internal" href="workflows/index.html">Workflows</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Submitting Jobs</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#manual-submission">Manual Submission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pipeline-parameters">Pipeline Parameters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#d-dm-conversion">2D / DM conversion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fibsem">FIBSEM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#brt">BRT</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#if-multichannel-czi">IF / Multichannel CZI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#large-2d-png-roi">Large 2d PNG / ROI</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#cli-sdk-submission">CLI/SDK Submission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#manual-submission">Manual Submission</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/index.html">API</a></li>
@@ -86,14 +94,307 @@
 <h1>Submitting Jobs<a class="headerlink" href="#submitting-jobs" title="Permalink to this heading"></a></h1>
 <p>NOTE: You need to be in NIH VPN to be able to submit jobs for your workflow runs.</p>
 <p>Workflow servers are deployed in <a class="reference external" href="https://prefect2.hedwig-workflow-api.niaiddev.net">development</a>, <a class="reference external" href="https://prefect2.hedwig-workflow-api.niaidqa.net">qa</a>, and <a class="reference external" href="https://prefect2.hedwig-workflow-api.niaidprod.net">production</a> environments separately.</p>
-<section id="manual-submission">
-<h2>Manual Submission<a class="headerlink" href="#manual-submission" title="Permalink to this heading"></a></h2>
-<p>Depending on the environment, go to the deployment section. Click on the <cite>Kebab menu</cite> icon next to your desired deployment and do a <cite>Custom Run</cite>. Here you can add appropriate values for the fields and submit your job. For manual submission, do not forget to add <cite>no_api: true</cite> value.</p>
+<p>In order to submit a workflow job, you will need deployment IDs of each of the workflows, as shown:</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Deployment IDs (<strong>Updated: 12/11/2023</strong>)</span><a class="headerlink" href="#id1" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 21.1%" />
+<col style="width: 26.3%" />
+<col style="width: 26.3%" />
+<col style="width: 26.3%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Pipelines</p></th>
+<th class="head"><p>Development</p></th>
+<th class="head"><p>QA</p></th>
+<th class="head"><p>Production</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>2D / DM conversion</p></td>
+<td><p>68dd3d3e-6c5d-4616-ab33-52d4dcbd8184</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>FIBSEM</p></td>
+<td><p>6eec994d-6d63-4e8e-b6fd-f4e516aa0caa</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>BRT</p></td>
+<td><p>8a8f9c9b-476f-4b4c-8a19-881dc1cb5be9</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>IF / Multichannel CZI</p></td>
+<td><p>265a8a6b-fa09-4503-a449-bdc5117933a5</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>Large 2D PNG / ROI</p></td>
+<td><p>81f99df4-4de5-4f29-9b73-16dc9ee65b0c</p></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<section id="pipeline-parameters">
+<h2>Pipeline Parameters<a class="headerlink" href="#pipeline-parameters" title="Permalink to this heading"></a></h2>
+<p>The following pipeline parameters can be obtained from the prefect api using following <cite>curl</cite> command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-X<span class="w"> </span><span class="s1">&#39;POST&#39;</span><span class="w"> </span><span class="s1">&#39;https://prefect2.hedwig-workflow-api.niaiddev.net/api/deployments/filter&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;accept: application/json&#39;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$PREFECT_API_KEY</span><span class="s2">&quot;</span><span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{}&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">&#39;.[] | &quot;\(.id)&quot;&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>-I<span class="o">{}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>curl<span class="w"> </span>-X<span class="w"> </span><span class="s1">&#39;GET&#39;</span><span class="w"> </span><span class="s1">&#39;https://prefect2.hedwig-workflow-api.niaiddev.net/api/deployments/{}&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;accept: application/json&#39;</span><span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$PREFECT_API_KEY</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;.description,.id,.parameter_openapi_schema&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>schema.json
+</pre></div>
+</div>
+<section id="d-dm-conversion">
+<h3>2D / DM conversion<a class="headerlink" href="#d-dm-conversion" title="Permalink to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;object&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Parameters&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;required&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;file_share&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;input_dir&quot;</span>
+  <span class="p">],</span>
+  <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;token&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">4</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;input_dir&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;input_dir&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">1</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;file_share&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;file_share&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;callback_url&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;callback_url&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">3</span>
+    <span class="p">},</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="fibsem">
+<h3>FIBSEM<a class="headerlink" href="#fibsem" title="Permalink to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;object&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Parameters&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;required&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;file_share&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;input_dir&quot;</span>
+  <span class="p">],</span>
+  <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;token&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">4</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;input_dir&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;input_dir&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">1</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;file_share&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;file_share&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;tilt_angle&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;number&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;tilt_angle&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;default&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">7</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;callback_url&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;callback_url&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">3</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="brt">
+<h3>BRT<a class="headerlink" href="#brt" title="Permalink to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;object&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Parameters&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;required&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;montage&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;gold&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;focus&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;fiducialless&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;trackingMethod&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TwoSurfaces&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;TargetNumberOfBeads&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;LocalAlignments&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;THICKNESS&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;file_share&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;input_dir&quot;</span>
+  <span class="p">],</span>
+  <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;gold&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;gold&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">1</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;focus&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;focus&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">2</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;token&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">13</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;montage&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;montage&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;THICKNESS&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;THICKNESS&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">8</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;input_dir&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;input_dir&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">10</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;file_share&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;file_share&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">9</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;TwoSurfaces&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;TwoSurfaces&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">5</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;callback_url&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;callback_url&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">12</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;fiducialless&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;fiducialless&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">3</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;adoc_template&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;adoc_template&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;default&quot;</span><span class="p">:</span> <span class="s2">&quot;plastic_brt&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">16</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;trackingMethod&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;trackingMethod&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">4</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;LocalAlignments&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;LocalAlignments&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">7</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;TargetNumberOfBeads&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;TargetNumberOfBeads&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">6</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="if-multichannel-czi">
+<h3>IF / Multichannel CZI<a class="headerlink" href="#if-multichannel-czi" title="Permalink to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;object&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Parameters&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;required&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;file_share&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;input_dir&quot;</span>
+  <span class="p">],</span>
+  <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;token&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">4</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;input_dir&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;input_dir&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">1</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;file_share&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;file_share&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;callback_url&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;callback_url&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">3</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="large-2d-png-roi">
+<h3>Large 2d PNG / ROI<a class="headerlink" href="#large-2d-png-roi" title="Permalink to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;object&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Parameters&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;required&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="s2">&quot;file_share&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;input_dir&quot;</span>
+  <span class="p">],</span>
+  <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;token&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">4</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;input_dir&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;input_dir&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">1</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;file_share&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;file_share&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">0</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;callback_url&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;callback_url&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;position&quot;</span><span class="p">:</span> <span class="mi">3</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
 </section>
 <section id="cli-sdk-submission">
 <h2>CLI/SDK Submission<a class="headerlink" href="#cli-sdk-submission" title="Permalink to this heading"></a></h2>
-<p>You can also use <cite>curl</cite> to submit a job. The data body you post is same as the manual submission. However, you also need to have the information of <cite>Deployment ID</cite> which you can get from the workflow deployment’s detail page.
-Once you have the deployment id and relevant job information, you can submit a job as,</p>
+<p>You can use <cite>curl</cite> to submit a job.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">~</span> <span class="n">curl</span> <span class="o">-</span><span class="n">X</span> <span class="s1">&#39;POST&#39;</span> \
 <span class="s1">&#39;https://prefect2.hedwig-workflow-api.niaiddev.net/api/deployments/&lt;DEPLOYMENT-ID&gt;/create_flow_run&#39;</span> \
 <span class="o">-</span><span class="n">H</span> <span class="s1">&#39;accept: application/json&#39;</span> \
@@ -104,6 +405,10 @@ Once you have the deployment id and relevant job information, you can submit a j
 </pre></div>
 </div>
 <p>As same as curl, you can use any other SDK to submit a job. For example, you can use <cite>axios</cite> to <a class="reference external" href="https://axios-http.com/docs/post_example">send a POST request</a> to the workflow server to submit a job.</p>
+</section>
+<section id="manual-submission">
+<h2>Manual Submission<a class="headerlink" href="#manual-submission" title="Permalink to this heading"></a></h2>
+<p>Depending on the environment, go to the deployment section. Click on the <cite>Kebab menu</cite> icon next to your desired deployment and do a <cite>Custom Run</cite>. Here you can add appropriate values for the fields and submit your job. For manual submission, do not forget to add <cite>no_api: true</cite> value.</p>
 </section>
 </section>
 
