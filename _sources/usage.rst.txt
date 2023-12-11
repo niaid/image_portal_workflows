@@ -40,17 +40,7 @@ In order to submit a workflow job, you will need deployment IDs of each of the w
 Pipeline Parameters
 -------------------
 
-The following pipeline parameters can be obtained from the prefect api using following `curl` command:
-
-.. code-block:: bash
-
-   curl -X 'POST' 'https://prefect2.hedwig-workflow-api.niaiddev.net/api/deployments/filter' \
-     -H 'accept: application/json' -H "Authorization: Bearer $PREFECT_API_KEY" -H 'Content-Type: application/json' -d '{}' \
-       | jq -r '.[] | "\(.id)"' \
-     | xargs -I{} \
-     curl -X 'GET' 'https://prefect2.hedwig-workflow-api.niaiddev.net/api/deployments/{}' \
-     -H 'accept: application/json' -H "Authorization: Bearer $PREFECT_API_KEY" \
-       | jq '.description,.id,.parameter_openapi_schema' > schema.json
+Below are the pipeline parameters for all the available workflows.
 
 2D / DM conversion
 ``````````````````
@@ -297,6 +287,20 @@ Large 2d PNG / ROI
       }
     }
   }
+
+
+The pipeline parameters can be also be observed programatically using following `curl` command:
+
+.. code-block:: bash
+
+   curl -X 'POST' 'https://prefect2.hedwig-workflow-api.niaiddev.net/api/deployments/filter' \
+     -H 'accept: application/json' -H "Authorization: Bearer $PREFECT_API_KEY" -H 'Content-Type: application/json' -d '{}' \
+       | jq -r '.[] | "\(.id)"' \
+     | xargs -I{} \
+     curl -X 'GET' 'https://prefect2.hedwig-workflow-api.niaiddev.net/api/deployments/{}' \
+     -H 'accept: application/json' -H "Authorization: Bearer $PREFECT_API_KEY" \
+       | jq '.description,.id,.parameter_openapi_schema' > schema.json
+
 
 CLI/SDK Submission
 ---------------
