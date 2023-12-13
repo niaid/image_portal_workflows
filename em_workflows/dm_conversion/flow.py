@@ -222,10 +222,7 @@ def dm_flow(
     -convert all mrcs in Projects dir to jpegs.
     -convert all tiffs/pngs/jpegs to correct size for thumbs, "sm" and "lg"
     """
-    if x_no_api:
-        utils.notify_api_running.submit(x_no_api=x_no_api)
-    else:
-        utils.notify_api_running.submit(token=token, callback_url=callback_url)
+    utils.notify_api_running(x_no_api, token, callback_url)
 
     # utils.log(input_dir)
     input_dir_fp = utils.get_input_dir.submit(
@@ -244,7 +241,7 @@ def dm_flow(
     # logs = utils.init_log.map(file_path=fps)
 
     # subflow calls are blocking, so lower task runs auto waits always
-    convert_intermediate_files(fps)
+    convert_intermediate_files(fps.result())
 
     # Finally generate all valid suffixed results
     keyimg_assets = scale_jpegs.map(fps, size=unmapped("l"))
