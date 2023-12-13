@@ -522,7 +522,10 @@ def brt_flow(
     x_keep_workdir: bool = False,
     adoc_template: str = "plastic_brt",
 ):
-    utils.notify_api_running(x_no_api, token, callback_url)
+    if x_no_api:
+        utils.notify_api_running(x_no_api=x_no_api)
+    else:
+        utils.notify_api_running(token=token, callback_url=callback_url)
 
     # a single input_dir will have n tomograms
     input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
