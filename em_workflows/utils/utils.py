@@ -660,16 +660,16 @@ def callback_with_cleanup(
 ):
     cp_wd_logs_to_assets = copy_workdir_logs.map(fps, wait_for=[callback_result])
 
-    cb = send_callback_body(
+    cb = send_callback_body.submit(
         x_no_api=x_no_api,
         token=token,
         callback_url=callback_url,
         files_elts=callback_result,
     )
-    cleanup_workdir(
+    cleanup_workdir.submit(
         fps,
         x_keep_workdir,
-        wait_for=[allow_failure(cb), allow_failure(cp_wd_logs_to_assets)],
+        wait_for=[cb, allow_failure(cp_wd_logs_to_assets)],
     )
 
 
