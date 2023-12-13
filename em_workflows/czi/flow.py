@@ -221,6 +221,11 @@ async def czi_flow(
     x_no_api: bool = False,
     x_keep_workdir: bool = False,
 ):
+    if x_no_api:
+        utils.notify_api_running(x_no_api=x_no_api)
+    else:
+        utils.notify_api_running(token=token, callback_url=callback_url)
+
     input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
 
     input_fps = utils.list_files(
