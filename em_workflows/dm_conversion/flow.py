@@ -175,11 +175,6 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     return asset_elt
 
 
-@flow(
-    name="SubFlow: Intermediate Convert",
-    log_prints=True,
-    task_runner=DMConfig.SLURM_EXECUTOR,
-)
 def convert_intermediate_files(fps):
     tif_fps = [
         fp
