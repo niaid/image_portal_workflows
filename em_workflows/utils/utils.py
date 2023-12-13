@@ -522,8 +522,8 @@ def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
     https://docs.prefect.io/core/concepts/states.html#overview.
     https://docs.prefect.io/core/concepts/notifications.html#state-handlers
     """
-    status = "Completed" if state.is_completed else "Failed"
-    x_no_api = flow_run.parameters.get("x_no_api", True)
+    status = "success" if state.is_completed() else "error"
+    x_no_api = flow_run.parameters.get("x_no_api", False)
     token = flow_run.parameters.get("token", "")
     callback_url = flow_run.parameters.get("callback_url", "")
 
@@ -539,11 +539,15 @@ def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
         callback_url, headers=headers, data=json.dumps({"status": status})
     )
     log(f"Pipeline status is:{status}")
+    print(f"Pipeline status is:{status}")
     log(response.text)
+    print(response.text)
     log(response.headers)
+    print(response.headers)
     if not response.ok:
         msg = f"Bad response code on callback: {response}"
         log(msg=msg)
+        print(msg=msg)
         raise RuntimeError(msg)
     return response.ok
 
