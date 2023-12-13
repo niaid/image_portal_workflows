@@ -458,7 +458,9 @@ def notify_api_running(
         log("x_no_api flag used, not interacting with API")
         return
     elif not callback_url or not token:
-        raise RuntimeError("impossible args for notify_api_running")
+        raise RuntimeError(
+            "notify_api_running: Either callback_url or token is missing"
+        )
     headers = {
         "Authorization": "Bearer " + token,
         "Content-Type": "application/json",
@@ -527,9 +529,15 @@ def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
     token = flow_run.parameters.get("token", "")
     callback_url = flow_run.parameters.get("callback_url", "")
 
+    flowrun_id = os.environ.get("PREFECT__FLOW_RUN_ID", "not-found")
+
+    hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
     if x_no_api:
         log(f"x_no_api flag used\nCompletion status: {status}")
+        hooks_log.close()
         return
+
+    hooks_log.write(f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n")
 
     headers = {
         "Authorization": "Bearer " + token,
@@ -538,17 +546,20 @@ def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
     response = requests.post(
         callback_url, headers=headers, data=json.dumps({"status": status})
     )
-    log(f"Pipeline status is:{status}")
-    print(f"Pipeline status is:{status}")
-    log(response.text)
-    print(response.text)
-    log(response.headers)
-    print(response.headers)
+    hooks_log.write(f"Pipeline status is:{status}\n")
+    hooks_log.write(f"{response.ok=}\n")
+    hooks_log.write(f"{response.status_code=}\n")
+    hooks_log.write(f"{response.text=}\n")
+    hooks_log.write(f"{response.headers=}\n")
+
     if not response.ok:
         msg = f"Bad response code on callback: {response}"
         log(msg=msg)
-        print(msg=msg)
+        hooks_log.write(f"{msg}\n")
+        hooks_log.close()
         raise RuntimeError(msg)
+
+    hooks_log.close()
     return response.ok
 
 
@@ -580,7 +591,6 @@ def get_input_dir(share_name: str, input_dir: str) -> Path:
     | create working dir
     | returns Path obj
     """
-    log("this is really dumb - in input_dir")
     if not input_dir.endswith("/"):
         input_dir = input_dir + "/"
     if not input_dir.startswith("/"):
