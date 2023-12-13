@@ -175,12 +175,7 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     return asset_elt
 
 
-@flow(
-    name="SubFlow: Intermediate Convert",
-    log_prints=True,
-    task_runner=DMConfig.SLURM_EXECUTOR,
-)
-async def convert_intermediate_files(fps):
+def convert_intermediate_files(fps):
     tif_fps = [
         fp
         for fp in fps
@@ -208,7 +203,7 @@ async def convert_intermediate_files(fps):
     on_completion=[utils.notify_api_completion],
     on_failure=[utils.notify_api_completion],
 )
-async def dm_flow(
+def dm_flow(
     file_share: str,
     input_dir: str,
     x_file_name: Optional[str] = None,
@@ -246,7 +241,7 @@ async def dm_flow(
     # logs = utils.init_log.map(file_path=fps)
 
     # subflow calls are blocking, so lower task runs auto waits always
-    await convert_intermediate_files(fps)
+    convert_intermediate_files(fps)
 
     # Finally generate all valid suffixed results
     keyimg_assets = scale_jpegs.map(fps, size=unmapped("l"))
