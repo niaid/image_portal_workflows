@@ -316,6 +316,11 @@ def sem_tomo_flow(
     x_keep_workdir: bool = False,
     tilt_angle: float = 0,
 ):
+    if x_no_api:
+        utils.notify_api_running(x_no_api=x_no_api)
+    else:
+        utils.notify_api_running(token=token, callback_url=callback_url)
+
     input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
     # note FIBSEM is different to other flows in that it uses *directories*
     # to define stacks. Therefore, will have to list dirs to discover stacks
