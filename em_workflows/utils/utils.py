@@ -596,9 +596,7 @@ def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePa
     a list of FilePaths for the input files. This includes a temporary working
     directory for each file to keep the files separate on the HPC.
     """
-    log("Creating FPS...")
     fps = list()
-    return fps
     for fp in fps_in:
         file_path = FilePath(share_name=share_name, input_dir=input_dir, fp_in=fp)
         msg = f"created working_dir {file_path.working_dir} for {fp.as_posix()}"
