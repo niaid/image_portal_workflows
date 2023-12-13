@@ -230,19 +230,22 @@ def dm_flow(
     utils.log("this is coming out of the flow")
 
     # utils.log(input_dir)
-    input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
+    input_dir_fp = utils.get_input_dir.submit(
+        share_name=file_share, input_dir=input_dir
+    )
 
-    input_fps = utils.list_files(
+    input_fps = utils.list_files.submit(
         input_dir_fp,
         VALID_2D_INPUT_EXTS,
         single_file=x_file_name,
     )
 
-    fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
+    fps = utils.gen_fps.submit(
+        share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
+    )
     # logs = utils.init_log.map(file_path=fps)
 
     # subflow calls are blocking, so lower task runs auto waits always
-    return
     convert_intermediate_files(fps)
 
     # Finally generate all valid suffixed results
