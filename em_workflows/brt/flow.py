@@ -44,6 +44,7 @@ from typing import Optional
 from pathlib import Path
 
 from prefect import task, flow, unmapped, allow_failure
+from prefect.states import Completed, Failed
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
@@ -687,6 +688,12 @@ def brt_flow(
         token=token,
         x_keep_workdir=x_keep_workdir,
     )
+
+    for zarr in zarrs:
+        print(zarr.result())
+        if zarr.result() == "success":
+            return Completed(message="I am happy with this result")
+    return Failed(message="How did this happen!?")
 
     """
     # if the callback is not empty (that is one of the files passed), final=success
