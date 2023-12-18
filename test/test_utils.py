@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 from unittest.mock import Mock
 
-from prefect import flow, task
+from prefect import flow, task, allow_failure
 
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
@@ -372,3 +372,26 @@ def test_state_hooks_calls(prefect_test_fixture):
     assert flow_run.parameters == params
     assert flow_run.context == {}
     assert str(state.type) == "StateType.COMPLETED"
+
+
+def test_downstream_runs_if_upstream_fails_with_allow_failure_annotation(
+    prefect_test_fixture,
+):
+    @task
+    def fails_on_two(arg):
+        if arg == 2:
+            raise ValueError("Fail task!")
+        return arg
+
+    @task
+    def bar(y):
+        return y
+
+    @flow
+    def test_flow():
+        f = fails_on_two.map([1, 2, 3])
+        b = bar.submit(2, wait_for=[allow_failure(f)])
+        return b
+
+    flow_state = test_flow()
+    assert flow_state == 2
