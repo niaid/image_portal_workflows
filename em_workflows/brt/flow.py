@@ -569,7 +569,10 @@ def brt_flow(
 
     # START TILT MOVIE GENERATION:
     ali_xs = gen_ali_x.map(
-        file_path=fps, z_dim=ali_z_dims, wait_for=[allow_failure(brts)]
+        file_path=fps,
+        z_dim=ali_z_dims,
+        wait_for=[allow_failure(brts)],
+        return_state=True,
     )
     asmbls = gen_ali_asmbl.map(file_path=fps, wait_for=[allow_failure(ali_xs)])
     mrc2tiffs = gen_mrc2tiff.map(file_path=fps, wait_for=[allow_failure(asmbls)])
