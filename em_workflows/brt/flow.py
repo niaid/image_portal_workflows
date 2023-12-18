@@ -43,7 +43,7 @@ import math
 from typing import Optional
 from pathlib import Path
 
-from prefect import task, flow, unmapped
+from prefect import task, flow, unmapped, allow_failure
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
@@ -471,7 +471,9 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     file_path = fp_in
     asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
     working_fp = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
+    utils.log("Instantiating HWZarrImages")
     hw_images = HedwigZarrImages(zarr_path=working_fp, read_only=False)
+    utils.log("Accessing first HWZarrImage")
     hw_image = hw_images[list(hw_images.get_series_keys())[0]]
 
     # NOTE: this could be replaced by hw_image.path
@@ -481,11 +483,19 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     ng_asset = file_path.gen_asset(
         asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=first_zarr_arr
     )
+    utils.log("Creating ng metadata")
+    utils.log("... getting shader type")
+    htype = hw_image.shader_type
+    utils.log("... getting dims")
+    hdims = hw_image.dims
+    utils.log("... getting shader params")
+    hparams = hw_image.neuroglancer_shader_parameters(mad_scale=5.0)
     ng_asset["metadata"] = {
-        "shader": hw_image.shader_type,
-        "dimensions": hw_image.dims,
-        "shaderParameters": hw_image.neuroglancer_shader_parameters(mad_scale=5.0),
+        "shader": htype,
+        "dimensions": hdims,
+        "shaderParameters": hparams,
     }
+    utils.log("DONE!!!")
     return ng_asset
 
 
@@ -554,60 +564,83 @@ def brt_flow(
     # stack dimensions - used in movie creation
     # alignment z dimension, this is only used for the tilt movie.
     ali_z_dims = gen_dimension_command.map(
-        file_path=fps, ali_or_rec=unmapped("ali"), wait_for=[brts]
+        file_path=fps, ali_or_rec=unmapped("ali"), wait_for=[allow_failure(brts)]
     )
 
     # START TILT MOVIE GENERATION:
-    ali_xs = gen_ali_x.map(file_path=fps, z_dim=ali_z_dims, wait_for=[brts])
-    asmbls = gen_ali_asmbl.map(file_path=fps, wait_for=[ali_xs])
-    mrc2tiffs = gen_mrc2tiff.map(file_path=fps, wait_for=[asmbls])
-    thumb_assets = gen_thumbs.map(file_path=fps, z_dim=ali_z_dims, wait_for=[mrc2tiffs])
-    keyimg_assets = gen_copy_keyimages.map(
-        file_path=fps, z_dim=ali_z_dims, wait_for=[mrc2tiffs]
+    ali_xs = gen_ali_x.map(
+        file_path=fps,
+        z_dim=ali_z_dims,
+        wait_for=[allow_failure(brts)],
+        return_state=True,
     )
-    tilt_movie_assets = gen_tilt_movie.map(file_path=fps, wait_for=[keyimg_assets])
+    asmbls = gen_ali_asmbl.map(file_path=fps, wait_for=[allow_failure(ali_xs)])
+    mrc2tiffs = gen_mrc2tiff.map(file_path=fps, wait_for=[allow_failure(asmbls)])
+    thumb_assets = gen_thumbs.map(
+        file_path=fps, z_dim=ali_z_dims, wait_for=[allow_failure(mrc2tiffs)]
+    )
+    keyimg_assets = gen_copy_keyimages.map(
+        file_path=fps, z_dim=ali_z_dims, wait_for=[allow_failure(mrc2tiffs)]
+    )
+    tilt_movie_assets = gen_tilt_movie.map(
+        file_path=fps, wait_for=[allow_failure(keyimg_assets)]
+    )
     cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_align_*.mrc"),
-        wait_for=[tilt_movie_assets, thumb_assets, keyimg_assets],
+        wait_for=[
+            allow_failure(tilt_movie_assets),
+            allow_failure(thumb_assets),
+            allow_failure(keyimg_assets),
+        ],
     )
     cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*ali*.jpg"),
-        wait_for=[tilt_movie_assets, thumb_assets, keyimg_assets],
+        wait_for=[
+            allow_failure(tilt_movie_assets),
+            allow_failure(thumb_assets),
+            allow_failure(keyimg_assets),
+        ],
     )
     # END TILT MOVIE GENERATION
 
     # START RECONSTR MOVIE GENERATION:
     rec_z_dims = gen_dimension_command.map(
-        file_path=fps, ali_or_rec=unmapped("rec"), wait_for=[brts]
+        file_path=fps, ali_or_rec=unmapped("rec"), wait_for=[allow_failure(brts)]
     )
-    clip_avgs = gen_clip_avgs.map(file_path=fps, z_dim=rec_z_dims, wait_for=[asmbls])
+    clip_avgs = gen_clip_avgs.map(
+        file_path=fps, z_dim=rec_z_dims, wait_for=[allow_failure(asmbls)]
+    )
     averagedVolume_assets = consolidate_ave_mrcs.map(
-        file_path=fps, wait_for=[clip_avgs]
+        file_path=fps, wait_for=[allow_failure(clip_avgs)]
     )
     ave_jpgs = gen_ave_jpgs_from_ave_mrc.map(
-        file_path=fps, wait_for=[averagedVolume_assets]
+        file_path=fps, wait_for=[allow_failure(averagedVolume_assets)]
     )
-    recon_movie_assets = gen_recon_movie.map(file_path=fps, wait_for=[ave_jpgs])
+    recon_movie_assets = gen_recon_movie.map(
+        file_path=fps, wait_for=[allow_failure(ave_jpgs)]
+    )
     cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_mp4.*.jpg"),
-        wait_for=[recon_movie_assets, ave_jpgs],
+        wait_for=[allow_failure(recon_movie_assets), allow_failure(ave_jpgs)],
     )
     cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_ave*.mrc"),
-        wait_for=[recon_movie_assets, ave_jpgs],
+        wait_for=[allow_failure(recon_movie_assets), allow_failure(ave_jpgs)],
     )
     #    # END RECONSTR MOVIE
 
     # Binned volume assets, for volslicer.
-    bin_vol_assets = gen_ave_8_vol.map(file_path=fps, wait_for=[averagedVolume_assets])
+    bin_vol_assets = gen_ave_8_vol.map(
+        file_path=fps, wait_for=[allow_failure(averagedVolume_assets)]
+    )
     # finished volslicer inputs.
 
-    zarrs = gen_zarr.map(fp_in=fps, wait_for=[brts])
-    pyramid_assets = gen_ng_metadata.map(fp_in=fps, wait_for=[zarrs])
+    zarrs = gen_zarr.map(fp_in=fps, wait_for=[allow_failure(brts)])
+    pyramid_assets = gen_ng_metadata.map(fp_in=fps, wait_for=[allow_failure(zarrs)])
     #  archive_pyramid_cmds = ng.gen_archive_pyr.map(
     #      file_path=fps, wait_for=[pyramid_assets]
     #  )
@@ -636,7 +669,9 @@ def brt_flow(
     callback_with_tilt_mov = utils.add_asset.map(
         prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
-    copy_task = utils.copy_workdirs.map(fps, wait_for=[callback_with_tilt_mov])
+    copy_task = utils.copy_workdirs.map(
+        fps, wait_for=[allow_failure(callback_with_tilt_mov)]
+    )
     # This is to make sure that we wait for copy completes before cleanup
     for future in copy_task:
         future.result()
