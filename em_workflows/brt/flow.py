@@ -564,7 +564,10 @@ def brt_flow(
     # stack dimensions - used in movie creation
     # alignment z dimension, this is only used for the tilt movie.
     ali_z_dims = gen_dimension_command.map(
-        file_path=fps, ali_or_rec=unmapped("ali"), wait_for=[allow_failure(brts)]
+        file_path=fps,
+        ali_or_rec=unmapped("ali"),
+        wait_for=[allow_failure(brts)],
+        return_state=True,
     )
 
     # START TILT MOVIE GENERATION:
