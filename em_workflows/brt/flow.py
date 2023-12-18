@@ -44,6 +44,7 @@ from typing import Optional
 from pathlib import Path
 
 from prefect import task, flow, unmapped, allow_failure
+from prefect.states import Completed, Failed
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
@@ -564,17 +565,21 @@ def brt_flow(
     # stack dimensions - used in movie creation
     # alignment z dimension, this is only used for the tilt movie.
     ali_z_dims = gen_dimension_command.map(
-        file_path=fps, ali_or_rec=unmapped("ali"), wait_for=[allow_failure(brts)]
+        file_path=fps,
+        ali_or_rec=unmapped("ali"),
+        wait_for=[allow_failure(brts)],
+        return_state=True,
     )
 
     # START TILT MOVIE GENERATION:
     ali_xs = gen_ali_x.map(
         file_path=fps,
-        z_dim=ali_z_dims,
+        z_dim=allow_failure(ali_z_dims),
         wait_for=[allow_failure(brts)],
         return_state=True,
     )
     asmbls = gen_ali_asmbl.map(file_path=fps, wait_for=[allow_failure(ali_xs)])
+    return
     mrc2tiffs = gen_mrc2tiff.map(file_path=fps, wait_for=[allow_failure(asmbls)])
     thumb_assets = gen_thumbs.map(
         file_path=fps, z_dim=ali_z_dims, wait_for=[allow_failure(mrc2tiffs)]
@@ -684,6 +689,12 @@ def brt_flow(
         token=token,
         x_keep_workdir=x_keep_workdir,
     )
+
+    for zarr in zarrs:
+        print(zarr.result())
+        if zarr.result() == "success":
+            return Completed(message="I am happy with this result")
+    return Failed(message="How did this happen!?")
 
     """
     # if the callback is not empty (that is one of the files passed), final=success
