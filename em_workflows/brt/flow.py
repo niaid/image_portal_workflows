@@ -471,7 +471,9 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     file_path = fp_in
     asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
     working_fp = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
+    utils.log("Instantiating HWZarrImages")
     hw_images = HedwigZarrImages(zarr_path=working_fp, read_only=False)
+    utils.log("Accessing first HWZarrImage")
     hw_image = hw_images[list(hw_images.get_series_keys())[0]]
 
     # NOTE: this could be replaced by hw_image.path
@@ -481,11 +483,19 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     ng_asset = file_path.gen_asset(
         asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=first_zarr_arr
     )
+    utils.log("Creating ng metadata")
+    utils.log("... getting shader type")
+    htype = hw_image.shader_type
+    utils.log("... getting dims")
+    hdims = hw_image.dims
+    utils.log("... getting shader params")
+    hparams = hw_image.neuroglancer_shader_parameters(mad_scale=5.0)
     ng_asset["metadata"] = {
-        "shader": hw_image.shader_type,
-        "dimensions": hw_image.dims,
-        "shaderParameters": hw_image.neuroglancer_shader_parameters(mad_scale=5.0),
+        "shader": htype,
+        "dimensions": hdims,
+        "shaderParameters": hparams,
     }
+    utils.log("DONE!!!")
     return ng_asset
 
 
