@@ -40,11 +40,12 @@ import glob
 import os
 import subprocess
 import math
+import json
 from typing import Optional
 from pathlib import Path
 
 from prefect import task, flow, unmapped, allow_failure
-from prefect.states import Completed, Failed
+from prefect.states import Failed, Completed
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
@@ -484,7 +485,6 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     ng_asset = file_path.gen_asset(
         asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=first_zarr_arr
     )
-    utils.log("Creating ng metadata")
     utils.log("... getting shader type")
     htype = hw_image.shader_type
     utils.log("... getting dims")
@@ -498,6 +498,18 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     }
     utils.log("DONE!!!")
     return ng_asset
+
+
+@task
+def get_callback_result(callback_data: list) -> list:
+    cb_data = list()
+    for item in callback_data:
+        try:
+            json.dumps(item)
+            cb_data.append(item)
+        except TypeError:  # can't serialize the item
+            utils.log(f"Following item cannot be added to callback:\n\n{item}")
+    return cb_data
 
 
 # run_config=LocalRun(labels=[utils.get_environment()]),
@@ -579,13 +591,16 @@ def brt_flow(
         return_state=True,
     )
     asmbls = gen_ali_asmbl.map(file_path=fps, wait_for=[allow_failure(ali_xs)])
-    return
     mrc2tiffs = gen_mrc2tiff.map(file_path=fps, wait_for=[allow_failure(asmbls)])
     thumb_assets = gen_thumbs.map(
-        file_path=fps, z_dim=ali_z_dims, wait_for=[allow_failure(mrc2tiffs)]
+        file_path=fps,
+        z_dim=allow_failure(ali_z_dims),
+        wait_for=[allow_failure(mrc2tiffs)],
     )
     keyimg_assets = gen_copy_keyimages.map(
-        file_path=fps, z_dim=ali_z_dims, wait_for=[allow_failure(mrc2tiffs)]
+        file_path=fps,
+        z_dim=allow_failure(ali_z_dims),
+        wait_for=[allow_failure(mrc2tiffs)],
     )
     tilt_movie_assets = gen_tilt_movie.map(
         file_path=fps, wait_for=[allow_failure(keyimg_assets)]
@@ -615,7 +630,7 @@ def brt_flow(
         file_path=fps, ali_or_rec=unmapped("rec"), wait_for=[allow_failure(brts)]
     )
     clip_avgs = gen_clip_avgs.map(
-        file_path=fps, z_dim=rec_z_dims, wait_for=[allow_failure(asmbls)]
+        file_path=fps, z_dim=allow_failure(rec_z_dims), wait_for=[allow_failure(asmbls)]
     )
     averagedVolume_assets = consolidate_ave_mrcs.map(
         file_path=fps, wait_for=[allow_failure(clip_avgs)]
@@ -655,47 +670,50 @@ def brt_flow(
     # Generate a base "primary path" dict, and hang dicts onto this.
     # repeatedly pass asset in to add_asset func to add asset in question.
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
-    callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
+    callback_with_thumbs = utils.add_asset.map(
+        prim_fp=prim_fps, asset=allow_failure(thumb_assets)
+    )
     callback_with_keyimgs = utils.add_asset.map(
-        prim_fp=callback_with_thumbs, asset=keyimg_assets
+        prim_fp=allow_failure(callback_with_thumbs), asset=allow_failure(keyimg_assets)
     )
     callback_with_pyramids = utils.add_asset.map(
-        prim_fp=callback_with_keyimgs, asset=pyramid_assets
+        prim_fp=allow_failure(callback_with_keyimgs),
+        asset=allow_failure(pyramid_assets),
     )
     callback_with_ave_vol = utils.add_asset.map(
-        prim_fp=callback_with_pyramids, asset=averagedVolume_assets
+        prim_fp=allow_failure(callback_with_pyramids),
+        asset=allow_failure(averagedVolume_assets),
     )
     callback_with_bin_vol = utils.add_asset.map(
-        prim_fp=callback_with_ave_vol, asset=bin_vol_assets
+        prim_fp=allow_failure(callback_with_ave_vol),
+        asset=allow_failure(bin_vol_assets),
     )
     callback_with_recon_mov = utils.add_asset.map(
-        prim_fp=callback_with_bin_vol, asset=recon_movie_assets
+        prim_fp=allow_failure(callback_with_bin_vol),
+        asset=allow_failure(recon_movie_assets),
     )
     callback_with_tilt_mov = utils.add_asset.map(
-        prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
+        prim_fp=allow_failure(callback_with_recon_mov),
+        asset=allow_failure(tilt_movie_assets),
     )
-    copy_task = utils.copy_workdirs.map(
-        fps, wait_for=[allow_failure(callback_with_tilt_mov)]
+    utils.copy_workdirs.map(fps, wait_for=[allow_failure(callback_with_tilt_mov)])
+
+    callback_result = get_callback_result.submit(
+        allow_failure(callback_with_tilt_mov),
     )
-    # This is to make sure that we wait for copy completes before cleanup
-    for future in copy_task:
-        future.result()
 
     utils.callback_with_cleanup(
         fps=fps,
-        callback_result=callback_with_tilt_mov,
+        callback_result=callback_result,
         x_no_api=x_no_api,
         callback_url=callback_url,
         token=token,
         x_keep_workdir=x_keep_workdir,
     )
 
-    for zarr in zarrs:
-        print(zarr.result())
-        if zarr.result() == "success":
-            return Completed(message="I am happy with this result")
-    return Failed(message="How did this happen!?")
-
+    if callback_result.result():
+        return Completed(message="At least one callback is correct!")
+    return Failed(message="None of the files succeeded!")
     """
     # if the callback is not empty (that is one of the files passed), final=success
     final_state = bool(callback_with_tilt_mov)

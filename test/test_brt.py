@@ -40,7 +40,13 @@ def test_brt(mock_nfs_mount):
 
 @pytest.mark.localdata
 @pytest.mark.slow
-def test_brt_callback(mock_nfs_mount, caplog, mock_callback_data):
+def test_brt_callback_one_valid_of_two_inputs(
+    mock_nfs_mount, caplog, mock_callback_data
+):
+    """
+    If one of the brt inputs is failing (out of two),
+    the callback should still send the response with one valid dictionary
+    """
     from em_workflows.brt.flow import brt_flow
 
     input_dir = "test/input_files/brt/Projects/RT_TOMO/"
@@ -71,3 +77,4 @@ def test_brt_callback(mock_nfs_mount, caplog, mock_callback_data):
         callback_output = json.load(fd)
 
     assert "files" in callback_output
+    assert False, "Failing... "

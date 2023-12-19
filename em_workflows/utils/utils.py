@@ -535,6 +535,8 @@ def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
         log(f"x_no_api flag used\nCompletion status: {status}")
         return
 
+    # Logs from state chaange hooks do not reflect in prefect logs
+    # therefore, we have to setup such logs manually
     hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
     hooks_log.write(f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n")
 
