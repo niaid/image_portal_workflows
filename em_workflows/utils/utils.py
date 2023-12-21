@@ -19,6 +19,7 @@ from em_workflows.file_path import FilePath
 
 # used for keeping outputs of imod's header command (dimensions of image).
 Header = namedtuple("Header", "x y z")
+BrtOutput = namedtuple("BrtOutput", ["ali_file", "rec_file"])
 
 
 def log(msg):
@@ -109,6 +110,7 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str):
 def gen_prim_fps(fp_in: FilePath) -> Dict:
     """
     :param fp_in: FilePath of current input
+    :outputs_with_exceptions this func is called with allow_failure - important
     :return: a Dict to hold the 'assets'
 
     This function delegates creation of primary fps to ``FilePath.gen_prim_fp_elt()``
@@ -307,7 +309,7 @@ def run_brt(
     TargetNumberOfBeads: int,
     LocalAlignments: int,
     THICKNESS: int,
-) -> None:
+) -> BrtOutput:
     """
     The natural place for this function is within the brt flow.
     The reason for this is to facilitate testing. In prefect 1, a
@@ -347,23 +349,7 @@ def run_brt(
     for _file in [rec_file, ali_file]:
         if not _file.exists():
             raise ValueError(f"File {_file} does not exist. BRT run failure.")
-    # brts_ok = check_brt_run_ok(file_path=file_path)
-
-
-# def check_brt_run_ok(file_path: FilePath):
-#     """
-#     ensures the following files exist:
-#     BASENAME_rec.mrc - the source for the reconstruction movie
-#     and Neuroglancer pyramid
-#     BASENAME_ali.mrc
-#     """
-#     rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
-#     ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
-#     log(f"checking that dir {file_path.working_dir} contains ok BRT run")
-#
-#     for _file in [rec_file, ali_file]:
-#         if not _file.exists():
-#             raise signals.FAIL(f"File {_file} does not exist. BRT run failure.")
+    return BrtOutput(ali_file=ali_file, rec_file=rec_file)
 
 
 # TODO replace "trigger=always_run"
