@@ -124,3 +124,12 @@ def zarr_build_multiscales(file_path: FilePath) -> None:
     utils.log("Building multiscales...")
     cmd_ms = ["zarr_build_multiscales", zarr.as_posix()]
     FilePath.run(cmd=cmd_ms, log_file=log_file)
+
+
+def zarr_build_multiscales2(zarr_fp: Path) -> None:
+    zarr = zarr_fp / "0"
+    log_file = f"{zarr_fp.parent}/{zarr_fp.stem}.log"
+
+    utils.log("Building multiscales...")
+    cmd_ms = ["zarr_build_multiscales", zarr.as_posix()]
+    FilePath.run(cmd=cmd_ms, log_file=log_file)

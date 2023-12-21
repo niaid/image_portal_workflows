@@ -36,6 +36,7 @@ Batchruntomo pipeline overview:
 """
 
 from typing import Dict
+import json
 import glob
 import os
 import subprocess
@@ -49,7 +50,7 @@ from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
-from em_workflows.constants import AssetType
+from em_workflows.constants import ASSET_TYPE, AssetType
 from em_workflows.file_path import FilePath
 from em_workflows.brt.config import BRTConfig
 from em_workflows.brt.constants import BRT_DEPTH, BRT_HEIGHT, BRT_WIDTH
@@ -546,21 +547,27 @@ def gen_zarr(brt_output: utils.BrtOutput) -> Path:
         height=BRT_HEIGHT,
         resolutions=1,
     )
+    ng.zarr_build_multiscales2(output_zarr)
     return output_zarr
-    # file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
 
 
 @task
-def gen_ng_metadata(fp_in: FilePath) -> Dict:
+def copy_asset_gen_elt(file_path: FilePath, fp_to_cp: Path, asset_type: str) -> dict:
+    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=fp_to_cp)
+    asset_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
+    return asset_elt
+
+
+@task
+def gen_ng_metadata(fp_in: FilePath, zarr: Path) -> Dict:
     # Note; the seemingly redundancy of working and asset fp here.
     # However asset fp is in the network file system and is deployed for access to the users
     # Working fp is actually used for getting the metadata
 
     file_path = fp_in
     asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
-    working_fp = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
     utils.log("Instantiating HWZarrImages")
-    hw_images = HedwigZarrImages(zarr_path=working_fp, read_only=False)
+    hw_images = HedwigZarrImages(zarr_path=zarr, read_only=False)
     utils.log("Accessing first HWZarrImage")
     hw_image = hw_images[list(hw_images.get_series_keys())[0]]
 
@@ -585,6 +592,18 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     }
     utils.log("DONE!!!")
     return ng_asset
+
+
+@task
+def get_callback_result(callback_data: list) -> list:
+    cb_data = list()
+    for item in callback_data:
+        try:
+            json.dumps(item)
+            cb_data.append(item)
+        except TypeError:  # can't serialize the item
+            utils.log(f"Following item cannot be added to callback:\n\n{item}")
+    return cb_data
 
 
 # run_config=LocalRun(labels=[utils.get_environment()]),
@@ -650,57 +669,65 @@ def brt_flow(
     # END BRT, check files for success (else fail here)
 
     tilt_movies = gen_tilt_movie_2.map(brt_outputs)
+    tilt_movie_assets = copy_asset_gen_elt.map(
+        file_path=fps, fp_to_cp=tilt_movies, asset_type=unmapped(ASSET_TYPE.TILT_MOVIE)
+    )
+
     mid_images = find_middle_image.map(tilt_movies)
+    keyimg_assets = copy_asset_gen_elt.map(
+        file_path=fps, fp_to_cp=mid_images, asset_type=unmapped(ASSET_TYPE.KEY_IMAGE)
+    )
+
     thumbs = gen_thumbs.map(mid_images)
-
-    #    keyimg_assets = gen_copy_keyimages.map(
-    #        file_path=fps, z_dim=ali_z_dims, wait_for=[allow_failure(mrc2tiffs)]
-    #    )
-    #    tilt_movie_assets = gen_tilt_movie.map(
-    #        file_path=fps, wait_for=[allow_failure(keyimg_assets)]
-    #    )
-    #    # END TILT MOVIE GENERATION
-
-    #    # START RECONSTR MOVIE GENERATION:
+    thumb_assets = copy_asset_gen_elt.map(
+        file_path=fps, fp_to_cp=thumbs, asset_type=unmapped(ASSET_TYPE.THUMBNAIL)
+    )
 
     ave_mrcs = gen_ave_mrc.map(brt_output=brt_outputs)
+    averagedVolume_assets = copy_asset_gen_elt.map(
+        file_path=fps, fp_to_cp=ave_mrcs, asset_type=unmapped(ASSET_TYPE.VOLUME)
+    )
+
     recon_movies = gen_recon_movie_2.map(ave_mrc=ave_mrcs)
-    #    recon_movie_assets = gen_recon_movie.map(
-    #        file_path=fps, wait_for=[allow_failure(ave_jpgs)]
-    #    )
+    recon_movie_assets = copy_asset_gen_elt.map(
+        file_path=fps, fp_to_cp=recon_movies, asset_type=unmapped(ASSET_TYPE.REC_MOVIE)
+    )
     #
     #    # Binned volume assets, for volslicer.
     bin_vol_mrcs = gen_ave_8_vol.map(ave_mrc=ave_mrcs)
-    #    # finished volslicer inputs.
-    #
+    bin_vol_assets = copy_asset_gen_elt.map(
+        file_path=fps,
+        fp_to_cp=bin_vol_mrcs,
+        asset_type=unmapped(ASSET_TYPE.AVERAGED_VOLUME),
+    )
+
     zarrs = gen_zarr.map(brt_output=brt_outputs)
-    # ng.zarr_build_multiscales(file_path)
-    #    pyramid_assets = gen_ng_metadata.map(fp_in=fps, wait_for=[allow_failure(zarrs)])
-    #
-    #    # now we've done the computational work.
-    #    # the relevant files have been put into the Assets dirs, but we need to inform the API
-    #    # Generate a base "primary path" dict, and hang dicts onto this.
-    #    # repeatedly pass asset in to add_asset func to add asset in question.
-    #    prim_fps = utils.gen_prim_fps.map(fp_in=fps)
-    #    callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
-    #    callback_with_keyimgs = utils.add_asset.map(
-    #        prim_fp=callback_with_thumbs, asset=keyimg_assets
-    #    )
-    #    callback_with_pyramids = utils.add_asset.map(
-    #        prim_fp=callback_with_keyimgs, asset=pyramid_assets
-    #    )
-    #    callback_with_ave_vol = utils.add_asset.map(
-    #        prim_fp=callback_with_pyramids, asset=averagedVolume_assets
-    #    )
-    #    callback_with_bin_vol = utils.add_asset.map(
-    #        prim_fp=callback_with_ave_vol, asset=bin_vol_assets
-    #    )
-    #    callback_with_recon_mov = utils.add_asset.map(
-    #        prim_fp=callback_with_bin_vol, asset=recon_movie_assets
-    #    )
-    #    callback_with_tilt_mov = utils.add_asset.map(
-    #        prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
-    #    )
+    pyramid_assets = gen_ng_metadata.map(fp_in=fps, zarr=zarrs)
+
+    # now we've done the computational work.
+    # the relevant files have been put into the Assets dirs, but we need to inform the API
+    # Generate a base "primary path" dict, and hang dicts onto this.
+    # repeatedly pass asset in to add_asset func to add asset in question.
+    prim_fps = utils.gen_prim_fps.map(fp_in=fps)
+    callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
+    callback_with_keyimgs = utils.add_asset.map(
+        prim_fp=callback_with_thumbs, asset=keyimg_assets
+    )
+    callback_with_pyramids = utils.add_asset.map(
+        prim_fp=callback_with_keyimgs, asset=pyramid_assets
+    )
+    callback_with_ave_vol = utils.add_asset.map(
+        prim_fp=callback_with_pyramids, asset=averagedVolume_assets
+    )
+    callback_with_bin_vol = utils.add_asset.map(
+        prim_fp=callback_with_ave_vol, asset=bin_vol_assets
+    )
+    callback_with_recon_mov = utils.add_asset.map(
+        prim_fp=callback_with_bin_vol, asset=recon_movie_assets
+    )
+    callback_with_tilt_mov = utils.add_asset.map(
+        prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
+    )
     #    copy_task = utils.copy_workdirs.map(
     #        fps, wait_for=[allow_failure(callback_with_tilt_mov)]
     #    )
@@ -708,18 +735,15 @@ def brt_flow(
     #    for future in copy_task:
     #        future.result()
     #
-    #    utils.callback_with_cleanup(
-    #        fps=fps,
-    #        callback_result=callback_with_tilt_mov,
-    #        x_no_api=x_no_api,
-    #        callback_url=callback_url,
-    #        token=token,
-    #        x_keep_workdir=x_keep_workdir,
-    #    )
-    #
-    print(thumbs)
-    print(bin_vol_mrcs)
-    print(zarrs)
+    callback_result = get_callback_result.submit(callback_with_tilt_mov)
+    utils.callback_with_cleanup(
+        fps=fps,
+        callback_result=callback_result,
+        x_no_api=x_no_api,
+        callback_url=callback_url,
+        token=token,
+        x_keep_workdir=x_keep_workdir,
+    )
 
     for zarr in recon_movies:
         print(zarr.result())
