@@ -21,6 +21,7 @@ def mock_binaries(monkeypatch):
 
     monkeypatch.setattr(Config, "tmp_dir", "/tmp")
     monkeypatch.setattr(Config, "SLURM_EXECUTOR", ConcurrentTaskRunner())
+    monkeypatch.setattr(Config, "HIGH_SLURM_EXECUTOR", ConcurrentTaskRunner())
 
 
 @pytest.fixture
