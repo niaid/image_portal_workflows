@@ -114,6 +114,7 @@ def gen_ali_x(file_path: FilePath, z_dim) -> None:
         log_file = f"{file_path.working_dir}/newstack_mid_pt.log"
         cmd = [BRTConfig.newstack_loc, "-secs", f"{i}-{i}", ali_file, ali_x]
         FilePath.run(cmd=cmd, log_file=log_file)
+    return file_path
 
 
 @task
@@ -145,6 +146,7 @@ def gen_mrc2tiff(file_path: FilePath) -> None:
     cmd = [BRTConfig.mrc2tif_loc, "-j", "-C", "0,255", ali_asmbl, ali]
     log_file = f"{file_path.working_dir}/mrc2tif_align.log"
     FilePath.run(cmd=cmd, log_file=log_file)
+    return file_path
 
 
 @task
@@ -323,6 +325,7 @@ def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
         ]
         log_file = f"{file_path.working_dir}/clip_avg.error.log"
         FilePath.run(cmd=cmd, log_file=log_file)
+    return file_path
 
 
 @task
@@ -462,6 +465,7 @@ def gen_zarr(fp_in: FilePath):
     file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
 
     ng.zarr_build_multiscales(file_path)
+    return file_path
 
 
 @task
@@ -577,30 +581,24 @@ def brt_flow(
     # stack dimensions - used in movie creation
     # alignment z dimension, this is only used for the tilt movie.
     ali_z_dims = gen_dimension_command.map(
-        file_path=fps,
+        file_path=allow_failure(brts),
         ali_or_rec=unmapped("ali"),
-        wait_for=[allow_failure(brts)],
-        return_state=True,
     )
 
     # START TILT MOVIE GENERATION:
     ali_xs = gen_ali_x.map(
         file_path=fps,
         z_dim=allow_failure(ali_z_dims),
-        wait_for=[allow_failure(brts)],
-        return_state=True,
     )
-    asmbls = gen_ali_asmbl.map(file_path=fps, wait_for=[allow_failure(ali_xs)])
-    mrc2tiffs = gen_mrc2tiff.map(file_path=fps, wait_for=[allow_failure(asmbls)])
+    asmbls = gen_ali_asmbl.map(file_path=allow_failure(ali_xs))
+    mrc2tiffs = gen_mrc2tiff.map(file_path=allow_failure(asmbls))
     thumb_assets = gen_thumbs.map(
-        file_path=fps,
+        file_path=allow_failure(mrc2tiffs),
         z_dim=allow_failure(ali_z_dims),
-        wait_for=[allow_failure(mrc2tiffs)],
     )
     keyimg_assets = gen_copy_keyimages.map(
-        file_path=fps,
+        file_path=allow_failure(mrc2tiffs),
         z_dim=allow_failure(ali_z_dims),
-        wait_for=[allow_failure(mrc2tiffs)],
     )
     tilt_movie_assets = gen_tilt_movie.map(
         file_path=fps, wait_for=[allow_failure(keyimg_assets)]
@@ -627,10 +625,10 @@ def brt_flow(
 
     # START RECONSTR MOVIE GENERATION:
     rec_z_dims = gen_dimension_command.map(
-        file_path=fps, ali_or_rec=unmapped("rec"), wait_for=[allow_failure(brts)]
+        file_path=allow_failure(brts), ali_or_rec=unmapped("rec")
     )
     clip_avgs = gen_clip_avgs.map(
-        file_path=fps, z_dim=allow_failure(rec_z_dims), wait_for=[allow_failure(asmbls)]
+        file_path=allow_failure(asmbls), z_dim=allow_failure(rec_z_dims)
     )
     averagedVolume_assets = consolidate_ave_mrcs.map(
         file_path=fps, wait_for=[allow_failure(clip_avgs)]
@@ -659,8 +657,8 @@ def brt_flow(
     )
     # finished volslicer inputs.
 
-    zarrs = gen_zarr.map(fp_in=fps, wait_for=[allow_failure(brts)])
-    pyramid_assets = gen_ng_metadata.map(fp_in=fps, wait_for=[allow_failure(zarrs)])
+    zarrs = gen_zarr.map(fp_in=allow_failure(brts))
+    pyramid_assets = gen_ng_metadata.map(fp_in=allow_failure(zarrs))
     #  archive_pyramid_cmds = ng.gen_archive_pyr.map(
     #      file_path=fps, wait_for=[pyramid_assets]
     #  )

@@ -347,6 +347,7 @@ def run_brt(
     for _file in [rec_file, ali_file]:
         if not _file.exists():
             raise RuntimeError(f"File {_file} does not exist. BRT run failure.")
+    return file_path
     # brts_ok = check_brt_run_ok(file_path=file_path)
 
 
