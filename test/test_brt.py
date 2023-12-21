@@ -11,7 +11,7 @@ from pathlib import Path
 
 @pytest.mark.localdata
 @pytest.mark.slow
-def test_brt(mock_nfs_mount):
+def test_brt_p(mock_nfs_mount):
     from em_workflows.brt.flow import brt_flow
 
     input_dir = "test/input_files/brt/Projects/RT_TOMO/"
