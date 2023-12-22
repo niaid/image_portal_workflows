@@ -77,4 +77,5 @@ def test_brt_callback_one_valid_of_two_inputs(
         callback_output = json.load(fd)
 
     assert "files" in callback_output
-    assert False, "Failing... "
+    print(callback_output["files"])
+    assert False
