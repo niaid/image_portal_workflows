@@ -521,7 +521,7 @@ def get_callback_result(callback_data: list) -> list:
     name="BRT",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
-    task_runner=BRTConfig.SLURM_EXECUTOR,
+    task_runner=BRTConfig.HIGH_SLURM_EXECUTOR,
     on_completion=[utils.notify_api_completion],
     on_failure=[utils.notify_api_completion],
 )
@@ -563,6 +563,10 @@ def brt_flow(
     fps = utils.gen_fps.submit(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
     )
+
+    # callback_results = await asyncio.gather(
+    #     *[subflow(file_path=fps[i: i+12]) for i in range(len(fps), step=12)]
+    # )
     brts = utils.run_brt.map(
         file_path=fps,
         adoc_template=unmapped(adoc_template),
