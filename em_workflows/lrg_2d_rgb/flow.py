@@ -139,8 +139,8 @@ def gen_thumb(file_path: FilePath):
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
     task_runner=LRG2DConfig.SLURM_EXECUTOR,
-    on_completion=[utils.notify_api_completion],
-    on_failure=[utils.notify_api_completion],
+    on_completion=[utils.notify_api_completion, utils.cleanup_workdir],
+    on_failure=[utils.notify_api_completion, utils.cleanup_workdir],
 )
 # run_config=LocalRun(labels=[utils.get_environment()]),
 def lrg_2d_flow(
@@ -183,7 +183,7 @@ def lrg_2d_flow(
         prim_fp=callback_with_thumbs, asset=zarr_assets
     )
 
-    utils.callback_with_cleanup(
+    utils.copy_with_callback(
         fps=fps,
         callback_result=callback_with_pyramids,
         x_no_api=x_no_api,

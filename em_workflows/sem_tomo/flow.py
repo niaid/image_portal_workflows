@@ -303,8 +303,8 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
     task_runner=SEMConfig.SLURM_EXECUTOR,
-    on_completion=[utils.notify_api_completion],
-    on_failure=[utils.notify_api_completion],
+    on_completion=[utils.notify_api_completion, utils.cleanup_workdir],
+    on_failure=[utils.notify_api_completion, utils.cleanup_workdir],
 )
 def sem_tomo_flow(
     file_share: str,
@@ -377,7 +377,7 @@ def sem_tomo_flow(
         prim_fp=callback_with_corr_mrcs, asset=corrected_movie_assets
     )
 
-    utils.callback_with_cleanup(
+    utils.copy_with_callback(
         fps=fps,
         callback_result=callback_with_corr_movies,
         x_no_api=x_no_api,

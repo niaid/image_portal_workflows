@@ -8,11 +8,11 @@ from typing import List, Dict
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
+import prefect
 from prefect import task, get_run_logger, allow_failure
 from prefect.exceptions import MissingContextError
 from prefect.states import State
 from prefect.flows import Flow, FlowRun
-from prefect.runtime import flow_run
 
 from em_workflows.config import Config
 from em_workflows.file_path import FilePath
@@ -172,22 +172,26 @@ def add_asset(prim_fp: dict, asset: dict, image_idx: int = None) -> dict:
     return prim_fp
 
 
-# triggers like "always_run" are managed when calling the task itself
-@task(retries=3, retry_delay_seconds=10)
-def cleanup_workdir(fps: List[FilePath], x_keep_workdir: bool):
+def cleanup_workdir(flow: Flow, flow_run: FlowRun, state: State):
     """
     :param fp: a FilePath which has a working_dir to be removed
 
     | working_dir isn't needed after run, so remove unless "x_keep_workdir" is True.
-    | task wrapper on the FilePath rm_workdir method.
-
+    | Reads tmpdirs.log for given flow run and deletes mentioned folders
     """
+    x_keep_workdir = flow_run.parameters.get("x_keep_workdir", False)
     if x_keep_workdir is True:
         log("x_keep_workdir is set to True, skipping removal.")
-    else:
-        for fp in fps:
-            log(f"Trying to remove {fp.working_dir}")
-            fp.rm_workdir()
+        return
+
+    tmpdirs_path = get_flow_run_tmpdirs(flow_run.flow_id)
+    with open(tmpdirs_path) as f:
+        lines = f.readlines()
+        for tmpdir in lines:
+            # make sure that we are deleting something temporary
+            assert "tmp" in tmpdir
+            shutil.rmtree(tmpdir.strip(), ignore_errors=True)
+            log(f"Removed {tmpdir}")
 
 
 def update_adoc(
@@ -587,6 +591,10 @@ def get_input_dir(share_name: str, input_dir: str) -> Path:
     return p
 
 
+def get_flow_run_tmpdirs(flow_run_id):
+    return Path.home() / "slurm-log" / (str(flow_run_id) + "-tmpdirs.log")
+
+
 @task
 def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
     """
@@ -595,11 +603,16 @@ def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePa
     directory for each file to keep the files separate on the HPC.
     """
     fps = list()
+    flow_context = prefect.context.FlowRunContext.get()
+    tmpdirs_path = get_flow_run_tmpdirs(flow_context.flow_run.flow_id)
+    tmpdirs = open(tmpdirs_path, "w")
     for fp in fps_in:
         file_path = FilePath(share_name=share_name, input_dir=input_dir, fp_in=fp)
         msg = f"created working_dir {file_path.working_dir} for {fp.as_posix()}"
         log(msg)
         fps.append(file_path)
+        tmpdirs.write(f"{file_path.working_dir}")
+    tmpdirs.close()
     return fps
 
 
@@ -646,7 +659,7 @@ def send_callback_body(
         )
 
 
-def callback_with_cleanup(
+def copy_with_callback(
     fps: List[FilePath],
     callback_result: List,
     x_no_api: bool = False,
@@ -656,21 +669,10 @@ def callback_with_cleanup(
 ):
     cp_wd_logs_to_assets = copy_workdir_logs.map(fps, wait_for=[callback_result])
 
-    cb = send_callback_body.submit(
+    send_callback_body.submit(
         x_no_api=x_no_api,
         token=token,
         callback_url=callback_url,
         files_elts=callback_result,
+        wait_for=[allow_failure(cp_wd_logs_to_assets)],
     )
-    cleanup_workdir.submit(
-        fps,
-        x_keep_workdir,
-        wait_for=[cb, allow_failure(cp_wd_logs_to_assets)],
-    )
-
-
-def generate_flow_run_name():
-    parameters = flow_run.parameters
-    name = Path(parameters["input_dir"])
-    share_name = parameters["file_share"]
-    return f"{share_name} | {name.parts[-2]} / {name.parts[-1]}"

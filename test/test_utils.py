@@ -395,3 +395,33 @@ def test_downstream_runs_if_upstream_fails_with_allow_failure_annotation(
 
     flow_state = test_flow()
     assert flow_state == 2
+
+
+def test_cleanup_post_flow_runs(
+    prefect_test_fixture,
+    mock_nfs_mount,
+):
+    from em_workflows.utils import utils
+
+    @flow(
+        on_completion=[utils.cleanup_workdir],
+    )
+    def my_flow(
+        file_share="test",
+        input_dir="test/input_files/brt/Projects/RT_TOMO/",
+        x_keep_workdir=False,
+    ):
+        input_dir_fp = utils.get_input_dir.submit(
+            share_name=file_share, input_dir=input_dir
+        )
+        input_fps = utils.list_files.submit(
+            input_dir=input_dir_fp, exts=["mrc", "st"], single_file=False
+        )
+        fps = utils.gen_fps.submit(
+            share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
+        )
+        first_fp = fps.result()[0]
+        return first_fp.working_dir
+
+    working_dir: Path = my_flow()
+    assert not working_dir.exists()
