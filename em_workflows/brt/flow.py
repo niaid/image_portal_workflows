@@ -44,7 +44,7 @@ import math
 from typing import Optional
 from pathlib import Path
 
-from prefect import task, flow, unmapped
+from prefect import task, flow, unmapped, allow_failure
 from prefect.states import Completed, Failed
 from pytools.HedwigZarrImages import HedwigZarrImages
 
@@ -159,10 +159,6 @@ def gen_thumbs(middle_i_jpg: Path) -> Path:
     ]
     log_file = f"{middle_i_jpg.parent}/thumb.log"
     FilePath.run(cmd=cmd, log_file=log_file)
-    #    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(thumb))
-    #    keyimg_asset = file_path.gen_asset(
-    #        asset_type=AssetType.THUMBNAIL, asset_fp=asset_fp
-    #    )
     return Path(thumb)
 
 
@@ -202,7 +198,9 @@ def find_middle_image(fp_in: Path) -> Path:
     images = glob.glob(f"{fp_in.parent}/*ali*jpg")
     middle_image = images[int(len(images) / 2)]
     utils.log(f"Found middle image {middle_image}")
-    return Path(middle_image)
+    fp_out = Path(middle_image)
+    cleanup_files(file_path=fp_in, pattern="*.jpg", keep_file=fp_out)
+    return fp_out
 
 
 @task
@@ -248,10 +246,7 @@ def gen_tilt_movie_2(brt_output: utils.BrtOutput) -> Path:
         movie_file,
     ]
     FilePath.run(cmd=cmd, log_file=log_file)
-    #    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(movie_file))
-    #    tilt_movie_asset = file_path.gen_asset(
-    #        asset_type=AssetType.TILT_MOVIE, asset_fp=asset_fp
-    #    )
+    cleanup_files(file_path=ali_file, pattern=("*_align_*.mrc"))
     return Path(movie_file)
 
 
@@ -379,14 +374,8 @@ def gen_recon_movie_2(ave_mrc: Path) -> Path:
     ]
     log_file = f"{ave_mrc.parent}/{ave_mrc.stem}_keyMov.log"
     FilePath.run(cmd=cmd, log_file=log_file)
+    cleanup_files(file_path=ave_mrc, pattern=("_mp4.*.jpg"))
     return Path(key_mov)
-
-
-#    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(key_mov))
-#    recon_movie_asset = file_path.gen_asset(
-#        asset_type=AssetType.REC_MOVIE, asset_fp=asset_fp
-#    )
-#    return recon_movie_asset
 
 
 def gen_clip_avgs(in_fp: Path, z_dim: str) -> None:
@@ -433,17 +422,14 @@ def consolidate_ave_mrcs(fp_in: Path) -> Path:
     """
     aves = glob.glob(f"{fp_in.parent}/{fp_in.stem}_ave*")
     aves.sort()
-    ave_mrc = f"{fp_in.parent}/ave_{fp_in.stem}.mrc"
+    ave_mrc = Path(f"{fp_in.parent}/ave_{fp_in.stem}.mrc")
     cmd = [BRTConfig.newstack_loc, "-float", "3"]
     cmd.extend(aves)
-    cmd.append(ave_mrc)
+    cmd.append(ave_mrc.as_posix())
     log_file = f"{fp_in.parent}/newstack_float.log"
     FilePath.run(cmd=cmd, log_file=log_file)
-    #    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(ave_mrc))
-    #    ave_vol_asset = file_path.gen_asset(
-    #        asset_type=AssetType.AVERAGED_VOLUME, asset_fp=asset_fp
-    #    )
-    return Path(ave_mrc)
+    cleanup_files(file_path=ave_mrc, pattern="*_ave*.mrc", keep_file=ave_mrc)
+    return ave_mrc
 
 
 @task
@@ -457,8 +443,6 @@ def gen_ave_8_vol(ave_mrc: Path) -> Path:
     cmd = [BRTConfig.binvol, "-binning", "2", ave_mrc.as_posix(), ave_8_mrc]
     log_file = f"{ave_mrc.parent}/ave_8_mrc.log"
     FilePath.run(cmd=cmd, log_file=log_file)
-    #    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(ave_8_mrc))
-    #    bin_vol_asset = file_path.gen_asset(asset_type=AssetType.VOLUME, asset_fp=asset_fp)
     return Path(ave_8_mrc)
 
 
@@ -476,16 +460,17 @@ def gen_ave_jpgs_from_ave_mrc(ave_mrc: Path):
     FilePath.run(cmd=cmd, log_file=log_file)
 
 
-@task
-def cleanup_files(file_path: FilePath, pattern=str):
+def cleanup_files(file_path: Path, pattern=str, keep_file: Path = None):
     """
     Given a ``FilePath`` and unix file ``pattern``, iterate through directory removing all files
     that match the pattern
     """
-    f = f"{file_path.working_dir.as_posix()}/{pattern}"
+    f = f"{file_path.parent.as_posix()}/{pattern}"
     utils.log(f"trying to rm {f}")
     files_to_rm = glob.glob(f)
     for _file in files_to_rm:
+        if keep_file and keep_file.as_posix() == _file:
+            continue
         os.remove(_file)
     print(files_to_rm)
 
@@ -692,8 +677,7 @@ def brt_flow(
     recon_movie_assets = copy_asset_gen_elt.map(
         file_path=fps, fp_to_cp=recon_movies, asset_type=unmapped(ASSET_TYPE.REC_MOVIE)
     )
-    #
-    #    # Binned volume assets, for volslicer.
+    # Binned volume assets, for volslicer.
     bin_vol_mrcs = gen_ave_8_vol.map(ave_mrc=ave_mrcs)
     bin_vol_assets = copy_asset_gen_elt.map(
         file_path=fps,
@@ -708,6 +692,8 @@ def brt_flow(
     # the relevant files have been put into the Assets dirs, but we need to inform the API
     # Generate a base "primary path" dict, and hang dicts onto this.
     # repeatedly pass asset in to add_asset func to add asset in question.
+    # allow_failure in gen_fps because we want to include EVERY fp, not just OK ones
+    # prim_fps = utils.gen_prim_fps.map(fp_in=fps, wait_for=[allow_failure(brt_outputs)])
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
     callback_with_keyimgs = utils.add_asset.map(
@@ -728,13 +714,13 @@ def brt_flow(
     callback_with_tilt_mov = utils.add_asset.map(
         prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
-    #    copy_task = utils.copy_workdirs.map(
-    #        fps, wait_for=[allow_failure(callback_with_tilt_mov)]
-    #    )
-    #    # This is to make sure that we wait for copy completes before cleanup
-    #    for future in copy_task:
-    #        future.result()
-    #
+
+    copy_task = utils.copy_workdirs.map(
+        file_path=fps, wait_for=[allow_failure(callback_with_tilt_mov)]
+    )
+    # This is to make sure that we wait for copy completes before cleanup
+    for future in copy_task:
+        future.result()
     callback_result = get_callback_result.submit(callback_with_tilt_mov)
     utils.callback_with_cleanup(
         fps=fps,
