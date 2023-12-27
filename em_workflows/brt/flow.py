@@ -522,8 +522,8 @@ def get_callback_result(callback_data: list) -> list:
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
     task_runner=BRTConfig.HIGH_SLURM_EXECUTOR,
-    on_completion=[utils.notify_api_completion],
-    on_failure=[utils.notify_api_completion],
+    on_completion=[utils.notify_api_completion, utils.cleanup_workdir],
+    on_failure=[utils.notify_api_completion, utils.cleanup_workdir],
 )
 def brt_flow(
     # This block of params map are for adoc file specfication.
@@ -704,7 +704,7 @@ def brt_flow(
         allow_failure(callback_with_tilt_mov),
     )
 
-    utils.callback_with_cleanup(
+    utils.copy_with_callback(
         fps=fps,
         callback_result=callback_result,
         x_no_api=x_no_api,

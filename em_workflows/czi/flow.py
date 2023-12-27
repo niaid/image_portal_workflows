@@ -209,8 +209,8 @@ def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
     task_runner=CZIConfig.SLURM_EXECUTOR,
-    on_completion=[utils.notify_api_completion],
-    on_failure=[utils.notify_api_completion],
+    on_completion=[utils.notify_api_completion, utils.cleanup_workdir],
+    on_failure=[utils.notify_api_completion, utils.cleanup_workdir],
 )
 async def czi_flow(
     file_share: str,
@@ -246,7 +246,7 @@ async def czi_flow(
     )
     callback_with_zarrs = find_thumb_idx(callback=callback_with_zarrs)
 
-    utils.callback_with_cleanup(
+    utils.copy_with_callback(
         fps=fps,
         callback_result=callback_with_zarrs,
         x_no_api=x_no_api,

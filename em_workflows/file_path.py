@@ -103,7 +103,7 @@ class FilePath:
         eg: /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/tomogram_fname/
         Will be rm'd upon completion.
         """
-        working_dir = Path(tempfile.mkdtemp(dir=f"{Config.tmp_dir}"))
+        working_dir = tempfile.mkdtemp(dir=f"{Config.tmp_dir}")
         return Path(working_dir)
 
     def make_assets_dir(self) -> Path:
