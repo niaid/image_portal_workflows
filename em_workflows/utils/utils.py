@@ -184,13 +184,16 @@ def cleanup_workdir(flow: Flow, flow_run: FlowRun, state: State):
         return
 
     tmpdirs_path = get_flow_run_tmpdirs(flow_run.flow_id)
+    hooks_log = open(f"slurm-log/{flow_run.flow_id}-hooks-log.txt", "w")
     with open(tmpdirs_path) as f:
         lines = f.readlines()
         for tmpdir in lines:
             # make sure that we are deleting something temporary
             assert "tmp" in tmpdir
             shutil.rmtree(tmpdir.strip(), ignore_errors=True)
-            log(f"Removed {tmpdir}")
+            hooks_log.write(f"Removed working dir: {tmpdir}")
+    tmpdirs_path.unlink()
+    hooks_log.close()
 
 
 def update_adoc(
@@ -542,7 +545,7 @@ def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
 
     # Logs from state chaange hooks do not reflect in prefect logs
     # therefore, we have to setup such logs manually
-    hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
+    hooks_log = open(f"slurm-log/{flowrun_id}-hooks-log.txt", "w")
     hooks_log.write(f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n")
 
     headers = {
