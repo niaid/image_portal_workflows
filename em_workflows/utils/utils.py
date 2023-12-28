@@ -13,7 +13,7 @@ from prefect import task, get_run_logger, allow_failure
 from prefect.exceptions import MissingContextError
 from prefect.states import State
 from prefect.flows import Flow, FlowRun
-from prefect.runtime import flow_run
+from prefect import runtime
 
 from em_workflows.config import Config
 from em_workflows.file_path import FilePath
@@ -184,8 +184,10 @@ def cleanup_workdir(flow: Flow, flow_run: FlowRun, state: State):
         log("x_keep_workdir is set to True, skipping removal.")
         return
 
-    tmpdirs_path = get_flow_run_tmpdirs(flow_run.flow_id)
-    hooks_log = open(f"slurm-log/{flow_run.flow_id}-hooks-log.txt", "w")
+    tmpdirs_path = get_flow_run_tmpdirs(flow_run.id)
+    hooks_log = open(
+        Path.home() / "slurm-log" / f"{flow_run.flow_id}-hooks-log.txt", "w"
+    )
     with open(tmpdirs_path) as f:
         lines = f.readlines()
         for tmpdir in lines:
@@ -538,15 +540,15 @@ def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
     token = flow_run.parameters.get("token", "")
     callback_url = flow_run.parameters.get("callback_url", "")
 
-    flowrun_id = os.environ.get("PREFECT__FLOW_RUN_ID", "not-found")
-
     if x_no_api:
         log(f"x_no_api flag used\nCompletion status: {status}")
         return
 
     # Logs from state chaange hooks do not reflect in prefect logs
     # therefore, we have to setup such logs manually
-    hooks_log = open(f"slurm-log/{flowrun_id}-hooks-log.txt", "w")
+    hooks_log = open(
+        Path.home() / "slurm-log" / f"{flow_run.flow_id}-hooks-log.txt", "w"
+    )
     hooks_log.write(f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n")
 
     headers = {
@@ -614,7 +616,9 @@ def get_input_dir(share_name: str, input_dir: str) -> Path:
 
 
 def get_flow_run_tmpdirs(flow_run_id):
-    return Path.home() / "slurm-log" / (str(flow_run_id) + "-tmpdirs.log")
+    path = Path.home() / "slurm-log" / (str(flow_run_id) + "-tmpdirs.log")
+    os.makedirs(path.parent, exist_ok=True)
+    return path
 
 
 @task
@@ -634,6 +638,7 @@ def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePa
         log(msg)
         fps.append(file_path)
         tmpdirs.write(f"{file_path.working_dir}\n")
+    log(f"\n\nWritten working dirs to {tmpdirs_path}\n\n")
     tmpdirs.close()
     return fps
 
@@ -701,7 +706,7 @@ def copy_with_callback(
 
 
 def generate_flow_run_name():
-    parameters = flow_run.parameters
+    parameters = runtime.flow_run.parameters
     name = Path(parameters["input_dir"])
     share_name = parameters["file_share"]
     return f"{share_name} | {name.parts[-2]} / {name.parts[-1]}"
