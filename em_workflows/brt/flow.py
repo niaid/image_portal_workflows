@@ -131,6 +131,7 @@ def gen_ali_asmbl(file_path: FilePath) -> None:
     ali_base_cmd.extend(alis)
     ali_base_cmd.append(ali_asmbl)
     FilePath.run(cmd=ali_base_cmd, log_file=f"{file_path.working_dir}/asmbl.log")
+    return file_path
 
 
 @task
@@ -383,6 +384,7 @@ def gen_ave_jpgs_from_ave_mrc(file_path: FilePath):
     log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
     cmd = [BRTConfig.mrc2tif_loc, "-j", "-C", "100,255", ave_mrc, mp4]
     FilePath.run(cmd=cmd, log_file=log_file)
+    return file_path
 
 
 @task
@@ -640,9 +642,7 @@ def brt_flow(
     ave_jpgs = gen_ave_jpgs_from_ave_mrc.map(
         file_path=fps, wait_for=[allow_failure(averagedVolume_assets)]
     )
-    recon_movie_assets = gen_recon_movie.map(
-        file_path=fps, wait_for=[allow_failure(ave_jpgs)]
-    )
+    recon_movie_assets = gen_recon_movie.map(file_path=allow_failure(ave_jpgs))
     cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_mp4.*.jpg"),

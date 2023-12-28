@@ -13,6 +13,7 @@ from prefect import task, get_run_logger, allow_failure
 from prefect.exceptions import MissingContextError
 from prefect.states import State
 from prefect.flows import Flow, FlowRun
+from prefect.runtime import flow_run
 
 from em_workflows.config import Config
 from em_workflows.file_path import FilePath
@@ -624,15 +625,15 @@ def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePa
     directory for each file to keep the files separate on the HPC.
     """
     fps = list()
-    flow_context = prefect.context.FlowRunContext.get()
-    tmpdirs_path = get_flow_run_tmpdirs(flow_context.flow_run.flow_id)
+    run_context = prefect.context.get_run_context()
+    tmpdirs_path = get_flow_run_tmpdirs(run_context.task_run.flow_run_id)
     tmpdirs = open(tmpdirs_path, "w")
     for fp in fps_in:
         file_path = FilePath(share_name=share_name, input_dir=input_dir, fp_in=fp)
         msg = f"created working_dir {file_path.working_dir} for {fp.as_posix()}"
         log(msg)
         fps.append(file_path)
-        tmpdirs.write(f"{file_path.working_dir}")
+        tmpdirs.write(f"{file_path.working_dir}\n")
     tmpdirs.close()
     return fps
 
@@ -697,3 +698,10 @@ def copy_with_callback(
         files_elts=callback_result,
         wait_for=[allow_failure(cp_wd_logs_to_assets)],
     )
+
+
+def generate_flow_run_name():
+    parameters = flow_run.parameters
+    name = Path(parameters["input_dir"])
+    share_name = parameters["file_share"]
+    return f"{share_name} | {name.parts[-2]} / {name.parts[-1]}"
