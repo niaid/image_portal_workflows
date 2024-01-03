@@ -217,6 +217,15 @@ class FilePath:
             imageSet=imageSet,
         )
 
+    @staticmethod
+    def gen_prim_fp_error_elt(prim_fp_elt: dict, error_msg: str) -> Dict:
+        return dict(
+            primaryFilePath=prim_fp_elt["primaryFilePath"],
+            title=prim_fp_elt["title"],
+            message=error_msg,
+            status="error",
+        )
+
     def copy_workdir_to_assets(self) -> Path:
         """
         - copies all of working dir to Assets dir.
