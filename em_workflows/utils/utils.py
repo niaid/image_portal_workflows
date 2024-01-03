@@ -12,8 +12,9 @@ import prefect
 from prefect import task, get_run_logger, allow_failure
 from prefect.exceptions import MissingContextError
 from prefect.states import State
-from prefect.flows import Flow, FlowRun
+from prefect.flows import Flow
 from prefect import runtime
+from prefect.client.schemas.objects import TaskRun, FlowRun
 
 from em_workflows.config import Config
 from em_workflows.file_path import FilePath
@@ -60,6 +61,51 @@ def lookup_dims(fp: Path) -> Header:
         xyz_cleaned = Header(*xyz_dim)
         log(f"dims: {xyz_cleaned:}")
         return xyz_cleaned
+
+
+def get_exception_store_path(flow_run_id, idx):
+    """
+    Returns the file location of the errors generated in tasks
+    Assumes there is one error per file, because the first error is considered
+    the source of rest of the errors in subsequent mapped tasks of same index
+    """
+    return Path(Config.tmp_dir) / f"error-{flow_run_id}-{idx}.log"
+
+
+def cleanup_hook_exception_logs(flow: Flow, flow_run: FlowRun, state: State):
+    """
+    Cleans up hooks log files after stored exceptions has been used
+
+    Can be used after `store_exception_hook` hook calls to custom clean up
+    """
+    path = Path(Config.tmp_dir)
+    for tmpfile in path.glob(f"error-{flow_run.id}-*.log"):
+        print(f"Cleaning up : {tmpfile}")
+        tmpfile.unlink()
+
+
+def store_exception_hook(task, task_run: TaskRun, state: State):
+    """
+    Hook that is called by tasks on failure so that exceptions can be stored
+
+    This hook should be mandatorily used with flow_runs `cleanup_hook_exception_logs` hook
+
+    Reference: https://gist.github.com/annshress/b01d170ce9dddccb207140d9dd997aa2
+    """
+    if not state.is_failed():
+        return
+
+    result = state.result(raise_on_failure=False)
+    pos = task_run.name.split("-")[-1]
+    if not pos or not pos.isnumeric():
+        print(f"Default task name generation has been altered: {task_run.name}")
+    path = get_exception_store_path(task_run.flow_run_id, pos)
+    if Path(path).exists():
+        print(f"Exception already stored for {task_run.name}: \n{result}\n")
+        return
+    with open(path, "w") as f:
+        print(f"*******\nWriting {task_run.name}: \n{result}\n*********")
+        f.write(str(result))
 
 
 @task
@@ -304,7 +350,7 @@ def copy_template(working_dir: Path, template_name: str) -> Path:
     return Path(adoc_fp)
 
 
-@task
+@task(on_failure=[store_exception_hook])
 def run_brt(
     file_path: FilePath,
     adoc_template: str,
