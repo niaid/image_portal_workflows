@@ -46,6 +46,7 @@ from pathlib import Path
 
 from prefect import task, flow, unmapped, allow_failure
 from prefect.states import Failed, Completed
+from prefect.context import get_run_context
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
@@ -56,7 +57,7 @@ from em_workflows.brt.config import BRTConfig
 from em_workflows.brt.constants import BRT_DEPTH, BRT_HEIGHT, BRT_WIDTH
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
     """
     | looks up the z dimension of an mrc file.
@@ -97,7 +98,7 @@ def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
         return str(z_dim)
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def gen_ali_x(file_path: FilePath, z_dim) -> None:
     """
     - chops an mrc input into its constituent Z sections.
@@ -117,7 +118,7 @@ def gen_ali_x(file_path: FilePath, z_dim) -> None:
     return file_path
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def gen_ali_asmbl(file_path: FilePath) -> None:
     """
     Use IMOD ``newstack`` to assemble, eg::
@@ -134,7 +135,7 @@ def gen_ali_asmbl(file_path: FilePath) -> None:
     return file_path
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def gen_mrc2tiff(file_path: FilePath) -> None:
     """
     This generates a lot of jpegs (-j) which will be compiled into a movie.
@@ -150,7 +151,7 @@ def gen_mrc2tiff(file_path: FilePath) -> None:
     return file_path
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def gen_thumbs(file_path: FilePath, z_dim) -> dict:
     """
     Use GraphicsMagick to create thumbnail images, eg::
@@ -184,7 +185,7 @@ def gen_thumbs(file_path: FilePath, z_dim) -> dict:
     return keyimg_asset
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def gen_copy_keyimages(file_path: FilePath, z_dim: str) -> dict:
     """
     - generates the keyImage (by copying image i to keyImage.jpeg)
@@ -215,7 +216,7 @@ def calc_middle_i(z_dim: str) -> str:
     return fl_padded
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def gen_tilt_movie(file_path: FilePath) -> dict:
     """
     generates the tilt movie, eg::
@@ -251,7 +252,7 @@ def gen_tilt_movie(file_path: FilePath) -> dict:
     return tilt_movie_asset
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def gen_recon_movie(file_path: FilePath) -> dict:
     """
     compiles a stack of jpgs into a movie. eg::
@@ -292,7 +293,7 @@ def gen_recon_movie(file_path: FilePath) -> dict:
     return recon_movie_asset
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
     """
     - give _rec mrc file, generate a stack of mrcs, averaged to assist viewing.
@@ -329,7 +330,7 @@ def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
     return file_path
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def consolidate_ave_mrcs(file_path: FilePath) -> dict:
     """
     - consumes base_ave001.mrc etc, base_ave002.mrc etc,
@@ -353,7 +354,7 @@ def consolidate_ave_mrcs(file_path: FilePath) -> dict:
     return ave_vol_asset
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def gen_ave_8_vol(file_path: FilePath) -> dict:
     """
     - creates volume asset, for volslicer, eg::
@@ -370,7 +371,7 @@ def gen_ave_8_vol(file_path: FilePath) -> dict:
     return bin_vol_asset
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def gen_ave_jpgs_from_ave_mrc(file_path: FilePath):
     """
     - generates a load of jpgs from the ave_base.mrc with the format {base}_mp4.123.jpg \
@@ -445,7 +446,7 @@ def cleanup_files(file_path: FilePath, pattern=str):
 #    return inputs_paired
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def gen_zarr(fp_in: FilePath):
     file_path = fp_in
     # fallback mrc file
@@ -470,7 +471,7 @@ def gen_zarr(fp_in: FilePath):
     return file_path
 
 
-@task
+@task(on_failure=[utils.store_exception_hook])
 def gen_ng_metadata(fp_in: FilePath) -> Dict:
     # Note; the seemingly redundancy of working and asset fp here.
     # However asset fp is in the network file system and is deployed for access to the users
@@ -507,14 +508,24 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
 
 
 @task
-def get_callback_result(callback_data: list) -> list:
+def get_callback_result(prim_fps: list, callback_data: list) -> list:
     cb_data = list()
-    for item in callback_data:
+    for idx, item in enumerate(callback_data):
         try:
             json.dumps(item)
             cb_data.append(item)
         except TypeError:  # can't serialize the item
             utils.log(f"Following item cannot be added to callback:\n\n{item}")
+            path = utils.get_exception_store_path(
+                get_run_context().task_run.flow_run_id, idx
+            )
+            with open(path, "r") as f:
+                cb_data.append(
+                    FilePath.gen_prim_fp_error_elt(
+                        prim_fp_elt=prim_fps[idx],
+                        error_msg=f.read(),
+                    )
+                )
     return cb_data
 
 
@@ -523,9 +534,17 @@ def get_callback_result(callback_data: list) -> list:
     name="BRT",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
-    task_runner=BRTConfig.HIGH_SLURM_EXECUTOR,
-    on_completion=[utils.notify_api_completion, utils.cleanup_workdir],
-    on_failure=[utils.notify_api_completion, utils.cleanup_workdir],
+    task_runner=BRTConfig.SLURM_EXECUTOR,
+    on_completion=[
+        utils.notify_api_completion,
+        utils.cleanup_workdir,
+        utils.cleanup_hook_exception_logs,
+    ],
+    on_failure=[
+        utils.notify_api_completion,
+        utils.cleanup_workdir,
+        utils.cleanup_hook_exception_logs,
+    ],
 )
 def brt_flow(
     # This block of params map are for adoc file specfication.
@@ -701,16 +720,17 @@ def brt_flow(
     utils.copy_workdirs.map(fps, wait_for=[allow_failure(callback_with_tilt_mov)])
 
     callback_result = get_callback_result.submit(
+        prim_fps,
         allow_failure(callback_with_tilt_mov),
     )
 
-    utils.copy_with_callback(
-        fps=fps,
-        callback_result=callback_result,
+    cp_wd_logs_to_assets = utils.copy_workdir_logs.map(fps, wait_for=[callback_result])
+    utils.send_callback_body.submit(
         x_no_api=x_no_api,
-        callback_url=callback_url,
         token=token,
-        x_keep_workdir=x_keep_workdir,
+        callback_url=callback_url,
+        files_elts=callback_result,
+        wait_for=[allow_failure(cp_wd_logs_to_assets)],
     )
 
     if callback_result.result():
