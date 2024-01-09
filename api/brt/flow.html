@@ -309,11 +309,110 @@ that match the pattern</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_dimension_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#id0" title="Permalink to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">looks up the z dimension of an mrc file.</div>
+<div class="line">ali_or_rec is nasty, str to denote whether you’re using the <cite>_ali</cite> file or the <cite>_rec</cite> file.</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Todo<span class="colon">:</span></dt>
+<dd class="field-odd"><p>this is duplicate, see utils.lookup_dims()</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_ali_x</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_dim</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#id1" title="Permalink to this definition"></a></dt>
+<dd><ul>
+<li><p>chops an mrc input into its constituent Z sections.</p></li>
+<li><p>eg if an mrc input has a z_dim of 10, 10 sections will be generated.</p></li>
+<li><p>the i-i syntax is awkward, and may not be required. Eg possibly replace i-i with i.</p></li>
+<li><p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">newstack</span> <span class="o">-</span><span class="n">secs</span> <span class="p">{</span><span class="n">i</span><span class="p">}</span><span class="o">-</span><span class="p">{</span><span class="n">i</span><span class="p">}</span> <span class="n">path</span><span class="o">/</span><span class="n">BASENAME_ali</span><span class="o">*.</span><span class="n">mrc</span> <span class="n">WORKDIR</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">BASENAME_ali</span><span class="p">{</span><span class="n">i</span><span class="p">}</span><span class="o">.</span><span class="n">mrc</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_ali_asmbl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#id2" title="Permalink to this definition"></a></dt>
+<dd><p>Use IMOD <code class="docutils literal notranslate"><span class="pre">newstack</span></code> to assemble, eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">newstack</span> <span class="o">-</span><span class="nb">float</span> <span class="mi">3</span> <span class="p">{</span><span class="n">BASENAME</span><span class="p">}</span><span class="n">_ali</span><span class="o">*.</span><span class="n">mrc</span> <span class="n">ali_</span><span class="p">{</span><span class="n">BASENAME</span><span class="p">}</span><span class="o">.</span><span class="n">mrc</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id3">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_mrc2tiff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#id3" title="Permalink to this definition"></a></dt>
+<dd><p>This generates a lot of jpegs (-j) which will be compiled into a movie.
+(That is, the -jpeg switch is set to produce jpegs) eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mrc2tif</span> <span class="o">-</span><span class="n">j</span> <span class="o">-</span><span class="n">C</span> <span class="mi">0</span><span class="p">,</span><span class="mi">255</span> <span class="n">ali_BASENAME</span><span class="o">.</span><span class="n">mrc</span> <span class="n">BASENAME_ali</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="em_workflows.brt.flow.calc_middle_i">
 <span class="sig-prename descclassname"><span class="pre">em_workflows.brt.flow.</span></span><span class="sig-name descname"><span class="pre">calc_middle_i</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#em_workflows.brt.flow.calc_middle_i" title="Permalink to this definition"></a></dt>
 <dd><p>we want to find the middle image of the stack (for use as thumbnail)
 the file name later needed is padded with zeros
 :todo: this might be 3 or 4 - make this not a magic number.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id4">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_clip_avgs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_fp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#id4" title="Permalink to this definition"></a></dt>
+<dd><ul class="simple">
+<li><p>give _rec mrc file, generate a stack of mrcs, averaged to assist viewing.</p></li>
+<li><p>produces base_ave001.mrc etc, base_ave002.mrc etc,</p></li>
+<li><p>inputs for newstack (for recon movie) and binvol (for volslicer)</p></li>
+</ul>
+<p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>for i in range(2, dimensions.z-2):
+    IZMIN = i-2
+    IZMAX = i+2
+    clip avg -2d -iz IZMIN-IZMAX  -m 1 BASENAME_rec.mrc BASENAME_ave${i}.mrc
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id5">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.brt.flow.</span></span><span class="sig-name descname"><span class="pre">consolidate_ave_mrcs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="headerlink" href="#id5" title="Permalink to this definition"></a></dt>
+<dd><ul>
+<li><p>consumes base_ave001.mrc etc, base_ave002.mrc etc,</p></li>
+<li><p>creates ave_base.mrc the (averagedVolume asset)</p></li>
+<li><p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">newstack</span> <span class="o">-</span><span class="nb">float</span> <span class="mi">3</span> <span class="n">BASENAME_ave</span><span class="o">*</span> <span class="n">ave_BASENAME</span><span class="o">.</span><span class="n">mrc</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id6">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_ave_jpgs_from_ave_mrc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ave_mrc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id6" title="Permalink to this definition"></a></dt>
+<dd><ul>
+<li><p>generates a load of jpgs from the ave_base.mrc with the format {base}_mp4.123.jpg             <strong>OR</strong> {base}_mp4.1234.jpg depending on size of stack.</p></li>
+<li><p>These jpgs can later be compiled into a movie. eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mrc2tif</span> <span class="o">-</span><span class="n">j</span> <span class="o">-</span><span class="n">C</span> <span class="mi">100</span><span class="p">,</span><span class="mi">255</span> <span class="n">WORKDIR</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">ave_BASNAME</span><span class="o">.</span><span class="n">mrc</span> <span class="n">hedwig</span><span class="o">/</span><span class="n">BASENAME_mp4</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id7">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.brt.flow.</span></span><span class="sig-name descname"><span class="pre">cleanup_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path:</span> <span class="pre">~pathlib.Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern=&lt;class</span> <span class="pre">'str'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_file:</span> <span class="pre">~pathlib.Path</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id7" title="Permalink to this definition"></a></dt>
+<dd><p>Given a <code class="docutils literal notranslate"><span class="pre">FilePath</span></code> and unix file <code class="docutils literal notranslate"><span class="pre">pattern</span></code>, iterate through directory removing all files
+that match the pattern</p>
 </dd></dl>
 
 </section>
