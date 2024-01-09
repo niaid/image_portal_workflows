@@ -731,8 +731,7 @@ def brt_flow(
     for cb in callback_with_tilt_mov:
         # Wait for the task to complete
         # It does not mean that future state will be a terminal state
-        cb.wait()
-        state = cb.get_state()
+        state = cb.wait()
         try:
             if state.is_completed():
                 json.dumps(cb.result())
