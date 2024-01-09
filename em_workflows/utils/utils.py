@@ -588,7 +588,13 @@ def get_input_dir(share_name: str, input_dir: str) -> Path:
     return p
 
 
-@task
+@task(
+    # persisting to retrieve again in hooks
+    persist_result=True,
+    result_storage=Config.local_storage,
+    result_serializer=Config.pickle_serializer,
+    result_storage_key="{flow_run.id}__gen_fps",
+)
 def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
     """
     Given in input directory (Path) and a list of input files (Path), return
@@ -645,6 +651,20 @@ def send_callback_body(
         raise RuntimeError(
             "Invalid state - need callback_url and token, OR set x_no_api to True."
         )
+
+
+def copy_workdirs_and_cleanup_hook(flow, flow_run, state):
+    stored_result = Config.local_storage.read_path(f"{flow_run.id}__gen_fps")
+    fps: List[FilePath] = Config.pickle_serializer.loads(
+        json.loads(stored_result)["data"].encode()
+    )
+    parameters = flow_run.parameters
+    x_keep_workdir = parameters["x_keep_workdir"]
+
+    for fp in fps:
+        copy_workdir_logs.fn(file_path=fp)
+
+    cleanup_workdir.fn(fps, x_keep_workdir)
 
 
 def callback_with_cleanup(
