@@ -1,7 +1,9 @@
+import json
 from pathlib import Path
 from typing import Optional
 
 from prefect import flow, task, unmapped
+from prefect.states import Completed, Failed
 from pytools.meta import is_int16
 from pytools.convert import file_to_uint8
 
@@ -200,8 +202,14 @@ def convert_intermediate_files(fps):
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
     task_runner=DMConfig.SLURM_EXECUTOR,
-    on_completion=[utils.notify_api_completion],
-    on_failure=[utils.notify_api_completion],
+    on_completion=[
+        utils.notify_api_completion,
+        utils.copy_workdirs_and_cleanup_hook,
+    ],
+    on_failure=[
+        utils.notify_api_completion,
+        utils.copy_workdirs_and_cleanup_hook,
+    ],
 )
 def dm_flow(
     file_share: str,
@@ -253,11 +261,23 @@ def dm_flow(
         prim_fp=callback_with_thumbs, asset=keyimg_assets
     )
 
-    utils.callback_with_cleanup(
-        fps=fps,
-        callback_result=callback_with_keyimgs,
+    callback_result = list()
+    for cb in callback_with_keyimgs:
+        state = cb.wait()
+        try:
+            if state.is_completed():
+                json.dumps(cb.result())
+                callback_result.append(cb.result())
+        except TypeError:  # can't serialize the item
+            utils.log(f"Following item cannot be added to callback:\n\n{cb.result()}")
+
+    utils.send_callback_body.submit(
         x_no_api=x_no_api,
-        callback_url=callback_url,
         token=token,
-        x_keep_workdir=x_keep_workdir,
+        callback_url=callback_url,
+        files_elts=callback_result,
     )
+
+    if callback_result:
+        return Completed(message="At least one callback is correct!")
+    return Failed(message="None of the files succeeded!")
