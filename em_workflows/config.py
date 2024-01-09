@@ -6,6 +6,9 @@ import sys
 from dotenv import load_dotenv
 from dask_jobqueue import SLURMCluster
 from prefect_dask.task_runners import DaskTaskRunner
+from prefect.filesystems import LocalFileSystem
+from prefect.serializers import PickleSerializer
+from prefect.settings import PREFECT_HOME
 import pytools
 
 from em_workflows.constants import NFS_MOUNT
@@ -95,6 +98,9 @@ class Config:
     )
     user = os.environ["USER"]
     tmp_dir = f"/gs1/Scratch/{user}_scratch/"
+
+    local_storage = LocalFileSystem(basepath=PREFECT_HOME.value() / "local-storage")
+    pickle_serializer = PickleSerializer(picklelib="pickle")
 
     @staticmethod
     def _mount_point(share_name: str) -> str:
