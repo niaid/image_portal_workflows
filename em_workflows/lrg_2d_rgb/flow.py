@@ -1,11 +1,9 @@
-import json
 from typing import Dict, Optional
 from pathlib import Path
 
 import SimpleITK as sitk
 from pytools import HedwigZarrImage, HedwigZarrImages
 from prefect import flow, task
-from prefect.states import Completed, Failed
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
@@ -192,14 +190,12 @@ def lrg_2d_flow(
     )
 
     callback_result = list()
-    for cb in callback_with_pyramids:
+    for fp, cb in zip(fps.result(), callback_with_pyramids):
         state = cb.wait()
-        try:
-            if state.is_completed():
-                json.dumps(cb.result())
-                callback_result.append(cb.result())
-        except TypeError:  # can't serialize the item
-            utils.log(f"Following item cannot be added to callback:\n\n{cb.result()}")
+        if state.is_completed():
+            callback_result.append(cb.result())
+        else:
+            callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
 
     utils.send_callback_body.submit(
         x_no_api=x_no_api,
@@ -207,7 +203,3 @@ def lrg_2d_flow(
         callback_url=callback_url,
         files_elts=callback_result,
     )
-
-    if callback_result:
-        return Completed(message="At least one callback is correct!")
-    return Failed(message="None of the files succeeded!")
