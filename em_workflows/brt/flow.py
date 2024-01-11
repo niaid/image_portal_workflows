@@ -734,31 +734,25 @@ def brt_flow(
 
     # Ref: https://github.com/PrefectHQ/prefect/blob/98d33187ecce032defb8ec7a263de32564e7f7f6/src/prefect/futures.py#L43
     callback_result = list()
-    for cb in callback_with_tilt_mov:
+    failed = 0
+    total = len(prim_fps)
+    for fp, cb in zip(fps.result(), callback_with_tilt_mov):
         # Wait for the task to complete
         # It does not mean that future state will be a terminal state
         state = cb.wait()
-        try:
-            if state.is_completed():
-                json.dumps(cb.result())
-                callback_result.append(cb.result())
-        except TypeError:  # can't serialize the item
-            utils.log(f"Following item cannot be added to callback:\n\n{cb.result()}")
+        if state.is_completed():
+            callback_result.append(cb.result())
+        else:
+            callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
+            failed += 1
 
-    cb = utils.send_callback_body.submit(
+    utils.send_callback_body.submit(
         x_no_api=x_no_api,
         token=token,
         callback_url=callback_url,
         files_elts=callback_result,
     )
 
-    if callback_result:
+    if failed < total:
         return Completed(message="At least one callback is correct!")
     return Failed(message="None of the files succeeded!")
-    """
-    # if the callback is not empty (that is one of the files passed), final=success
-    final_state = bool(callback_with_tilt_mov)
-    # Previously, this was done by `set_reference_tasks`
-    # flow.set_reference_tasks([callback_with_tilt_mov])
-    return Completed(message="Success") if final_state else Failed(message="Failed")
-    """
