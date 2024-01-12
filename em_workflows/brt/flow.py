@@ -133,7 +133,10 @@ def gen_mrc2tiff(fp_in: Path) -> None:
     FilePath.run(cmd=cmd, log_file=log_file)
 
 
-@task
+@task(
+    name="Thumbnail generation",
+    on_failure=[utils.collect_exception_task_hook],
+)
 def gen_thumbs(middle_i_jpg: Path) -> Path:
     """
     Use GraphicsMagick to create thumbnail images, eg::
@@ -172,7 +175,10 @@ def find_middle_image(fp_in: Path) -> Path:
     return fp_out
 
 
-@task
+@task(
+    name="Tilt movie generation",
+    on_failure=[utils.collect_exception_task_hook],
+)
 def gen_tilt_movie(brt_output: utils.BrtOutput) -> Path:
     """
     generates the tilt movie, eg::
@@ -219,7 +225,10 @@ def gen_tilt_movie(brt_output: utils.BrtOutput) -> Path:
     return Path(movie_file)
 
 
-@task
+@task(
+    name="Average mrc generation",
+    on_failure=[utils.collect_exception_task_hook],
+)
 def gen_ave_mrc(brt_output: utils.BrtOutput) -> Path:
     rec_file = brt_output.rec_file
     utils.log("gen recon dims")
@@ -232,7 +241,10 @@ def gen_ave_mrc(brt_output: utils.BrtOutput) -> Path:
     return ave_mrc
 
 
-@task
+@task(
+    name="Movie compilation",
+    on_failure=[utils.collect_exception_task_hook],
+)
 def gen_recon_movie(ave_mrc: Path) -> Path:
     """
     compiles a stack of jpgs into a movie. eg::
@@ -334,7 +346,10 @@ def consolidate_ave_mrcs(fp_in: Path) -> Path:
     return ave_mrc
 
 
-@task
+@task(
+    name="Volume asset creation",
+    on_failure=[utils.collect_exception_task_hook],
+)
 def gen_ave_8_vol(ave_mrc: Path) -> Path:
     """
     - creates volume asset, for volslicer, eg::
@@ -421,7 +436,10 @@ def cleanup_files(file_path: Path, pattern=str, keep_file: Path = None):
 #    return inputs_paired
 
 
-@task
+@task(
+    name="Zarr generation",
+    on_failure=[utils.collect_exception_task_hook],
+)
 def gen_zarr(brt_output: utils.BrtOutput) -> Path:
 
     if not brt_output.rec_file.is_file():
@@ -445,7 +463,10 @@ def copy_asset_gen_elt(file_path: FilePath, fp_to_cp: Path, asset_type: str) -> 
     return asset_elt
 
 
-@task
+@task(
+    name="Neuroglancer metadata generation",
+    on_failure=[utils.collect_exception_task_hook],
+)
 def gen_ng_metadata(fp_in: FilePath, zarr: Path) -> Dict:
     # Note; the seemingly redundancy of working and asset fp here.
     # However asset fp is in the network file system and is deployed for access to the users
@@ -627,14 +648,19 @@ def brt_flow(
     callback_result = list()
     failed = 0
     total = len(prim_fps)
-    for fp, cb in zip(fps.result(), callback_with_tilt_mov):
+    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_tilt_mov)):
         # Wait for the task to complete
         # It does not mean that future state will be a terminal state
         state = cb.wait()
         if state.is_completed():
             callback_result.append(cb.result())
         else:
-            callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
+            path = f"{state.state_details.flow_run_id}__{idx}"
+            try:
+                message = BRTConfig.local_storage.read_path(path)
+                callback_result.append(fp.gen_prim_fp_elt(message.decode()))
+            except ValueError:
+                callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
             failed += 1
 
     utils.send_callback_body.submit(

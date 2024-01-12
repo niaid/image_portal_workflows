@@ -11,6 +11,7 @@ import json
 from prefect import flow, task, allow_failure
 from prefect.filesystems import LocalFileSystem
 from prefect.serializers import PickleSerializer
+from prefect.states import State
 from prefect.settings import PREFECT_HOME
 
 from em_workflows.utils import utils
@@ -378,6 +379,64 @@ def test_state_hooks_calls(prefect_test_fixture):
     assert flow_run.parameters == params
     assert flow_run.context == {}
     assert str(state.type) == "StateType.COMPLETED"
+
+
+def test_message_store_using_local_storage_via_task(
+    prefect_test_fixture,
+):
+    """
+    Tests whether task hooks can store strings in local storage
+    that can be retrieved later properly
+    """
+
+    def task_hook(task, task_run, state):
+        message = f"Failure in pipeline step: {task.name}"
+        map_idx = task_run.name.split("-")[-1]
+        flow_run_id = state.state_details.flow_run_id
+        path = f"{flow_run_id}__{map_idx}"
+        try:
+            Config.local_storage.read_path(path)
+        except ValueError:  # path not found
+            Config.local_storage.write_path(path, message.encode())
+            print(f"Written error messge to {path=}")
+
+    @task(
+        name="my-task",
+        on_failure=[task_hook],
+    )
+    def fails_in_1(arg: int):
+        if arg == 1:
+            raise ValueError("Failing")
+        return True
+
+    @task
+    def valid(arg: int):
+        return arg
+
+    @flow(name="hooks_test")
+    def my_flow():
+        lst = [0, 1, 2]
+        a = valid.map(lst)
+        b = fails_in_1.map(a)
+        c = valid.map(b)
+        result = list()
+        for idx, item in enumerate(c):
+            state: State = item.wait()
+            if state.is_completed():
+                result.append(item.result())
+            else:
+                path = f"{state.state_details.flow_run_id}__{idx}"
+                try:
+                    message = Config.local_storage.read_path(path)
+                    result.append(message.decode())
+                except ValueError:
+                    result.append("Something went wrong.")
+        return result
+
+    result = my_flow()
+    assert isinstance(result, list)
+    assert result[0] is True
+    assert result[1] == "Failure in pipeline step: my-task"
 
 
 def test_downstream_runs_if_upstream_fails_with_allow_failure_annotation(
