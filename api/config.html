@@ -166,6 +166,16 @@ The memory limit is also divided among the workers</p>
 <span class="sig-name descname"><span class="pre">tmp_dir</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/gs1/Scratch/runner_scratch/'</span></em><a class="headerlink" href="#config.Config.tmp_dir" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="config.Config.local_storage">
+<span class="sig-name descname"><span class="pre">local_storage</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">LocalFileSystem(basepath='/home/runner/.prefect/local-storage')</span></em><a class="headerlink" href="#config.Config.local_storage" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="config.Config.pickle_serializer">
+<span class="sig-name descname"><span class="pre">pickle_serializer</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">PickleSerializer(type='pickle',</span> <span class="pre">picklelib='pickle',</span> <span class="pre">picklelib_version=None)</span></em><a class="headerlink" href="#config.Config.pickle_serializer" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="config.Config.proj_dir">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">proj_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">share_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#config.Config.proj_dir" title="Permalink to this definition"></a></dt>
