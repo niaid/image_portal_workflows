@@ -251,12 +251,17 @@ async def czi_flow(
     )
 
     callback_result = list()
-    for fp, cb in zip(fps.result(), callback_with_zarrs):
+    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_zarrs)):
         state = cb.wait()
         if state.is_completed():
             callback_result.append(cb.result())
         else:
-            callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
+            path = f"{state.state_details.flow_run_id}__{idx}"
+            try:
+                message = CZIConfig.local_storage.read_path(path)
+                callback_result.append(fp.gen_prim_fp_elt(message.decode()))
+            except ValueError:
+                callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
 
     # we have to filter out incomplete mapped runs before this reduce step
     callback_result = find_thumb_idx.submit(callback=callback_result)
