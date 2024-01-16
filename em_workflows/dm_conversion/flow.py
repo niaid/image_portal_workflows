@@ -22,6 +22,8 @@ from em_workflows.dm_conversion.constants import (
 
 @task
 def convert_dms_to_mrc(file_path: FilePath) -> None:
+    if file_path.fp_in.suffix.strip(".").lower() not in DMS_EXT:
+        return
     dm_as_mrc = file_path.gen_output_fp(out_fname="dm_as_mrc.mrc")
     msg = f"Using dir: {file_path.fp_in}, : creating dm_as_mrc {dm_as_mrc}"
     utils.log(msg=msg)
@@ -39,6 +41,11 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
     if 16 bit convert (write to assets_dir) & return Path
     else return orig Path
     """
+    if not (
+        file_path.fp_in.suffix.strip(".").lower() in TIFS_EXT
+        and is_int16(file_path.fp_in)
+    ):
+        return
     tif_8_bit = file_path.gen_output_fp(out_fname="as_8_bit.tif")
     utils.log(f"{file_path.fp_in} is a 16 bit tiff, converting to {tif_8_bit}")
     file_to_uint8(in_file_path=file_path.fp_in, out_file_path=str(tif_8_bit))
@@ -60,6 +67,8 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     # min_max_histo = neuroglancer.gen_min_max_histo(file_path)
     # utils.log(min_max_histo)
     # utils.log(f"+++++++++++++++++++++++++++++++++++++++++++++")
+    if file_path.fp_in.suffix.strip(".").lower() not in MRCS_EXT:
+        return
     dims = utils.lookup_dims(file_path.fp_in)
     if dims.z != 1:
         msg = f"mrc file {file_path.fp_in} is not 2 dimensional. Contains {dims.z} Z dims."
@@ -175,26 +184,6 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     return asset_elt
 
 
-def convert_intermediate_files(fps):
-    tif_fps = [
-        fp
-        for fp in fps
-        if (fp.fp_in.suffix.strip(".").lower() in TIFS_EXT and is_int16(fp.fp_in))
-    ]
-    if tif_fps:
-        convert_if_int16_tiff.map(file_path=tif_fps)
-
-    dm_fps = [fp for fp in fps if fp.fp_in.suffix.strip(".").lower() in DMS_EXT]
-    if dm_fps:
-        dm_to_mrc = convert_dms_to_mrc.map(dm_fps)
-        # mrc is intermed format, to jpeg conversion
-        convert_dm_mrc_to_jpeg.map(dm_fps, wait_for=[dm_to_mrc])
-
-    mrc_fps = [fp for fp in fps if fp.fp_in.suffix.strip(".").lower() in MRCS_EXT]
-    if mrc_fps:
-        convert_2d_mrc_to_tiff.map(file_path=mrc_fps)
-
-
 @flow(
     name="Small 2D",
     flow_run_name=utils.generate_flow_run_name,
@@ -244,10 +233,15 @@ def dm_flow(
     fps = utils.gen_fps.submit(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
     )
-    # logs = utils.init_log.map(file_path=fps)
 
-    # subflow calls are blocking, so lower task runs auto waits always
-    convert_intermediate_files(fps.result())
+    # TODO move the if else block here as previous
+    convert_if_int16_tiff.map(file_path=fps)
+
+    dm_to_mrc = convert_dms_to_mrc.map(file_path=fps)
+    # mrc is intermed format, to jpeg conversion
+    convert_dm_mrc_to_jpeg.map(dm_to_mrc)
+
+    convert_2d_mrc_to_tiff.map(file_path=fps)
 
     # Finally generate all valid suffixed results
     keyimg_assets = scale_jpegs.map(fps, size=unmapped("l"))
