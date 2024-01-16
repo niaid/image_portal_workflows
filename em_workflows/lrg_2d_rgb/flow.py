@@ -21,7 +21,7 @@ from em_workflows.lrg_2d_rgb.constants import (
 
 
 @task
-def convert_png_to_tiff(file_path: FilePath):
+def convert_png_to_tiff(file_path: FilePath) -> FilePath:
     """
     convert input.png -background white -alpha remove -alpha off ouput.tiff
     Adding argument: -define tiff:tile-geometry=128x128
@@ -65,7 +65,7 @@ def gen_zarr(file_path: FilePath) -> None:
     name="Zarr rechunk",
     on_failure=[utils.collect_exception_task_hook],
 )
-def rechunk_zarr(file_path: FilePath):
+def rechunk_zarr(file_path: FilePath) -> FilePath:
     ng.rechunk_zarr(file_path=file_path)
     return file_path
 
