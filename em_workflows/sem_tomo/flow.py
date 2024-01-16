@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Dict, Optional
 from natsort import os_sorted
 
-from prefect import flow, task, unmapped
+from prefect import flow, task, unmapped, allow_failure
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
@@ -40,7 +40,7 @@ from em_workflows.sem_tomo.constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_
     name="mrc to xf image alignment",
     on_failure=[utils.collect_exception_task_hook],
 )
-def gen_xfalign_comand(fp_in: FilePath) -> None:
+def gen_xfalign_comand(fp_in: FilePath) -> FilePath:
     """
     eg::
 
@@ -61,13 +61,14 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
         align_xf.as_posix(),
     ]
     FilePath.run(cmd=cmd, log_file=log_file)
+    return fp_in
 
 
 @task(
     name="xf to xg image alignment",
     on_failure=[utils.collect_exception_task_hook],
 )
-def gen_align_xg(fp_in: FilePath) -> None:
+def gen_align_xg(fp_in: FilePath) -> FilePath:
     """
     eg::
 
@@ -86,13 +87,14 @@ def gen_align_xg(fp_in: FilePath) -> None:
     ]
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
+    return fp_in
 
 
 @task(
     name="Newstack mrc generation",
     on_failure=[utils.collect_exception_task_hook],
 )
-def gen_newstack_combi(fp_in: FilePath) -> Dict:
+def gen_newstack_combi(fp_in: FilePath, stretch: None) -> tuple:
     """
     eg::
 
@@ -120,6 +122,8 @@ def gen_newstack_combi(fp_in: FilePath) -> Dict:
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     assets_fp_adjusted_mrc = fp_in.copy_to_assets_dir(fp_to_cp=base_mrc)
+    # (to remove the need of wait_for in downstream)
+    # returning the asset as well as the input fp
     return fp_in.gen_asset(
         asset_type=AssetType.AVERAGED_VOLUME, asset_fp=assets_fp_adjusted_mrc
     )
@@ -129,7 +133,7 @@ def gen_newstack_combi(fp_in: FilePath) -> Dict:
     name="tiff to mrc conversion",
     on_failure=[utils.collect_exception_task_hook],
 )
-def convert_tif_to_mrc(file_path: FilePath) -> int:
+def convert_tif_to_mrc(file_path: FilePath) -> FilePath:
     """
     | Generates source.mrc
     | assumes there's tifs in input dir, uses all the tifs in dir
@@ -145,8 +149,8 @@ def convert_tif_to_mrc(file_path: FilePath) -> int:
     cmd.extend(os_sorted(files))
     cmd.append(output_fp.as_posix())
     utils.log(f"Created {cmd}")
-    return_code = FilePath.run(cmd=cmd, log_file=log_file)
-    return return_code
+    FilePath.run(cmd=cmd, log_file=log_file)
+    return file_path
 
 
 @task
@@ -172,7 +176,7 @@ def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
     name="Mid mrc generation",
     on_failure=[utils.collect_exception_task_hook],
 )
-def gen_newstack_mid_mrc_command(fp_in: FilePath) -> None:
+def gen_newstack_mid_mrc_command(fp_in: FilePath, **kwargs) -> FilePath:
     """
     Generates mid.mrc. eg::
 
@@ -196,6 +200,7 @@ def gen_newstack_mid_mrc_command(fp_in: FilePath) -> None:
     ]
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
+    return fp_in
 
 
 @task
@@ -258,7 +263,7 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
     name="Zarr generation",
     on_failure=[utils.collect_exception_task_hook],
 )
-def gen_zarr(fp_in: FilePath) -> None:
+def gen_zarr(fp_in: FilePath, **kwargs) -> FilePath:
     file_path = fp_in
     # fallback mrc file
     input_file = file_path.fp_in.as_posix()
@@ -279,6 +284,7 @@ def gen_zarr(fp_in: FilePath) -> None:
     file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
 
     ng.zarr_build_multiscales(fp_in)
+    return fp_in
 
 
 @task(
@@ -359,33 +365,40 @@ def sem_tomo_flow(
     tif_to_mrc = convert_tif_to_mrc.map(fps)
 
     # using source.mrc gen align.xf
-    align_xfs = gen_xfalign_comand.map(fp_in=fps, wait_for=[tif_to_mrc])
+    align_xfs = gen_xfalign_comand.map(fp_in=tif_to_mrc)
 
     # using align.xf create align.xg
-    align_xgs = gen_align_xg.map(fp_in=fps, wait_for=[align_xfs])
+    align_xgs = gen_align_xg.map(fp_in=align_xfs)
 
     # create stretch file using tilt_parameter
     stretchs = create_stretch_file.map(tilt=unmapped(tilt_angle), fp_in=fps)
 
-    base_mrcs = gen_newstack_combi.map(fp_in=fps, wait_for=[stretchs, align_xgs])
+    base_mrcs = gen_newstack_combi.map(fp_in=align_xgs, stretch=stretchs)
+    # base_mrcs are passed in as kwargs to replace wait_for
+
     corrected_movie_assets = utils.mrc_to_movie.map(
         file_path=fps,
         root=unmapped("adjusted"),
         asset_type=unmapped(AssetType.REC_MOVIE),
-        wait_for=[base_mrcs],
+        base_mrc=base_mrcs,
     )
 
     # generate midpoint mrc file
-    mid_mrcs = gen_newstack_mid_mrc_command.map(fp_in=fps, wait_for=[base_mrcs])
+    mid_mrcs = gen_newstack_mid_mrc_command.map(
+        fp_in=fps,
+        base_mrc=base_mrcs,
+    )
 
     # large thumb
-    keyimg_assets = gen_keyimg.map(fp_in=fps, wait_for=[mid_mrcs])
+    keyimg_assets = gen_keyimg.map(fp_in=mid_mrcs)
     # small thumb
-    thumb_assets = gen_keyimg_small.map(fp_in=fps, wait_for=[keyimg_assets])
+    thumb_assets = gen_keyimg_small.map(
+        fp_in=fps, wait_for=[allow_failure(keyimg_assets)]
+    )
 
     # zarr file generation
-    zarrs = gen_zarr.map(fp_in=fps, wait_for=[base_mrcs])
-    pyramid_assets = gen_ng_metadata.map(fp_in=fps, wait_for=[zarrs])
+    zarrs = gen_zarr.map(fp_in=fps, base_mrc=base_mrcs)
+    pyramid_assets = gen_ng_metadata.map(fp_in=zarrs)
 
     # this is the toplevel element (the input file basically) onto which
     # the "assets" (ie the outputs derived from this file) are hung.
