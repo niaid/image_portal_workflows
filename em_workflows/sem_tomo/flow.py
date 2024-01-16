@@ -94,7 +94,7 @@ def gen_align_xg(fp_in: FilePath) -> FilePath:
     name="Newstack mrc generation",
     on_failure=[utils.collect_exception_task_hook],
 )
-def gen_newstack_combi(fp_in: FilePath, stretch: None) -> tuple:
+def gen_newstack_combi(fp_in: FilePath, stretch: None) -> Dict:
     """
     eg::
 
@@ -122,8 +122,6 @@ def gen_newstack_combi(fp_in: FilePath, stretch: None) -> tuple:
     utils.log(f"Created {cmd}")
     FilePath.run(cmd=cmd, log_file=log_file)
     assets_fp_adjusted_mrc = fp_in.copy_to_assets_dir(fp_to_cp=base_mrc)
-    # (to remove the need of wait_for in downstream)
-    # returning the asset as well as the input fp
     return fp_in.gen_asset(
         asset_type=AssetType.AVERAGED_VOLUME, asset_fp=assets_fp_adjusted_mrc
     )
