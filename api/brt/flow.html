@@ -208,21 +208,6 @@ output that’s generated for <em>this</em> input into the “assets” json key
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="em_workflows.brt.flow.gen_copy_keyimages">
-<span class="sig-prename descclassname"><span class="pre">em_workflows.brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_copy_keyimages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#em_workflows.brt.flow.gen_copy_keyimages" title="Permalink to this definition"></a></dt>
-<dd><ul>
-<li><p>generates the keyImage (by copying image i to keyImage.jpeg)</p></li>
-<li><p>fname_in and fname_out both derived from tomogram fp</p></li>
-<li><p>MIDDLE_I might always be an int.</p></li>
-<li><p>eg:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cp</span> <span class="n">BASENAME_ali</span><span class="o">.</span><span class="p">{</span><span class="n">MIDDLE_I</span><span class="p">}</span><span class="o">.</span><span class="n">jpg</span> <span class="n">BASENAME_keyimg</span><span class="o">.</span><span class="n">jpg</span>
-</pre></div>
-</div>
-</li>
-</ul>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="em_workflows.brt.flow.gen_tilt_movie">
 <span class="sig-prename descclassname"><span class="pre">em_workflows.brt.flow.</span></span><span class="sig-name descname"><span class="pre">gen_tilt_movie</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#em_workflows.brt.flow.gen_tilt_movie" title="Permalink to this definition"></a></dt>
 <dd><p>generates the tilt movie, eg:</p>
@@ -238,11 +223,6 @@ output that’s generated for <em>this</em> input into the “assets” json key
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ffmpeg</span> <span class="o">-</span><span class="n">f</span> <span class="n">image2</span> <span class="o">-</span><span class="n">framerate</span> <span class="mi">8</span> <span class="o">-</span><span class="n">i</span> <span class="n">WORKDIR</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">BASENAME_mp4</span><span class="o">.%</span><span class="mi">04</span><span class="n">d</span><span class="o">.</span><span class="n">jpg</span> <span class="o">-</span><span class="n">vcodec</span> <span class="n">libx264</span>                 <span class="o">-</span><span class="n">pix_fmt</span> <span class="n">yuv420p</span> <span class="o">-</span><span class="n">s</span> <span class="mi">1024</span><span class="p">,</span><span class="mi">1024</span> <span class="n">WORKDIR</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">keyMov_BASENAME</span><span class="o">.</span><span class="n">mp4</span>
 </pre></div>
 </div>
-<dl class="field-list simple">
-<dt class="field-odd">Todo<span class="colon">:</span></dt>
-<dd class="field-odd"><p>This and tilt_movie should be refactored into one movie function</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -354,14 +334,6 @@ that match the pattern</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mrc2tif</span> <span class="o">-</span><span class="n">j</span> <span class="o">-</span><span class="n">C</span> <span class="mi">0</span><span class="p">,</span><span class="mi">255</span> <span class="n">ali_BASENAME</span><span class="o">.</span><span class="n">mrc</span> <span class="n">BASENAME_ali</span>
 </pre></div>
 </div>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="em_workflows.brt.flow.calc_middle_i">
-<span class="sig-prename descclassname"><span class="pre">em_workflows.brt.flow.</span></span><span class="sig-name descname"><span class="pre">calc_middle_i</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#em_workflows.brt.flow.calc_middle_i" title="Permalink to this definition"></a></dt>
-<dd><p>we want to find the middle image of the stack (for use as thumbnail)
-the file name later needed is padded with zeros
-:todo: this might be 3 or 4 - make this not a magic number.</p>
 </dd></dl>
 
 <dl class="py function">
