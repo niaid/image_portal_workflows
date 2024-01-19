@@ -80,3 +80,14 @@ deployments:
   parameters: {}
   work_pool: *dask_work_pool
   schedule:
+- name: hedwig
+  version:
+  tags: *hedwig_tags
+  description: Runs pytests regularly and uploads coverage as artifacts
+  entrypoint: em_workflows/utils/flow.py:pytest_flow
+  parameters: {}
+  work_pool: *dask_work_pool
+  schedule:
+    cron: 0 0 * * 1,3
+    timezone: UTC
+    day_or: true
