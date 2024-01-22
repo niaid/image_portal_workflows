@@ -1,3 +1,4 @@
+import asyncio
 import os
 import pytest
 import sys
@@ -607,3 +608,42 @@ def test_class_del_via_garbage_collection(
     """
     print(f"Outside {sys.getrefcount(fp)=}")
     assert sys.getrefcount(fp) == 1, "More reference count than we assumed"
+
+
+@pytest.mark.asyncio
+async def test_async_and_sync_subflows(prefect_test_fixture):
+    @task
+    def my_task(arg, loc):
+        print(f"{arg} from {loc}")
+        return arg * 2
+
+    @flow
+    def subflow(arg):
+        return my_task(arg, "sync")
+
+    @flow
+    def myflow():
+        args = [1, 2, 3]
+        # synchronous subflow run: one at a time
+        return [subflow(arg) for arg in args]
+
+    results = myflow()
+    assert results == [2, 4, 6]
+
+    print("=" * 10)
+
+    # async subflow
+
+    @flow
+    async def a_subflow(arg):
+        return my_task(arg, "async")
+
+    @flow
+    async def myflow():
+        args = [1, 2, 3]
+        # parallel subflow run
+        return await asyncio.gather(*[a_subflow(arg) for arg in args])
+
+    s_results = await myflow()
+    assert s_results == [2, 4, 6]
+    assert False
