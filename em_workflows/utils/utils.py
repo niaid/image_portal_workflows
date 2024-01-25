@@ -64,6 +64,14 @@ def lookup_dims(fp: Path) -> Header:
 
 
 def collect_exception_task_hook(task: Task, task_run: TaskRun, state: State):
+    """
+    This task hook should be used with tasks where you intend to know which step of the flow run broke.
+    Since most of our tasks are mapped by default using filepaths, it takes map index into account as well
+    So that we can notify the user, 'this step of this file broke'.
+    The message is written to a file using prefect's local storage.
+    In order to retrieve it, the flow needs to have a logic at the end,
+        to lookup for this file with exception message if the task run has failed.
+    """
     message = f"Failure in pipeline step: {task.name}"
     map_idx = task_run.name.split("-")[-1]
     flow_run_id = state.state_details.flow_run_id
