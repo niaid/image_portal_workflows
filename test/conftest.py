@@ -1,4 +1,3 @@
-# test/conftest.py
 """
 conftest.py is a local, per-directory plugin for Pytest. All fixtures in this file
 will be made available to all tests within this directory and do not need to be imported
@@ -70,6 +69,10 @@ def mock_reuse_zarr(monkeypatch):
     One of the most expensive operation in tests is using bf2raw command
     This test assumes that we have already ran the test once. If the .zarr
     converted file is found, reuses the file without re-executing bf2raw command
+
+    NOTE:
+        If test files change, zarr steps might show random errors
+        Stop using this monkeypatch in such scenario
     """
     from em_workflows.utils import neuroglancer as ng
 

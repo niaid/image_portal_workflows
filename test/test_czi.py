@@ -40,7 +40,7 @@ async def test_no_mount_point_flow_fails(mock_binaries, monkeypatch, caplog):
     assert f"{share_name} doesn't exist. Failing!" in caplog.text, caplog.text
 
 
-async def test_czi_workflow_callback_structure(
+async def test_czi_workflow_server_response_structure(
     mock_nfs_mount, caplog, mock_reuse_zarr, mock_callback_data
 ):
     """
