@@ -12,7 +12,6 @@ from prefect import task, get_run_logger, allow_failure
 from prefect.exceptions import MissingContextError
 from prefect.states import State
 from prefect.flows import Flow, FlowRun
-from prefect.runtime import flow_run
 
 from em_workflows.config import Config
 from em_workflows.file_path import FilePath
@@ -448,9 +447,7 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
 
 
 @task(retries=1, retry_delay_seconds=10)
-def notify_api_running(
-    no_api: bool = None, token: str = None, callback_url: str = None
-):
+def notify_api_running(no_api: bool=None, token: str=None, callback_url: str=None):
     """
     tells API the workflow has started to run.
     """
@@ -664,10 +661,3 @@ def callback_with_cleanup(
         keep_workdir,
         wait_for=[allow_failure(cb), allow_failure(cp_wd_logs_to_assets)],
     )
-
-
-def generate_flow_run_name():
-    parameters = flow_run.parameters
-    name = Path(parameters["input_dir"])
-    share_name = parameters["file_share"]
-    return f"{share_name} | {name.parts[-2]} / {name.parts[-1]}"
