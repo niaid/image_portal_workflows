@@ -161,6 +161,37 @@ def gen_thumbs(middle_i_jpg: Path) -> Path:
     return Path(thumb)
 
 
+# @task
+# def gen_copy_keyimages(file_path: FilePath, z_dim: str) -> dict:
+#    """
+#    - generates the keyImage (by copying image i to keyImage.jpeg)
+#    - fname_in and fname_out both derived from tomogram fp
+#    - MIDDLE_I might always be an int.
+#    - eg::
+#
+#        cp BASENAME_ali.{MIDDLE_I}.jpg BASENAME_keyimg.jpg
+#    """
+#    middle_i = calc_middle_i(z_dim=z_dim)
+#    middle_i_jpg = f"{file_path.working_dir}/{file_path.base}_ali.{middle_i}.jpg"
+#    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(middle_i_jpg))
+#    keyimg_asset = file_path.gen_asset(
+#        asset_type=AssetType.KEY_IMAGE, asset_fp=asset_fp
+#    )
+#    return keyimg_asset
+#
+#
+# def calc_middle_i(z_dim: str) -> str:
+#    """
+#    we want to find the middle image of the stack (for use as thumbnail)
+#    the file name later needed is padded with zeros
+#    :todo: this might be 3 or 4 - make this not a magic number.
+#    """
+#    fl = math.floor(int(z_dim) / 2)
+#    fl_padded = str(fl).rjust(3, "0")
+#    utils.log(f"middle i: {fl_padded}")
+#    return fl_padded
+
+
 @task
 def find_middle_image(fp_in: Path) -> Path:
     images = glob.glob(f"{fp_in.parent}/*ali*jpg")
