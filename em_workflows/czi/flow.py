@@ -238,10 +238,9 @@ async def czi_flow(
     fps = utils.gen_fps.submit(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
     )
-    fp_results = fps.result()
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     imageSets = await asyncio.gather(
-        *[generate_czi_imageset(file_path=fp) for fp in fp_results]
+        *[generate_czi_imageset(file_path=fp) for fp in fps]
     )
     callback_with_zarrs = utils.add_imageSet.map(prim_fp=prim_fps, imageSet=imageSets)
     callback_with_zarrs = update_file_metadata.map(
