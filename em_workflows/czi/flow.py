@@ -1,6 +1,6 @@
 import asyncio
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 import SimpleITK as sitk
 from prefect import flow, task
@@ -157,9 +157,9 @@ def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
 async def czi_flow(
     file_share: str,
     input_dir: str,
-    file_name: Optional[str] = None,
-    callback_url: Optional[str] = None,
-    token: Optional[str] = None,
+    file_name: str = None,
+    callback_url: str = None,
+    token: str = None,
     no_api: bool = False,
     keep_workdir: bool = False,
 ):
