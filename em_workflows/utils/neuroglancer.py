@@ -6,9 +6,7 @@ from em_workflows.constants import BIOFORMATS_NUM_WORKERS, RECHUNK_SIZE
 from em_workflows.utils import utils
 
 
-def rechunk_zarr(file_path: FilePath) -> None:
-    zarr_fp = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
-    utils.log(f"{zarr_fp} output zarr")
+def rechunk_zarr(zarr_fp: Path) -> None:
     images = HedwigZarrImages(zarr_fp, read_only=False)
     for _, image in images.series():
         image.rechunk(RECHUNK_SIZE, in_memory=True)

@@ -248,14 +248,10 @@ class FilePath:
             f"{self.assets_dir.as_posix()}/{dir_name_as_date}/{self.fp_in.stem}"
         )
         if dest.exists():
-            log(f"Output assets log directory already exists! removing: {dest}")
+            log(f"Output assets directory already exists! removing: {dest}")
             shutil.rmtree(dest)
-        else:
-            log(f"Output assets log directory: creating... {dest}")
-            os.makedirs(dest, exist_ok=True)
         for f in self.working_dir.glob("*.log"):
-            log(f"{f} --> {dest}")
-            shutil.copy(f, dest)
+            shutil.copy(self.working_dir, dest)
         return dest
 
     def rm_workdir(self):

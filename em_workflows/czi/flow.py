@@ -42,7 +42,8 @@ def gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> d
 
 @task
 def rechunk_zarr(file_path: FilePath):
-    ng.rechunk_zarr(file_path=file_path)
+    output_zarr = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
+    ng.rechunk_zarr(zarr_fp=Path(output_zarr))
 
 
 @task

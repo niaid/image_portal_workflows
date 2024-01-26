@@ -16,9 +16,6 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     brings up a dynamically sized cluster.
 
     Docs: https://jobqueue.dask.org/en/latest/generated/dask_jobqueue.SLURMCluster.html
-
-    We can view the sbatch script using the following command, to know how the job is started
-    by slurm:
     python -c "from em_workflows import config; c = config.SLURM_exec(); print(c.job_script())"
 
     The processes determins number of dask workers, and nthreads = cores / processes
@@ -40,9 +37,7 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
         local_directory=f"{home}/dask_tmp/",
         log_directory=f"{home}/slurm-log/{flowrun_id}",
         job_script_prologue=job_script_prologue,
-        # queue is arg for SBATCH --partition
-        # to learn more about partitions, run `sinfo` in hpc
-        queue="int",
+        queue="int",  # SBATCH --partition; run `sinfo` for more options
         walltime="4:00:00",
         # job_extra_directives=["--gres=gpu:1"],
         asynchronous=asynchronous,

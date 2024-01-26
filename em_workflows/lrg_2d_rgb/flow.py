@@ -57,7 +57,8 @@ def gen_zarr(file_path: FilePath) -> None:
 
 @task
 def rechunk_zarr(file_path: FilePath):
-    ng.rechunk_zarr(file_path=file_path)
+    output_zarr = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
+    ng.rechunk_zarr(zarr_fp=Path(output_zarr))
 
 
 @task
