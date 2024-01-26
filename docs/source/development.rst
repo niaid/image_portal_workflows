@@ -162,11 +162,12 @@ Note that we are setting a USER environment variable here. This is because `clas
 
 Once you are in the container, you can run the commands you want to. For example: `pytest`.
 
-*************
 HPC Set up
-*************
+==========
 
 **NOTE, THIS IS ONLY relevant for HPC. Added for completeness.**
+
+NOTE: *Similar to the HPC Set, you can locally set up `dev` and `qa` virtual envs. This step can be skipped for testing purposes.*
 
 Workflows are currently run on RML HPC ("BigSky").
 

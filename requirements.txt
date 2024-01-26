@@ -4,7 +4,7 @@ pytest-env
 python-dotenv
 pytest-cov
 coverage-badge
-prefect==2.13.8
+prefect==2.*
 prefect_dask
 dask
 distributed
