@@ -115,7 +115,7 @@ jobs:
           export BIO2R_DIR=/usr/local/BIO2R/bioformats2raw-${BIO2R_V}
           export IMOD_DIR=/usr/local/IMOD
           export PATH=$BIO2R_DIR/bin:$IMOD_DIR/bin:$PATH
-          python -m pytest -v --log-cli-level=INFO -m "not (slow or localdata)"
+          python -m pytest -v --log-cli-level=INFO -m "not (slow or localdata)" --cov-report term --cov=.
 
       - name: Coverage Badge
         uses: tj-actions/coverage-badge-py@v2

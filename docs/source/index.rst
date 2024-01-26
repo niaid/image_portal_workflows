@@ -8,6 +8,16 @@ Image Portal Workflows's documentation
 
 .. include:: ../../README.rst
 
+**Build/Test:**
+
+.. image:: https://github.com/mbopfNIH/image_portal_workflows/actions/workflows/main.yml/badge.svg?branch=main
+    :target: https://github.com/mbopfNIH/image_portal_workflows/actions/workflows/main.yml/badge.svg?branch=main
+    :alt: GitHub Action
+
+**Test Coverage:**
+
+.. image:: ../../coverage.svg
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
