@@ -458,9 +458,7 @@ def notify_api_running(
         log("x_no_api flag used, not interacting with API")
         return
     elif not callback_url or not token:
-        raise RuntimeError(
-            "notify_api_running: Either callback_url or token is missing"
-        )
+        raise RuntimeError("impossible args for notify_api_running")
     headers = {
         "Authorization": "Bearer " + token,
         "Content-Type": "application/json",

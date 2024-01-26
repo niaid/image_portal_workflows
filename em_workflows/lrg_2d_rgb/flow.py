@@ -157,7 +157,10 @@ def lrg_2d_flow(
     -create tmp dir for each.
     -convert to tiff -> zarr -> jpegs (thumb)
     """
-    utils.notify_api_running(x_no_api, token, callback_url)
+    if x_no_api:
+        utils.notify_api_running.submit(x_no_api=x_no_api)
+    else:
+        utils.notify_api_running.submit(token=token, callback_url=callback_url)
 
     input_dir_fp = utils.get_input_dir.submit(
         share_name=file_share, input_dir=input_dir
