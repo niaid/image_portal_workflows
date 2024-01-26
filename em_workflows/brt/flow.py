@@ -44,7 +44,7 @@ import math
 from typing import Optional
 from pathlib import Path
 from natsort import os_sorted
-from prefect import task, flow, unmapped
+from prefect import task, flow, unmapped, allow_failure
 from prefect.states import Completed, Failed
 from pytools.HedwigZarrImages import HedwigZarrImages
 
@@ -608,14 +608,8 @@ def get_callback_result(callback_data: list) -> list:
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
     task_runner=BRTConfig.HIGH_SLURM_EXECUTOR,
-    on_completion=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
-    on_failure=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
+    on_completion=[utils.notify_api_completion],
+    on_failure=[utils.notify_api_completion],
 )
 def brt_flow(
     # This block of params map are for adoc file specfication.
@@ -750,6 +744,14 @@ def brt_flow(
         token=token,
         callback_url=callback_url,
         files_elts=callback_result,
+    )
+
+    copy_task = utils.copy_workdirs.map(file_path=fps)
+
+    utils.cleanup_workdir.submit(
+        fps,
+        x_keep_workdir,
+        wait_for=[allow_failure(copy_task)],
     )
 
     if callback_result:
