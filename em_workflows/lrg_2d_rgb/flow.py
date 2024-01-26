@@ -2,7 +2,8 @@ from typing import Dict
 from pathlib import Path
 import SimpleITK as sitk
 from pytools import HedwigZarrImage, HedwigZarrImages
-from prefect import flow, task, allow_failure
+from prefect import Flow, task, Parameter
+from prefect.run_configs import LocalRun
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
@@ -123,30 +124,24 @@ def gen_thumb(file_path: FilePath):
     return [thumb_asset, keyImage_asset]
 
 
-@flow(
-    name="Flow: Large 2d RGB",
-    log_prints=True,
-    task_runner=LRG2DConfig.SLURM_EXECUTOR,
-    # on_completion=utils.notify_api_completion,
-    # on_failure=utils.notify_api_completion,
-)
-# run_config=LocalRun(labels=[utils.get_environment()]),
-def lrg_2d_flow(
-    file_share: str,
-    input_dir: str,
-    file_name: str = None,
-    callback_url: str = None,
-    token: str = None,
-    no_api: bool = False,
-    keep_workdir: bool = False,
-):
+with Flow(
+    "lrg_2d_color",
+    state_handlers=[utils.notify_api_completion, utils.notify_api_running],
+    executor=LRG2DConfig.SLURM_EXECUTOR,
+    run_config=LocalRun(labels=[utils.get_environment()]),
+) as flow:
     """
     -list all png inputs (assumes all are "large")
     -create tmp dir for each.
     -convert to tiff -> zarr -> jpegs (thumb)
     """
-    utils.notify_api_running(no_api, token, callback_url)
-
+    file_share = Parameter("file_share")
+    input_dir = Parameter("input_dir")
+    file_name = Parameter("file_name", default=None)
+    callback_url = Parameter("callback_url", default=None)()
+    token = Parameter("token", default=None)()
+    no_api = Parameter("no_api", default=None)()
+    keep_workdir = Parameter("keep_workdir", default=False)()
     input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
 
     input_fps = utils.list_files(
@@ -156,9 +151,9 @@ def lrg_2d_flow(
     )
     fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
     tiffs = convert_png_to_tiff.map(file_path=fps)
-    zarrs = gen_zarr.map(file_path=fps, wait_for=[tiffs])
-    zarr_assets = generate_ng_asset.map(file_path=fps, wait_for=[zarrs])
-    thumb_assets = gen_thumb.map(file_path=fps, wait_for=[zarr_assets])
+    zarrs = gen_zarr.map(file_path=fps, upstream_tasks=[tiffs])
+    zarr_assets = generate_ng_asset.map(file_path=fps, upstream_tasks=[zarrs])
+    thumb_assets = gen_thumb.map(file_path=fps, upstream_tasks=[zarr_assets])
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
     callback_with_pyramids = utils.add_asset.map(
@@ -167,16 +162,6 @@ def lrg_2d_flow(
     filtered_callback = utils.filter_results(callback_with_pyramids)
 
     cb = utils.send_callback_body(
-        no_api=no_api,
-        token=token,
-        callback_url=callback_url,
-        files_elts=filtered_callback,
+        token=token, callback_url=callback_url, files_elts=filtered_callback
     )
-    utils.cleanup_workdir(fps, keep_workdir, wait_for=[allow_failure(cb)])
-
-    """
-    # TODO which of the results above "actually" determines the state of the workflow run
-    final_state = bool(filtered_callback)
-    # by definition, if any one of the file passes, it is "success"
-    return Completed(message="Success") if final_state else Failed(message="Failed")
-    """
+    rm_workdirs = utils.cleanup_workdir(fps, upstream_tasks=[cb])
