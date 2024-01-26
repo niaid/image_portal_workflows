@@ -1,6 +1,6 @@
-*********
+*********************
 Spatialomics Workflow
-*********
+*********************
 
 Normally the dir structure is : ``$lab/$pi/$project/$session/$sample``
 
