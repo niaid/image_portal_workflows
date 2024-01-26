@@ -1,11 +1,9 @@
+pytest>=6.0
 coverage
 coverage-badge
-pytest>=6.0
-pytest-cov
-pytest-env
-pytest-asyncio
 flake8
 black
+pytest-cov
 pre-commit
 sphinx-autobuild
 sphinx-rtd-theme

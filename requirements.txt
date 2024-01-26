@@ -1,3 +1,4 @@
+pytest-env
 python-dotenv
 prefect==2.14.*
 prefect_dask
