@@ -201,7 +201,7 @@ def convert_intermediate_files(fps):
 
 
 @flow(
-    name="Small 2D",
+    name="DM Conversion",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
     task_runner=DMConfig.SLURM_EXECUTOR,
