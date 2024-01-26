@@ -1,20 +1,16 @@
 import pytest
-from pathlib import Path
 
 
 @pytest.mark.localdata
 @pytest.mark.slow
 def test_sem(mock_nfs_mount):
-    from em_workflows.sem_tomo.flow import sem_tomo_flow
+    from em_workflows.sem_tomo.flow import flow
 
-    input_dir = "/test/input_files/sem_inputs/Projects/"
-    if not Path(input_dir).exists():
-        pytest.skip("Directory doesn't exist")
-
-    result = sem_tomo_flow(
+    result = flow.run(
+        # FIXME `sem_inputs` directory is missing
         file_share="test",
-        input_dir=input_dir,
+        input_dir="/test/input_files/sem_inputs/Projects/",
         tilt_angle="30.2",
         no_api=True,
     )
-    assert result.is_completed()
+    assert result.is_successful()
