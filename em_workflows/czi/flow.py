@@ -16,14 +16,13 @@ Pipeline overview:
     - Create thumbnail image from zarr label sub-image
 """
 import asyncio
-import json
 from pathlib import Path
 from typing import List, Dict, Optional
 
 import SimpleITK as sitk
 from prefect import flow, task
-from prefect.states import Completed, Failed
-from pytools.HedwigZarrImages import HedwigZarrImage, HedwigZarrImages
+from pytools.HedwigZarrImage import HedwigZarrImage
+from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.file_path import FilePath
 from em_workflows.utils import utils
@@ -210,14 +209,8 @@ def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
     task_runner=CZIConfig.SLURM_EXECUTOR,
-    on_completion=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
-    on_failure=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
+    on_completion=[utils.notify_api_completion],
+    on_failure=[utils.notify_api_completion],
 )
 async def czi_flow(
     file_share: str,
@@ -251,27 +244,13 @@ async def czi_flow(
     callback_with_zarrs = update_file_metadata.map(
         file_path=fps, callback_with_zarr=callback_with_zarrs
     )
+    callback_with_zarrs = find_thumb_idx(callback=callback_with_zarrs)
 
-    callback_result = list()
-    for cb in callback_with_zarrs:
-        state = cb.wait()
-        try:
-            if state.is_completed():
-                json.dumps(cb.result())
-                callback_result.append(cb.result())
-        except TypeError:  # can't serialize the item
-            utils.log(f"Following item cannot be added to callback:\n\n{cb.result()}")
-
-    # we have to filter out incomplete mapped runs before this reduce step
-    callback_result = find_thumb_idx.submit(callback=callback_result)
-
-    utils.send_callback_body.submit(
+    utils.callback_with_cleanup(
+        fps=fps,
+        callback_result=callback_with_zarrs,
         x_no_api=x_no_api,
-        token=token,
         callback_url=callback_url,
-        files_elts=callback_with_zarrs,
+        token=token,
+        x_keep_workdir=x_keep_workdir,
     )
-
-    if callback_with_zarrs:
-        return Completed(message="At least one callback is correct!")
-    return Failed(message="None of the files succeeded!")
