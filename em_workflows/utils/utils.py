@@ -34,6 +34,12 @@ def log(msg):
         print(msg)
 
 
+def filter_results(results):
+    return list(
+        filter(lambda x: not isinstance(x, (BaseException, type(None))), results)
+    )
+
+
 def lookup_dims(fp: Path) -> Header:
     """
     :param fp: pathlib.Path to an image
@@ -647,12 +653,13 @@ def callback_with_cleanup(
     keep_workdir: bool = False,
 ):
     cp_wd_logs_to_assets = copy_workdir_logs.map(fps, wait_for=[callback_result])
+    filtered_callback = filter_results(callback_result)
 
     cb = send_callback_body(
         no_api=no_api,
         token=token,
         callback_url=callback_url,
-        files_elts=callback_result,
+        files_elts=filtered_callback,
     )
     cleanup_workdir(
         fps,

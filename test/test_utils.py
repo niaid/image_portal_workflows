@@ -3,9 +3,6 @@ import os
 import shutil
 from pathlib import Path
 import tempfile
-from unittest.mock import Mock
-
-from prefect import flow, task
 
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
@@ -331,10 +328,13 @@ def test_list_files(mock_nfs_mount):
     assert len(files) == 1
 
 
-def test_state_hooks_calls(prefect_test_fixture):
+def test_state_hooks_calls(prefect_test):
     """
     Tests whether states hooks are called appropriately
     """
+    from prefect import flow, task
+    from unittest.mock import Mock
+
     my_hook = Mock(return_value=None)
     # Kept getting error: AttributeError `__name__`
     my_hook.__name__ = "foo"
