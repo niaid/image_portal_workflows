@@ -1,6 +1,6 @@
-*********
-BRT Workflow
-*********
+=========
+Workflows
+=========
 
 Overview:
 
@@ -11,6 +11,11 @@ A number of parameters can be passed to the "BRT" workflow. There are two types:
 
 Inputs/Outputs
 --------------
+
+Within HPC, each environment (dev,qa,prod) has its own mount point. These are:
+/mnt/ai-fas12/RMLEMHedwigDev/
+/mnt/ai-fas12/RMLEMHedwigQA/
+/mnt/ai-fas12/RMLEMHedwigProd/
 
 There are inputs and outputs. We never write to the inputs directory, only to outputs.
 The output dir is defined as input directory with s/Projects/Projects/. For example:
