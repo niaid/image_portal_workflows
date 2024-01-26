@@ -148,8 +148,5 @@ tags
 # prefect artifacts
 .prefectignore
 
-# test assets
-test/input_files/*/Assets/*
-
 # Dask
 dask-worker-space/
