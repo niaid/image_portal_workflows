@@ -40,7 +40,6 @@ import glob
 import os
 import subprocess
 import math
-from typing import Optional
 from pathlib import Path
 
 from prefect import task, flow, unmapped
@@ -513,9 +512,9 @@ def brt_flow(
     # end user facing adoc params
     file_share: str,
     input_dir: str,
-    file_name: Optional[str] = None,
-    callback_url: Optional[str] = None,
-    token: Optional[str] = None,
+    file_name: str = None,
+    callback_url: str = None,
+    token: str = None,
     no_api: bool = False,
     keep_workdir: bool = False,
     adoc_template: str = "plastic_brt",

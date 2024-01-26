@@ -1,10 +1,8 @@
-from subprocess import call
-from typing import Dict, Optional
+from typing import Dict
 from pathlib import Path
 import SimpleITK as sitk
 from pytools import HedwigZarrImage, HedwigZarrImages
 from prefect import flow, task
-from prefect.runtime import flow_run
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
@@ -134,15 +132,9 @@ def gen_thumb(file_path: FilePath):
     )
     return [thumb_asset, keyImage_asset]
 
-def generate_flow_run_name():
-    flow_name = 'LRG_2D RG'
-    parameters = flow_run.parameters
-    name = Path(parameters["input_dir"])
-    last_two = '__'.join((name.parts[-2],name.parts[-1]))
-    return f"{flow_name}__{last_two}"
 
 @flow(
-    flow_run_name=generate_flow_run_name,
+    name="Flow: Large 2d RGB",
     log_prints=True,
     task_runner=LRG2DConfig.SLURM_EXECUTOR,
     on_completion=[utils.notify_api_completion],
@@ -152,9 +144,9 @@ def generate_flow_run_name():
 def lrg_2d_flow(
     file_share: str,
     input_dir: str,
-    file_name: Optional[str] = None,
-    callback_url: Optional[str] = None,
-    token: Optional[str] = None,
+    file_name: str = None,
+    callback_url: str = None,
+    token: str = None,
     no_api: bool = False,
     keep_workdir: bool = False,
 ):
@@ -163,10 +155,7 @@ def lrg_2d_flow(
     -create tmp dir for each.
     -convert to tiff -> zarr -> jpegs (thumb)
     """
-    if no_api:
-        utils.notify_api_running(no_api=no_api)
-    else:
-        utils.notify_api_running(token=token, callback_url=callback_url)
+    utils.notify_api_running(no_api, token, callback_url)
 
     input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
 

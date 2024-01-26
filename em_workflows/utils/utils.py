@@ -447,15 +447,13 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
 
 
 @task(retries=1, retry_delay_seconds=10)
-def notify_api_running(no_api: bool=None, token: str=None, callback_url: str=None):
+def notify_api_running(no_api: bool, token: str, callback_url: str):
     """
     tells API the workflow has started to run.
     """
     if no_api:
         log("no_api flag used, not interacting with API")
         return
-    elif not callback_url or not token:
-        raise RuntimeError("impossible args for notify_api_running")
     headers = {
         "Authorization": "Bearer " + token,
         "Content-Type": "application/json",
