@@ -222,10 +222,7 @@ def dm_flow(
     -convert all mrcs in Projects dir to jpegs.
     -convert all tiffs/pngs/jpegs to correct size for thumbs, "sm" and "lg"
     """
-    if x_no_api:
-        utils.notify_api_running(x_no_api=x_no_api)
-    else:
-        utils.notify_api_running(token=token, callback_url=callback_url)
+    utils.log("this is coming out of the flow")
 
     # utils.log(input_dir)
     input_dir_fp = utils.get_input_dir.submit(
