@@ -522,8 +522,10 @@ def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
     https://docs.prefect.io/core/concepts/states.html#overview.
     https://docs.prefect.io/core/concepts/notifications.html#state-handlers
     """
-    status = "success" if state.is_completed() else "error"
-    x_no_api = flow_run.parameters.get("x_no_api", False)
+    x_no_api = flow_run.parameters.get("x_no_api", "not-found")
+    # implicit
+    raise RuntimeError(f"Checking... {x_no_api}")
+    status = "success" if state.is_completed else "error"
     token = flow_run.parameters.get("token", "")
     callback_url = flow_run.parameters.get("callback_url", "")
 
