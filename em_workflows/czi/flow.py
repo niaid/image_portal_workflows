@@ -1,4 +1,3 @@
-import asyncio
 from pathlib import Path
 from typing import List, Dict
 
@@ -87,17 +86,8 @@ def gen_imageSet(file_path: FilePath) -> List:
     return image_set
 
 
-@flow(
-    name="SubFlow: Generate czi imageset",
-    log_prints=True,
-    task_runner=CZIConfig.SLURM_EXECUTOR,
-)
-async def generate_czi_imageset(file_path: FilePath):
-    return task_generate_czi_imageset.submit(file_path)
-
-
 @task
-def task_generate_czi_imageset(file_path: FilePath):
+def generate_czi_imageset(file_path: FilePath):
     input_czi = f"{file_path.proj_dir}/{file_path.base}.czi"
     ng.bioformats_gen_zarr(
         file_path=file_path,
@@ -106,9 +96,7 @@ def task_generate_czi_imageset(file_path: FilePath):
         width=512,
         height=512,
     )
-    utils.log("Generating imageset")
     imageSet = gen_imageSet(file_path=file_path)
-    utils.log("Imageset generated...")
     # extract images from input file, used to create imageSet elements
     return imageSet
 
@@ -142,7 +130,7 @@ def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
     on_completion=[utils.notify_api_completion],
     on_failure=[utils.notify_api_completion],
 )
-async def czi_flow(
+def czi_flow(
     file_share: str,
     input_dir: str,
     file_name: str = None,
@@ -160,15 +148,13 @@ async def czi_flow(
     )
     fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
-    imageSets = await asyncio.gather(
-        *[generate_czi_imageset(file_path=fp) for fp in fps]
-    )
+    imageSets = generate_czi_imageset.map(file_path=fps)
     callback_with_zarrs = utils.add_imageSet.map(prim_fp=prim_fps, imageSet=imageSets)
     callback_with_zarrs = update_file_metadata.map(
         file_path=fps, callback_with_zarr=callback_with_zarrs
     )
     callback_with_zarrs = find_thumb_idx(callback=callback_with_zarrs)
-    cp_wd_to_assets = utils.copy_workdirs.map(fps, wait_for=[callback_with_zarrs])
+    utils.copy_workdirs.map(fps, wait_for=[callback_with_zarrs])
     filtered_callback = utils.filter_results(callback_with_zarrs)
     cb = utils.send_callback_body(
         no_api=no_api,
@@ -176,6 +162,4 @@ async def czi_flow(
         callback_url=callback_url,
         files_elts=filtered_callback,
     )
-    utils.cleanup_workdir(
-        fps, keep_workdir, wait_for=[allow_failure(cb), allow_failure(cp_wd_to_assets)]
-    )
+    utils.cleanup_workdir(fps, keep_workdir, wait_for=[allow_failure(cb)])

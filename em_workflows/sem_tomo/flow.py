@@ -347,7 +347,7 @@ def sem_tomo_flow(
     callback_with_corr_movies = utils.add_asset.map(
         prim_fp=callback_with_corr_mrcs, asset=corrected_movie_assets
     )
-    cp_wd_to_assets = utils.copy_workdirs.map(
+    utils.copy_workdirs.map(
         fps,
         wait_for=[
             callback_with_corr_movies,
@@ -365,11 +365,4 @@ def sem_tomo_flow(
         callback_url=callback_url,
         files_elts=filtered_callback,
     )
-    utils.cleanup_workdir(
-        fps,
-        keep_workdir,
-        wait_for=[
-            allow_failure(cb),
-            allow_failure(cp_wd_to_assets),
-        ],
-    )
+    utils.cleanup_workdir(fps, keep_workdir, wait_for=[allow_failure(cb)])
