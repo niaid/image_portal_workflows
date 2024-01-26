@@ -346,7 +346,7 @@ def run_brt(
 
     for _file in [rec_file, ali_file]:
         if not _file.exists():
-            raise ValueError(f"File {_file} does not exist. BRT run failure.")
+            raise RuntimeError(f"File {_file} does not exist. BRT run failure.")
     # brts_ok = check_brt_run_ok(file_path=file_path)
 
 
@@ -531,11 +531,12 @@ def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
 
     flowrun_id = os.environ.get("PREFECT__FLOW_RUN_ID", "not-found")
 
+    hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
     if x_no_api:
         log(f"x_no_api flag used\nCompletion status: {status}")
+        hooks_log.close()
         return
 
-    hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
     hooks_log.write(f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n")
 
     headers = {
