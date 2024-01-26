@@ -1,20 +1,3 @@
-#!/usr/bin/env python3
-"""
-Immunofluorescence (IF) microscopy overview:
------------------------------------------------------
-
-    - The CZI file format has been developed by ZEISS to store multidimensional IF images such as,
-    z-stacks, time lapse, and multiposition experiments.
-    - We rely on applications like OME Bio-Formats / OMERO, Fiji, python-bioformats to view and process czi files
-    - The IF images are visualized with neuroglancer
-    - The file also consists of metadata along with label and macro (RGB) images
-
-Pipeline overview:
-------------------
-    - Convert czi file to OME-NGFF zarr format with OME XML
-    - Generate neuroglancer meta-data from zarr sub-image for each IF image
-    - Create thumbnail image from zarr label sub-image
-"""
 import asyncio
 from pathlib import Path
 from typing import List, Dict, Optional
@@ -38,9 +21,6 @@ from em_workflows.czi.config import CZIConfig
 
 
 def gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> dict:
-    """
-    Uses SimpleITK to extract and write jpeg thumbnail image for the zarr subimage
-    """
     sitk_image = image.extract_2d(
         target_size_x=THUMB_X_DIM, target_size_y=THUMB_Y_DUM, auto_uint8=True
     )
@@ -61,35 +41,18 @@ def gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> d
 
 
 @task
-def rechunk_zarr(file_path: FilePath) -> None:
-    """
-    Re-chunk the ZARR structure so that multi-channel/RGB channels are not split
-    between chunks with the zarr_rechunk command provided by tomojs-pytools.
-    """
+def rechunk_zarr(file_path: FilePath):
     ng.rechunk_zarr(file_path=file_path)
 
 
 @task
-def copy_zarr_to_assets_dir(file_path: FilePath) -> None:
-    """
-    Copy the zarr files generated from czi files using bioformats2raw to assets folder
-    """
+def copy_zarr_to_assets_dir(file_path: FilePath):
     output_zarr = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
     file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
 
 
 @task
-def generate_imageset(file_path: FilePath) -> List[Dict]:
-    """
-    | ImageSet consists of all the assets for a particular zarr sub-image and label images
-    | Macro image is ignored
-    | Label image is added as an thumbnail asset
-    | Zarr sub-images are added as neurglancerZarr asset along with their metadata
-    | Metadata includes:
-        - shader
-        - dimensions
-        - shaderParameters
-    """
+def generate_imageset(file_path: FilePath):
     zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
     image_set = list()
     zarr_images = HedwigZarrImages(Path(zarr_fp))
@@ -142,16 +105,7 @@ def generate_imageset(file_path: FilePath) -> List[Dict]:
     log_prints=True,
     task_runner=CZIConfig.HIGH_SLURM_EXECUTOR,
 )
-async def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
-    """
-    Subflow for heavy lifting operation
-
-    Overview:
-        - Generate zarr from czi
-        - Rechunk zarr files
-        - Copy zarr files to assets folder
-        - Generate imageset for the assets
-    """
+async def generate_czi_imageset(file_path: FilePath):
     zarr_result = generate_zarr.submit(file_path)
     rechunk_result = rechunk_zarr.submit(file_path, wait_for=[zarr_result])
     copy_to_assets = copy_zarr_to_assets_dir.submit(
@@ -162,9 +116,6 @@ async def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
 
 @task
 def generate_zarr(file_path: FilePath):
-    """
-    Uses bioformats2raw command to convert czi file to OME-NGFF zarr file
-    """
     input_czi = f"{file_path.proj_dir}/{file_path.base}.czi"
     ng.bioformats_gen_zarr(
         file_path=file_path,
@@ -176,9 +127,6 @@ def generate_zarr(file_path: FilePath):
 
 @task
 def find_thumb_idx(callback: List[Dict]) -> List[Dict]:
-    """
-    Locate the index of label image in the image set
-    """
     for elt in callback:
         for i, image_elt in enumerate(elt["imageSet"]):
             if image_elt["imageName"] == "label image":
@@ -188,11 +136,6 @@ def find_thumb_idx(callback: List[Dict]) -> List[Dict]:
 
 @task
 def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
-    """
-    OME-xml metadata can be informative for developers to understand why the
-    neuroglancer view is not appropriately rendering. This function attaches
-    xml file location as the file metadata to the zarr group
-    """
     zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
     zarr_images = HedwigZarrImages(Path(zarr_fp))
     ome_xml_path = zarr_images.ome_xml_path

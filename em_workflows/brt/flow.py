@@ -293,8 +293,7 @@ def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
     - give _rec mrc file, generate a stack of mrcs, averaged to assist viewing.
     - produces base_ave001.mrc etc, base_ave002.mrc etc,
     - inputs for newstack (for recon movie) and binvol (for volslicer)
-
-    eg::
+    - eg::
 
         for i in range(2, dimensions.z-2):
             IZMIN = i-2
