@@ -631,8 +631,7 @@ def brt_flow(
     )
     copy_task = utils.copy_workdirs.map(fps, wait_for=[callback_with_tilt_mov])
     # This is to make sure that we wait for copy completes before cleanup
-    for future in copy_task:
-        future.result()
+    copy_task.result()
 
     utils.callback_with_cleanup(
         fps=fps,
