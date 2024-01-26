@@ -6,4 +6,4 @@ dask
 distributed
 dask-jobqueue
 natsort
-pytools@https://github.com/niaid/tomojs-pytools/releases/download/v3.1/pytools-3.1-py3-none-any.whl
+pytools@https://github.com/niaid/tomojs-pytools/releases/download/v3.0b03/pytools-3.0b3-py3-none-any.whl
