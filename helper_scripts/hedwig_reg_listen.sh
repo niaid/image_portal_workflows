@@ -40,6 +40,7 @@ if [[ ! ( $ACTION == "listen" || $ACTION == "register" || $ACTION == "setup" ) ]
 fi
 
 # start worker specific to THAT venv
+WFLOWS="$HEDWIG_HOME/image_portal_workflows/em_workflows"
 WORKPOOL=workpool
 
 if [[ $ACTION == "listen" ]]; then
