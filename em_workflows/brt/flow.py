@@ -36,15 +36,14 @@ Batchruntomo pipeline overview:
 """
 
 from typing import Dict
-import json
 import glob
 import os
 import subprocess
 import math
 from typing import Optional
 from pathlib import Path
-from natsort import os_sorted
-from prefect import task, flow, unmapped
+
+from prefect import task, flow, unmapped, allow_failure
 from prefect.states import Completed, Failed
 from pytools.HedwigZarrImages import HedwigZarrImages
 
@@ -56,7 +55,8 @@ from em_workflows.brt.config import BRTConfig
 from em_workflows.brt.constants import BRT_DEPTH, BRT_HEIGHT, BRT_WIDTH
 
 
-def gen_dimension_command(fp_in: Path) -> str:
+@task
+def gen_dimension_command(file_path: FilePath, ali_or_rec: str) -> str:
     """
     | looks up the z dimension of an mrc file.
     | ali_or_rec is nasty, str to denote whether you're using the `_ali` file or the `_rec` file.
@@ -64,12 +64,20 @@ def gen_dimension_command(fp_in: Path) -> str:
     :todo: this is duplicate, see utils.lookup_dims()
     """
 
-    if fp_in.exists():
-        utils.log(f"{fp_in} exists")
+    if ali_or_rec not in ["ali", "rec"]:
+        raise RuntimeError(
+            f"gen_dimension_command must be called with ali or rec, not {ali_or_rec}"
+        )
+    mrc_file = f"{file_path.working_dir}/{file_path.base}_{ali_or_rec}.mrc"
+    ali_file_p = Path(mrc_file)
+    if ali_file_p.exists():
+        utils.log(f"{mrc_file} exists")
     else:
-        utils.log(f"{fp_in} DOES NOT exist, nothing to do here.")
-        return "error"
-    cmd = [BRTConfig.header_loc, "-s", fp_in]
+        utils.log(f"{mrc_file} DOES NOT exist")
+        raise RuntimeError(
+            f"File {mrc_file} does not exist. gen_dimension_command failure."
+        )
+    cmd = [BRTConfig.header_loc, "-s", mrc_file]
     sp = subprocess.run(cmd, check=False, capture_output=True)
     if sp.returncode != 0:
         stdout = sp.stdout.decode("utf-8")
@@ -88,7 +96,8 @@ def gen_dimension_command(fp_in: Path) -> str:
         return str(z_dim)
 
 
-def gen_ali_x(fp_in: Path, z_dim) -> None:
+@task
+def gen_ali_x(file_path: FilePath, z_dim) -> None:
     """
     - chops an mrc input into its constituent Z sections.
     - eg if an mrc input has a z_dim of 10, 10 sections will be generated.
@@ -97,58 +106,63 @@ def gen_ali_x(fp_in: Path, z_dim) -> None:
 
         newstack -secs {i}-{i} path/BASENAME_ali*.mrc WORKDIR/hedwig/BASENAME_ali{i}.mrc
     """
+    ali_file = f"{file_path.working_dir}/{file_path.base}_ali.mrc"
     for i in range(1, int(z_dim)):
         i_padded = str(i).rjust(3, "0")
-        ali_x = f"{fp_in.parent}/{fp_in.stem}_align_{i_padded}.mrc"
-        log_file = f"{fp_in.parent}/newstack_mid_pt.log"
-        cmd = [BRTConfig.newstack_loc, "-secs", f"{i}-{i}", fp_in.as_posix(), ali_x]
+        ali_x = f"{file_path.working_dir}/{file_path.base}_align_{i_padded}.mrc"
+        log_file = f"{file_path.working_dir}/newstack_mid_pt.log"
+        cmd = [BRTConfig.newstack_loc, "-secs", f"{i}-{i}", ali_file, ali_x]
         FilePath.run(cmd=cmd, log_file=log_file)
 
 
-def gen_ali_asmbl(fp_in: Path) -> None:
+@task
+def gen_ali_asmbl(file_path: FilePath) -> None:
     """
     Use IMOD ``newstack`` to assemble, eg::
 
        newstack -float 3 {BASENAME}_ali*.mrc ali_{BASENAME}.mrc
     """
-    alis = glob.glob(f"{fp_in.parent}/{fp_in.stem}_align_*.mrc")
+    alis = glob.glob(f"{file_path.working_dir}/{file_path.base}_align_*.mrc")
     alis.sort()
-    ali_asmbl = f"{fp_in.parent}/ali_{fp_in.stem}.mrc"
+    ali_asmbl = f"{file_path.working_dir}/ali_{file_path.base}.mrc"
     ali_base_cmd = [BRTConfig.newstack_loc, "-float", "3"]
     ali_base_cmd.extend(alis)
     ali_base_cmd.append(ali_asmbl)
-    FilePath.run(cmd=ali_base_cmd, log_file=f"{fp_in.parent}/asmbl.log")
+    FilePath.run(cmd=ali_base_cmd, log_file=f"{file_path.working_dir}/asmbl.log")
 
 
-def gen_mrc2tiff(fp_in: Path) -> None:
+@task
+def gen_mrc2tiff(file_path: FilePath) -> None:
     """
     This generates a lot of jpegs (-j) which will be compiled into a movie.
     (That is, the -jpeg switch is set to produce jpegs) eg::
 
         mrc2tif -j -C 0,255 ali_BASENAME.mrc BASENAME_ali
     """
-    ali_asmbl = f"{fp_in.parent}/ali_{fp_in.stem}.mrc"
-    ali = f"{fp_in.parent}/{fp_in.stem}_ali"
+    ali_asmbl = f"{file_path.working_dir}/ali_{file_path.base}.mrc"
+    ali = f"{file_path.working_dir}/{file_path.base}_ali"
     cmd = [BRTConfig.mrc2tif_loc, "-j", "-C", "0,255", ali_asmbl, ali]
-    log_file = f"{fp_in.parent}/mrc2tif_align.log"
+    log_file = f"{file_path.working_dir}/mrc2tif_align.log"
     FilePath.run(cmd=cmd, log_file=log_file)
 
 
 @task
-def gen_thumbs(middle_i_jpg: Path) -> Path:
+def gen_thumbs(file_path: FilePath, z_dim) -> dict:
     """
     Use GraphicsMagick to create thumbnail images, eg::
 
         gm convert -size 300x300 BASENAME_ali.{MIDDLE_I}.jpg -resize 300x300 \
                 -sharpen 2 -quality 70 keyimg_BASENAME_s.jpg
     """
-    thumb = f"{middle_i_jpg.parent}/keyimg_{middle_i_jpg.stem}_s.jpg"
+    middle_i = calc_middle_i(z_dim=z_dim)
+    middle_i_jpg = f"{file_path.working_dir}/{file_path.base}_ali.{middle_i}.jpg"
+    thumb = f"{file_path.working_dir}/keyimg_{file_path.base}_s.jpg"
     cmd = [
         "gm",
         "convert",
         "-size",
         "300x300",
-        middle_i_jpg.as_posix(),
+        middle_i_jpg,
         "-resize",
         "300x300",
         "-sharpen",
@@ -157,9 +171,13 @@ def gen_thumbs(middle_i_jpg: Path) -> Path:
         "70",
         thumb,
     ]
-    log_file = f"{middle_i_jpg.parent}/thumb.log"
+    log_file = f"{file_path.working_dir}/thumb.log"
     FilePath.run(cmd=cmd, log_file=log_file)
-    return Path(thumb)
+    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(thumb))
+    keyimg_asset = file_path.gen_asset(
+        asset_type=AssetType.THUMBNAIL, asset_fp=asset_fp
+    )
+    return keyimg_asset
 
 
 @task
@@ -191,64 +209,6 @@ def calc_middle_i(z_dim: str) -> str:
     fl_padded = str(fl).rjust(3, "0")
     utils.log(f"middle i: {fl_padded}")
     return fl_padded
-
-
-@task
-def find_middle_image(fp_in: Path) -> Path:
-    images = glob.glob(f"{fp_in.parent}/*ali*jpg")
-    images_nat_sorted = os_sorted(images)
-    middle_image = images_nat_sorted[int(len(images_nat_sorted) / 2)]
-    utils.log(f"Found middle image {middle_image}")
-    fp_out = Path(middle_image)
-    cleanup_files(file_path=fp_in, pattern="*ali*jpg", keep_file=fp_out)
-    return fp_out
-
-
-@task
-def gen_tilt_movie_2(brt_output: utils.BrtOutput) -> Path:
-    """
-    generates the tilt movie, eg::
-
-        ffmpeg -f image2 -framerate 4 -i ${BASENAME}_ali.%03d.jpg -vcodec libx264 \
-                -pix_fmt yuv420p -s 1024,1024 tiltMov_${BASENAME}.mp4
-    """
-    ali_file = brt_output.ali_file
-    utils.log(f"created alinment file {ali_file}")
-    utils.log("gen dims")
-    z_dim = gen_dimension_command(fp_in=ali_file)
-
-    utils.log("align x")
-    gen_ali_x(fp_in=ali_file, z_dim=z_dim)
-
-    utils.log("assemble x")
-    gen_ali_asmbl(fp_in=ali_file)
-
-    utils.log("mrc2tif")
-    gen_mrc2tiff(fp_in=ali_file)
-
-    input_fp = f"{ali_file.parent}/{ali_file.stem}_ali.%03d.jpg"
-    log_file = f"{ali_file.parent}/ffmpeg_tilt.log"
-    movie_file = f"{ali_file.parent}/tiltMov_{ali_file.stem}.mp4"
-    cmd = [
-        "ffmpeg",
-        "-y",
-        "-f",
-        "image2",
-        "-framerate",
-        "4",
-        "-i",
-        input_fp,
-        "-vcodec",
-        "libx264",
-        "-pix_fmt",
-        "yuv420p",
-        "-s",
-        "1024,1024",
-        movie_file,
-    ]
-    FilePath.run(cmd=cmd, log_file=log_file)
-    cleanup_files(file_path=ali_file, pattern=("*_align_*.mrc"))
-    return Path(movie_file)
 
 
 @task
@@ -329,67 +289,7 @@ def gen_recon_movie(file_path: FilePath) -> dict:
 
 
 @task
-def gen_ave_mrc(brt_output: utils.BrtOutput) -> Path:
-    rec_file = brt_output.rec_file
-    utils.log("gen recon dims")
-    rec_z_dim = gen_dimension_command(fp_in=rec_file)
-    utils.log("gen recon clip averages")
-    gen_clip_avgs(in_fp=rec_file, z_dim=rec_z_dim)
-    utils.log("gen average mrc")
-    ave_mrc = consolidate_ave_mrcs(fp_in=rec_file)
-    utils.log(f"average mrc: {ave_mrc}")
-    return ave_mrc
-
-
-@task
-def gen_recon_movie_2(ave_mrc: Path) -> Path:
-    """
-    compiles a stack of jpgs into a movie. eg::
-
-        ffmpeg -f image2 -framerate 8 -i WORKDIR/hedwig/BASENAME_mp4.%04d.jpg -vcodec libx264 \
-                -pix_fmt yuv420p -s 1024,1024 WORKDIR/hedwig/keyMov_BASENAME.mp4
-
-    """
-    # gen_ave_jpgs_from_ave_mrc(ave_mrc=ave_mrc)
-    mp4_base = f"{ave_mrc.parent}/{ave_mrc.stem}_mp4"
-    mrc2tiff_log_file = f"{ave_mrc.parent}/recon_mrc2tiff.log"
-    mrc2tiff_cmd = [
-        BRTConfig.mrc2tif_loc,
-        "-j",
-        "-C",
-        "100,255",
-        ave_mrc.as_posix(),
-        mp4_base,
-    ]
-    FilePath.run(cmd=mrc2tiff_cmd, log_file=mrc2tiff_log_file)
-    # don't put the 's in here, as per docs. subprocess messes them up
-    jpg_input_pattern = f"{mp4_base}*.jpg"
-    key_mov = f"{ave_mrc.parent}/{ave_mrc.stem}_keyMov.mp4"
-    cmd = [
-        "ffmpeg",
-        "-f",
-        "image2",
-        "-pattern_type",
-        "glob",
-        "-framerate",
-        "8",
-        "-i",
-        jpg_input_pattern,
-        "-vcodec",
-        "libx264",
-        "-pix_fmt",
-        "yuv420p",
-        "-s",
-        "1024,1024",
-        key_mov,
-    ]
-    log_file = f"{ave_mrc.parent}/{ave_mrc.stem}_keyMov.log"
-    FilePath.run(cmd=cmd, log_file=log_file)
-    cleanup_files(file_path=ave_mrc, pattern=("_mp4.*.jpg"))
-    return Path(key_mov)
-
-
-def gen_clip_avgs(in_fp: Path, z_dim: str) -> None:
+def gen_clip_avgs(file_path: FilePath, z_dim: str) -> None:
     """
     - give _rec mrc file, generate a stack of mrcs, averaged to assist viewing.
     - produces base_ave001.mrc etc, base_ave002.mrc etc,
@@ -405,8 +305,9 @@ def gen_clip_avgs(in_fp: Path, z_dim: str) -> None:
     for i in range(2, int(z_dim) - 2):
         izmin = i - 2
         izmax = i + 2
+        in_fp = f"{file_path.working_dir}/{file_path.base}_rec.mrc"
         padded_val = str(i).zfill(4)
-        ave_mrc = f"{in_fp.parent}/{in_fp.stem}_ave{padded_val}.mrc"
+        ave_mrc = f"{file_path.working_dir}/{file_path.base}_ave{padded_val}.mrc"
         min_max = f"{str(izmin)}-{str(izmax)}"
         cmd = [
             BRTConfig.clip_loc,
@@ -416,14 +317,15 @@ def gen_clip_avgs(in_fp: Path, z_dim: str) -> None:
             min_max,
             "-m",
             "1",
-            in_fp.as_posix(),
+            in_fp,
             ave_mrc,
         ]
-        log_file = f"{in_fp.parent}/clip_avg.error.log"
+        log_file = f"{file_path.working_dir}/clip_avg.error.log"
         FilePath.run(cmd=cmd, log_file=log_file)
 
 
-def consolidate_ave_mrcs(fp_in: Path) -> Path:
+@task
+def consolidate_ave_mrcs(file_path: FilePath) -> dict:
     """
     - consumes base_ave001.mrc etc, base_ave002.mrc etc,
     - creates ave_base.mrc the (averagedVolume asset)
@@ -431,33 +333,40 @@ def consolidate_ave_mrcs(fp_in: Path) -> Path:
 
         newstack -float 3 BASENAME_ave* ave_BASENAME.mrc
     """
-    aves = glob.glob(f"{fp_in.parent}/{fp_in.stem}_ave*")
+    aves = glob.glob(f"{file_path.working_dir}/{file_path.base}_ave*")
     aves.sort()
-    ave_mrc = Path(f"{fp_in.parent}/ave_{fp_in.stem}.mrc")
+    ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
     cmd = [BRTConfig.newstack_loc, "-float", "3"]
     cmd.extend(aves)
-    cmd.append(ave_mrc.as_posix())
-    log_file = f"{fp_in.parent}/newstack_float.log"
+    cmd.append(ave_mrc)
+    log_file = f"{file_path.working_dir}/newstack_float.log"
     FilePath.run(cmd=cmd, log_file=log_file)
-    cleanup_files(file_path=ave_mrc, pattern="*_ave*.mrc", keep_file=ave_mrc)
-    return ave_mrc
+    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(ave_mrc))
+    ave_vol_asset = file_path.gen_asset(
+        asset_type=AssetType.AVERAGED_VOLUME, asset_fp=asset_fp
+    )
+    return ave_vol_asset
 
 
 @task
-def gen_ave_8_vol(ave_mrc: Path) -> Path:
+def gen_ave_8_vol(file_path: FilePath) -> dict:
     """
     - creates volume asset, for volslicer, eg::
 
         binvol -binning 2 WORKDIR/hedwig/ave_BASENAME.mrc WORKDIR/avebin8_BASENAME.mrc
     """
-    ave_8_mrc = f"{ave_mrc.parent}/avebin8_{ave_mrc.stem}.mrc"
-    cmd = [BRTConfig.binvol, "-binning", "2", ave_mrc.as_posix(), ave_8_mrc]
-    log_file = f"{ave_mrc.parent}/ave_8_mrc.log"
+    ave_8_mrc = f"{file_path.working_dir}/avebin8_{file_path.base}.mrc"
+    ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
+    cmd = [BRTConfig.binvol, "-binning", "2", ave_mrc, ave_8_mrc]
+    log_file = f"{file_path.working_dir}/ave_8_mrc.log"
     FilePath.run(cmd=cmd, log_file=log_file)
-    return Path(ave_8_mrc)
+    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(ave_8_mrc))
+    bin_vol_asset = file_path.gen_asset(asset_type=AssetType.VOLUME, asset_fp=asset_fp)
+    return bin_vol_asset
 
 
-def gen_ave_jpgs_from_ave_mrc(ave_mrc: Path):
+@task
+def gen_ave_jpgs_from_ave_mrc(file_path: FilePath):
     """
     - generates a load of jpgs from the ave_base.mrc with the format {base}_mp4.123.jpg \
             **OR** {base}_mp4.1234.jpg depending on size of stack.
@@ -465,23 +374,23 @@ def gen_ave_jpgs_from_ave_mrc(ave_mrc: Path):
 
         mrc2tif -j -C 100,255 WORKDIR/hedwig/ave_BASNAME.mrc hedwig/BASENAME_mp4
     """
-    mp4 = f"{ave_mrc.parent}/{ave_mrc.stem}_mp4"
-    log_file = f"{ave_mrc.parent}/recon_mrc2tiff.log"
-    cmd = [BRTConfig.mrc2tif_loc, "-j", "-C", "100,255", ave_mrc.as_posix(), mp4]
+    mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
+    ave_mrc = f"{file_path.working_dir}/ave_{file_path.base}.mrc"
+    log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
+    cmd = [BRTConfig.mrc2tif_loc, "-j", "-C", "100,255", ave_mrc, mp4]
     FilePath.run(cmd=cmd, log_file=log_file)
 
 
-def cleanup_files(file_path: Path, pattern=str, keep_file: Path = None):
+@task
+def cleanup_files(file_path: FilePath, pattern=str):
     """
     Given a ``FilePath`` and unix file ``pattern``, iterate through directory removing all files
     that match the pattern
     """
-    f = f"{file_path.parent.as_posix()}/{pattern}"
+    f = f"{file_path.working_dir.as_posix()}/{pattern}"
     utils.log(f"trying to rm {f}")
     files_to_rm = glob.glob(f)
     for _file in files_to_rm:
-        if keep_file and keep_file.as_posix() == _file:
-            continue
         os.remove(_file)
     print(files_to_rm)
 
@@ -531,39 +440,40 @@ def cleanup_files(file_path: Path, pattern=str, keep_file: Path = None):
 
 
 @task
-def gen_zarr(brt_output: utils.BrtOutput) -> Path:
+def gen_zarr(fp_in: FilePath):
+    file_path = fp_in
+    # fallback mrc file
+    input_file = file_path.fp_in.as_posix()
 
-    if not brt_output.rec_file.is_file():
-        raise ValueError(f"{brt_output.rec_file} does not exist")
+    rec_mrc = file_path.gen_output_fp(output_ext="_rec.mrc")
+    if rec_mrc.is_file():
+        input_file = rec_mrc.as_posix()
 
-    output_zarr = ng.bioformats_gen_zarr_dup(
-        fp_in=brt_output.rec_file,
+    ng.bioformats_gen_zarr(
+        file_path=file_path,
+        input_fname=input_file,
         depth=BRT_DEPTH,
         width=BRT_WIDTH,
         height=BRT_HEIGHT,
         resolutions=1,
     )
-    ng.zarr_build_multiscales2(output_zarr)
-    return output_zarr
+    output_zarr = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
+    file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
+
+    ng.zarr_build_multiscales(file_path)
 
 
 @task
-def copy_asset_gen_elt(file_path: FilePath, fp_to_cp: Path, asset_type: str) -> dict:
-    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=fp_to_cp)
-    asset_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
-    return asset_elt
-
-
-@task
-def gen_ng_metadata(fp_in: FilePath, zarr: Path) -> Dict:
+def gen_ng_metadata(fp_in: FilePath) -> Dict:
     # Note; the seemingly redundancy of working and asset fp here.
     # However asset fp is in the network file system and is deployed for access to the users
     # Working fp is actually used for getting the metadata
 
     file_path = fp_in
     asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
+    working_fp = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
     utils.log("Instantiating HWZarrImages")
-    hw_images = HedwigZarrImages(zarr_path=zarr, read_only=False)
+    hw_images = HedwigZarrImages(zarr_path=working_fp, read_only=False)
     utils.log("Accessing first HWZarrImage")
     hw_image = hw_images[list(hw_images.get_series_keys())[0]]
 
@@ -590,24 +500,12 @@ def gen_ng_metadata(fp_in: FilePath, zarr: Path) -> Dict:
     return ng_asset
 
 
-@task
-def get_callback_result(callback_data: list) -> list:
-    cb_data = list()
-    for item in callback_data:
-        try:
-            json.dumps(item)
-            cb_data.append(item)
-        except TypeError:  # can't serialize the item
-            utils.log(f"Following item cannot be added to callback:\n\n{item}")
-    return cb_data
-
-
 # run_config=LocalRun(labels=[utils.get_environment()]),
 @flow(
     name="BRT",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
-    task_runner=BRTConfig.HIGH_SLURM_EXECUTOR,
+    task_runner=BRTConfig.SLURM_EXECUTOR,
     on_completion=[utils.notify_api_completion],
     on_failure=[utils.notify_api_completion],
 )
@@ -649,7 +547,7 @@ def brt_flow(
     fps = utils.gen_fps.submit(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
     )
-    brt_outputs = utils.run_brt.map(
+    brts = utils.run_brt.map(
         file_path=fps,
         adoc_template=unmapped(adoc_template),
         montage=unmapped(montage),
@@ -664,47 +562,97 @@ def brt_flow(
     )
     # END BRT, check files for success (else fail here)
 
-    tilt_movies = gen_tilt_movie_2.map(brt_outputs)
-    tilt_movie_assets = copy_asset_gen_elt.map(
-        file_path=fps, fp_to_cp=tilt_movies, asset_type=unmapped(AssetType.TILT_MOVIE)
-    )
-
-    mid_images = find_middle_image.map(tilt_movies)
-    keyimg_assets = copy_asset_gen_elt.map(
-        file_path=fps, fp_to_cp=mid_images, asset_type=unmapped(AssetType.KEY_IMAGE)
-    )
-
-    thumbs = gen_thumbs.map(mid_images)
-    thumb_assets = copy_asset_gen_elt.map(
-        file_path=fps, fp_to_cp=thumbs, asset_type=unmapped(AssetType.THUMBNAIL)
-    )
-
-    ave_mrcs = gen_ave_mrc.map(brt_output=brt_outputs)
-    averagedVolume_assets = copy_asset_gen_elt.map(
-        file_path=fps, fp_to_cp=ave_mrcs, asset_type=unmapped(AssetType.VOLUME)
-    )
-
-    recon_movies = gen_recon_movie_2.map(ave_mrc=ave_mrcs)
-    recon_movie_assets = copy_asset_gen_elt.map(
-        file_path=fps, fp_to_cp=recon_movies, asset_type=unmapped(AssetType.REC_MOVIE)
-    )
-    # Binned volume assets, for volslicer.
-    bin_vol_mrcs = gen_ave_8_vol.map(ave_mrc=ave_mrcs)
-    bin_vol_assets = copy_asset_gen_elt.map(
+    # stack dimensions - used in movie creation
+    # alignment z dimension, this is only used for the tilt movie.
+    ali_z_dims = gen_dimension_command.map(
         file_path=fps,
-        fp_to_cp=bin_vol_mrcs,
-        asset_type=unmapped(AssetType.AVERAGED_VOLUME),
+        ali_or_rec=unmapped("ali"),
+        wait_for=[allow_failure(brts)],
+        return_state=True,
     )
 
-    zarrs = gen_zarr.map(brt_output=brt_outputs)
-    pyramid_assets = gen_ng_metadata.map(fp_in=fps, zarr=zarrs)
+    # START TILT MOVIE GENERATION:
+    ali_xs = gen_ali_x.map(
+        file_path=fps,
+        z_dim=ali_z_dims,
+        wait_for=[allow_failure(brts)],
+        return_state=True,
+    )
+    asmbls = gen_ali_asmbl.map(file_path=fps, wait_for=[allow_failure(ali_xs)])
+    mrc2tiffs = gen_mrc2tiff.map(file_path=fps, wait_for=[allow_failure(asmbls)])
+    thumb_assets = gen_thumbs.map(
+        file_path=fps, z_dim=ali_z_dims, wait_for=[allow_failure(mrc2tiffs)]
+    )
+    keyimg_assets = gen_copy_keyimages.map(
+        file_path=fps, z_dim=ali_z_dims, wait_for=[allow_failure(mrc2tiffs)]
+    )
+    tilt_movie_assets = gen_tilt_movie.map(
+        file_path=fps, wait_for=[allow_failure(keyimg_assets)]
+    )
+    cleanup_files.map(
+        file_path=fps,
+        pattern=unmapped("*_align_*.mrc"),
+        wait_for=[
+            allow_failure(tilt_movie_assets),
+            allow_failure(thumb_assets),
+            allow_failure(keyimg_assets),
+        ],
+    )
+    cleanup_files.map(
+        file_path=fps,
+        pattern=unmapped("*ali*.jpg"),
+        wait_for=[
+            allow_failure(tilt_movie_assets),
+            allow_failure(thumb_assets),
+            allow_failure(keyimg_assets),
+        ],
+    )
+    # END TILT MOVIE GENERATION
+
+    # START RECONSTR MOVIE GENERATION:
+    rec_z_dims = gen_dimension_command.map(
+        file_path=fps, ali_or_rec=unmapped("rec"), wait_for=[allow_failure(brts)]
+    )
+    clip_avgs = gen_clip_avgs.map(
+        file_path=fps, z_dim=rec_z_dims, wait_for=[allow_failure(asmbls)]
+    )
+    averagedVolume_assets = consolidate_ave_mrcs.map(
+        file_path=fps, wait_for=[allow_failure(clip_avgs)]
+    )
+    ave_jpgs = gen_ave_jpgs_from_ave_mrc.map(
+        file_path=fps, wait_for=[allow_failure(averagedVolume_assets)]
+    )
+    recon_movie_assets = gen_recon_movie.map(
+        file_path=fps, wait_for=[allow_failure(ave_jpgs)]
+    )
+    cleanup_files.map(
+        file_path=fps,
+        pattern=unmapped("*_mp4.*.jpg"),
+        wait_for=[allow_failure(recon_movie_assets), allow_failure(ave_jpgs)],
+    )
+    cleanup_files.map(
+        file_path=fps,
+        pattern=unmapped("*_ave*.mrc"),
+        wait_for=[allow_failure(recon_movie_assets), allow_failure(ave_jpgs)],
+    )
+    #    # END RECONSTR MOVIE
+
+    # Binned volume assets, for volslicer.
+    bin_vol_assets = gen_ave_8_vol.map(
+        file_path=fps, wait_for=[allow_failure(averagedVolume_assets)]
+    )
+    # finished volslicer inputs.
+
+    zarrs = gen_zarr.map(fp_in=fps, wait_for=[allow_failure(brts)])
+    pyramid_assets = gen_ng_metadata.map(fp_in=fps, wait_for=[allow_failure(zarrs)])
+    #  archive_pyramid_cmds = ng.gen_archive_pyr.map(
+    #      file_path=fps, wait_for=[pyramid_assets]
+    #  )
 
     # now we've done the computational work.
     # the relevant files have been put into the Assets dirs, but we need to inform the API
     # Generate a base "primary path" dict, and hang dicts onto this.
     # repeatedly pass asset in to add_asset func to add asset in question.
-    # allow_failure in gen_fps because we want to include EVERY fp, not just OK ones
-    # prim_fps = utils.gen_prim_fps.map(fp_in=fps, wait_for=[allow_failure(brt_outputs)])
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
     callback_with_keyimgs = utils.add_asset.map(
@@ -725,37 +673,25 @@ def brt_flow(
     callback_with_tilt_mov = utils.add_asset.map(
         prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
-
-    for cb in callback_with_tilt_mov:
-        cb.wait()
-    copy_task = utils.copy_workdirs.map(file_path=fps)
+    copy_task = utils.copy_workdirs.map(
+        fps, wait_for=[allow_failure(callback_with_tilt_mov)]
+    )
     # This is to make sure that we wait for copy completes before cleanup
     for future in copy_task:
-        future.wait()
-    cb = utils.send_callback_body.submit(
-        x_no_api=x_no_api,
-        token=token,
-        callback_url=callback_url,
-        files_elts=callback_with_tilt_mov,
-    )
-    utils.cleanup_workdir.submit(
-        fps,
-        x_keep_workdir,
-        wait_for=[copy_task],
-    )
-    # callback_result = get_callback_result.submit(callback_with_tilt_mov)
-    #    utils.callback_with_cleanup(
-    #        fps=fps,
-    #        callback_result=callback_result,
-    #        x_no_api=x_no_api,
-    #        callback_url=callback_url,
-    #        token=token,
-    #        x_keep_workdir=x_keep_workdir,
-    #    )
+        future.result()
 
-    for zarr in recon_movies:
+    utils.callback_with_cleanup(
+        fps=fps,
+        callback_result=callback_with_tilt_mov,
+        x_no_api=x_no_api,
+        callback_url=callback_url,
+        token=token,
+        x_keep_workdir=x_keep_workdir,
+    )
+
+    for zarr in zarrs:
         print(zarr.result())
-        if isinstance(zarr.result(), Path):
+        if zarr.result() == "success":
             return Completed(message="I am happy with this result")
     return Failed(message="How did this happen!?")
 

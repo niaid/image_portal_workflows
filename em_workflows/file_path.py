@@ -173,7 +173,7 @@ class FilePath:
         asset = {"type": asset_type, "path": assets_fp_no_root.as_posix()}
         return asset
 
-    def gen_prim_fp_elt(self, exceptions_as_str: str = None) -> Dict:
+    def gen_prim_fp_elt(self) -> Dict:
         """
         creates a single primaryFilePath element, to which assets can be appended.
 
@@ -209,15 +209,8 @@ class FilePath:
             "assets": assets,
         }
         imageSet = [imageSetElement]
-        status = "success"
-        message = None
-        if exceptions_as_str:
-            status = "error"
-            message = exceptions_as_str
         return dict(
             primaryFilePath=primaryFilePath.as_posix(),
-            status=status,
-            message=message,
             thumbnailIndex=thumbnailIndex,
             title=title,
             fileMetadata=fileMetadata,
