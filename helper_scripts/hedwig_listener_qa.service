@@ -7,10 +7,14 @@ After=network.target
 Type=simple
 User=hedwig_qa
 Group=hedwig_qa
-ExecStart=/gs1/home/hedwig_qa/image_portal_workflows/helper_scripts/hedwig_reg_listen.sh listen
-WorkingDirectory=/gs1/home/hedwig_qa
 Environment="HEDWIG_ENV=qa"
 Environment="REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt"
+Environment="PREFECT_API_URL=https://prefect2.hedwig-workflow-api.niaidqa.net/api"
+Environment="IMOD_DIR=/opt/rml/imod"
+WorkingDirectory=/gs1/home/hedwig_qa/image_portal_workflows
+ExecStart=/gs1/home/hedwig_qa/qa/bin/prefect worker start --pool workpool
+Restart=always
+RestartSec="30min"
 
 [Install]
 WantedBy=multi-user.target
