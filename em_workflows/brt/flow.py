@@ -40,6 +40,7 @@ import json
 import glob
 import os
 import subprocess
+import math
 from typing import Optional
 from pathlib import Path
 from natsort import os_sorted
@@ -161,35 +162,35 @@ def gen_thumbs(middle_i_jpg: Path) -> Path:
     return Path(thumb)
 
 
-# @task
-# def gen_copy_keyimages(file_path: FilePath, z_dim: str) -> dict:
-#    """
-#    - generates the keyImage (by copying image i to keyImage.jpeg)
-#    - fname_in and fname_out both derived from tomogram fp
-#    - MIDDLE_I might always be an int.
-#    - eg::
-#
-#        cp BASENAME_ali.{MIDDLE_I}.jpg BASENAME_keyimg.jpg
-#    """
-#    middle_i = calc_middle_i(z_dim=z_dim)
-#    middle_i_jpg = f"{file_path.working_dir}/{file_path.base}_ali.{middle_i}.jpg"
-#    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(middle_i_jpg))
-#    keyimg_asset = file_path.gen_asset(
-#        asset_type=AssetType.KEY_IMAGE, asset_fp=asset_fp
-#    )
-#    return keyimg_asset
-#
-#
-# def calc_middle_i(z_dim: str) -> str:
-#    """
-#    we want to find the middle image of the stack (for use as thumbnail)
-#    the file name later needed is padded with zeros
-#    :todo: this might be 3 or 4 - make this not a magic number.
-#    """
-#    fl = math.floor(int(z_dim) / 2)
-#    fl_padded = str(fl).rjust(3, "0")
-#    utils.log(f"middle i: {fl_padded}")
-#    return fl_padded
+@task
+def gen_copy_keyimages(file_path: FilePath, z_dim: str) -> dict:
+    """
+    - generates the keyImage (by copying image i to keyImage.jpeg)
+    - fname_in and fname_out both derived from tomogram fp
+    - MIDDLE_I might always be an int.
+    - eg::
+
+        cp BASENAME_ali.{MIDDLE_I}.jpg BASENAME_keyimg.jpg
+    """
+    middle_i = calc_middle_i(z_dim=z_dim)
+    middle_i_jpg = f"{file_path.working_dir}/{file_path.base}_ali.{middle_i}.jpg"
+    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(middle_i_jpg))
+    keyimg_asset = file_path.gen_asset(
+        asset_type=AssetType.KEY_IMAGE, asset_fp=asset_fp
+    )
+    return keyimg_asset
+
+
+def calc_middle_i(z_dim: str) -> str:
+    """
+    we want to find the middle image of the stack (for use as thumbnail)
+    the file name later needed is padded with zeros
+    :todo: this might be 3 or 4 - make this not a magic number.
+    """
+    fl = math.floor(int(z_dim) / 2)
+    fl_padded = str(fl).rjust(3, "0")
+    utils.log(f"middle i: {fl_padded}")
+    return fl_padded
 
 
 @task
@@ -204,7 +205,7 @@ def find_middle_image(fp_in: Path) -> Path:
 
 
 @task
-def gen_tilt_movie(brt_output: utils.BrtOutput) -> Path:
+def gen_tilt_movie_2(brt_output: utils.BrtOutput) -> Path:
     """
     generates the tilt movie, eg::
 
@@ -251,6 +252,83 @@ def gen_tilt_movie(brt_output: utils.BrtOutput) -> Path:
 
 
 @task
+def gen_tilt_movie(file_path: FilePath) -> dict:
+    """
+    generates the tilt movie, eg::
+
+        ffmpeg -f image2 -framerate 4 -i ${BASENAME}_ali.%03d.jpg -vcodec libx264 \
+                -pix_fmt yuv420p -s 1024,1024 tiltMov_${BASENAME}.mp4
+    """
+    input_fp = f"{file_path.working_dir}/{file_path.base}_ali.%03d.jpg"
+    log_file = f"{file_path.working_dir}/ffmpeg_tilt.log"
+    movie_file = f"{file_path.working_dir}/tiltMov_{file_path.base}.mp4"
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-f",
+        "image2",
+        "-framerate",
+        "4",
+        "-i",
+        input_fp,
+        "-vcodec",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-s",
+        "1024,1024",
+        movie_file,
+    ]
+    FilePath.run(cmd=cmd, log_file=log_file)
+    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(movie_file))
+    tilt_movie_asset = file_path.gen_asset(
+        asset_type=AssetType.TILT_MOVIE, asset_fp=asset_fp
+    )
+    return tilt_movie_asset
+
+
+@task
+def gen_recon_movie(file_path: FilePath) -> dict:
+    """
+    compiles a stack of jpgs into a movie. eg::
+
+        ffmpeg -f image2 -framerate 8 -i WORKDIR/hedwig/BASENAME_mp4.%04d.jpg -vcodec libx264 \
+                -pix_fmt yuv420p -s 1024,1024 WORKDIR/hedwig/keyMov_BASENAME.mp4
+
+    :todo: This and tilt_movie should be refactored into one movie function
+    """
+    # bit of a hack - want to find out if
+    test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
+    mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
+    if test_p.exists():
+        mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%04d.jpg"
+    key_mov = f"{file_path.working_dir}/{file_path.base}_keyMov.mp4"
+    cmd = [
+        "ffmpeg",
+        "-f",
+        "image2",
+        "-framerate",
+        "8",
+        "-i",
+        mp4_input,
+        "-vcodec",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-s",
+        "1024,1024",
+        key_mov,
+    ]
+    log_file = f"{file_path.working_dir}/{file_path.base}_keyMov.log"
+    FilePath.run(cmd=cmd, log_file=log_file)
+    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(key_mov))
+    recon_movie_asset = file_path.gen_asset(
+        asset_type=AssetType.REC_MOVIE, asset_fp=asset_fp
+    )
+    return recon_movie_asset
+
+
+@task
 def gen_ave_mrc(brt_output: utils.BrtOutput) -> Path:
     rec_file = brt_output.rec_file
     utils.log("gen recon dims")
@@ -264,7 +342,7 @@ def gen_ave_mrc(brt_output: utils.BrtOutput) -> Path:
 
 
 @task
-def gen_recon_movie(ave_mrc: Path) -> Path:
+def gen_recon_movie_2(ave_mrc: Path) -> Path:
     """
     compiles a stack of jpgs into a movie. eg::
 
@@ -592,7 +670,7 @@ def brt_flow(
     )
     # END BRT, check files for success (else fail here)
 
-    tilt_movies = gen_tilt_movie.map(brt_outputs)
+    tilt_movies = gen_tilt_movie_2.map(brt_outputs)
     tilt_movie_assets = copy_asset_gen_elt.map(
         file_path=fps, fp_to_cp=tilt_movies, asset_type=unmapped(AssetType.TILT_MOVIE)
     )
@@ -612,7 +690,7 @@ def brt_flow(
         file_path=fps, fp_to_cp=ave_mrcs, asset_type=unmapped(AssetType.VOLUME)
     )
 
-    recon_movies = gen_recon_movie.map(ave_mrc=ave_mrcs)
+    recon_movies = gen_recon_movie_2.map(ave_mrc=ave_mrcs)
     recon_movie_assets = copy_asset_gen_elt.map(
         file_path=fps, fp_to_cp=recon_movies, asset_type=unmapped(AssetType.REC_MOVIE)
     )
