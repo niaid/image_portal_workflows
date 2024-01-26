@@ -1,4 +1,4 @@
-Utils
+UTILS
 =====
 
 .. toctree::

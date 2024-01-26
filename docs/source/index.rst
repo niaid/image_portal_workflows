@@ -13,7 +13,7 @@ Image Portal Workflows's documentation
    :caption: Contents:
 
    development
-   workflows/index
+   workflows/index.rst
    usage
-   api/index
+   api
    hpc

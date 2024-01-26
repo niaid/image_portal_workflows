@@ -1,8 +1,7 @@
-DM Conversion
+DM_CONVERSION
 =============
 
 .. toctree::
    :maxdepth: 4
 
-   flow
-   constants
+   dm_flow

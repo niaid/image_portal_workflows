@@ -1,7 +1,7 @@
-DM conversion flow
+dm_conversion.flow
 ==================
 
-.. automodule:: em_workflows.dm_conversion.flow
+.. automodule:: dm_conversion.flow
    :members:
    :undoc-members:
    :show-inheritance:

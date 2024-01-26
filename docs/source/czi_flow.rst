@@ -1,9 +1,10 @@
-CZI flow
+czi.flow
 ========
 
-.. automodule:: em_workflows.czi.flow
+.. automodule:: czi.flow
    :members:
    :undoc-members:
+   :show-inheritance:
 
    .. autofunction:: gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> dict
    .. autofunction:: rechunk_zarr(file_path: FilePath) -> None
