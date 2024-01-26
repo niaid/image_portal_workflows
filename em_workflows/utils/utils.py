@@ -375,29 +375,18 @@ def run_brt(
 @task(retries=1, retry_delay_seconds=10)
 def copy_workdirs(file_path: FilePath) -> Path:
     """
-    This task copies the workdir, in it's entirety, to the Assets path. This can
+    :param file_path: The FilePath of the file whose workdir is to be copied
+    :returns: Resulting Assets FilePath
+
+    This test copies the workdir, in it's entirety, to the Assets path. This can
     be a very large number of files and storage space. This work is delgated to
     FilePath.
 
-    Primarily, used by brt-flow where SME had to deal with intermediate files
-    for sanity checks.
-
     :param file_path: FilePath of the current imagefile
     :return: pathlib.Path of copied directory
+
     """
     return file_path.copy_workdir_to_assets()
-
-
-@task
-def copy_workdir_logs(file_path: FilePath) -> Path:
-    """
-    :param file_path: FilePath of the current imagefile
-    :return: pathlib.Path of copied directory
-
-    This task copies the logs of intermediate commands ran during the workflow.
-    Skips rest of the files unlike `file_path.copy_workdirs`
-    """
-    return file_path.copy_workdir_logs_to_assets()
 
 
 @task

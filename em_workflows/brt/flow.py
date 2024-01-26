@@ -629,9 +629,6 @@ def brt_flow(
     callback_with_tilt_mov = utils.add_asset.map(
         prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
-    copy_task = utils.copy_workdirs.map(fps, wait_for=[callback_with_tilt_mov])
-    # This is to make sure that we wait for copy completes before cleanup
-    copy_task.result()
 
     utils.callback_with_cleanup(
         fps=fps,
