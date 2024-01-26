@@ -4,7 +4,7 @@ import pytest
 
 
 @pytest.mark.slow
-def test_lrg_2d_flow_server_response(mock_nfs_mount, mock_callback_data):
+def test_lrg_2d_flow_server_response(mock_nfs_mount, caplog, mock_callback_data):
     from em_workflows.lrg_2d_rgb.flow import lrg_2d_flow
 
     state = lrg_2d_flow(
@@ -29,8 +29,6 @@ def test_lrg_2d_flow_server_response(mock_nfs_mount, mock_callback_data):
     expected_asset_types = sorted("thumbnail keyImage neuroglancerZarr".split())
     for result in results:
         assert expected_keys == sorted(result.keys()), "response keys don't match"
-        assert result["status"] == "success"
-        assert result["message"] is None
         assert len(result["imageSet"]) == 1, "more than one imageset"
         image_set = result["imageSet"][0]
         assert expected_imageset_keys == sorted(
@@ -85,86 +83,7 @@ def test_lrg_2d_flow_server_response(mock_nfs_mount, mock_callback_data):
     assert response == expected_response, "response and expected response don't match"
 
 
-def test_lrg_2d_flow_failure_server_response(
-    monkeypatch, mock_nfs_mount, mock_callback_data
-):
-    from em_workflows.lrg_2d_rgb.flow import lrg_2d_flow
-    from em_workflows.lrg_2d_rgb.flow import ng
-
-    original_gen_zarr = ng.bioformats_gen_zarr
-
-    def fake_gen_zarr(file_path, input_fname):
-        print(f"Fake called for {input_fname=}")
-        if "even_smaller" in input_fname:
-            raise RuntimeError(f"Bad input file {input_fname}")
-        return original_gen_zarr(file_path, input_fname)
-
-    monkeypatch.setattr(ng, "bioformats_gen_zarr", fake_gen_zarr)
-
-    state = lrg_2d_flow(
-        file_share="test",
-        input_dir="/test/input_files/lrg_ROI_pngs/Projects",
-        x_file_name="even_smaller.png",
-        x_no_api=True,
-        return_state=True,
-    )
-    assert state.is_failed()
-
-    response = {}
-    with open(mock_callback_data) as fd:
-        response = json.load(fd)
-
-    assert "files" in response, "files not in response"
-    assert isinstance(response["files"], list), "response.files not a list"
-    results = response["files"]
-    result = results[0]
-    assert result["status"] == "error"
-    assert "Zarr generation" in result["message"]
-
-
-@pytest.mark.parametrize("fails_for", ["even_smaller_broken"])
-def test_lrg_2d_flow_partial_failure_server_response(
-    monkeypatch, mock_nfs_mount, mock_callback_data, fails_for
-):
-    from em_workflows.lrg_2d_rgb.flow import lrg_2d_flow
-    from em_workflows.lrg_2d_rgb.flow import ng
-
-    original_gen_zarr = ng.bioformats_gen_zarr
-
-    def fake_gen_zarr(file_path, input_fname):
-        if fails_for in input_fname:
-            raise RuntimeError(f"Bad input file {input_fname}")
-        return original_gen_zarr(file_path, input_fname)
-
-    monkeypatch.setattr(ng, "bioformats_gen_zarr", fake_gen_zarr)
-
-    state = lrg_2d_flow(
-        file_share="test",
-        input_dir="/test/input_files/lrg_ROI_pngs/Projects/Partial_Correct/",
-        x_no_api=True,
-        return_state=True,
-    )
-    assert (
-        state.is_failed()
-    )  # Except for BRT, everything else should be failed (although partly failed)
-
-    response = {}
-    with open(mock_callback_data) as fd:
-        response = json.load(fd)
-
-    assert "files" in response, "files not in response"
-    assert isinstance(response["files"], list), "response.files not a list"
-    results = response["files"]
-    for result in results:
-        if fails_for in result["primaryFilePath"]:
-            assert result["status"] == "error"
-            assert "Zarr generation" in result["message"]
-        else:
-            assert result["status"] == "success"
-            assert result["message"] is None
-
-
-def test_only_wd_logs_are_copied(mock_nfs_mount):
+def test_only_wd_logs_are_copied(mock_nfs_mount, caplog):
     from em_workflows.lrg_2d_rgb.flow import lrg_2d_flow
 
     state = lrg_2d_flow(

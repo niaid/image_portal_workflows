@@ -646,3 +646,4 @@ async def test_async_and_sync_subflows(prefect_test_fixture):
 
     s_results = await myflow()
     assert s_results == [2, 4, 6]
+    assert False

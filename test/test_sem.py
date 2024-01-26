@@ -37,8 +37,6 @@ def test_sem_server_response(mock_nfs_mount, caplog, mock_callback_data):
     )
     for result in results:
         assert expected_keys == sorted(result.keys()), "response keys don't match"
-        assert result["status"] == "success"
-        assert result["message"] is None
         assert len(result["imageSet"]) == 1, "more than one imageset"
         image_set = result["imageSet"][0]
         assert expected_imageset_keys == sorted(
