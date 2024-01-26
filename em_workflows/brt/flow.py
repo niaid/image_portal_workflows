@@ -44,7 +44,7 @@ import math
 from typing import Optional
 from pathlib import Path
 from natsort import os_sorted
-from prefect import task, flow, unmapped, allow_failure
+from prefect import task, flow, unmapped
 from prefect.states import Completed, Failed
 from pytools.HedwigZarrImages import HedwigZarrImages
 
@@ -726,38 +726,39 @@ def brt_flow(
         prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
 
-    # Ref: https://github.com/PrefectHQ/prefect/blob/98d33187ecce032defb8ec7a263de32564e7f7f6/src/prefect/futures.py#L43
-    callback_result = list()
     for cb in callback_with_tilt_mov:
-        # Wait for the task to complete
-        # It does not mean that future state will be a terminal state
         cb.wait()
-        state = cb.get_state()
-        try:
-            if state.is_completed():
-                json.dumps(cb.result())
-                callback_result.append(cb.result())
-        except TypeError:  # can't serialize the item
-            utils.log(f"Following item cannot be added to callback:\n\n{cb.result()}")
-
+    copy_task = utils.copy_workdirs.map(file_path=fps)
+    # This is to make sure that we wait for copy completes before cleanup
+    for future in copy_task:
+        future.wait()
     cb = utils.send_callback_body.submit(
         x_no_api=x_no_api,
         token=token,
         callback_url=callback_url,
-        files_elts=callback_result,
+        files_elts=callback_with_tilt_mov,
     )
-
-    copy_task = utils.copy_workdirs.map(file_path=fps)
-
     utils.cleanup_workdir.submit(
         fps,
         x_keep_workdir,
-        wait_for=[allow_failure(copy_task)],
+        wait_for=[copy_task],
     )
+    # callback_result = get_callback_result.submit(callback_with_tilt_mov)
+    #    utils.callback_with_cleanup(
+    #        fps=fps,
+    #        callback_result=callback_result,
+    #        x_no_api=x_no_api,
+    #        callback_url=callback_url,
+    #        token=token,
+    #        x_keep_workdir=x_keep_workdir,
+    #    )
 
-    if callback_result:
-        return Completed(message="At least one callback is correct!")
-    return Failed(message="None of the files succeeded!")
+    for zarr in recon_movies:
+        print(zarr.result())
+        if isinstance(zarr.result(), Path):
+            return Completed(message="I am happy with this result")
+    return Failed(message="How did this happen!?")
+
     """
     # if the callback is not empty (that is one of the files passed), final=success
     final_state = bool(callback_with_tilt_mov)
