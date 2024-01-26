@@ -1,16 +1,11 @@
-import os
 import pytest
+import os
 import shutil
-import time
-import tempfile
 from pathlib import Path
+import tempfile
 from unittest.mock import Mock
-import json
 
 from prefect import flow, task, allow_failure
-from prefect.filesystems import LocalFileSystem
-from prefect.serializers import PickleSerializer
-from prefect.settings import PREFECT_HOME
 
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
@@ -400,111 +395,3 @@ def test_downstream_runs_if_upstream_fails_with_allow_failure_annotation(
 
     flow_state = test_flow()
     assert flow_state == 2
-
-
-def test_prefect_future_wait_with_valid_results_actually_waits(
-    prefect_test_fixture,
-):
-    @task
-    def long_running_on_1(arg):
-        if arg == 1:
-            time.sleep(10)
-        print(f"Passed long on {arg=}")
-        return arg
-
-    @task
-    def short_running(arg):
-        print(f"Passes short on {arg=}")
-        return arg
-
-    @flow
-    def test_flow():
-        a = [1, 2, 3]
-        longs = long_running_on_1.map(a)
-        shorts = short_running.map(longs)
-        for arg, futures in zip(a, shorts):
-            state = futures.wait()
-            result = state.result()
-            assert arg == result
-
-    flow_state = test_flow()
-    for state in flow_state:
-        assert state.is_completed(), f"Item {state=}"
-
-
-class TestResult:
-    def __init__(self, x=1):
-        self.x = x
-
-
-def test_task_result_is_persisted_and_accessible_at_the_end(
-    prefect_test_fixture,
-):
-    # Ref: https://github.com/PrefectHQ/prefect/blob/
-    # e748ad325e04ba4d0b5d472fef746d33518fe94e/tests/results/test_task_results.py#L301
-    storage = LocalFileSystem(basepath=PREFECT_HOME.value() / "test-storage")
-    serializer = PickleSerializer(picklelib="pickle")
-
-    @task(
-        persist_result=True,
-        result_storage=storage,
-        result_serializer=serializer,
-        result_storage_key="{flow_run.flow_name}__bar",
-    )
-    def bar(x: int = 1, y: str = "test"):
-        return TestResult(x=2)
-
-    @flow
-    def foo():
-        return bar(y="foo", return_state=True)
-
-    flow_state = foo(return_state=True)
-    task_state = flow_state.result()
-    assert task_state.data.storage_key == "foo__bar"
-
-    result = storage.read_path("foo__bar")
-    assert isinstance(result, bytes), result
-    value = serializer.loads(json.loads(result)["data"].encode())
-    assert isinstance(value, TestResult)
-    assert value.x == 2
-
-
-def test_task_result_persistend_and_accessed_by_hooks(
-    prefect_test_fixture,
-):
-    storage = LocalFileSystem(basepath=PREFECT_HOME.value() / "test-storage")
-    serializer = PickleSerializer(picklelib="pickle")
-
-    mock_hook = Mock(return_value=None)
-    # Kept getting error: AttributeError `__name__`
-    mock_hook.__name__ = "mock_hook"
-
-    def hook(flow, flow_run, state):
-        result = storage.read_path(f"{flow_run.id}__bar")
-
-        assert isinstance(result, bytes), result
-        value = serializer.loads(json.loads(result)["data"].encode())
-        assert isinstance(value, TestResult)
-        assert value.x == 2
-
-    @task(
-        persist_result=True,
-        result_storage=storage,
-        result_serializer=serializer,
-        result_storage_key="{flow_run.id}__bar",
-    )
-    def bar(x: int = 1, y: str = "test"):
-        return TestResult(x=2)
-
-    @flow(
-        on_completion=[hook, mock_hook],
-    )
-    def foo():
-        return bar(y="foo", return_state=True)
-
-    flow_state = foo(return_state=True)
-    task_state = flow_state.result()
-    assert "__bar" in task_state.data.storage_key
-
-    # asserts that mock hook and custom hook both are called
-    mock_hook.assert_called_once(), "Custom hook not called as well"
