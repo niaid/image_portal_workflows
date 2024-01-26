@@ -1,6 +1,5 @@
 import os
 import pytest
-import sys
 import shutil
 import time
 import tempfile
@@ -509,42 +508,3 @@ def test_task_result_persistend_and_accessed_by_hooks(
 
     # asserts that mock hook and custom hook both are called
     mock_hook.assert_called_once(), "Custom hook not called as well"
-
-
-def test_class_del_via_garbage_collection(
-    prefect_test_fixture,
-):
-    pytest.skip("Skipping; Only here to understand gc, obj.refcount, prefect")
-    mock = Mock(return_value=None)
-    # Kept getting error: AttributeError `__name__`
-    mock.__name__ = "mock"
-
-    class FilePath:
-        def __init__(self):
-            print("initializing object")
-            self.name = "file_path"
-
-        def __del__(self):
-            print("calling mock and deleting")
-            mock()
-
-    @task
-    def mytask():
-        fp = FilePath()
-        print(f"task {sys.getrefcount(fp)=}")
-        return fp
-
-    @flow
-    def myflow():
-        fp = mytask()
-        print(f"flow {sys.getrefcount(fp)=}")
-        return fp
-
-    fp = myflow()
-    assert fp.name == "file_path"
-    """
-    Assumption was, there would only be one reference for fp instance
-    However, the way prefect works, there can be so many more (got 7 here)
-    """
-    print(f"Outside {sys.getrefcount(fp)=}")
-    assert sys.getrefcount(fp) == 1, "More reference count than we assumed"
