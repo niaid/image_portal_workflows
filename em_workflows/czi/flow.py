@@ -3,12 +3,11 @@ from pathlib import Path
 from typing import List, Dict
 
 import SimpleITK as sitk
-from prefect import flow, task
+from prefect import flow, task, allow_failure
 from pytools.HedwigZarrImage import HedwigZarrImage
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.file_path import FilePath
-from em_workflows.flow import callback_with_cleanup
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 from em_workflows.czi.constants import (
@@ -16,7 +15,6 @@ from em_workflows.czi.constants import (
     THUMB_X_DIM,
     THUMB_Y_DUM,
     SITK_COMPRESSION_LVL,
-    TILE_SIZE,
 )
 from em_workflows.czi.config import CZIConfig
 
@@ -41,20 +39,7 @@ def gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> d
         return thumb_asset
 
 
-@task
-def rechunk_zarr(file_path: FilePath):
-    output_zarr = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
-    ng.rechunk_zarr(zarr_fp=Path(output_zarr))
-
-
-@task
-def copy_zarr_to_assets_dir(file_path: FilePath):
-    output_zarr = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
-    file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
-
-
-@task
-def generate_imageset(file_path: FilePath):
+def gen_imageSet(file_path: FilePath) -> List:
     zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
     image_set = list()
     zarr_images = HedwigZarrImages(Path(zarr_fp))
@@ -108,21 +93,24 @@ def generate_imageset(file_path: FilePath):
     task_runner=CZIConfig.SLURM_EXECUTOR,
 )
 async def generate_czi_imageset(file_path: FilePath):
-    zarr_result = generate_zarr.submit(file_path)
-    rechunk_result = rechunk_zarr.submit(file_path, wait_for=[zarr_result])
-    copy_zarr_to_assets_dir.submit(file_path, wait_for=[rechunk_result])
-    return generate_imageset.submit(file_path, wait_for=[copy_zarr_to_assets_dir])
+    return task_generate_czi_imageset.submit(file_path)
 
 
 @task
-def generate_zarr(file_path: FilePath):
+def task_generate_czi_imageset(file_path: FilePath):
     input_czi = f"{file_path.proj_dir}/{file_path.base}.czi"
     ng.bioformats_gen_zarr(
         file_path=file_path,
         input_fname=input_czi,
-        width=TILE_SIZE,
-        height=TILE_SIZE,
+        rechunk=True,
+        width=512,
+        height=512,
     )
+    utils.log("Generating imageset")
+    imageSet = gen_imageSet(file_path=file_path)
+    utils.log("Imageset generated...")
+    # extract images from input file, used to create imageSet elements
+    return imageSet
 
 
 @task
@@ -180,12 +168,14 @@ async def czi_flow(
         file_path=fps, callback_with_zarr=callback_with_zarrs
     )
     callback_with_zarrs = find_thumb_idx(callback=callback_with_zarrs)
-
-    callback_with_cleanup(
-        fps=fps,
-        callback_result=callback_with_zarrs,
+    cp_wd_to_assets = utils.copy_workdirs.map(fps, wait_for=[callback_with_zarrs])
+    filtered_callback = utils.filter_results(callback_with_zarrs)
+    cb = utils.send_callback_body(
         no_api=no_api,
-        callback_url=callback_url,
         token=token,
-        keep_workdir=keep_workdir,
+        callback_url=callback_url,
+        files_elts=filtered_callback,
+    )
+    utils.cleanup_workdir(
+        fps, keep_workdir, wait_for=[allow_failure(cb), allow_failure(cp_wd_to_assets)]
     )

@@ -27,6 +27,7 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     job_script_prologue = [
         f"source /gs1/home/hedwig_{env_name}/{env_name}/bin/activate",
         "echo $PATH",
+        "echo `which prefect`",
     ]
     cluster = SLURMCluster(
         name="dask-worker",
