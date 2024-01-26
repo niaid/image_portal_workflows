@@ -22,13 +22,6 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     The memory limit is also divided among the workers
     """
     home = os.environ["HOME"]
-    env_name = os.environ["HEDWIG_ENV"]
-    flowrun_id = os.environ.get("PREFECT__FLOW_RUN_ID", "not-found")
-    job_script_prologue = [
-        f"source /gs1/home/hedwig_{env_name}/{env_name}/bin/activate",
-        "echo $PATH",
-        "echo `which prefect`",
-    ]
     cluster = SLURMCluster(
         name="dask-worker",
         cores=62,
@@ -36,8 +29,6 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
         processes=4,
         death_timeout=121,
         local_directory=f"{home}/dask_tmp/",
-        log_directory=f"{home}/slurm-log/{flowrun_id}",
-        job_script_prologue=job_script_prologue,
         queue="gpu",
         walltime="24:00:00",
         job_extra_directives=["--gres=gpu:1"],

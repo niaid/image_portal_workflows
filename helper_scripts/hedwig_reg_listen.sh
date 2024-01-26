@@ -42,9 +42,6 @@ fi
 # start worker specific to THAT venv
 WORKPOOL=workpool
 
-# Expecting the repo to be accessible directly from HOME
-cd ~/image_portal_workflows
-
 if [[ $ACTION == "listen" ]]; then
 	printf "\nStarting $HEDWIG_ENV Worker\n"
 	sh -c "prefect worker start --pool $WORKPOOL"
