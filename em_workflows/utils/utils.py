@@ -63,21 +63,7 @@ def lookup_dims(fp: Path) -> Header:
         return xyz_cleaned
 
 
-def collect_exception_task_hook(task: Task, task_run: TaskRun, state: State):
-    message = f"Failure in pipeline step: {task.name}"
-    map_idx = task_run.name.split("-")[-1]
-    flow_run_id = state.state_details.flow_run_id
-    path = f"{flow_run_id}__{map_idx}"
-    try:
-        Config.local_storage.read_path(path)
-    except ValueError:  # ValueError path not found
-        Config.local_storage.write_path(path, message.encode())
-
-
-@task(
-    name="mrc to movie generation",
-    on_failure=[collect_exception_task_hook],
-)
+@task
 def mrc_to_movie(file_path: FilePath, root: str, asset_type: str):
     """
     :param file_path: FilePath for the input
@@ -309,6 +295,17 @@ def copy_template(working_dir: Path, template_name: str) -> Path:
     log(f"trying to copy {template_fp} to {adoc_fp}")
     shutil.copyfile(template_fp, adoc_fp)
     return Path(adoc_fp)
+
+
+def collect_exception_task_hook(task: Task, task_run: TaskRun, state: State):
+    message = f"Failure in pipeline step: {task.name}"
+    map_idx = task_run.name.split("-")[-1]
+    flow_run_id = state.state_details.flow_run_id
+    path = f"{flow_run_id}__{map_idx}"
+    try:
+        Config.local_storage.read_path(path)
+    except ValueError:  # ValueError path not found
+        Config.local_storage.write_path(path, message.encode())
 
 
 @task(

@@ -260,17 +260,12 @@ def dm_flow(
     )
 
     callback_result = list()
-    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_keyimgs)):
+    for fp, cb in zip(fps.result(), callback_with_keyimgs):
         state = cb.wait()
         if state.is_completed():
             callback_result.append(cb.result())
         else:
-            path = f"{state.state_details.flow_run_id}__{idx}"
-            try:
-                message = DMConfig.local_storage.read_path(path)
-                callback_result.append(fp.gen_prim_fp_elt(message.decode()))
-            except ValueError:
-                callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
+            callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
 
     utils.send_callback_body.submit(
         x_no_api=x_no_api,

@@ -36,10 +36,7 @@ from em_workflows.sem_tomo.config import SEMConfig
 from em_workflows.sem_tomo.constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_WIDTH
 
 
-@task(
-    name="mrc to xf image alignment",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task
 def gen_xfalign_comand(fp_in: FilePath) -> None:
     """
     eg::
@@ -63,10 +60,7 @@ def gen_xfalign_comand(fp_in: FilePath) -> None:
     FilePath.run(cmd=cmd, log_file=log_file)
 
 
-@task(
-    name="xf to xg image alignment",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task
 def gen_align_xg(fp_in: FilePath) -> None:
     """
     eg::
@@ -88,10 +82,7 @@ def gen_align_xg(fp_in: FilePath) -> None:
     FilePath.run(cmd=cmd, log_file=log_file)
 
 
-@task(
-    name="Newstack mrc generation",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task
 def gen_newstack_combi(fp_in: FilePath) -> Dict:
     """
     eg::
@@ -125,10 +116,7 @@ def gen_newstack_combi(fp_in: FilePath) -> Dict:
     )
 
 
-@task(
-    name="tiff to mrc conversion",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task
 def convert_tif_to_mrc(file_path: FilePath) -> int:
     """
     | Generates source.mrc
@@ -168,10 +156,7 @@ def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
         _file.write(f"1 0 0 {tilt_angle} 0 0")
 
 
-@task(
-    name="Mid mrc generation",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task
 def gen_newstack_mid_mrc_command(fp_in: FilePath) -> None:
     """
     Generates mid.mrc. eg::
@@ -254,10 +239,7 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
     return keyimg_asset
 
 
-@task(
-    name="Zarr generation",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task
 def gen_zarr(fp_in: FilePath) -> None:
     file_path = fp_in
     # fallback mrc file
@@ -281,10 +263,7 @@ def gen_zarr(fp_in: FilePath) -> None:
     ng.zarr_build_multiscales(fp_in)
 
 
-@task(
-    name="Neuroglancer metadata generation",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task
 def gen_ng_metadata(fp_in: FilePath) -> Dict:
     """
     | Initialize HedwigZarrImages instace from .zarr group array
@@ -405,17 +384,12 @@ def sem_tomo_flow(
     )
 
     callback_result = list()
-    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_corr_movies)):
+    for fp, cb in zip(fps.result(), callback_with_corr_movies):
         state = cb.wait()
         if state.is_completed():
             callback_result.append(cb.result())
         else:
-            path = f"{state.state_details.flow_run_id}__{idx}"
-            try:
-                message = SEMConfig.local_storage.read_path(path)
-                callback_result.append(fp.gen_prim_fp_elt(message.decode()))
-            except ValueError:
-                callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
+            callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
 
     utils.send_callback_body.submit(
         x_no_api=x_no_api,
