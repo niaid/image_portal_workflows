@@ -227,9 +227,6 @@ def dm_flow(
     -convert all mrcs in Projects dir to jpegs.
     -convert all tiffs/pngs/jpegs to correct size for thumbs, "sm" and "lg"
     """
-    utils.log("this is coming out of the flow")
-
-    # utils.log(input_dir)
     input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
 
     input_fps = utils.list_files(
@@ -237,12 +234,10 @@ def dm_flow(
         VALID_2D_INPUT_EXTS,
         single_file=x_file_name,
     )
-
     fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
     # logs = utils.init_log.map(file_path=fps)
 
     # subflow calls are blocking, so lower task runs auto waits always
-    return
     convert_intermediate_files(fps)
 
     # Finally generate all valid suffixed results
