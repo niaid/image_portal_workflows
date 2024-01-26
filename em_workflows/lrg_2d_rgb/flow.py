@@ -44,7 +44,6 @@ def convert_png_to_tiff(file_path: FilePath):
     ]
     utils.log(f"Generated cmd {cmd}")
     FilePath.run(cmd, log_fp)
-    return file_path
 
 
 @task(
@@ -58,7 +57,6 @@ def gen_zarr(file_path: FilePath) -> None:
         file_path=file_path,
         input_fname=input_tiff,
     )
-    return file_path
 
 
 @task(
@@ -67,14 +65,12 @@ def gen_zarr(file_path: FilePath) -> None:
 )
 def rechunk_zarr(file_path: FilePath):
     ng.rechunk_zarr(file_path=file_path)
-    return file_path
 
 
 @task
 def copy_zarr_to_assets_dir(file_path: FilePath):
     output_zarr = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
     file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
-    return file_path
 
 
 @task(
@@ -191,11 +187,11 @@ def lrg_2d_flow(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
     )
     tiffs = convert_png_to_tiff.map(file_path=fps)
-    zarrs = gen_zarr.map(file_path=tiffs)
-    rechunk = rechunk_zarr.map(file_path=zarrs)
-    copy_to_assets = copy_zarr_to_assets_dir.map(file_path=rechunk)
-    zarr_assets = generate_ng_asset.map(file_path=copy_to_assets)
-    thumb_assets = gen_thumb.map(file_path=zarrs)
+    zarrs = gen_zarr.map(file_path=fps, wait_for=[tiffs])
+    rechunk = rechunk_zarr.map(file_path=fps, wait_for=[zarrs])
+    copy_to_assets = copy_zarr_to_assets_dir.map(file_path=fps, wait_for=[rechunk])
+    zarr_assets = generate_ng_asset.map(file_path=fps, wait_for=[copy_to_assets])
+    thumb_assets = gen_thumb.map(file_path=fps, wait_for=[zarr_assets])
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
     callback_with_pyramids = utils.add_asset.map(
