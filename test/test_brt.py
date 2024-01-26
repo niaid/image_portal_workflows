@@ -18,7 +18,6 @@ def test_brt(mock_nfs_mount):
     if not Path(input_dir).exists():
         pytest.skip(f"Directory {input_dir} doesn't exist")
 
-    # parameters to brt_flow are sensitive, and altering them may result in different response
     result = brt_flow(
         adoc_template="plastic_brt",
         montage=0,
@@ -48,7 +47,6 @@ def test_brt_server_response(mock_nfs_mount, caplog, mock_callback_data):
     if not Path(input_dir).exists():
         pytest.skip(f"Directory {input_dir} doesn't exist")
 
-    # parameters to brt_flow are sensitive, and altering them may result in different response
     state = brt_flow(
         adoc_template="plastic_brt",
         montage=0,
@@ -101,7 +99,62 @@ def test_brt_server_response(mock_nfs_mount, caplog, mock_callback_data):
     # entire response comes through. In the future, if the inner details change this
     #  should be moved to assert checks
     # Note REMOVE ME if the test data changes frequenlty enough
-    expected_response = { "files": [ { "primaryFilePath": "test/input_files/brt/Projects/RT_TOMO/2013-1220-dA30_5-BSC-1_10.mrc", "status": "success", "message": None, "thumbnailIndex": 0, "title": "2013-1220-dA30_5-BSC-1_10", "fileMetadata": None, "imageSet": [ { "imageName": "2013-1220-dA30_5-BSC-1_10", "imageMetadata": None, "assets": [ { "type": "thumbnail", "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/keyimg_2013-1220-dA30_5-BSC-1_10_ali_ali.060_s.jpg", }, { "type": "keyImage", "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/2013-1220-dA30_5-BSC-1_10_ali_ali.060.jpg", }, { "type": "neuroglancerZarr", "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/2013-1220-dA30_5-BSC-1_10.zarr/0", "metadata": { "shader": "Grayscale", "dimensions": "XYZ", "shaderParameters": { "range": [-785, -419], "window": [-1242, -278], }, }, }, { "type": "volume", "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/ave_2013-1220-dA30_5-BSC-1_10_rec.mrc", }, { "type": "averagedVolume", "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/avebin8_ave_2013-1220-dA30_5-BSC-1_10_rec.mrc", }, { "type": "recMovie", "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/ave_2013-1220-dA30_5-BSC-1_10_rec_keyMov.mp4", }, { "type": "tiltMovie", "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/tiltMov_2013-1220-dA30_5-BSC-1_10_ali.mp4", }, ], } ], } ] }  # noqa
+    expected_response = {
+        "files": [
+            {
+                "primaryFilePath": "test/input_files/brt/Projects/RT_TOMO/2013-1220-dA30_5-BSC-1_10.mrc",
+                "status": "success",
+                "message": None,
+                "thumbnailIndex": 0,
+                "title": "2013-1220-dA30_5-BSC-1_10",
+                "fileMetadata": None,
+                "imageSet": [
+                    {
+                        "imageName": "2013-1220-dA30_5-BSC-1_10",
+                        "imageMetadata": None,
+                        "assets": [
+                            {
+                                "type": "thumbnail",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/keyimg_2013-1220-dA30_5-BSC-1_10_ali_ali.060_s.jpg",
+                            },
+                            {
+                                "type": "keyImage",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/2013-1220-dA30_5-BSC-1_10_ali_ali.060.jpg",
+                            },
+                            {
+                                "type": "neuroglancerZarr",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/2013-1220-dA30_5-BSC-1_10.zarr/0",
+                                "metadata": {
+                                    "shader": "Grayscale",
+                                    "dimensions": "XYZ",
+                                    "shaderParameters": {
+                                        "range": [-785, -419],
+                                        "window": [-1242, -278],
+                                    },
+                                },
+                            },
+                            {
+                                "type": "volume",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/ave_2013-1220-dA30_5-BSC-1_10_rec.mrc",
+                            },
+                            {
+                                "type": "averagedVolume",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/avebin8_ave_2013-1220-dA30_5-BSC-1_10_rec.mrc",
+                            },
+                            {
+                                "type": "recMovie",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/ave_2013-1220-dA30_5-BSC-1_10_rec_keyMov.mp4",
+                            },
+                            {
+                                "type": "tiltMovie",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/2013-1220-dA30_5-BSC-1_10/tiltMov_2013-1220-dA30_5-BSC-1_10_ali.mp4",
+                            },
+                        ],
+                    }
+                ],
+            }
+        ]
+    }  # noqa
     assert response == expected_response
 
 
@@ -143,8 +196,77 @@ def test_brt_response_partial_failure(mock_nfs_mount, caplog, mock_callback_data
 
     result1, result2 = response["files"]
     assert result1["status"] != result2["status"], "One should have been error"
-
-    expected_response = { "files": [ { "primaryFilePath": "test/input_files/brt/Projects/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10.mrc", "status": "success", "message": None, "thumbnailIndex": 0, "title": "2013-1220-dA30_5-BSC-1_10", "fileMetadata": None, "imageSet": [ { "imageName": "2013-1220-dA30_5-BSC-1_10", "imageMetadata": None, "assets": [ { "type": "thumbnail", "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/keyimg_2013-1220-dA30_5-BSC-1_10_ali_ali.060_s.jpg", }, { "type": "keyImage", "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/2013-1220-dA30_5-BSC-1_10_ali_ali.060.jpg", }, { "type": "neuroglancerZarr", "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/2013-1220-dA30_5-BSC-1_10.zarr/0", "metadata": { "shader": "Grayscale", "dimensions": "XYZ", "shaderParameters": { "range": [-785, -419], "window": [-1242, -278], }, }, }, { "type": "volume", "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/ave_2013-1220-dA30_5-BSC-1_10_rec.mrc", }, { "type": "averagedVolume", "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/avebin8_ave_2013-1220-dA30_5-BSC-1_10_rec.mrc", }, { "type": "recMovie", "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/ave_2013-1220-dA30_5-BSC-1_10_rec_keyMov.mp4", }, { "type": "tiltMovie", "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/tiltMov_2013-1220-dA30_5-BSC-1_10_ali.mp4", }, ], } ], }, { "primaryFilePath": "test/input_files/brt/Projects/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10-Broken.mrc", "status": "error", "message": "Failure in pipeline step: Batchruntomo conversion", "thumbnailIndex": 0, "title": "2013-1220-dA30_5-BSC-1_10-Broken", "fileMetadata": None, "imageSet": [ { "imageName": "2013-1220-dA30_5-BSC-1_10-Broken", "imageMetadata": None, "assets": [], } ], }, ] }  # noqa
+    expected_response = {
+        "files": [
+            {
+                "primaryFilePath": "test/input_files/brt/Projects/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10.mrc",
+                "status": "success",
+                "message": None,
+                "thumbnailIndex": 0,
+                "title": "2013-1220-dA30_5-BSC-1_10",
+                "fileMetadata": None,
+                "imageSet": [
+                    {
+                        "imageName": "2013-1220-dA30_5-BSC-1_10",
+                        "imageMetadata": None,
+                        "assets": [
+                            {
+                                "type": "thumbnail",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/keyimg_2013-1220-dA30_5-BSC-1_10_ali_ali.060_s.jpg",
+                            },
+                            {
+                                "type": "keyImage",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/2013-1220-dA30_5-BSC-1_10_ali_ali.060.jpg",
+                            },
+                            {
+                                "type": "neuroglancerZarr",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/2013-1220-dA30_5-BSC-1_10.zarr/0",
+                                "metadata": {
+                                    "shader": "Grayscale",
+                                    "dimensions": "XYZ",
+                                    "shaderParameters": {
+                                        "range": [-785, -419],
+                                        "window": [-1242, -278],
+                                    },
+                                },
+                            },
+                            {
+                                "type": "volume",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/ave_2013-1220-dA30_5-BSC-1_10_rec.mrc",
+                            },
+                            {
+                                "type": "averagedVolume",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/avebin8_ave_2013-1220-dA30_5-BSC-1_10_rec.mrc",
+                            },
+                            {
+                                "type": "recMovie",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/ave_2013-1220-dA30_5-BSC-1_10_rec_keyMov.mp4",
+                            },
+                            {
+                                "type": "tiltMovie",
+                                "path": "test/input_files/brt/Assets/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10/tiltMov_2013-1220-dA30_5-BSC-1_10_ali.mp4",
+                            },
+                        ],
+                    }
+                ],
+            },
+            {
+                "primaryFilePath": "test/input_files/brt/Projects/RT_TOMO/Partly_Correct/2013-1220-dA30_5-BSC-1_10-Broken.mrc",
+                "status": "error",
+                "message": "Failure in pipeline step: Batchruntomo conversion",
+                "thumbnailIndex": 0,
+                "title": "2013-1220-dA30_5-BSC-1_10-Broken",
+                "fileMetadata": None,
+                "imageSet": [
+                    {
+                        "imageName": "2013-1220-dA30_5-BSC-1_10-Broken",
+                        "imageMetadata": None,
+                        "assets": [],
+                    }
+                ],
+            },
+        ]
+    }  # noqa
     assert response == expected_response
     result_success, result_error = result1, result2
     if result1["status"] == "error":
@@ -195,5 +317,23 @@ def test_brt_response_all_failure(mock_nfs_mount, caplog, mock_callback_data):
     assert result["status"] == "error"
     assert result["message"], "Error message is empty"
     # Asserting an entire structure of the response to the api server
-    expected_response = { "files": [ { "primaryFilePath": "test/input_files/brt/Projects/RT_TOMO/Failure/2013-1220-dA30_5-BSC-1_10-Broken.mrc", "status": "error", "message": "Failure in pipeline step: Batchruntomo conversion", "thumbnailIndex": 0, "title": "2013-1220-dA30_5-BSC-1_10-Broken", "fileMetadata": None, "imageSet": [ { "imageName": "2013-1220-dA30_5-BSC-1_10-Broken", "imageMetadata": None, "assets": [], } ], } ] }  # noqa
+    expected_response = {
+        "files": [
+            {
+                "primaryFilePath": "test/input_files/brt/Projects/RT_TOMO/Failure/2013-1220-dA30_5-BSC-1_10-Broken.mrc",
+                "status": "error",
+                "message": "Failure in pipeline step: Batchruntomo conversion",
+                "thumbnailIndex": 0,
+                "title": "2013-1220-dA30_5-BSC-1_10-Broken",
+                "fileMetadata": None,
+                "imageSet": [
+                    {
+                        "imageName": "2013-1220-dA30_5-BSC-1_10-Broken",
+                        "imageMetadata": None,
+                        "assets": [],
+                    }
+                ],
+            }
+        ]
+    }  # noqa
     assert response == expected_response

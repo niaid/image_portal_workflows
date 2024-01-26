@@ -54,7 +54,98 @@ def test_sem_server_response(mock_nfs_mount, caplog, mock_callback_data):
         assert all([asset["path"] for asset in assets]), "not all asset.path is valid"
 
     # Note REMOVE ME if the test data changes frequenlty enough
-    expected_response = { "files": [ { "primaryFilePath": "test/input_files/sem_inputs/Projects/YFV-Asibi/YFV-Asibi-Copy", "status": "success", "message": None, "thumbnailIndex": 0, "title": "YFV-Asibi-Copy", "fileMetadata": None, "imageSet": [ { "imageName": "YFV-Asibi-Copy", "imageMetadata": None, "assets": [ { "type": "thumbnail", "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi-Copy/keyimg_sm.jpg", }, { "type": "keyImage", "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi-Copy/keyimg.jpg", }, { "type": "neuroglancerZarr", "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi-Copy/YFV-Asibi-Copy.zarr/0", "metadata": { "shader": "Grayscale", "dimensions": "XYZ", "shaderParameters": { "range": [-47, 127], "window": [-47, 127], }, }, }, { "type": "averagedVolume", "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi-Copy/adjusted.mrc", }, { "type": "recMovie", "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi-Copy/YFV-Asibi-Copy_recMovie.mp4", }, ], } ], }, { "primaryFilePath": "test/input_files/sem_inputs/Projects/YFV-Asibi/YFV-Asibi", "status": "success", "message": None, "thumbnailIndex": 0, "title": "YFV-Asibi", "fileMetadata": None, "imageSet": [ { "imageName": "YFV-Asibi", "imageMetadata": None, "assets": [ { "type": "thumbnail", "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi/keyimg_sm.jpg", }, { "type": "keyImage", "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi/keyimg.jpg", }, { "type": "neuroglancerZarr", "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi/YFV-Asibi.zarr/0", "metadata": { "shader": "Grayscale", "dimensions": "XYZ", "shaderParameters": { "range": [-47, 127], "window": [-47, 127], }, }, }, { "type": "averagedVolume", "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi/adjusted.mrc", }, { "type": "recMovie", "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi/YFV-Asibi_recMovie.mp4", }, ], } ], }, ] }  # noqa
+    expected_response = {
+        "files": [
+            {
+                "primaryFilePath": "test/input_files/sem_inputs/Projects/YFV-Asibi/YFV-Asibi-Copy",
+                "status": "success",
+                "message": None,
+                "thumbnailIndex": 0,
+                "title": "YFV-Asibi-Copy",
+                "fileMetadata": None,
+                "imageSet": [
+                    {
+                        "imageName": "YFV-Asibi-Copy",
+                        "imageMetadata": None,
+                        "assets": [
+                            {
+                                "type": "thumbnail",
+                                "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi-Copy/keyimg_sm.jpg",
+                            },
+                            {
+                                "type": "keyImage",
+                                "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi-Copy/keyimg.jpg",
+                            },
+                            {
+                                "type": "neuroglancerZarr",
+                                "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi-Copy/YFV-Asibi-Copy.zarr/0",
+                                "metadata": {
+                                    "shader": "Grayscale",
+                                    "dimensions": "XYZ",
+                                    "shaderParameters": {
+                                        "range": [-47, 127],
+                                        "window": [-47, 127],
+                                    },
+                                },
+                            },
+                            {
+                                "type": "averagedVolume",
+                                "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi-Copy/adjusted.mrc",
+                            },
+                            {
+                                "type": "recMovie",
+                                "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi-Copy/YFV-Asibi-Copy_recMovie.mp4",
+                            },
+                        ],
+                    }
+                ],
+            },
+            {
+                "primaryFilePath": "test/input_files/sem_inputs/Projects/YFV-Asibi/YFV-Asibi",
+                "status": "success",
+                "message": None,
+                "thumbnailIndex": 0,
+                "title": "YFV-Asibi",
+                "fileMetadata": None,
+                "imageSet": [
+                    {
+                        "imageName": "YFV-Asibi",
+                        "imageMetadata": None,
+                        "assets": [
+                            {
+                                "type": "thumbnail",
+                                "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi/keyimg_sm.jpg",
+                            },
+                            {
+                                "type": "keyImage",
+                                "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi/keyimg.jpg",
+                            },
+                            {
+                                "type": "neuroglancerZarr",
+                                "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi/YFV-Asibi.zarr/0",
+                                "metadata": {
+                                    "shader": "Grayscale",
+                                    "dimensions": "XYZ",
+                                    "shaderParameters": {
+                                        "range": [-47, 127],
+                                        "window": [-47, 127],
+                                    },
+                                },
+                            },
+                            {
+                                "type": "averagedVolume",
+                                "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi/adjusted.mrc",
+                            },
+                            {
+                                "type": "recMovie",
+                                "path": "test/input_files/sem_inputs/Assets/YFV-Asibi/YFV-Asibi/YFV-Asibi_recMovie.mp4",
+                            },
+                        ],
+                    }
+                ],
+            },
+        ]
+    }  # noqa
 
     assert response == expected_response
 
