@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -15,9 +15,9 @@
   
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
         <script src="_static/doctools.js?v=888ff710"></script>
-        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -92,10 +92,10 @@
            <div itemprop="articleBody">
              
   <section id="project-development">
-<h1>Project Development<a class="headerlink" href="#project-development" title="Permalink to this heading"></a></h1>
+<h1>Project Development<a class="headerlink" href="#project-development" title="Link to this heading"></a></h1>
 <p>We assume you are developing locally, on Linux or Mac OS, with access to Python 3.10 (or later).</p>
 <section id="virtual-environment-set-up">
-<h2>Virtual environment Set-up<a class="headerlink" href="#virtual-environment-set-up" title="Permalink to this heading"></a></h2>
+<h2>Virtual environment Set-up<a class="headerlink" href="#virtual-environment-set-up" title="Link to this heading"></a></h2>
 <p>Set up virtual environment, for example “dev”, and install workflows source.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># create env</span>
 python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>dev
@@ -110,7 +110,7 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 <p>Similar to the HPC Set up below, you can locally set up <cite>dev</cite> and <cite>qa</cite> virtual envs.</p>
 </section>
 <section id="ancillary-utils-and-env-file">
-<h2>Ancillary utils and <code class="docutils literal notranslate"><span class="pre">.env</span></code> file<a class="headerlink" href="#ancillary-utils-and-env-file" title="Permalink to this heading"></a></h2>
+<h2>Ancillary utils and <code class="docutils literal notranslate"><span class="pre">.env</span></code> file<a class="headerlink" href="#ancillary-utils-and-env-file" title="Link to this heading"></a></h2>
 <p>Our pipelines rely on a number of freely available utilities:</p>
 <ul class="simple">
 <li><p>Java runtime (in order to run <cite>etomo</cite> in BRT)</p></li>
@@ -141,7 +141,7 @@ is no fix or workaround for this issue.</p>
 </div>
 </section>
 <section id="docker-and-env-file">
-<h2>Docker and <code class="docutils literal notranslate"><span class="pre">.env</span></code> file<a class="headerlink" href="#docker-and-env-file" title="Permalink to this heading"></a></h2>
+<h2>Docker and <code class="docutils literal notranslate"><span class="pre">.env</span></code> file<a class="headerlink" href="#docker-and-env-file" title="Link to this heading"></a></h2>
 <p>You can also choose to use Docker for local development and testing.
 Note, the container will need an <cite>.env</cite> file similar to any other environment. The easiest way
 to achieve this is copying the existing example file <cite>.env.sample</cite> to <cite>.env</cite>, this should work
@@ -161,7 +161,7 @@ root@f3a8b5823032:/image_portal_workflows$<span class="w"> </span>pytest<span cl
 </div>
 </section>
 <section id="testing">
-<h2>Testing<a class="headerlink" href="#testing" title="Permalink to this heading"></a></h2>
+<h2>Testing<a class="headerlink" href="#testing" title="Link to this heading"></a></h2>
 <p>All <code class="docutils literal notranslate"><span class="pre">pytest</span></code> files reside in the <cite>test</cite> directory:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">test_brt</span></code>: end-to-end test of batchruntomo pipeline</p></li>
@@ -214,13 +214,13 @@ tests in <code class="docutils literal notranslate"><span class="pre">test_utils
 every time; comment out or delete the decorator to run them.</p>
 </section>
 <section id="contributing-and-github">
-<h2>Contributing and GitHub<a class="headerlink" href="#contributing-and-github" title="Permalink to this heading"></a></h2>
+<h2>Contributing and GitHub<a class="headerlink" href="#contributing-and-github" title="Link to this heading"></a></h2>
 <p><a class="reference external" href="https://github.com/niaid/image_portal_workflows">Source code</a>
 and <a class="reference external" href="https://niaid.github.io/image_portal_workflows">Docs</a></p>
 <p>While contributing find useful information on: <a class="reference external" href="https://docs.github.com/en/github/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request">creating a PR</a>
 along with <a class="reference external" href="https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project">contributing to a project</a>.</p>
 <section id="pre-commit">
-<h3>pre-commit<a class="headerlink" href="#pre-commit" title="Permalink to this heading"></a></h3>
+<h3>pre-commit<a class="headerlink" href="#pre-commit" title="Link to this heading"></a></h3>
 <p>We use <a class="reference external" href="https://pre-commit.com/">pre-commit</a>, a framework for managing pre-commit hooks that will check code for code
 format compliance at commit time. It is configured via a top-level <code class="docutils literal notranslate"><span class="pre">.pre-commit-config.yaml</span></code> file that runs <code class="docutils literal notranslate"><span class="pre">black</span></code>,
 <code class="docutils literal notranslate"><span class="pre">Flake8</span></code> and other checks.</p>
@@ -228,7 +228,7 @@ format compliance at commit time. It is configured via a top-level <code class="
 </section>
 </section>
 <section id="sphinx-documentation">
-<h2>Sphinx Documentation<a class="headerlink" href="#sphinx-documentation" title="Permalink to this heading"></a></h2>
+<h2>Sphinx Documentation<a class="headerlink" href="#sphinx-documentation" title="Link to this heading"></a></h2>
 <p><a class="reference external" href="https://www.sphinx-doc.org/">Sphinx</a> documentation as automatically rendered and pushed the the gh-pages branch. The
 API is documented in Sphinx from the the Python docstring automatically for the public module methods and select private
 methods.</p>
@@ -249,13 +249,13 @@ rm<span class="w"> </span>-rf<span class="w"> </span>_build<span class="w"> </sp
 </div>
 </section>
 <section id="register-workflows">
-<h2>Register Workflows:<a class="headerlink" href="#register-workflows" title="Permalink to this heading"></a></h2>
+<h2>Register Workflows:<a class="headerlink" href="#register-workflows" title="Link to this heading"></a></h2>
 <p>To register a new workflow, or update an existing one (in <cite>qa</cite> environment):
 (The workflow needs to be registered every time the source is updated.)
 <cite>image_portal_workflows/helper_scripts/hedwig_reg_listen.sh qa register</cite></p>
 </section>
 <section id="git-lfs">
-<h2>Git LFS<a class="headerlink" href="#git-lfs" title="Permalink to this heading"></a></h2>
+<h2>Git LFS<a class="headerlink" href="#git-lfs" title="Link to this heading"></a></h2>
 <p><em>We are aiming to use s3 (with rsync capabilities) over git-lfs for test data storage</em></p>
 </section>
 </section>
