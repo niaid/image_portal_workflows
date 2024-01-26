@@ -43,7 +43,7 @@ import math
 from typing import Optional
 from pathlib import Path
 
-from prefect import task, flow, unmapped, allow_failure
+from prefect import task, flow, unmapped
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
@@ -554,13 +554,11 @@ def brt_flow(
     # stack dimensions - used in movie creation
     # alignment z dimension, this is only used for the tilt movie.
     ali_z_dims = gen_dimension_command.map(
-        file_path=fps, ali_or_rec=unmapped("ali"), wait_for=[allow_failure(brts)]
+        file_path=fps, ali_or_rec=unmapped("ali"), wait_for=[brts]
     )
 
     # START TILT MOVIE GENERATION:
-    ali_xs = gen_ali_x.map(
-        file_path=fps, z_dim=ali_z_dims, wait_for=[allow_failure(brts)]
-    )
+    ali_xs = gen_ali_x.map(file_path=fps, z_dim=ali_z_dims, wait_for=[brts])
     asmbls = gen_ali_asmbl.map(file_path=fps, wait_for=[ali_xs])
     mrc2tiffs = gen_mrc2tiff.map(file_path=fps, wait_for=[asmbls])
     thumb_assets = gen_thumbs.map(file_path=fps, z_dim=ali_z_dims, wait_for=[mrc2tiffs])
@@ -582,7 +580,7 @@ def brt_flow(
 
     # START RECONSTR MOVIE GENERATION:
     rec_z_dims = gen_dimension_command.map(
-        file_path=fps, ali_or_rec=unmapped("rec"), wait_for=[allow_failure(brts)]
+        file_path=fps, ali_or_rec=unmapped("rec"), wait_for=[brts]
     )
     clip_avgs = gen_clip_avgs.map(file_path=fps, z_dim=rec_z_dims, wait_for=[asmbls])
     averagedVolume_assets = consolidate_ave_mrcs.map(
@@ -608,7 +606,7 @@ def brt_flow(
     bin_vol_assets = gen_ave_8_vol.map(file_path=fps, wait_for=[averagedVolume_assets])
     # finished volslicer inputs.
 
-    zarrs = gen_zarr.map(fp_in=fps, wait_for=[allow_failure(brts)])
+    zarrs = gen_zarr.map(fp_in=fps, wait_for=[brts])
     pyramid_assets = gen_ng_metadata.map(fp_in=fps, wait_for=[zarrs])
     #  archive_pyramid_cmds = ng.gen_archive_pyr.map(
     #      file_path=fps, wait_for=[pyramid_assets]
