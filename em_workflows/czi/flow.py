@@ -8,6 +8,7 @@ from pytools.HedwigZarrImage import HedwigZarrImage
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.file_path import FilePath
+from em_workflows.flow import callback_with_cleanup
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 from em_workflows.czi.constants import (
@@ -109,10 +110,8 @@ def generate_imageset(file_path: FilePath):
 async def generate_czi_imageset(file_path: FilePath):
     zarr_result = generate_zarr.submit(file_path)
     rechunk_result = rechunk_zarr.submit(file_path, wait_for=[zarr_result])
-    copy_to_assets = copy_zarr_to_assets_dir.submit(
-        file_path, wait_for=[rechunk_result]
-    )
-    return generate_imageset.submit(file_path, wait_for=[copy_to_assets])
+    copy_zarr_to_assets_dir.submit(file_path, wait_for=[rechunk_result])
+    return generate_imageset.submit(file_path, wait_for=[copy_zarr_to_assets_dir])
 
 
 @task
@@ -182,7 +181,7 @@ async def czi_flow(
     )
     callback_with_zarrs = find_thumb_idx(callback=callback_with_zarrs)
 
-    utils.callback_with_cleanup(
+    callback_with_cleanup(
         fps=fps,
         callback_result=callback_with_zarrs,
         no_api=no_api,

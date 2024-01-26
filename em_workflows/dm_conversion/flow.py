@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from prefect import flow, task, unmapped
+from prefect import flow, task, allow_failure, unmapped
 from pytools.meta import is_int16
 from pytools.convert import file_to_uint8
 
@@ -248,12 +248,16 @@ def dm_flow(
     callback_with_keyimgs = utils.add_asset.map(
         prim_fp=callback_with_thumbs, asset=keyimg_assets
     )
+    # finally filter error states, and convert to JSON and send.
+    cp_wd_to_assets = utils.copy_workdirs.map(fps, wait_for=[callback_with_keyimgs])
+    filtered_callback = utils.filter_results(callback_with_keyimgs)
 
-    utils.callback_with_cleanup(
-        fps=fps,
-        callback_result=callback_with_keyimgs,
+    cb = utils.send_callback_body(
         no_api=no_api,
-        callback_url=callback_url,
         token=token,
-        keep_workdir=keep_workdir,
+        callback_url=callback_url,
+        files_elts=filtered_callback,
+    )
+    utils.cleanup_workdir(
+        fps, keep_workdir, wait_for=[allow_failure(cb), allow_failure(cp_wd_to_assets)]
     )

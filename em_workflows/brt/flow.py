@@ -42,7 +42,7 @@ import subprocess
 import math
 from pathlib import Path
 
-from prefect import task, flow, unmapped
+from prefect import task, flow, unmapped, allow_failure
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
@@ -559,12 +559,12 @@ def brt_flow(
         file_path=fps, z_dim=ali_z_dims, wait_for=[mrc2tiffs]
     )
     tilt_movie_assets = gen_tilt_movie.map(file_path=fps, wait_for=[keyimg_assets])
-    cleanup_files.map(
+    clean_align_mrc = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_align_*.mrc"),
         wait_for=[tilt_movie_assets, thumb_assets, keyimg_assets],
     )
-    cleanup_files.map(
+    clean_ali_jpg = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*ali*.jpg"),
         wait_for=[tilt_movie_assets, thumb_assets, keyimg_assets],
@@ -583,12 +583,12 @@ def brt_flow(
         file_path=fps, wait_for=[averagedVolume_assets]
     )
     recon_movie_assets = gen_recon_movie.map(file_path=fps, wait_for=[ave_jpgs])
-    cleanup_files.map(
+    clean_mp4 = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_mp4.*.jpg"),
         wait_for=[recon_movie_assets, ave_jpgs],
     )
-    cleanup_files.map(
+    clean_ave_mrc = cleanup_files.map(
         file_path=fps,
         pattern=unmapped("*_ave*.mrc"),
         wait_for=[recon_movie_assets, ave_jpgs],
@@ -630,15 +630,28 @@ def brt_flow(
         prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
 
-    utils.callback_with_cleanup(
-        fps=fps,
-        callback_result=callback_with_tilt_mov,
-        no_api=no_api,
-        callback_url=callback_url,
-        token=token,
-        keep_workdir=keep_workdir,
-    )
+    cp_wd_to_assets = utils.copy_workdirs.map(fps, wait_for=[callback_with_tilt_mov])
+    # finally filter error states, and convert to JSON and send.
+    filtered_callback = utils.filter_results(callback_with_tilt_mov)
 
+    cb = utils.send_callback_body(
+        no_api=no_api,
+        token=token,
+        callback_url=callback_url,
+        files_elts=filtered_callback,
+    )
+    utils.cleanup_workdir(
+        fps,
+        keep_workdir,
+        wait_for=[
+            allow_failure(cb),
+            allow_failure(cp_wd_to_assets),
+            allow_failure(clean_align_mrc),
+            allow_failure(clean_ali_jpg),
+            allow_failure(clean_ave_mrc),
+            allow_failure(clean_mp4),
+        ],
+    )
     """
     # if the callback is not empty (that is one of the files passed), final=success
     final_state = bool(callback_with_tilt_mov)
