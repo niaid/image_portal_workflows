@@ -7,7 +7,7 @@ from pathlib import Path
 def test_sem(mock_nfs_mount):
     from em_workflows.sem_tomo.flow import sem_tomo_flow
 
-    input_dir = "test/input_files/sem_inputs/Projects/"
+    input_dir = "/test/input_files/sem_inputs/Projects/"
     if not Path(input_dir).exists():
         pytest.skip("Directory doesn't exist")
 
@@ -16,6 +16,5 @@ def test_sem(mock_nfs_mount):
         input_dir=input_dir,
         tilt_angle="30.2",
         no_api=True,
-        return_state=True,
     )
     assert result.is_completed()

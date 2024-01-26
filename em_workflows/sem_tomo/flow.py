@@ -1,7 +1,7 @@
 import glob
 import math
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict
 from natsort import os_sorted
 
 from prefect import flow, task, unmapped
@@ -270,9 +270,9 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
 def sem_tomo_flow(
     file_share: str,
     input_dir: str,
-    file_name: Optional[str] = None,
-    callback_url: Optional[str] = None,
-    token: Optional[str] = None,
+    file_name: str = None,
+    callback_url: str = None,
+    token: str = None,
     no_api: bool = False,
     keep_workdir: bool = False,
     tilt_angle: float = 0,
