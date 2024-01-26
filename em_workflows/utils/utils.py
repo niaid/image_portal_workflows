@@ -78,12 +78,11 @@ def collect_exception_task_hook(task: Task, task_run: TaskRun, state: State):
     name="mrc to movie generation",
     on_failure=[collect_exception_task_hook],
 )
-def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
+def mrc_to_movie(file_path: FilePath, root: str, asset_type: str):
     """
     :param file_path: FilePath for the input
     :param root: base name of the mrc file
     :param asset_type: type of resulting output (movie)
-    :param kwargs: additional arguments to wait for before executing this func
 
     - Uses the file_path to identify the working_dir which should have the "root" mrc
     - Runs IMOD ``mrc2tif`` to convert the mrc to many jpgs named by z number
