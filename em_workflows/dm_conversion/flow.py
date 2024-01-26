@@ -240,7 +240,6 @@ def dm_flow(
         prim_fp=callback_with_thumbs, asset=keyimg_assets
     )
     # finally filter error states, and convert to JSON and send.
-    utils.copy_workdirs.map(fps, wait_for=[callback_with_keyimgs])
     filtered_callback = utils.filter_results(callback_with_keyimgs)
 
     cb = utils.send_callback_body(
