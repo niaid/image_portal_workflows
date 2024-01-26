@@ -158,22 +158,18 @@ def lrg_2d_flow(
     -convert to tiff -> zarr -> jpegs (thumb)
     """
     if x_no_api:
-        utils.notify_api_running.submit(x_no_api=x_no_api)
+        utils.notify_api_running(x_no_api=x_no_api)
     else:
-        utils.notify_api_running.submit(token=token, callback_url=callback_url)
+        utils.notify_api_running(token=token, callback_url=callback_url)
 
-    input_dir_fp = utils.get_input_dir.submit(
-        share_name=file_share, input_dir=input_dir
-    )
+    input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
 
-    input_fps = utils.list_files.submit(
+    input_fps = utils.list_files(
         input_dir_fp,
         VALID_LRG_2D_RGB_INPUTS,
         single_file=x_file_name,
     )
-    fps = utils.gen_fps.submit(
-        share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
-    )
+    fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
     tiffs = convert_png_to_tiff.map(file_path=fps)
     zarrs = gen_zarr.map(file_path=fps, wait_for=[tiffs])
     rechunk = rechunk_zarr.map(file_path=fps, wait_for=[zarrs])

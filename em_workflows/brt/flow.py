@@ -523,22 +523,18 @@ def brt_flow(
     adoc_template: str = "plastic_brt",
 ):
     if x_no_api:
-        utils.notify_api_running.submit(x_no_api=x_no_api)
+        utils.notify_api_running(x_no_api=x_no_api)
     else:
-        utils.notify_api_running.submit(token=token, callback_url=callback_url)
+        utils.notify_api_running(token=token, callback_url=callback_url)
 
     # a single input_dir will have n tomograms
-    input_dir_fp = utils.get_input_dir.submit(
-        share_name=file_share, input_dir=input_dir
-    )
+    input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
     # input_dir_fp = utils.get_input_dir(input_dir=input_dir)
-    input_fps = utils.list_files.submit(
+    input_fps = utils.list_files(
         input_dir=input_dir_fp, exts=["MRC", "ST", "mrc", "st"], single_file=x_file_name
     )
 
-    fps = utils.gen_fps.submit(
-        share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
-    )
+    fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
     brts = utils.run_brt.map(
         file_path=fps,
         adoc_template=unmapped(adoc_template),

@@ -223,9 +223,9 @@ def dm_flow(
     -convert all tiffs/pngs/jpegs to correct size for thumbs, "sm" and "lg"
     """
     if x_no_api:
-        utils.notify_api_running.submit(x_no_api=x_no_api)
+        utils.notify_api_running(x_no_api=x_no_api)
     else:
-        utils.notify_api_running.submit(token=token, callback_url=callback_url)
+        utils.notify_api_running(token=token, callback_url=callback_url)
 
     # utils.log(input_dir)
     input_dir_fp = utils.get_input_dir.submit(

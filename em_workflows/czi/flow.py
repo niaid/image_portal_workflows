@@ -222,22 +222,18 @@ async def czi_flow(
     x_keep_workdir: bool = False,
 ):
     if x_no_api:
-        utils.notify_api_running.submit(x_no_api=x_no_api)
+        utils.notify_api_running(x_no_api=x_no_api)
     else:
-        utils.notify_api_running.submit(token=token, callback_url=callback_url)
+        utils.notify_api_running(token=token, callback_url=callback_url)
 
-    input_dir_fp = utils.get_input_dir.submit(
-        share_name=file_share, input_dir=input_dir
-    )
+    input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
 
-    input_fps = utils.list_files.submit(
+    input_fps = utils.list_files(
         input_dir_fp,
         VALID_CZI_INPUTS,
         single_file=x_file_name,
     )
-    fps = utils.gen_fps.submit(
-        share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
-    )
+    fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     imageSets = await asyncio.gather(
         *[generate_czi_imageset(file_path=fp) for fp in fps]
