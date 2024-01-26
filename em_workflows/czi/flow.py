@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Immunofluorescence (IF) microscopy overview:
--------------------------------------------
+--------------------------------------------
 
     - The CZI file format has been developed by ZEISS to store multidimensional IF images such as:
         - z-stacks, time lapse, and multiposition experiments.

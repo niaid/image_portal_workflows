@@ -303,7 +303,7 @@ The pipeline parameters can be also be observed programatically using following 
 
 
 CLI/SDK Submission
----------------
+------------------
 
 You can use `curl` to submit a job.
 
