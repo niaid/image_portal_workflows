@@ -4,11 +4,13 @@ on:
   push:
     branches:
       - dev
+      - main
     tags:
       - "v*"
   pull_request:
     branches:
       - dev
+      - main
 
 env:
   HEDWIG_ENV: dev
