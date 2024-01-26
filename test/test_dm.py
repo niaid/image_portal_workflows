@@ -12,7 +12,7 @@ def test_dm4_conv(mock_nfs_mount):
     state = dm_flow(
         file_share="test",
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
-        x_no_api=True,
+        no_api=True,
         return_state=True,
     )
     assert state.is_completed()
@@ -26,26 +26,26 @@ def test_dm4_conv_clean_workdir(mock_nfs_mount):
         state = dm_flow(
             file_share="test",
             input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
-            x_file_name="20210525_1416_A000_G000.dm4",
-            x_no_api=True,
-            x_keep_workdir=False,
+            file_name="20210525_1416_A000_G000.dm4",
+            no_api=True,
+            keep_workdir=False,
             return_state=True,
         )
         assert state.is_completed()
-    # x_keep_workdir = False removes the workdir
+    # keep_workdir = False removes the workdir
     patch_rm.assert_called()
 
     with patch.object(FilePath, "rm_workdir") as patch_rm:
         state = dm_flow(
             file_share="test",
             input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
-            x_file_name="20210525_1416_A000_G000.dm4",
-            x_no_api=True,
-            x_keep_workdir=True,
+            file_name="20210525_1416_A000_G000.dm4",
+            no_api=True,
+            keep_workdir=True,
             return_state=True,
         )
         assert state.is_completed()
-    # x_keep_workdir keeps the workdir
+    # keep_workdir keeps the workdir
     patch_rm.assert_not_called()
 
 
@@ -55,9 +55,9 @@ def test_single_file_no_ext_not_found_gens_exception(mock_nfs_mount):
     state = dm_flow(
         file_share="test",
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
-        x_file_name="file_with_no_ext",
-        x_no_api=True,
-        x_keep_workdir=True,
+        file_name="file_with_no_ext",
+        no_api=True,
+        keep_workdir=True,
         return_state=True,
     )
     assert state.is_failed()
@@ -69,9 +69,9 @@ def test_single_file_not_found_gens_exception(mock_nfs_mount):
     state = dm_flow(
         file_share="test",
         input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
-        x_file_name="does_not_exist.test",
-        x_no_api=True,
-        x_keep_workdir=True,
+        file_name="does_not_exist.test",
+        no_api=True,
+        keep_workdir=True,
         return_state=True,
     )
     assert state.is_failed()

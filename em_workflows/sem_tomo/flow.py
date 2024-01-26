@@ -309,11 +309,11 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
 def sem_tomo_flow(
     file_share: str,
     input_dir: str,
-    x_file_name: Optional[str] = None,
+    file_name: Optional[str] = None,
     callback_url: Optional[str] = None,
     token: Optional[str] = None,
-    x_no_api: bool = False,
-    x_keep_workdir: bool = False,
+    no_api: bool = False,
+    keep_workdir: bool = False,
     tilt_angle: float = 0,
 ):
     input_dir_fp = utils.get_input_dir(share_name=file_share, input_dir=input_dir)
@@ -376,8 +376,8 @@ def sem_tomo_flow(
     utils.callback_with_cleanup(
         fps=fps,
         callback_result=callback_with_corr_movies,
-        x_no_api=x_no_api,
+        no_api=no_api,
         callback_url=callback_url,
         token=token,
-        x_keep_workdir=x_keep_workdir,
+        keep_workdir=keep_workdir,
     )

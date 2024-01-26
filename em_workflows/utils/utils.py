@@ -173,16 +173,16 @@ def add_asset(prim_fp: dict, asset: dict, image_idx: int = None) -> dict:
 
 # triggers like "always_run" are managed when calling the task itself
 @task(retries=3, retry_delay_seconds=10)
-def cleanup_workdir(fps: List[FilePath], x_keep_workdir: bool):
+def cleanup_workdir(fps: List[FilePath], keep_workdir: bool):
     """
     :param fp: a FilePath which has a working_dir to be removed
 
-    | working_dir isn't needed after run, so remove unless "x_keep_workdir" is True.
+    | working_dir isn't needed after run, so remove unless "keep_workdir" is True.
     | task wrapper on the FilePath rm_workdir method.
 
     """
-    if x_keep_workdir is True:
-        log("x_keep_workdir is set to True, skipping removal.")
+    if keep_workdir is True:
+        log("keep_workdir is set to True, skipping removal.")
     else:
         for fp in fps:
             log(f"Trying to remove {fp.working_dir}")
@@ -449,13 +449,13 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
 
 @task(retries=1, retry_delay_seconds=10)
 def notify_api_running(
-    x_no_api: bool = None, token: str = None, callback_url: str = None
+    no_api: bool = None, token: str = None, callback_url: str = None
 ):
     """
     tells API the workflow has started to run.
     """
-    if x_no_api:
-        log("x_no_api flag used, not interacting with API")
+    if no_api:
+        log("no_api flag used, not interacting with API")
         return
     elif not callback_url or not token:
         raise RuntimeError("impossible args for notify_api_running")
@@ -496,8 +496,8 @@ def notify_api_running(
 #     else:
 #         message = "error"
 #         ns = state
-#     if prefect.context.parameters.get("x_no_api"):
-#         log(f"x_no_api flag used, terminal: success is {message}")
+#     if prefect.context.parameters.get("no_api"):
+#         log(f"no_api flag used, terminal: success is {message}")
 #     else:
 #         callback_url = prefect.context.parameters.get("callback_url")
 #         token = prefect.context.parameters.get("token")
@@ -523,12 +523,12 @@ def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
     https://docs.prefect.io/core/concepts/notifications.html#state-handlers
     """
     status = "Completed" if state.is_completed else "Failed"
-    x_no_api = flow_run.parameters.get("x_no_api", True)
+    no_api = flow_run.parameters.get("no_api", True)
     token = flow_run.parameters.get("token", "")
     callback_url = flow_run.parameters.get("callback_url", "")
 
-    if x_no_api:
-        log(f"x_no_api flag used\nCompletion status: {status}")
+    if no_api:
+        log(f"no_api flag used\nCompletion status: {status}")
         return
 
     headers = {
@@ -603,7 +603,7 @@ def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePa
 # TODO handle "trigger=any_successful"
 @task(retries=3, retry_delay_seconds=60)
 def send_callback_body(
-    x_no_api: bool,
+    no_api: bool,
     files_elts: List[Dict],
     token: str = None,
     callback_url: str = None,
@@ -617,8 +617,8 @@ def send_callback_body(
         Refer to docs/demo_callback.json for expected
     """
     data = {"files": files_elts}
-    if x_no_api is True:
-        log("x_no_api flag used, not interacting with API")
+    if no_api is True:
+        log("no_api flag used, not interacting with API")
         log(json.dumps(data))
         return
 
@@ -639,29 +639,29 @@ def send_callback_body(
             raise RuntimeError(msg)
     else:
         raise RuntimeError(
-            "Invalid state - need callback_url and token, OR set x_no_api to True."
+            "Invalid state - need callback_url and token, OR set no_api to True."
         )
 
 
 def callback_with_cleanup(
     fps: List[FilePath],
     callback_result: List,
-    x_no_api: bool = False,
+    no_api: bool = False,
     callback_url: str = None,
     token: str = None,
-    x_keep_workdir: bool = False,
+    keep_workdir: bool = False,
 ):
     cp_wd_logs_to_assets = copy_workdir_logs.map(fps, wait_for=[callback_result])
 
     cb = send_callback_body(
-        x_no_api=x_no_api,
+        no_api=no_api,
         token=token,
         callback_url=callback_url,
         files_elts=callback_result,
     )
     cleanup_workdir(
         fps,
-        x_keep_workdir,
+        keep_workdir,
         wait_for=[allow_failure(cb), allow_failure(cp_wd_logs_to_assets)],
     )
 

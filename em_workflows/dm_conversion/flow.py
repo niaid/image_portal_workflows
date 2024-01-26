@@ -211,11 +211,11 @@ def convert_intermediate_files(fps):
 def dm_flow(
     file_share: str,
     input_dir: str,
-    x_file_name: Optional[str] = None,
+    file_name: Optional[str] = None,
     callback_url: Optional[str] = None,
     token: Optional[str] = None,
-    x_no_api: bool = False,
-    x_keep_workdir: bool = False,
+    no_api: bool = False,
+    keep_workdir: bool = False,
 ):
     # run_config=LocalRun(labels=[utils.get_environment()]),
     """
@@ -232,7 +232,7 @@ def dm_flow(
     input_fps = utils.list_files(
         input_dir_fp,
         VALID_2D_INPUT_EXTS,
-        single_file=x_file_name,
+        single_file=file_name,
     )
     fps = utils.gen_fps(share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps)
     # logs = utils.init_log.map(file_path=fps)
@@ -253,8 +253,8 @@ def dm_flow(
     utils.callback_with_cleanup(
         fps=fps,
         callback_result=callback_with_keyimgs,
-        x_no_api=x_no_api,
+        no_api=no_api,
         callback_url=callback_url,
         token=token,
-        x_keep_workdir=x_keep_workdir,
+        keep_workdir=keep_workdir,
     )

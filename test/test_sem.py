@@ -15,7 +15,7 @@ def test_sem(mock_nfs_mount):
         file_share="test",
         input_dir=input_dir,
         tilt_angle="30.2",
-        x_no_api=True,
+        no_api=True,
         return_state=True,
     )
     assert result.is_completed()
