@@ -46,8 +46,6 @@ It's a good idea to test the ``ExecStart`` command can be run, eg:
 
 ``image_portal_workflows/helper_scripts/hedwig_reg_listen.sh listen``
 
-The daemon by default polls prefect server in the given workpool and brings in the flow run details if something
-has been submitted to the server.
 
 To update:
 ----------
@@ -61,13 +59,11 @@ Upon promotion into HPC env do:
    git checkout <label>
    python -m pip install -e .
 
-When there are changes in the workflows (e.g, a new task is added, task function signature has changed, etc), you should
-redeploy the workflows. It can be done as follows:
 
-.. code-block::
+Finally register the worlfows with the helper script.
 
-  cd ~/image_portal_workflows
-  ./helper_scripts/hedwig_reg_listen.sh register
+``./helper_scripts/hedwig_reg_listen.sh register``
+
 
 
 Spatialomics file layout.
