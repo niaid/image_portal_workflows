@@ -4,9 +4,6 @@ from em_workflows.config import Config
 from em_workflows.file_path import FilePath
 from em_workflows.constants import BIOFORMATS_NUM_WORKERS, RECHUNK_SIZE
 from em_workflows.utils import utils
-from em_workflows.config import setup_pytools_log
-
-setup_pytools_log()
 
 
 def rechunk_zarr(file_path: FilePath) -> None:

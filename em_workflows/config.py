@@ -1,26 +1,14 @@
-import logging
 import os
 from pathlib import Path
-import sys
 
+from prefect_dask.task_runners import DaskTaskRunner
 from dotenv import load_dotenv
 from dask_jobqueue import SLURMCluster
-from prefect_dask.task_runners import DaskTaskRunner
-import pytools
 
 from em_workflows.constants import NFS_MOUNT
 
 # loads .env file into os.environ
 load_dotenv()
-
-
-def setup_pytools_log():
-    pytools.logger.setLevel(logging.DEBUG)
-    BASIC_FORMAT = "%(levelname)s:%(name)s:%(message)s"
-    formatter = logging.Formatter(BASIC_FORMAT)
-    handler = logging.StreamHandler(stream=sys.stdout)
-    handler.setFormatter(formatter)
-    pytools.logger.addHandler(handler)
 
 
 def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
