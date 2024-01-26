@@ -12,7 +12,6 @@ from prefect import task, get_run_logger, allow_failure
 from prefect.exceptions import MissingContextError
 from prefect.states import State
 from prefect.flows import Flow, FlowRun
-from prefect.tasks import Task, TaskRun
 from prefect.runtime import flow_run
 
 from em_workflows.config import Config
@@ -297,21 +296,7 @@ def copy_template(working_dir: Path, template_name: str) -> Path:
     return Path(adoc_fp)
 
 
-def collect_exception_task_hook(task: Task, task_run: TaskRun, state: State):
-    message = f"Failure in pipeline step: {task.name}"
-    map_idx = task_run.name.split("-")[-1]
-    flow_run_id = state.state_details.flow_run_id
-    path = f"{flow_run_id}__{map_idx}"
-    try:
-        Config.local_storage.read_path(path)
-    except ValueError:  # ValueError path not found
-        Config.local_storage.write_path(path, message.encode())
-
-
-@task(
-    name="Batchruntomo conversion",
-    on_failure=[collect_exception_task_hook],
-)
+@task
 def run_brt(
     file_path: FilePath,
     adoc_template: str,
