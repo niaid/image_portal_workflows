@@ -16,11 +16,13 @@ Pipeline overview:
     - Create thumbnail image from zarr label sub-image
 """
 import asyncio
+import json
 from pathlib import Path
 from typing import List, Dict, Optional
 
 import SimpleITK as sitk
 from prefect import flow, task
+from prefect.states import Completed, Failed
 from pytools.HedwigZarrImages import HedwigZarrImage, HedwigZarrImages
 
 from em_workflows.file_path import FilePath
@@ -251,12 +253,14 @@ async def czi_flow(
     )
 
     callback_result = list()
-    for fp, cb in zip(fps.result(), callback_with_zarrs):
+    for cb in callback_with_zarrs:
         state = cb.wait()
-        if state.is_completed():
-            callback_result.append(cb.result())
-        else:
-            callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
+        try:
+            if state.is_completed():
+                json.dumps(cb.result())
+                callback_result.append(cb.result())
+        except TypeError:  # can't serialize the item
+            utils.log(f"Following item cannot be added to callback:\n\n{cb.result()}")
 
     # we have to filter out incomplete mapped runs before this reduce step
     callback_result = find_thumb_idx.submit(callback=callback_result)
@@ -265,5 +269,9 @@ async def czi_flow(
         x_no_api=x_no_api,
         token=token,
         callback_url=callback_url,
-        files_elts=callback_result,
+        files_elts=callback_with_zarrs,
     )
+
+    if callback_with_zarrs:
+        return Completed(message="At least one callback is correct!")
+    return Failed(message="None of the files succeeded!")

@@ -1,7 +1,9 @@
+import json
 from pathlib import Path
 from typing import Optional
 
 from prefect import flow, task, unmapped
+from prefect.states import Completed, Failed
 from pytools.meta import is_int16
 from pytools.convert import file_to_uint8
 
@@ -260,12 +262,14 @@ def dm_flow(
     )
 
     callback_result = list()
-    for fp, cb in zip(fps.result(), callback_with_keyimgs):
+    for cb in callback_with_keyimgs:
         state = cb.wait()
-        if state.is_completed():
-            callback_result.append(cb.result())
-        else:
-            callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
+        try:
+            if state.is_completed():
+                json.dumps(cb.result())
+                callback_result.append(cb.result())
+        except TypeError:  # can't serialize the item
+            utils.log(f"Following item cannot be added to callback:\n\n{cb.result()}")
 
     utils.send_callback_body.submit(
         x_no_api=x_no_api,
@@ -273,3 +277,7 @@ def dm_flow(
         callback_url=callback_url,
         files_elts=callback_result,
     )
+
+    if callback_result:
+        return Completed(message="At least one callback is correct!")
+    return Failed(message="None of the files succeeded!")
