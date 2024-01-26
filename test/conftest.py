@@ -7,7 +7,7 @@ in the test files.
 import os
 from pathlib import Path
 import pytest
-from prefect.task_runners import ConcurrentTaskRunner
+from prefect.executors import LocalExecutor
 
 
 @pytest.fixture
@@ -15,7 +15,7 @@ def mock_binaries(monkeypatch):
     from em_workflows.config import Config
 
     monkeypatch.setattr(Config, "tmp_dir", "/tmp")
-    monkeypatch.setattr(Config, "SLURM_EXECUTOR", ConcurrentTaskRunner())
+    monkeypatch.setattr(Config, "SLURM_EXECUTOR", LocalExecutor())
 
 
 @pytest.fixture

@@ -1,11 +1,11 @@
 import os
-import shutil
+from prefect.engine import signals
 from pathlib import Path
-
-import prefect
-from prefect_dask.task_runners import DaskTaskRunner
-from dotenv import load_dotenv
 from dask_jobqueue import SLURMCluster
+from dotenv import load_dotenv
+from prefect.executors import DaskExecutor
+import prefect
+import shutil
 
 from em_workflows.constants import NFS_MOUNT
 
@@ -73,7 +73,7 @@ class Config:
     # All settings moved to respective constants file
     # fibsem_input_exts = ["TIFF", "tiff", "TIF", "tif"]
 
-    SLURM_EXECUTOR = DaskTaskRunner(cluster_class=SLURM_exec)
+    SLURM_EXECUTOR = DaskExecutor(cluster_class=SLURM_exec)
     user = os.environ["USER"]
     tmp_dir = f"/gs1/Scratch/{user}_scratch/"
 
@@ -81,9 +81,9 @@ class Config:
     def _mount_point(share_name: str) -> str:
         share = NFS_MOUNT.get(share_name)
         if not share:
-            raise RuntimeError(f"{share_name} is not a valid name. Failing!")
+            raise signals.FAIL(f"{share_name} is not a valid name. Failing!")
         elif not Path(share).exists():
-            raise RuntimeError(f"{share_name} doesn't exist. Failing!")
+            raise signals.FAIL(f"{share_name} doesn't exist. Failing!")
         return share
 
     @staticmethod
