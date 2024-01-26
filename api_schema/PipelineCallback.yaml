@@ -26,12 +26,6 @@ properties:
         primaryFilePath:
           description: Input file path, relative to projects_dir
           type: string
-        status:
-          description: File level status of the workflow run
-          type: string
-        message:
-          description: Error message from the workflow conveyed to the user
-          type: string
         thumbnailIndex:
           description: The index of the image in imageSet which consists of the "label image" thumbnail
           type: integer

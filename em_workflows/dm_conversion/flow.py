@@ -20,10 +20,7 @@ from em_workflows.dm_conversion.constants import (
 )
 
 
-@task(
-    name="Convert DM to MRC",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task
 def convert_dms_to_mrc(file_path: FilePath) -> FilePath:
     if file_path.fp_in.suffix.strip(".").lower() not in DMS_EXT:
         return file_path
@@ -37,10 +34,7 @@ def convert_dms_to_mrc(file_path: FilePath) -> FilePath:
     return file_path
 
 
-@task(
-    name="Convert 16bit to 8bit tiffs",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task
 def convert_if_int16_tiff(file_path: FilePath) -> None:
     """
     accepts a tiff Path obj
@@ -58,10 +52,7 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
     file_to_uint8(in_file_path=file_path.fp_in, out_file_path=str(tif_8_bit))
 
 
-@task(
-    name="Convert 2D MRC to tiff",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task
 def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     """
     Checks Projects dir for mrc inputs. We assume anything in Projects will be 2D.
@@ -112,10 +103,7 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     FilePath.run(cmd, log_fp)
 
 
-@task(
-    name="Convert DM MRC to jpeg",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task
 def convert_dm_mrc_to_jpeg(file_path: FilePath) -> None:
     """
     converts previously generated mrc file, (derived from a dm file) to jpeg.
@@ -131,10 +119,7 @@ def convert_dm_mrc_to_jpeg(file_path: FilePath) -> None:
         FilePath.run(cmd, log_fp)
 
 
-@task(
-    name="Scale Jpeg",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task
 def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
     """
     generates keyThumbnail and keyImage
@@ -257,21 +242,15 @@ def dm_flow(
     dm_to_mrc = convert_dms_to_mrc.map(file_path=fps)
     mrc_results = convert_dm_mrc_to_jpeg.map(dm_to_mrc)
 
-    mrc_tiff_results = convert_2d_mrc_to_tiff.map(
-        file_path=fps, wait_for=[allow_failure(mrc_results)]
-    )
+    mrc_tiff_results = convert_2d_mrc_to_tiff.map(file_path=fps, wait_for=[allow_failure(mrc_results)])
 
     # Finally generate all valid suffixed results
-    keyimg_assets = scale_jpegs.map(
-        fps,
-        size=unmapped("l"),
-        wait_for=[allow_failure(tiff_results), allow_failure(mrc_tiff_results)],
-    )
-    thumb_assets = scale_jpegs.map(
-        fps,
-        size=unmapped("s"),
-        wait_for=[allow_failure(tiff_results), allow_failure(mrc_tiff_results)],
-    )
+    keyimg_assets = scale_jpegs.map(fps, size=unmapped("l"),
+                                    wait_for=[allow_failure(tiff_results),
+                                              allow_failure(mrc_tiff_results)])
+    thumb_assets = scale_jpegs.map(fps, size=unmapped("s"),
+                                   wait_for=[allow_failure(tiff_results),
+                                             allow_failure(mrc_tiff_results)])
 
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)

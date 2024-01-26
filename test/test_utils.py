@@ -310,7 +310,7 @@ def test_copy_workdirs_small(mock_nfs_mount):
     """
     proj_dir = Config.proj_dir("test")
     test_dir = "test/input_files/dm_inputs/Projects/Lab/PI/"
-    test_image = "P6_J128_selected_11(classes).png"
+    test_image = "P6_J130_fsc_iteration_001.png"
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         input_path = Path(tmp_dir) / "Projects"
@@ -456,7 +456,7 @@ def test_downstream_runs_if_upstream_fails_with_allow_failure_annotation(
     def test_flow():
         f = fails_on_two.map([1, 2, 3])
         b = bar.submit(2, wait_for=[allow_failure(f)])
-        return b.result()
+        return b
 
     flow_state = test_flow()
     assert flow_state == 2
