@@ -17,7 +17,7 @@ def test_dm4_conv(mock_nfs_mount):
         x_no_api=True,
         return_state=True,
     )
-    assert state.is_completed()
+    assert state.is_completed(), f"State is {state}"
 
 
 def test_dm4_pipeline_server_response_structure(mock_nfs_mount, mock_callback_data):
@@ -29,7 +29,7 @@ def test_dm4_pipeline_server_response_structure(mock_nfs_mount, mock_callback_da
         x_no_api=True,
         return_state=True,
     )
-    assert state.is_completed()
+    assert state.is_completed(), f"State is {state}"
 
     with open(mock_callback_data) as fd:
         response = json.load(fd)

@@ -13,9 +13,10 @@ build:
 push:
 
 # pull section allows you to provide instructions for cloning this project in remote locations
+# https://docs.prefect.io/latest/api-ref/prefect/deployments/steps/pull/#prefect.deployments.steps.pull.set_working_directory
 pull:
 - prefect.deployments.steps.set_working_directory:
-    directory: /gs1/home/hedwig_dev/image_portal_workflows
+    directory: /gs1/home/hedwig_prod/image_portal_workflows
 # - prefect.deployments.steps.git_clone:
 #     repository: git@github.com:niaid/image_portal_workflows.git
 #     branch: feature/prefect2
@@ -84,7 +85,7 @@ deployments:
   version:
   tags: *hedwig_tags
   description: Runs pytests regularly and uploads coverage as artifacts
-  entrypoint: em_workflows/utils/flow.py:pytest_flow
+  entrypoint: em_workflows/test_runner/flow.py:pytest_flow
   parameters: {}
   work_pool: *dask_work_pool
   schedule:
