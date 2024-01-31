@@ -80,6 +80,7 @@ def run_tests(git_branch: str) -> str:
 
 @flow(
     name="Pytest Runner",
+    flow_run_name="Test-on-{git_branch}",
     log_prints=True,
     task_runner=Config.SLURM_EXECUTOR,
 )
