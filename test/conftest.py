@@ -93,7 +93,7 @@ def mock_reuse_zarr(monkeypatch):
             shutil.copytree(zarr_fp, work_fp)
             print("No need to rechunk!")
             return
-        original_rechunk(zarr_fp, *a, **kw)
+        original_rechunk(file_path, *a, **kw)
 
     monkeypatch.setattr(ng, "bioformats_gen_zarr", _mock_bioformats_gen_zarr)
     monkeypatch.setattr(ng, "rechunk_zarr", _mock_rechunk)
