@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="./">
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -15,9 +15,9 @@
   
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
         <script src="_static/doctools.js?v=888ff710"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -83,9 +83,9 @@
            <div itemprop="articleBody">
              
   <section id="managing-prefect-server">
-<h1>Managing Prefect Server<a class="headerlink" href="#managing-prefect-server" title="Link to this heading"></a></h1>
+<h1>Managing Prefect Server<a class="headerlink" href="#managing-prefect-server" title="Permalink to this heading"></a></h1>
 <section id="prefect-server-is-running-but-workpool-is-not-available">
-<h2>Prefect Server is running, but workpool is not available<a class="headerlink" href="#prefect-server-is-running-but-workpool-is-not-available" title="Link to this heading"></a></h2>
+<h2>Prefect Server is running, but workpool is not available<a class="headerlink" href="#prefect-server-is-running-but-workpool-is-not-available" title="Permalink to this heading"></a></h2>
 <p>In HPC, you can use the following command to create a work pool.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prefect</span> <span class="n">work</span><span class="o">-</span><span class="n">pool</span> <span class="n">create</span> <span class="s2">&quot;workpool&quot;</span>
 </pre></div>
@@ -94,14 +94,14 @@
 <p>If the prefect server is running, but the workpool is not available, then you can create a workpool by going to the website where the prefect server is hosted. Go to <cite>Work Pools</cite> tab and create a workpool with the name <cite>workpool</cite>. This is the name of the workpool that is defined in [prefect.yaml &gt; definitions &gt; work_pools &gt; name](<a class="reference external" href="https://github.com/niaid/image_portal_workflows/pull/353/files#diff-b49a6f022232810a70f1a0c2feffbbe84d018b2418a7996e52430c6063ada3a3R23">https://github.com/niaid/image_portal_workflows/pull/353/files#diff-b49a6f022232810a70f1a0c2feffbbe84d018b2418a7996e52430c6063ada3a3R23</a>) file.</p>
 </section>
 <section id="deploying-workflows">
-<h2>Deploying workflows<a class="headerlink" href="#deploying-workflows" title="Link to this heading"></a></h2>
+<h2>Deploying workflows<a class="headerlink" href="#deploying-workflows" title="Permalink to this heading"></a></h2>
 <p>Once the prefect server is running and workpool is created. You can login to respective <em>BigSky</em> instance (dev, qa, prod) and deploy the workflows.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prefect</span> <span class="n">deploy</span> <span class="o">--</span><span class="nb">all</span>
 </pre></div>
 </div>
 </section>
 <section id="continuous-deployment-dev-to-qa-to-prod">
-<h2>Continuous Deployment (dev to qa to prod)<a class="headerlink" href="#continuous-deployment-dev-to-qa-to-prod" title="Link to this heading"></a></h2>
+<h2>Continuous Deployment (dev to qa to prod)<a class="headerlink" href="#continuous-deployment-dev-to-qa-to-prod" title="Permalink to this heading"></a></h2>
 <p>Assuming that <cite>dev</cite> environment is working as expected, we can promote the environment to <cite>qa</cite> and <cite>prod</cite> as well.</p>
 <p>The first thing we need to do is promote the image from <cite>dev</cite> to <cite>qa</cite>.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">spaces</span> <span class="n">task</span> <span class="o">-</span><span class="n">f</span> <span class="n">hedwig</span><span class="o">.</span><span class="n">spaces</span><span class="o">-</span><span class="n">solution</span><span class="o">.</span><span class="n">yaml</span> <span class="n">promote</span><span class="o">-</span><span class="n">image</span> <span class="o">--</span> <span class="n">dev</span> <span class="n">qa</span>

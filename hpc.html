@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="./">
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -15,9 +15,9 @@
   
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
         <script src="_static/doctools.js?v=888ff710"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -92,9 +92,9 @@
            <div itemprop="articleBody">
              
   <section id="rml-hpc-big-sky">
-<h1>RML HPC (Big Sky)<a class="headerlink" href="#rml-hpc-big-sky" title="Link to this heading"></a></h1>
+<h1>RML HPC (Big Sky)<a class="headerlink" href="#rml-hpc-big-sky" title="Permalink to this heading"></a></h1>
 <section id="python-environments">
-<h2>Python environments<a class="headerlink" href="#python-environments" title="Link to this heading"></a></h2>
+<h2>Python environments<a class="headerlink" href="#python-environments" title="Permalink to this heading"></a></h2>
 <p><strong>NOTE, THIS IS ONLY relevant for HPC. Added for completeness.</strong></p>
 <p><strong>NOTE: generate_vevn.sh is not used as of 08/11/2023, setup is documented in</strong> <a class="reference internal" href="#"><span class="doc">RML HPC (Big Sky)</span></a>.</p>
 <p>Workflows are currently run on RML HPC (“BigSky”).</p>
@@ -102,7 +102,7 @@
 They were set up as follows:
 (Note, this first step is only required once, and only to work around old versions of Python.)</p>
 <section id="initial-setup">
-<h3>Initial Setup:<a class="headerlink" href="#initial-setup" title="Link to this heading"></a></h3>
+<h3>Initial Setup:<a class="headerlink" href="#initial-setup" title="Permalink to this heading"></a></h3>
 <p>To initialise, typically done only at start per env. Use miniconda to set up venv, clone this repo, and pip install to the newly created venv.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># get miniconda dist</span>
 wget<span class="w"> </span>https://repo.anaconda.com/miniconda/Miniconda3-py310_23.3.1-0-Linux-x86_64.sh
@@ -134,7 +134,7 @@ E.g. for qa <code class="docutils literal notranslate"><span class="pre">helper_
 has been submitted to the server.</p>
 </section>
 <section id="to-update">
-<h3>To update:<a class="headerlink" href="#to-update" title="Link to this heading"></a></h3>
+<h3>To update:<a class="headerlink" href="#to-update" title="Permalink to this heading"></a></h3>
 <p>Tag relase, and test in dev etc.
 Upon promotion into HPC env do:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">image_portal_workflows</span><span class="o">/</span>
@@ -148,7 +148,7 @@ redeploy the workflows. See Prefect section for details.</p>
 </section>
 </section>
 <section id="nfs-filesystem-layout">
-<h2>NFS Filesystem layout<a class="headerlink" href="#nfs-filesystem-layout" title="Link to this heading"></a></h2>
+<h2>NFS Filesystem layout<a class="headerlink" href="#nfs-filesystem-layout" title="Permalink to this heading"></a></h2>
 <p>Pipeline inputs and outputs are housed on an Admin User accessable NFS, meaning that the Admin level users of the system can see directly into the same partitions which we read our inputs and ultimately place our outputs. Note, we do not do “work” in this Filesystem, only read in initial inputs, and write out selected outputs.
 Different projects have different filesystem layouts.</p>
 <p>We never write to the inputs (<code class="docutils literal notranslate"><span class="pre">Projects</span></code>) directory, only to outputs (<code class="docutils literal notranslate"><span class="pre">Assets</span></code>).
@@ -170,19 +170,19 @@ The above logic is done in utils.get_input_dir()</p>
 <p>To find out what we are expected to work on we list this directory, see utils.list_files. Note, FIBSEM uses dirs to define stacks. We filter inputs with file extensions.</p>
 <p>The input directory is listed, and a temp working directory is created for each input (a file for the 2D and BRT pipelines, or a directory containing a stack of tiffs for FIBSEM).</p>
 <section id="spatialomics-file-layout">
-<h3>Spatialomics file layout.<a class="headerlink" href="#spatialomics-file-layout" title="Link to this heading"></a></h3>
+<h3>Spatialomics file layout.<a class="headerlink" href="#spatialomics-file-layout" title="Permalink to this heading"></a></h3>
 <p>Normally the dir structure is : <code class="docutils literal notranslate"><span class="pre">$lab/$pi/$project/$session/$sample</span></code></p>
 <p>For Spatialomics this is not the case, the $sample is not really a sample, it’s grouping of ROIs, PreROIs, etc from each of the slides.</p>
 <p>More details can be found in <a class="reference internal" href="workflows/index.html#ref-workflow-spatial-omics"><span class="std std-ref">Spatialomics Workflow</span></a>.</p>
 </section>
 <section id="working-directory-temporary-dir">
-<h3>Working directory / temporary dir.<a class="headerlink" href="#working-directory-temporary-dir" title="Link to this heading"></a></h3>
+<h3>Working directory / temporary dir.<a class="headerlink" href="#working-directory-temporary-dir" title="Permalink to this heading"></a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">Projects</span></code> directory above is relatively slow. There is a faster partition, which we use for a temporary working directory. For each input (eg file), I create one temporary directory. All work occurs in this directory. Upon the conclusion of the workflow, the contents of this directory are copied into the Assets directory (see Inputs/Outputs.
 A list of Objects of class FilePath are used to these inputs.</p>
 </section>
 </section>
 <section id="spack">
-<h2>Spack<a class="headerlink" href="#spack" title="Link to this heading"></a></h2>
+<h2>Spack<a class="headerlink" href="#spack" title="Permalink to this heading"></a></h2>
 <ul class="simple">
 <li><p>Note, although unused above, BigSky also has Spack available.</p></li>
 </ul>

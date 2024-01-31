@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="../">
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -15,9 +15,9 @@
   
         <script src="../_static/jquery.js?v=5d32c60e"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
         <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -98,15 +98,15 @@
            <div itemprop="articleBody">
              
   <section id="module-config">
-<span id="config-module"></span><h1>Config module<a class="headerlink" href="#module-config" title="Link to this heading"></a></h1>
+<span id="config-module"></span><h1>Config module<a class="headerlink" href="#module-config" title="Permalink to this heading"></a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="config.setup_pytools_log">
-<span class="sig-prename descclassname"><span class="pre">config.</span></span><span class="sig-name descname"><span class="pre">setup_pytools_log</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#config.setup_pytools_log" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">config.</span></span><span class="sig-name descname"><span class="pre">setup_pytools_log</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#config.setup_pytools_log" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="config.SLURM_exec">
-<span class="sig-prename descclassname"><span class="pre">config.</span></span><span class="sig-name descname"><span class="pre">SLURM_exec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">asynchronous</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">cluster_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#config.SLURM_exec" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">config.</span></span><span class="sig-name descname"><span class="pre">SLURM_exec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">asynchronous</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">cluster_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#config.SLURM_exec" title="Permalink to this definition"></a></dt>
 <dd><p>brings up a dynamically sized cluster.</p>
 <p>Docs: <a class="reference external" href="https://jobqueue.dask.org/en/latest/generated/dask_jobqueue.SLURMCluster.html">https://jobqueue.dask.org/en/latest/generated/dask_jobqueue.SLURMCluster.html</a></p>
 <p>We can view the sbatch script using the following command, to know how the job is started
@@ -119,66 +119,66 @@ The memory limit is also divided among the workers</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="config.Config">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">config.</span></span><span class="sig-name descname"><span class="pre">Config</span></span><a class="headerlink" href="#config.Config" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">config.</span></span><span class="sig-name descname"><span class="pre">Config</span></span><a class="headerlink" href="#config.Config" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="config.Config.bioformats2raw">
-<span class="sig-name descname"><span class="pre">bioformats2raw</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw'</span></em><a class="headerlink" href="#config.Config.bioformats2raw" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">bioformats2raw</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw'</span></em><a class="headerlink" href="#config.Config.bioformats2raw" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="config.Config.brt_binary">
-<span class="sig-name descname"><span class="pre">brt_binary</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/opt/rml/imod/bin/batchruntomo'</span></em><a class="headerlink" href="#config.Config.brt_binary" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">brt_binary</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/opt/rml/imod/bin/batchruntomo'</span></em><a class="headerlink" href="#config.Config.brt_binary" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="config.Config.header_loc">
-<span class="sig-name descname"><span class="pre">header_loc</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/opt/rml/imod/bin/header'</span></em><a class="headerlink" href="#config.Config.header_loc" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">header_loc</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/opt/rml/imod/bin/header'</span></em><a class="headerlink" href="#config.Config.header_loc" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="config.Config.mrc2tif_loc">
-<span class="sig-name descname"><span class="pre">mrc2tif_loc</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/opt/rml/imod/bin/mrc2tif'</span></em><a class="headerlink" href="#config.Config.mrc2tif_loc" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">mrc2tif_loc</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/opt/rml/imod/bin/mrc2tif'</span></em><a class="headerlink" href="#config.Config.mrc2tif_loc" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="config.Config.newstack_loc">
-<span class="sig-name descname"><span class="pre">newstack_loc</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/opt/rml/imod/bin/newstack'</span></em><a class="headerlink" href="#config.Config.newstack_loc" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">newstack_loc</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/opt/rml/imod/bin/newstack'</span></em><a class="headerlink" href="#config.Config.newstack_loc" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="config.Config.HIGH_SLURM_EXECUTOR">
-<span class="sig-name descname"><span class="pre">HIGH_SLURM_EXECUTOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;prefect_dask.task_runners.DaskTaskRunner</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#config.Config.HIGH_SLURM_EXECUTOR" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">HIGH_SLURM_EXECUTOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;prefect_dask.task_runners.DaskTaskRunner</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#config.Config.HIGH_SLURM_EXECUTOR" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="config.Config.SLURM_EXECUTOR">
-<span class="sig-name descname"><span class="pre">SLURM_EXECUTOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;prefect_dask.task_runners.DaskTaskRunner</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#config.Config.SLURM_EXECUTOR" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">SLURM_EXECUTOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;prefect_dask.task_runners.DaskTaskRunner</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#config.Config.SLURM_EXECUTOR" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="config.Config.user">
-<span class="sig-name descname"><span class="pre">user</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'runner'</span></em><a class="headerlink" href="#config.Config.user" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">user</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'runner'</span></em><a class="headerlink" href="#config.Config.user" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="config.Config.tmp_dir">
-<span class="sig-name descname"><span class="pre">tmp_dir</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/gs1/Scratch/runner_scratch/'</span></em><a class="headerlink" href="#config.Config.tmp_dir" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">tmp_dir</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/gs1/Scratch/runner_scratch/'</span></em><a class="headerlink" href="#config.Config.tmp_dir" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="config.Config.local_storage">
-<span class="sig-name descname"><span class="pre">local_storage</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">LocalFileSystem(basepath='/home/runner/.prefect/local-storage')</span></em><a class="headerlink" href="#config.Config.local_storage" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">local_storage</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">LocalFileSystem(basepath='/home/runner/.prefect/local-storage')</span></em><a class="headerlink" href="#config.Config.local_storage" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="config.Config.pickle_serializer">
-<span class="sig-name descname"><span class="pre">pickle_serializer</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">PickleSerializer(type='pickle',</span> <span class="pre">picklelib='pickle',</span> <span class="pre">picklelib_version=None)</span></em><a class="headerlink" href="#config.Config.pickle_serializer" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">pickle_serializer</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">PickleSerializer(type='pickle',</span> <span class="pre">picklelib='pickle',</span> <span class="pre">picklelib_version=None)</span></em><a class="headerlink" href="#config.Config.pickle_serializer" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="config.Config.proj_dir">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">proj_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">share_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#config.Config.proj_dir" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">proj_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">share_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#config.Config.proj_dir" title="Permalink to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>share_name</strong> – FileShareEnum string</p>
@@ -191,17 +191,17 @@ The memory limit is also divided among the workers</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="config.Config.assets_dir">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">assets_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">share_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#config.Config.assets_dir" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">assets_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">share_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#config.Config.assets_dir" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="config.Config.repo_dir">
-<span class="sig-name descname"><span class="pre">repo_dir</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">PosixPath('/home/runner/work/image_portal_workflows/image_portal_workflows/em_workflows')</span></em><a class="headerlink" href="#config.Config.repo_dir" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">repo_dir</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">PosixPath('/home/runner/work/image_portal_workflows/image_portal_workflows/em_workflows')</span></em><a class="headerlink" href="#config.Config.repo_dir" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="config.Config.template_dir">
-<span class="sig-name descname"><span class="pre">template_dir</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">PosixPath('/home/runner/work/image_portal_workflows/image_portal_workflows/em_workflows/templates')</span></em><a class="headerlink" href="#config.Config.template_dir" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">template_dir</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">PosixPath('/home/runner/work/image_portal_workflows/image_portal_workflows/em_workflows/templates')</span></em><a class="headerlink" href="#config.Config.template_dir" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>

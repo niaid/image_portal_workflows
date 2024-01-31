@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="./">
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -15,9 +15,9 @@
   
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
         <script src="_static/doctools.js?v=888ff710"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -91,12 +91,12 @@
            <div itemprop="articleBody">
              
   <section id="submitting-jobs">
-<h1>Submitting Jobs<a class="headerlink" href="#submitting-jobs" title="Link to this heading"></a></h1>
+<h1>Submitting Jobs<a class="headerlink" href="#submitting-jobs" title="Permalink to this heading"></a></h1>
 <p>NOTE: You need to be in NIH VPN to be able to submit jobs for your workflow runs.</p>
 <p>Workflow servers are deployed in <a class="reference external" href="https://prefect2.hedwig-workflow-api.niaiddev.net">development</a>, <a class="reference external" href="https://prefect2.hedwig-workflow-api.niaidqa.net">qa</a>, and <a class="reference external" href="https://prefect2.hedwig-workflow-api.niaidprod.net">production</a> environments separately.</p>
 <p>In order to submit a workflow job, you will need deployment IDs of each of the workflows, as shown:</p>
 <table class="docutils align-default" id="id1">
-<caption><span class="caption-text">Deployment IDs (<strong>Updated: 12/11/2023</strong>)</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<caption><span class="caption-text">Deployment IDs (<strong>Updated: 12/11/2023</strong>)</span><a class="headerlink" href="#id1" title="Permalink to this table"></a></caption>
 <colgroup>
 <col style="width: 21.1%" />
 <col style="width: 26.3%" />
@@ -113,36 +113,36 @@
 <tbody>
 <tr class="row-even"><td><p>2D / DM conversion</p></td>
 <td><p>68dd3d3e-6c5d-4616-ab33-52d4dcbd8184</p></td>
-<td><p>20ab41f5-3770-4834-97d0-33ce2f2d7c3e</p></td>
+<td></td>
 <td></td>
 </tr>
 <tr class="row-odd"><td><p>FIBSEM</p></td>
 <td><p>6eec994d-6d63-4e8e-b6fd-f4e516aa0caa</p></td>
-<td><p>32ed45f3-37eb-4b34-8220-f52fc9c96fb7</p></td>
+<td></td>
 <td></td>
 </tr>
 <tr class="row-even"><td><p>BRT</p></td>
 <td><p>8a8f9c9b-476f-4b4c-8a19-881dc1cb5be9</p></td>
-<td><p>6fcb4637-878f-4630-9f89-2bdea430ac3e</p></td>
+<td></td>
 <td></td>
 </tr>
 <tr class="row-odd"><td><p>IF / Multichannel CZI</p></td>
 <td><p>265a8a6b-fa09-4503-a449-bdc5117933a5</p></td>
-<td><p>208568ff-f487-4e10-bbd2-208640d39143</p></td>
+<td></td>
 <td></td>
 </tr>
 <tr class="row-even"><td><p>Large 2D PNG / ROI</p></td>
 <td><p>81f99df4-4de5-4f29-9b73-16dc9ee65b0c</p></td>
-<td><p>8873c33b-d46d-4296-ae4f-0157ab2f5911</p></td>
+<td></td>
 <td></td>
 </tr>
 </tbody>
 </table>
 <section id="pipeline-parameters">
-<h2>Pipeline Parameters<a class="headerlink" href="#pipeline-parameters" title="Link to this heading"></a></h2>
+<h2>Pipeline Parameters<a class="headerlink" href="#pipeline-parameters" title="Permalink to this heading"></a></h2>
 <p>Below are the pipeline parameters for all the available workflows.</p>
 <section id="d-dm-conversion">
-<h3>2D / DM conversion<a class="headerlink" href="#d-dm-conversion" title="Link to this heading"></a></h3>
+<h3>2D / DM conversion<a class="headerlink" href="#d-dm-conversion" title="Permalink to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
   <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;object&quot;</span><span class="p">,</span>
   <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Parameters&quot;</span><span class="p">,</span>
@@ -177,7 +177,7 @@
 </div>
 </section>
 <section id="fibsem">
-<h3>FIBSEM<a class="headerlink" href="#fibsem" title="Link to this heading"></a></h3>
+<h3>FIBSEM<a class="headerlink" href="#fibsem" title="Permalink to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
   <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;object&quot;</span><span class="p">,</span>
   <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Parameters&quot;</span><span class="p">,</span>
@@ -218,7 +218,7 @@
 </div>
 </section>
 <section id="brt">
-<h3>BRT<a class="headerlink" href="#brt" title="Link to this heading"></a></h3>
+<h3>BRT<a class="headerlink" href="#brt" title="Permalink to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
   <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;object&quot;</span><span class="p">,</span>
   <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Parameters&quot;</span><span class="p">,</span>
@@ -313,7 +313,7 @@
 </div>
 </section>
 <section id="if-multichannel-czi">
-<h3>IF / Multichannel CZI<a class="headerlink" href="#if-multichannel-czi" title="Link to this heading"></a></h3>
+<h3>IF / Multichannel CZI<a class="headerlink" href="#if-multichannel-czi" title="Permalink to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
   <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;object&quot;</span><span class="p">,</span>
   <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Parameters&quot;</span><span class="p">,</span>
@@ -348,7 +348,7 @@
 </div>
 </section>
 <section id="large-2d-png-roi">
-<h3>Large 2d PNG / ROI<a class="headerlink" href="#large-2d-png-roi" title="Link to this heading"></a></h3>
+<h3>Large 2d PNG / ROI<a class="headerlink" href="#large-2d-png-roi" title="Permalink to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
   <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;object&quot;</span><span class="p">,</span>
   <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Parameters&quot;</span><span class="p">,</span>
@@ -394,7 +394,7 @@
 </section>
 </section>
 <section id="cli-sdk-submission">
-<h2>CLI/SDK Submission<a class="headerlink" href="#cli-sdk-submission" title="Link to this heading"></a></h2>
+<h2>CLI/SDK Submission<a class="headerlink" href="#cli-sdk-submission" title="Permalink to this heading"></a></h2>
 <p>You can use <cite>curl</cite> to submit a job.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">~</span> <span class="n">curl</span> <span class="o">-</span><span class="n">X</span> <span class="s1">&#39;POST&#39;</span> \
 <span class="s1">&#39;https://prefect2.hedwig-workflow-api.niaiddev.net/api/deployments/&lt;DEPLOYMENT-ID&gt;/create_flow_run&#39;</span> \
@@ -408,7 +408,7 @@
 <p>As same as curl, you can use any other SDK to submit a job. For example, you can use <cite>axios</cite> to <a class="reference external" href="https://axios-http.com/docs/post_example">send a POST request</a> to the workflow server to submit a job.</p>
 </section>
 <section id="manual-submission">
-<h2>Manual Submission<a class="headerlink" href="#manual-submission" title="Link to this heading"></a></h2>
+<h2>Manual Submission<a class="headerlink" href="#manual-submission" title="Permalink to this heading"></a></h2>
 <p>Depending on the environment, go to the deployment section. Click on the <cite>Kebab menu</cite> icon next to your desired deployment and do a <cite>Custom Run</cite>. Here you can add appropriate values for the fields and submit your job. For manual submission, do not forget to add <cite>no_api: true</cite> value.</p>
 </section>
 </section>

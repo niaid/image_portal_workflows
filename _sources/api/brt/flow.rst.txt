@@ -11,6 +11,7 @@ BRT flow
    .. autofunction:: gen_ali_asmbl(file_path: FilePath) -> None
    .. autofunction:: gen_mrc2tiff(file_path: FilePath) -> None
    .. autofunction:: gen_thumbs(file_path: FilePath, z_dim) -> dict
+   .. autofunction:: gen_copy_keyimages(file_path: FilePath, z_dim: str) -> dict
    .. autofunction:: gen_tilt_movie(file_path: FilePath) -> dict
    .. autofunction:: gen_recon_movie(file_path: FilePath) -> dict
    .. autofunction:: gen_clip_avgs(file_path: FilePath, z_dim: str) -> None

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="../">
+<html class="writer-html5" lang="en">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -15,9 +15,9 @@
   
         <script src="../_static/jquery.js?v=5d32c60e"></script>
         <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
         <script src="../_static/doctools.js?v=888ff710"></script>
-        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -93,9 +93,9 @@
            <div itemprop="articleBody">
              
   <section id="workflows">
-<h1>Workflows<a class="headerlink" href="#workflows" title="Link to this heading"></a></h1>
+<h1>Workflows<a class="headerlink" href="#workflows" title="Permalink to this heading"></a></h1>
 <section id="brt-workflow">
-<h2>BRT Workflow<a class="headerlink" href="#brt-workflow" title="Link to this heading"></a></h2>
+<h2>BRT Workflow<a class="headerlink" href="#brt-workflow" title="Permalink to this heading"></a></h2>
 <p>Overview:</p>
 <p>A number of parameters can be passed to the “BRT” workflow. There are two types:
 1) params that are passed to the adoc file. See adoc / <a class="reference external" href="https://bio3d.colorado.edu/imod/doc/directives.html">https://bio3d.colorado.edu/imod/doc/directives.html</a>
@@ -105,9 +105,9 @@ The map function is used extensively, and preserves order.</p>
 <p>TomoJS 3D pipeline for tomographic reconstruction.</p>
 <p>The term “batch run tomo[gram]” is abbreviated BRT.</p>
 <section id="processes">
-<h3>Processes<a class="headerlink" href="#processes" title="Link to this heading"></a></h3>
+<h3>Processes<a class="headerlink" href="#processes" title="Permalink to this heading"></a></h3>
 <section id="generate-brt-directive-file">
-<h4>Generate BRT Directive File<a class="headerlink" href="#generate-brt-directive-file" title="Link to this heading"></a></h4>
+<h4>Generate BRT Directive File<a class="headerlink" href="#generate-brt-directive-file" title="Permalink to this heading"></a></h4>
 <dl class="simple">
 <dt>Description:</dt><dd><p>Generate a configuration file of parameter for BRT process.</p>
 </dd>
@@ -137,7 +137,7 @@ should be made. Inside the curly brackets is a suggested parameter name for the 
 The other directive files can be defined as parameters it the batch directive file provided on the command line.</p>
 </section>
 <section id="batchruntomo-brt">
-<h4>BatchRunTomo (BRT)<a class="headerlink" href="#batchruntomo-brt" title="Link to this heading"></a></h4>
+<h4>BatchRunTomo (BRT)<a class="headerlink" href="#batchruntomo-brt" title="Permalink to this heading"></a></h4>
 <dl class="simple">
 <dt>Description:</dt><dd><p>Perform computational expensive operations of processing an acquired tomography tilt-series and reconstructing a 3D
 volume. The process consists of numerous step to prepare, align, and perform 3d reconstruction from the tilt series
@@ -168,7 +168,7 @@ the final “.” is considered the <cite>BASENAME</cite>.</p></li>
 temporary and log files are created during this process.</p>
 </section>
 <section id="generate-tilt-movie">
-<h4>Generate tilt movie<a class="headerlink" href="#generate-tilt-movie" title="Link to this heading"></a></h4>
+<h4>Generate tilt movie<a class="headerlink" href="#generate-tilt-movie" title="Permalink to this heading"></a></h4>
 <dl class="simple">
 <dt>Description:</dt><dd><p>Convert a MRC file of the aligned tilt series into a movie for easy viewing.</p>
 </dd>
@@ -196,7 +196,7 @@ ffmpeg -f image2 -framerate 4 -i ${BASENAME}_ali.%03d.jpg -vcodec libx264 -pix_f
 </div>
 </section>
 <section id="generate-reconstruction-movie">
-<h4>Generate reconstruction movie<a class="headerlink" href="#generate-reconstruction-movie" title="Link to this heading"></a></h4>
+<h4>Generate reconstruction movie<a class="headerlink" href="#generate-reconstruction-movie" title="Permalink to this heading"></a></h4>
 <dl class="simple">
 <dt>Description:</dt><dd><p>Convert a MRC file of the reconstructed 3D volume into a movie for easy viewing.</p>
 </dd>
@@ -221,7 +221,7 @@ ffmpeg -f image2 -framerate 8 -i WORKDIR/hedwig/BASENAME_mp4.%04d.jpg -vcodec li
 </div>
 </section>
 <section id="generate-neuroglancer-pyramid">
-<h4>Generate Neuroglancer Pyramid<a class="headerlink" href="#generate-neuroglancer-pyramid" title="Link to this heading"></a></h4>
+<h4>Generate Neuroglancer Pyramid<a class="headerlink" href="#generate-neuroglancer-pyramid" title="Permalink to this heading"></a></h4>
 <dl>
 <dt>Descriptions:</dt><dd><p>Generates a <a class="reference external" href="https://github.com/google/neuroglancer">Neuroglancer</a> <a class="reference external" href="https://github.com/google/neuroglancer/blob/master/src/neuroglancer/datasource/precomputed/volume.md">precomputed</a> pyramid from an MRC file of a 3D volume. This does not work for tilt series, or other
 non-volumetric files.</p>
@@ -254,7 +254,7 @@ NIAID <a class="reference external" href="https://github.com/niaid/tomojs-pytool
 </section>
 </section>
 <section id="spatialomics-workflow">
-<span id="ref-workflow-spatial-omics"></span><h2>Spatialomics Workflow<a class="headerlink" href="#spatialomics-workflow" title="Link to this heading"></a></h2>
+<span id="ref-workflow-spatial-omics"></span><h2>Spatialomics Workflow<a class="headerlink" href="#spatialomics-workflow" title="Permalink to this heading"></a></h2>
 <p>Normally the dir structure is : <code class="docutils literal notranslate"><span class="pre">$lab/$pi/$project/$session/$sample</span></code></p>
 <p>For Spatialomics this is not the case, the $sample is not really a sample, it’s grouping of ROIs, PreROIs, etc from each of the slides.
 These grouping directories sit one down from session, in the place a <code class="docutils literal notranslate"><span class="pre">$sample</span></code> normally would be.</p>
