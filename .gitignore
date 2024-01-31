@@ -148,6 +148,8 @@ tags
 # prefect artifacts
 .prefectignore
 
+# all test input data files
+test/input_files/*
 # test assets
 test/input_files/*/Assets/*
 

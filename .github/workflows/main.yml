@@ -1,4 +1,4 @@
-name: Python Test and Package
+name: Github Pages Documentation
 
 on:
   push:
@@ -19,7 +19,6 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     name: Docs
-    needs: test
     steps:
       - uses: actions/checkout@v2
         with:
@@ -52,87 +51,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
           TARGET_BRANCH: "gh-pages"
-
-  test:
-    runs-on: ubuntu-latest
-    name: Check coverage
-    permissions:
-      # Gives the action the necessary permissions for publishing new
-      # comments in pull requests.
-      pull-requests: write
-      # Gives the action the necessary permissions for pushing data to the
-      # python-coverage-comment-action branch, and for editing existing
-      # comments (to avoid publishing multiple comments in the same PR)
-      contents: write
-    strategy:
-      matrix:
-        pyversion: ["3.8", "3.10"]
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-java@v3
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.pyversion }}
-      - name: Create LFS file list
-        run: |
-          git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
-      - name: Restore LFS cache
-        uses: actions/cache@v2
-        id: lfs-cache
-        with:
-          path: .git/lfs
-          key: lfs-v1-${{ hashFiles('.lfs-assets-id') }}
-          restore-keys: lfs-v1-
-      - name: Git LFS Pull
-        run: |
-          git lfs pull
-      - name: Install dependencies
-        run: |
-          sudo apt -y update && sudo apt -y install libgl-dev graphicsmagick libblosc1
-          IMOD=imod_4.11.24_RHEL7-64_CUDA10.1.sh
-          export IMOD_DIR=/usr/local/IMOD
-          export PATH=$IMOD_DIR/bin:$PATH
-          wget https://bio3d.colorado.edu/imod/AMD64-RHEL5/${IMOD} &&  sudo sh ${IMOD} -yes &&  rm -f ${IMOD}
-          BIO2R_V=0.7.0
-          BIO2R_Z=bioformats2raw-${BIO2R_V}.zip
-          export BIO2R_DIR=/usr/local/BIO2R
-          export PATH=$BIO2R_DIR/bioformats2raw-${BIO2R_V}/bin:$PATH
-          wget https://github.com/glencoesoftware/bioformats2raw/releases/download/v${BIO2R_V}/${BIO2R_Z} &&  sudo unzip ${BIO2R_Z} -d ${BIO2R_DIR} &&  rm -f ${BIO2R_Z}
-          python -m pip install --upgrade pip
-          pip install -e . -r requirements-dev.txt
-
-      - name: Directory setup
-        run: |
-          cp .env.sample .env
-
-      - name: Test Coverage
-        continue-on-error: true
-        run: |
-          BIO2R_V=0.7.0
-          export BIO2R_DIR=/usr/local/BIO2R/bioformats2raw-${BIO2R_V}
-          export IMOD_DIR=/usr/local/IMOD
-          export PATH=$BIO2R_DIR/bin:$IMOD_DIR/bin:$PATH
-          python -m pytest -v --log-cli-level=INFO -m "not (slow or localdata)"
-
-      - name: Coverage Badge
-        uses: tj-actions/coverage-badge-py@v2
-
-      - name: Coverage comment
-        id: coverage_comment
-        uses: py-cov-action/python-coverage-comment-action@v3
-        with:
-          GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Store Pull Request comment to be posted
-        uses: actions/upload-artifact@v3
-        if: steps.coverage_comment.outputs.COMMENT_FILE_WRITTEN == 'true'
-        with:
-          # If you use a different name, update COMMENT_ARTIFACT_NAME accordingly
-          name: python-coverage-comment-action
-          # If you use a different name, update COMMENT_FILENAME accordingly
-          path: python-coverage-comment-action.txt
