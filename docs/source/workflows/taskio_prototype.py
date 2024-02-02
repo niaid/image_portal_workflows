@@ -31,17 +31,17 @@ class ETLResponse:
 
 
 ################################################################
-# Stream is the data being passed down and updated as it passes
+# TaskIO is the data being passed down and updated as it passes
 ################################################################
 
 
 @dataclass
-class Stream:
+class TaskIO:
     # output path is a file pointer returned by the most recent task
     # this is used as input by the downstream task
     output_path: str  # this should be pathlib.Path
 
-    # file path are the keys to any stream
+    # file path are the keys to any taskio
     # they are unique
     # Sometimes, immediate upstream task may not be the right input
     # but the file_path (the original file) can be the needed one
@@ -50,7 +50,7 @@ class Stream:
     # error reflects the known error of the oldest task upstream
     error: str = None
 
-    # along with output_path, some streams generate data to pass to the users
+    # along with output_path, some taskios generate data to pass to the users
     data: Dict = None
 
     # Upstream history could be added to store other intermediate results
@@ -58,34 +58,36 @@ class Stream:
     # upstream_history: Dict
 
 
-def stream_handler(func):
+def taskio_handler(func):
     """
-    Takes in upstream and passes into the task if it is valid
-    If the function raises an error, annotates error (into new_stream) and passes downstream
-    If the function runs fine, passes the resulting stream (new_stream) as is
+    Takes in taskio and passes into the task if it is valid
+    If the function raises an error, annotates error (into new_taskio) and passes downstream
+    If the function runs fine, passes the resulting taskio (new_taskio) as is
 
     If the upstream has error, passes it downstream as is
         does not pass into downstream tasks
     """
 
     def wrapper(**kwargs):
-        upstream: Stream = kwargs["upstream"]
-        if upstream.error:
-            return upstream
+        prev_taskio: TaskIO = kwargs["taskio"]
+        if prev_taskio.error:
+            return prev_taskio
 
         try:
-            new_stream = func(**kwargs)
+            new_taskio = func(**kwargs)
         except ValueError as e:
-            new_stream = Stream(
-                file_path=upstream.file_path,
+            # We are currently handling only ValueError.
+            # So any other exception will cause pipeline to fail
+            new_taskio = TaskIO(
+                file_path=prev_taskio.file_path,
                 output_path=None,
                 error=f"{func.__name__} {str(e)}",
             )
-        new_stream.file_path = upstream.file_path
+        new_taskio.file_path = prev_taskio.file_path
         # if we want to save history of upstream tasks
-        # new_stream.upstream_history = stream.history
-        # new_stream.upstream_history[func.__name__] = new_stream
-        return new_stream
+        # new_taskio.upstream_history = prev_taskio.history
+        # new_taskio.upstream_history[func.__name__] = new_taskio
+        return new_taskio
 
     return wrapper
 
@@ -95,60 +97,60 @@ def stream_handler(func):
 ###############
 
 
-@task(name="task 1")  # names are needed, else all task names become "stream_handler"
-@stream_handler
-def task_a(upstream: Stream):
-    input = upstream.output_path
-    return Stream(output_path=input + "-> a")
+@task(name="task 1")  # names are needed, else all task names become "taskio_handler"
+@taskio_handler
+def task_a(taskio: TaskIO):
+    input = taskio.output_path
+    return TaskIO(output_path=input + "-> a")
 
 
 @task(name="task 2")
-@stream_handler
-def task_b(upstream: Stream):
-    input = upstream.output_path
+@taskio_handler
+def task_b(taskio: TaskIO):
+    input = taskio.output_path
     output_path = input + "-> b"
     metadata = None
-    # if '2' in upstream.file_path:
+    # if '2' in taskio.file_path:
     #     raise RuntimeError("***I am not handled***")  # !!! This will halt the flow run !!!
     metadata = dict(
         imageType="B",
-        params=f"param for {upstream.file_path} from B",
+        params=f"param for {taskio.file_path} from B",
         path=output_path,
     )
-    return Stream(output_path=output_path, data=dict(metadata=metadata))
+    return TaskIO(output_path=output_path, data=dict(metadata=metadata))
 
 
 @task(name="task 3")
-@stream_handler
-def task_c(upstream: Stream):
-    input = upstream.output_path
+@taskio_handler
+def task_c(taskio: TaskIO):
+    input = taskio.output_path
     # fails at 2
     output_path = input + "-> c"
     if "2" in input:
         raise ValueError("Fails at 2")
     metadata = dict(
         c=1,
-        params=f"param for {upstream.file_path} from C",
+        params=f"param for {taskio.file_path} from C",
         path=output_path,
     )
-    return Stream(output_path=output_path, data=dict(metadata=metadata))
+    return TaskIO(output_path=output_path, data=dict(metadata=metadata))
 
 
 @task(name="task 4")
-@stream_handler
-def task_d(upstream: Stream):
-    input = upstream.output_path
+@taskio_handler
+def task_d(taskio: TaskIO):
+    input = taskio.output_path
     output_path = input + "-> d"
     metadata = dict(
         d=0,
-        params=f"p for {upstream.file_path} from D",
+        params=f"p for {taskio.file_path} from D",
         path=output_path,
     )
-    return Stream(output_path=output_path, data=dict(metadata=metadata))
+    return TaskIO(output_path=output_path, data=dict(metadata=metadata))
 
 
 @task
-def gen_response(inputs: List, upstreams: List[Stream]):
+def gen_response(inputs: List, taskios: List[TaskIO]):
     etl_items = {
         input.file_path: ETLResponseItem(
             primary_file_path=input.file_path,
@@ -160,18 +162,16 @@ def gen_response(inputs: List, upstreams: List[Stream]):
         for input in inputs
     }
 
-    for upstream in upstreams:
-        print(
-            f"\n---\nStream being processed for {upstream.file_path} >> {upstream} \n***"
-        )
-        etl_item = etl_items[upstream.file_path]
-        if upstream.error:
+    for taskio in taskios:
+        print(f"\n---\nTaskIO being processed for {taskio.file_path} >> {taskio} \n***")
+        etl_item = etl_items[taskio.file_path]
+        if taskio.error:
             etl_item.status = ResponseEnum.error.name
-            etl_item.message = upstream.error
+            etl_item.message = taskio.error
             etl_item.image_set = None
         else:
-            if upstream.data:
-                etl_item.image_set.append(upstream.data)
+            if taskio.data:
+                etl_item.image_set.append(taskio.data)
 
     resp = ETLResponse(files=list(etl_items.values()))
     return resp
@@ -180,17 +180,17 @@ def gen_response(inputs: List, upstreams: List[Stream]):
 @task
 def task_fp(input):
     # generates the first stream
-    return Stream(file_path=f"fp{input}", output_path=f"fp{input}")
+    return TaskIO(file_path=f"fp{input}", output_path=f"fp{input}")
 
 
 @flow(log_prints=True)
 def my_flow():
     inputs = "1 2 3".split()
     fp_outs = task_fp.map(inputs)
-    a_outs = task_a.map(upstream=fp_outs)
-    b_outs = task_b.map(upstream=a_outs)
-    c_outs = task_c.map(upstream=a_outs)
-    d_outs = task_d.map(upstream=c_outs)
+    a_outs = task_a.map(taskio=fp_outs)
+    b_outs = task_b.map(taskio=a_outs)
+    c_outs = task_c.map(taskio=a_outs)
+    d_outs = task_d.map(taskio=c_outs)
     # technically each of the outputs that need to be stored
     # is passed through a func/task called get_asset
     response = gen_response.submit(fp_outs, [*b_outs, *c_outs, *d_outs])
