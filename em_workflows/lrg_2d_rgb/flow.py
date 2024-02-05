@@ -1,9 +1,9 @@
-from typing import Dict, Optional
+from typing import Optional
 from pathlib import Path
 
 import SimpleITK as sitk
 from pytools import HedwigZarrImage, HedwigZarrImages
-from prefect import flow, task
+from prefect import flow, task, unmapped
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
@@ -18,14 +18,18 @@ from em_workflows.lrg_2d_rgb.constants import (
     JPEG_QUAL,
     VALID_LRG_2D_RGB_INPUTS,
 )
+from em_workflows.utils import task_io
+from em_workflows.utils.task_io import taskio_handler, TaskIO, gen_taskio
 
 
-@task
-def convert_png_to_tiff(file_path: FilePath) -> FilePath:
+@task(name="convert_png_to_tiff")
+@taskio_handler
+def convert_png_to_tiff(taskio: TaskIO) -> TaskIO:
     """
     convert input.png -background white -alpha remove -alpha off ouput.tiff
     Adding argument: -define tiff:tile-geometry=128x128
     """
+    file_path = taskio.file_path
     input_png = file_path.fp_in.as_posix()
     output_tiff = f"{file_path.working_dir}/{file_path.base}.tiff"
     log_fp = f"{file_path.working_dir}/{file_path.base}_as_tiff.log"
@@ -44,49 +48,57 @@ def convert_png_to_tiff(file_path: FilePath) -> FilePath:
     ]
     utils.log(f"Generated cmd {cmd}")
     FilePath.run(cmd, log_fp)
-    return file_path
+    return TaskIO(output_path=Path(output_tiff))
 
 
 @task(
     name="Zarr generation",
     on_failure=[utils.collect_exception_task_hook],
 )
-def gen_zarr(file_path: FilePath) -> None:
-    input_tiff = f"{file_path.working_dir}/{file_path.base}.tiff"
+@taskio_handler
+def gen_zarr(taskio: TaskIO) -> TaskIO:
+    file_path = taskio.file_path
+    input_tiff = taskio.output_path
 
-    ng.bioformats_gen_zarr(
+    output_path = ng.bioformats_gen_zarr(
         file_path=file_path,
-        input_fname=input_tiff,
+        input_fname=input_tiff.as_posix(),
     )
-    return file_path
+    return TaskIO(output_path=Path(output_path))
 
 
 @task(
     name="Zarr rechunk",
     on_failure=[utils.collect_exception_task_hook],
 )
-def rechunk_zarr(file_path: FilePath) -> FilePath:
-    ng.rechunk_zarr(file_path=file_path)
-    return file_path
+@taskio_handler
+def rechunk_zarr(taskio: TaskIO) -> TaskIO:
+    ng.rechunk_zarr(file_path=taskio.file_path)
+    # zarr is rechunked in-place
+    return TaskIO(output_path=taskio.output_path)
 
 
-@task
-def copy_zarr_to_assets_dir(file_path: FilePath):
-    output_zarr = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
-    file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
-    return file_path
+@task(name="copy_zarr_to_assets_dir")
+@taskio_handler
+def copy_zarr_to_assets_dir(taskio: TaskIO) -> TaskIO:
+    output_zarr = taskio.output_path
+    asset_path = taskio.file_path.copy_to_assets_dir(fp_to_cp=output_zarr)
+    return TaskIO(output_path=asset_path)
 
 
 @task(
     name="Neuroglancer asset generation",
     on_failure=[utils.collect_exception_task_hook],
 )
-def generate_ng_asset(file_path: FilePath) -> Dict:
+@taskio_handler
+def generate_ng_asset(taskio: TaskIO) -> TaskIO:
     # Note; the seemingly redundancy of working and asset fp here.
     # However asset fp is in the network file system and is deployed for access to the users
     # Working fp is actually used for getting the metadata
 
-    asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
+    file_path = taskio.file_path
+    asset_fp = taskio.output_path
+
     working_fp = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
     hw_images = HedwigZarrImages(zarr_path=working_fp, read_only=False)
     hw_image = hw_images[list(hw_images.get_series_keys())[0]]
@@ -105,12 +117,18 @@ def generate_ng_asset(file_path: FilePath) -> Dict:
         dimensions="XY",
         shaderParameters=hw_image.neuroglancer_shader_parameters(),
     )
-    return ng_asset
+    return TaskIO(
+        output_path=None,
+        data=ng_asset,
+    )
 
 
-@task
-def gen_thumb(file_path: FilePath):
-    input_zarr = f"{file_path.working_dir}/{file_path.base}.zarr"
+@task(name="gen_thumb")
+@taskio_handler
+def gen_thumb(taskio: TaskIO) -> TaskIO:
+    input_zarr = taskio.output_path
+    file_path = taskio.file_path
+
     zarr_images = HedwigZarrImages(zarr_path=Path(input_zarr), read_only=False)
     zarr_image: HedwigZarrImage = zarr_images[list(zarr_images.get_series_keys())[0]]
 
@@ -144,7 +162,10 @@ def gen_thumb(file_path: FilePath):
     keyImage_asset = file_path.gen_asset(
         asset_type=AssetType.KEY_IMAGE, asset_fp=asset_fp_lg
     )
-    return [thumb_asset, keyImage_asset]
+    return TaskIO(
+        output_path=None,
+        data=[thumb_asset, keyImage_asset],
+    )
 
 
 @flow(
@@ -187,38 +208,24 @@ def lrg_2d_flow(
         VALID_LRG_2D_RGB_INPUTS,
         single_file=x_file_name,
     )
-    fps = utils.gen_fps.submit(
-        share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
+    fps = gen_taskio.map(
+        share_name=unmapped(file_share),
+        input_dir=unmapped(input_dir_fp),
+        fp_in=input_fps.result(),
     )
-    tiffs = convert_png_to_tiff.map(file_path=fps)
-    zarrs = gen_zarr.map(file_path=tiffs)
-    rechunk = rechunk_zarr.map(file_path=zarrs)
-    copy_to_assets = copy_zarr_to_assets_dir.map(file_path=rechunk)
-    zarr_assets = generate_ng_asset.map(file_path=copy_to_assets)
-    thumb_assets = gen_thumb.map(file_path=zarrs)
-    prim_fps = utils.gen_prim_fps.map(fp_in=fps)
-    callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
-    callback_with_pyramids = utils.add_asset.map(
-        prim_fp=callback_with_thumbs, asset=zarr_assets
+    tiffs = convert_png_to_tiff.map(taskio=fps)
+    zarrs = gen_zarr.map(taskio=tiffs)
+    rechunk = rechunk_zarr.map(taskio=zarrs)
+    copy_to_assets = copy_zarr_to_assets_dir.map(taskio=rechunk)
+    zarr_assets = generate_ng_asset.map(taskio=copy_to_assets)
+    thumb_assets = gen_thumb.map(taskio=zarrs)
+    callback_with_assets = task_io.gen_response.submit(
+        fps, [*zarr_assets, *thumb_assets]
     )
-
-    callback_result = list()
-
-    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_pyramids)):
-        state = cb.wait()
-        if state.is_completed():
-            callback_result.append(cb.result())
-        else:
-            path = f"{state.state_details.flow_run_id}__{idx}"
-            try:
-                message = LRG2DConfig.local_storage.read_path(path)
-                callback_result.append(fp.gen_prim_fp_elt(message.decode()))
-            except ValueError:
-                callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
 
     utils.send_callback_body.submit(
         x_no_api=x_no_api,
         token=token,
         callback_url=callback_url,
-        files_elts=callback_result,
+        files_elts=callback_with_assets,
     )
