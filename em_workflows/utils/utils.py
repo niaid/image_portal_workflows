@@ -686,7 +686,7 @@ def copy_workdirs_and_cleanup_hook(flow, flow_run, state):
         json.loads(stored_result)["data"].encode()
     )
     parameters = flow_run.parameters
-    x_keep_workdir = parameters["x_keep_workdir"]
+    x_keep_workdir = parameters.get("x_keep_workdir", False)
 
     for fp in fps:
         copy_workdir_logs.fn(file_path=fp)
