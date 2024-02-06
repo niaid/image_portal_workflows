@@ -51,10 +51,7 @@ def convert_png_to_tiff(taskio: TaskIO) -> TaskIO:
     return TaskIO(output_path=Path(output_tiff))
 
 
-@task(
-    name="Zarr generation",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task(name="Zarr generation")
 @taskio_handler
 def gen_zarr(taskio: TaskIO) -> TaskIO:
     file_path = taskio.file_path
@@ -67,10 +64,7 @@ def gen_zarr(taskio: TaskIO) -> TaskIO:
     return TaskIO(output_path=Path(output_path))
 
 
-@task(
-    name="Zarr rechunk",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task(name="Zarr rechunk")
 @taskio_handler
 def rechunk_zarr(taskio: TaskIO) -> TaskIO:
     ng.rechunk_zarr(file_path=taskio.file_path)
@@ -83,13 +77,10 @@ def rechunk_zarr(taskio: TaskIO) -> TaskIO:
 def copy_zarr_to_assets_dir(taskio: TaskIO) -> TaskIO:
     output_zarr = taskio.output_path
     asset_path = taskio.file_path.copy_to_assets_dir(fp_to_cp=output_zarr)
-    return TaskIO(output_path=asset_path)
+    return TaskIO(output_path=Path(asset_path))
 
 
-@task(
-    name="Neuroglancer asset generation",
-    on_failure=[utils.collect_exception_task_hook],
-)
+@task(name="Neuroglancer asset generation")
 @taskio_handler
 def generate_ng_asset(taskio: TaskIO) -> TaskIO:
     # Note; the seemingly redundancy of working and asset fp here.
@@ -182,7 +173,6 @@ def gen_thumb(taskio: TaskIO) -> TaskIO:
         utils.copy_workdirs_and_cleanup_hook,
     ],
 )
-# run_config=LocalRun(labels=[utils.get_environment()]),
 def lrg_2d_flow(
     file_share: str,
     input_dir: str,
@@ -197,7 +187,6 @@ def lrg_2d_flow(
     -create tmp dir for each.
     -convert to tiff -> zarr -> jpegs (thumb)
     """
-    utils.notify_api_running(x_no_api, token, callback_url)
 
     input_dir_fp = utils.get_input_dir.submit(
         share_name=file_share, input_dir=input_dir

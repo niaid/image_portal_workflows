@@ -3,7 +3,6 @@ from pathlib import Path
 from prefect import task
 from typing import List, Dict
 
-from em_workflows.config import Config
 from em_workflows.file_path import FilePath
 
 
@@ -102,13 +101,7 @@ def gen_response(fps: List[TaskIO], assets: List[TaskIO]):
     return resp
 
 
-@task(
-    # persisting to retrieve again in hooks
-    persist_result=True,
-    result_storage=Config.local_storage,
-    result_serializer=Config.pickle_serializer,
-    result_storage_key="{flow_run.id}__gen_fps",
-)
+@task
 def gen_taskio(share_name: str, input_dir: Path, input_fps: List[Path]) -> TaskIO:
     result = list()
     for fp_in in input_fps:
