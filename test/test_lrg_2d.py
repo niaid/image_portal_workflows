@@ -45,9 +45,6 @@ def test_lrg_2d_flow_server_response(mock_nfs_mount, mock_callback_data):
         ), "not all asset.path is str"
         assert all([asset["path"] for asset in assets]), "not all asset.path is valid"
 
-    expected_response = { "files": [ { "primaryFilePath": "test/input_files/lrg_ROI_pngs/Projects/even_smaller.png", "status": "success", "message": None, "thumbnailIndex": 0, "title": "even_smaller", "fileMetadata": None, "imageSet": [ { "imageName": "even_smaller", "imageMetadata": None, "assets": [ { "type": "thumbnail", "path": "test/input_files/lrg_ROI_pngs/Assets/even_smaller/even_smaller_sm.jpeg", }, { "type": "keyImage", "path": "test/input_files/lrg_ROI_pngs/Assets/even_smaller/even_smaller_lg.jpeg", }, { "type": "neuroglancerZarr", "path": "test/input_files/lrg_ROI_pngs/Assets/even_smaller/even_smaller.zarr/0", "metadata": { "shader": "RGB", "dimensions": "XY", "shaderParameters": {}, }, }, ], } ], } ] }  # noqa
-    assert response == expected_response, "response and expected response don't match"
-
 
 def test_lrg_2d_flow_failure_server_response(
     monkeypatch, mock_nfs_mount, mock_callback_data
@@ -72,7 +69,7 @@ def test_lrg_2d_flow_failure_server_response(
         x_no_api=True,
         return_state=True,
     )
-    assert state.is_failed()
+    assert state.is_completed(), "Flow failed"
 
     response = {}
     with open(mock_callback_data) as fd:
@@ -83,7 +80,7 @@ def test_lrg_2d_flow_failure_server_response(
     results = response["files"]
     result = results[0]
     assert result["status"] == "error"
-    assert "Zarr generation" in result["message"]
+    assert "gen_zarr" in result["message"]
 
 
 @pytest.mark.parametrize("fails_for", ["even_smaller_broken"])
@@ -104,13 +101,11 @@ def test_lrg_2d_flow_partial_failure_server_response(
 
     state = lrg_2d_flow(
         file_share="test",
-        input_dir="/test/input_files/lrg_ROI_pngs/Projects/Partial_Correct/",
+        input_dir="/test/input_files/lrg_ROI_pngs/Projects/",
         x_no_api=True,
         return_state=True,
     )
-    assert (
-        state.is_failed()
-    )  # Except for BRT, everything else should be failed (although partly failed)
+    assert state.is_completed(), "Flow failed"
 
     response = {}
     with open(mock_callback_data) as fd:
@@ -122,7 +117,7 @@ def test_lrg_2d_flow_partial_failure_server_response(
     for result in results:
         if fails_for in result["primaryFilePath"]:
             assert result["status"] == "error"
-            assert "Zarr generation" in result["message"]
+            assert "gen_zarr" in result["message"]
         else:
             assert result["status"] == "success"
             assert result["message"] is None

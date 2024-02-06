@@ -115,6 +115,7 @@ def bioformats_gen_zarr(
 
     cmd.extend([input_fname, output_zarr])
     FilePath.run(cmd=cmd, log_file=log_fp)
+    return Path(output_zarr)
 
 
 def zarr_build_multiscales(file_path: FilePath) -> None:
