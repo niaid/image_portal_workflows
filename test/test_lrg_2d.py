@@ -80,7 +80,7 @@ def test_lrg_2d_flow_failure_server_response(
     results = response["files"]
     result = results[0]
     assert result["status"] == "error"
-    assert "Zarr generation" in result["message"]
+    assert "gen_zarr" in result["message"]
 
 
 @pytest.mark.parametrize("fails_for", ["even_smaller_broken"])

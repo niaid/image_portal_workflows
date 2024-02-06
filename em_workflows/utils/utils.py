@@ -8,7 +8,7 @@ from typing import List, Dict
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
-from prefect import task, get_run_logger, allow_failure
+from prefect import task, get_run_logger
 from prefect.exceptions import MissingContextError
 from prefect.states import State
 from prefect.flows import Flow, FlowRun
@@ -197,9 +197,7 @@ def add_asset(prim_fp: dict, asset: dict, image_idx: int = None) -> dict:
     return prim_fp
 
 
-# triggers like "always_run" are managed when calling the task itself
-@task(retries=3, retry_delay_seconds=10)
-def cleanup_workdir(fps: List[FilePath], x_keep_workdir: bool):
+def cleanup_workdir(fp: FilePath, x_keep_workdir: bool):
     """
     :param fp: a FilePath which has a working_dir to be removed
 
@@ -210,9 +208,8 @@ def cleanup_workdir(fps: List[FilePath], x_keep_workdir: bool):
     if x_keep_workdir is True:
         log("x_keep_workdir is set to True, skipping removal.")
     else:
-        for fp in fps:
-            log(f"Trying to remove {fp.working_dir}")
-            fp.rm_workdir()
+        log(f"Trying to remove {fp.working_dir}")
+        fp.rm_workdir()
 
 
 def update_adoc(
@@ -688,33 +685,9 @@ def copy_workdirs_and_cleanup_hook(flow, flow_run, state):
     parameters = flow_run.parameters
     x_keep_workdir = parameters.get("x_keep_workdir", False)
 
-    for fp in taskio_fps:
-        copy_workdir_logs.fn(file_path=fp)
-
-    cleanup_workdir.fn(taskio_fps, x_keep_workdir)
-
-
-def callback_with_cleanup(
-    fps: List[FilePath],
-    callback_result: List,
-    x_no_api: bool = False,
-    callback_url: str = None,
-    token: str = None,
-    x_keep_workdir: bool = False,
-):
-    cp_wd_logs_to_assets = copy_workdir_logs.map(fps, wait_for=[callback_result])
-
-    cb = send_callback_body.submit(
-        x_no_api=x_no_api,
-        token=token,
-        callback_url=callback_url,
-        files_elts=callback_result,
-    )
-    cleanup_workdir.submit(
-        fps,
-        x_keep_workdir,
-        wait_for=[cb, allow_failure(cp_wd_logs_to_assets)],
-    )
+    for taskio_fp in taskio_fps:
+        copy_workdir_logs.fn(file_path=taskio_fp.file_path)
+        cleanup_workdir(taskio_fp.file_path, x_keep_workdir)
 
 
 def generate_flow_run_name():
