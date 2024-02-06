@@ -3,7 +3,7 @@ from pathlib import Path
 
 import SimpleITK as sitk
 from pytools import HedwigZarrImage, HedwigZarrImages
-from prefect import flow, task, unmapped
+from prefect import flow, task
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
@@ -208,10 +208,10 @@ def lrg_2d_flow(
         VALID_LRG_2D_RGB_INPUTS,
         single_file=x_file_name,
     )
-    fps = gen_taskio.map(
-        share_name=unmapped(file_share),
-        input_dir=unmapped(input_dir_fp),
-        fp_in=input_fps.result(),
+    fps = gen_taskio.submit(
+        share_name=file_share,
+        input_dir=input_dir_fp,
+        input_fps=input_fps,
     )
     tiffs = convert_png_to_tiff.map(taskio=fps)
     zarrs = gen_zarr.map(taskio=tiffs)

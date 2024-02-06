@@ -682,16 +682,16 @@ def send_callback_body(
 
 def copy_workdirs_and_cleanup_hook(flow, flow_run, state):
     stored_result = Config.local_storage.read_path(f"{flow_run.id}__gen_fps")
-    fps: List[FilePath] = Config.pickle_serializer.loads(
+    taskio_fps = Config.pickle_serializer.loads(
         json.loads(stored_result)["data"].encode()
     )
     parameters = flow_run.parameters
-    x_keep_workdir = parameters["x_keep_workdir"]
+    x_keep_workdir = parameters.get("x_keep_workdir", False)
 
-    for fp in fps:
+    for fp in taskio_fps:
         copy_workdir_logs.fn(file_path=fp)
 
-    cleanup_workdir.fn(fps, x_keep_workdir)
+    cleanup_workdir.fn(taskio_fps, x_keep_workdir)
 
 
 def callback_with_cleanup(
