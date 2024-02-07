@@ -473,7 +473,8 @@ def gen_ng_metadata(fp_in: FilePath, zarr: Path) -> Dict:
     # Working fp is actually used for getting the metadata
 
     file_path = fp_in
-    asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
+    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(zarr))
+
     utils.log("Instantiating HWZarrImages")
     hw_images = HedwigZarrImages(zarr_path=zarr, read_only=False)
     utils.log("Accessing first HWZarrImage")
@@ -514,7 +515,6 @@ def get_callback_result(callback_data: list) -> list:
     return cb_data
 
 
-# run_config=LocalRun(labels=[utils.get_environment()]),
 @flow(
     name="BRT",
     flow_run_name=utils.generate_flow_run_name,
