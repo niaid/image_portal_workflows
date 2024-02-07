@@ -7,8 +7,7 @@ import json
 from typing import List, Dict
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader
-from prefect import task, get_run_logger, allow_failure
+from prefect import task, get_run_logger
 from prefect.exceptions import MissingContextError
 from prefect.states import State
 from prefect.flows import Flow, FlowRun
@@ -20,7 +19,6 @@ from em_workflows.file_path import FilePath
 
 # used for keeping outputs of imod's header command (dimensions of image).
 Header = namedtuple("Header", "x y z")
-BrtOutput = namedtuple("BrtOutput", ["ali_file", "rec_file"])
 
 
 def log(msg):
@@ -80,54 +78,6 @@ def collect_exception_task_hook(task: Task, task_run: TaskRun, state: State):
         Config.local_storage.read_path(path)
     except ValueError:  # ValueError path not found
         Config.local_storage.write_path(path, message.encode())
-
-
-@task(
-    name="mrc to movie generation",
-    on_failure=[collect_exception_task_hook],
-)
-def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
-    """
-    :param file_path: FilePath for the input
-    :param root: base name of the mrc file
-    :param asset_type: type of resulting output (movie)
-    :param kwargs: additional arguments to wait for before executing this func
-
-    - Uses the file_path to identify the working_dir which should have the "root" mrc
-    - Runs IMOD ``mrc2tif`` to convert the mrc to many jpgs named by z number
-    - Calls ``ffmpeg`` to create the mp4 movie from the jpgs and returns it as an asset
-    """
-    mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
-    mrc = f"{file_path.working_dir}/{root}.mrc"
-    log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
-    cmd = [Config.mrc2tif_loc, "-j", "-C", "0,255", mrc, mp4]
-    FilePath.run(cmd=cmd, log_file=log_file)
-    mov = f"{file_path.working_dir}/{file_path.base}_{asset_type}.mp4"
-    test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
-    mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
-    if test_p.exists():
-        mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%04d.jpg"
-    cmd = [
-        "ffmpeg",
-        "-f",
-        "image2",
-        "-framerate",
-        "8",
-        "-i",
-        mp4_input,
-        "-vcodec",
-        "libx264",
-        "-pix_fmt",
-        "yuv420p",
-        "-s",
-        "1024,1024",
-        mov,
-    ]
-    log_file = f"{file_path.working_dir}/{file_path.base}_{asset_type}.log"
-    FilePath.run(cmd=cmd, log_file=log_file)
-    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(mov))
-    asset = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
-    return asset
 
 
 @task
@@ -197,9 +147,7 @@ def add_asset(prim_fp: dict, asset: dict, image_idx: int = None) -> dict:
     return prim_fp
 
 
-# triggers like "always_run" are managed when calling the task itself
-@task(retries=3, retry_delay_seconds=10)
-def cleanup_workdir(fps: List[FilePath], x_keep_workdir: bool):
+def cleanup_workdir(fp: FilePath, x_keep_workdir: bool):
     """
     :param fp: a FilePath which has a working_dir to be removed
 
@@ -210,78 +158,8 @@ def cleanup_workdir(fps: List[FilePath], x_keep_workdir: bool):
     if x_keep_workdir is True:
         log("x_keep_workdir is set to True, skipping removal.")
     else:
-        for fp in fps:
-            log(f"Trying to remove {fp.working_dir}")
-            fp.rm_workdir()
-
-
-def update_adoc(
-    adoc_fp: Path,
-    tg_fp: Path,
-    montage: int,
-    gold: int,
-    focus: int,
-    fiducialless: int,
-    trackingMethod: int,
-    TwoSurfaces: int,
-    TargetNumberOfBeads: int,
-    LocalAlignments: int,
-    THICKNESS: int,
-) -> Path:
-    """
-    | Uses jinja templating to update the adoc file with input params.
-    | dual_p is calculated by inputs_paired() and is used to define `dual`
-    | Some of these parameters are derived programatically.
-
-    :todo: Remove references to ``dual_p`` in comments?
-    """
-    file_loader = FileSystemLoader(str(adoc_fp.parent))
-    env = Environment(loader=file_loader)
-    template = env.get_template(adoc_fp.name)
-
-    name = tg_fp.stem
-    currentBStackExt = None
-    stackext = tg_fp.suffix[1:]
-    # if dual_p:
-    #    dual = 1
-    #    currentBStackExt = tg_fp.suffix[1:]  # TODO - assumes both files are same ext
-    datasetDirectory = adoc_fp.parent
-    if int(TwoSurfaces) == 0:
-        SurfacesToAnalyze = 1
-    elif int(TwoSurfaces) == 1:
-        SurfacesToAnalyze = 2
-    else:
-        raise ValueError(
-            f"Unable to resolve SurfacesToAnalyze, TwoSurfaces \
-                is set to {TwoSurfaces}, and should be 0 or 1"
-        )
-    rpa_thickness = int(int(THICKNESS) * 1.5)
-
-    vals = {
-        "name": name,
-        "stackext": stackext,
-        "currentBStackExt": currentBStackExt,
-        "montage": montage,
-        "gold": gold,
-        "focus": focus,
-        "datasetDirectory": datasetDirectory,
-        "fiducialless": fiducialless,
-        "trackingMethod": trackingMethod,
-        "TwoSurfaces": TwoSurfaces,
-        "TargetNumberOfBeads": TargetNumberOfBeads,
-        "SurfacesToAnalyze": SurfacesToAnalyze,
-        "LocalAlignments": LocalAlignments,
-        "rpa_thickness": rpa_thickness,
-        "THICKNESS": THICKNESS,
-    }
-
-    output = template.render(vals)
-    adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
-    log("Created adoc: adoc_loc.as_posix()")
-    with open(adoc_loc, "w") as _file:
-        print(output, file=_file)
-    log(f"generated {adoc_loc}")
-    return adoc_loc
+        log(f"Trying to remove {fp.working_dir}")
+        fp.rm_workdir()
 
 
 def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
@@ -303,80 +181,6 @@ def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
         else:
             raise RuntimeError(f"Files missing. {fp_1},{fp_2}. BRT run failure.")
     return new_loc
-
-
-def copy_template(working_dir: Path, template_name: str) -> Path:
-    """
-    :param working_dir: libpath.Path of temporary working directory
-    :param template_name: base str name of the ADOC template
-    :return: libpath.Path of the copied file
-
-    copies the template adoc file to the working_dir
-    """
-    adoc_fp = f"{working_dir}/{template_name}.adoc"
-    template_fp = f"{Config.template_dir}/{template_name}.adoc"
-    log(f"trying to copy {template_fp} to {adoc_fp}")
-    shutil.copyfile(template_fp, adoc_fp)
-    return Path(adoc_fp)
-
-
-@task(
-    name="Batchruntomo conversion",
-    on_failure=[collect_exception_task_hook],
-)
-def run_brt(
-    file_path: FilePath,
-    adoc_template: str,
-    montage: int,
-    gold: int,
-    focus: int,
-    fiducialless: int,
-    trackingMethod: int,
-    TwoSurfaces: int,
-    TargetNumberOfBeads: int,
-    LocalAlignments: int,
-    THICKNESS: int,
-) -> BrtOutput:
-    """
-    The natural place for this function is within the brt flow.
-    The reason for this is to facilitate testing. In prefect 1, a
-    flow lives within a context. This causes problems if things are mocked
-    for testing. If the function is in utils, these problems go away.
-    TODO, this is ugly. This might vanish in Prefect 2, since flows are
-    no longer obligated to being context dependant.
-    """
-
-    adoc_fp = copy_template(
-        working_dir=file_path.working_dir, template_name=adoc_template
-    )
-    updated_adoc = update_adoc(
-        adoc_fp=adoc_fp,
-        tg_fp=file_path.fp_in,
-        montage=montage,
-        gold=gold,
-        focus=focus,
-        fiducialless=fiducialless,
-        trackingMethod=trackingMethod,
-        TwoSurfaces=TwoSurfaces,
-        TargetNumberOfBeads=TargetNumberOfBeads,
-        LocalAlignments=LocalAlignments,
-        THICKNESS=THICKNESS,
-    )
-    # why do we need to copy these?
-    copy_tg_to_working_dir(fname=file_path.fp_in, working_dir=file_path.working_dir)
-
-    # START BRT (Batchruntomo) - long running process.
-    cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "1", "-gpu", "1"]
-    log_file = f"{file_path.working_dir}/brt_run.log"
-    FilePath.run(cmd, log_file)
-    rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
-    ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
-    log(f"checking that dir {file_path.working_dir} contains ok BRT run")
-
-    for _file in [rec_file, ali_file]:
-        if not _file.exists():
-            raise ValueError(f"File {_file} does not exist. BRT run failure.")
-    return BrtOutput(ali_file=ali_file, rec_file=rec_file)
 
 
 # TODO replace "trigger=always_run"
@@ -490,52 +294,13 @@ def notify_api_running(
     return response.ok
 
 
-# def custom_terminal_state_handler(
-# ) -> Optional[State]:
-#     """
-#     we define any success at all to be a success
-#     """
-#     success = False
-#     # iterate through reference task states looking for successes
-#     for task_state in reference_task_states:
-#         if task_state.is_successful():
-#             success = True
-#     if success:
-#         message = "success"
-#         ns = Success(
-#             message=message,
-#             result=state.result,
-#             context=state.context,
-#             cached_inputs=state.cached_inputs,
-#         )
-#     else:
-#         message = "error"
-#         ns = state
-#     if prefect.context.parameters.get("x_no_api"):
-#         log(f"x_no_api flag used, terminal: success is {message}")
-#     else:
-#         callback_url = prefect.context.parameters.get("callback_url")
-#         token = prefect.context.parameters.get("token")
-#         headers = {
-#             "Authorization": "Bearer " + token,
-#             "Content-Type": "application/json",
-#         }
-#         response = requests.post(
-#             callback_url, headers=headers, data=json.dumps({"status": message})
-#         )
-#         log(f"Pipeline status is:{message}, {response.text}")
-#         log(response.headers)
-#         if not response.ok:
-#             msg = f"Bad response code on callback: {response}"
-#             log(msg=msg)
-#             raise signals.FAIL(msg)
-#     return ns
-
-
-def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
+def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State) -> bool:
     """
-    https://docs.prefect.io/core/concepts/states.html#overview.
-    https://docs.prefect.io/core/concepts/notifications.html#state-handlers
+    When the state changes for a workflow, this hook calls the backend api to update status
+    of the workflow in its db.
+
+    The params for state change hooks can be found here:
+    https://docs.prefect.io/latest/guides/state-change-hooks/
     """
     status = "success" if state.is_completed() else "error"
     x_no_api = flow_run.parameters.get("x_no_api", False)
@@ -546,7 +311,7 @@ def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
 
     if x_no_api:
         log(f"x_no_api flag used\nCompletion status: {status}")
-        return
+        return True
 
     hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
     hooks_log.write(f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n")
@@ -637,7 +402,6 @@ def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePa
     return fps
 
 
-# TODO handle "trigger=any_successful"
 @task(retries=3, retry_delay_seconds=60)
 def send_callback_body(
     x_no_api: bool,
@@ -681,6 +445,9 @@ def send_callback_body(
 
 
 def copy_workdirs_and_cleanup_hook(flow, flow_run, state):
+    """
+    A flow state change hook called to copy workdir log files and also cleanup workdir after coppying.
+    """
     stored_result = Config.local_storage.read_path(f"{flow_run.id}__gen_fps")
     fps: List[FilePath] = Config.pickle_serializer.loads(
         json.loads(stored_result)["data"].encode()
@@ -690,34 +457,15 @@ def copy_workdirs_and_cleanup_hook(flow, flow_run, state):
 
     for fp in fps:
         copy_workdir_logs.fn(file_path=fp)
-
-    cleanup_workdir.fn(fps, x_keep_workdir)
-
-
-def callback_with_cleanup(
-    fps: List[FilePath],
-    callback_result: List,
-    x_no_api: bool = False,
-    callback_url: str = None,
-    token: str = None,
-    x_keep_workdir: bool = False,
-):
-    cp_wd_logs_to_assets = copy_workdir_logs.map(fps, wait_for=[callback_result])
-
-    cb = send_callback_body.submit(
-        x_no_api=x_no_api,
-        token=token,
-        callback_url=callback_url,
-        files_elts=callback_result,
-    )
-    cleanup_workdir.submit(
-        fps,
-        x_keep_workdir,
-        wait_for=[cb, allow_failure(cp_wd_logs_to_assets)],
-    )
+        cleanup_workdir(fp, x_keep_workdir)
 
 
 def generate_flow_run_name():
+    """
+    Custom flow run names generator to replace default behavior, which is it simply uses flow function name
+
+    https://docs.prefect.io/latest/concepts/flows/#flow-settings
+    """
     parameters = flow_run.parameters
     name = Path(parameters["input_dir"])
     share_name = parameters["file_share"]

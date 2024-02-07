@@ -286,6 +286,54 @@ def gen_zarr(fp_in: FilePath, **kwargs) -> FilePath:
 
 
 @task(
+    name="mrc to movie generation",
+    on_failure=[utils.collect_exception_task_hook],
+)
+def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
+    """
+    :param file_path: FilePath for the input
+    :param root: base name of the mrc file
+    :param asset_type: type of resulting output (movie)
+    :param kwargs: additional arguments to wait for before executing this func
+
+    - Uses the file_path to identify the working_dir which should have the "root" mrc
+    - Runs IMOD ``mrc2tif`` to convert the mrc to many jpgs named by z number
+    - Calls ``ffmpeg`` to create the mp4 movie from the jpgs and returns it as an asset
+    """
+    mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
+    mrc = f"{file_path.working_dir}/{root}.mrc"
+    log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
+    cmd = [SEMConfig.mrc2tif_loc, "-j", "-C", "0,255", mrc, mp4]
+    FilePath.run(cmd=cmd, log_file=log_file)
+    mov = f"{file_path.working_dir}/{file_path.base}_{asset_type}.mp4"
+    test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
+    mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
+    if test_p.exists():
+        mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%04d.jpg"
+    cmd = [
+        "ffmpeg",
+        "-f",
+        "image2",
+        "-framerate",
+        "8",
+        "-i",
+        mp4_input,
+        "-vcodec",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-s",
+        "1024,1024",
+        mov,
+    ]
+    log_file = f"{file_path.working_dir}/{file_path.base}_{asset_type}.log"
+    FilePath.run(cmd=cmd, log_file=log_file)
+    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(mov))
+    asset = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
+    return asset
+
+
+@task(
     name="Neuroglancer metadata generation",
     on_failure=[utils.collect_exception_task_hook],
 )
@@ -374,7 +422,7 @@ def sem_tomo_flow(
     base_mrcs = gen_newstack_combi.map(fp_in=align_xgs, stretch=stretchs)
     # base_mrcs are passed in as kwargs to replace wait_for
 
-    corrected_movie_assets = utils.mrc_to_movie.map(
+    corrected_movie_assets = mrc_to_movie.map(
         file_path=fps,
         root=unmapped("adjusted"),
         asset_type=unmapped(AssetType.REC_MOVIE),
