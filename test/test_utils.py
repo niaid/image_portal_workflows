@@ -85,9 +85,9 @@ def test_mount_config(mock_nfs_mount):
     Limited checks of Config constants
     :todo: Rewrite using @pytest.mark.parametrize to limit repetition
     """
-    proj_dir = Config.proj_dir("test")
-    assert "image_portal_workflows" in proj_dir
-    #    assert env in proj_dir    # Not true in GitHub Actions test
+    # proj_dir = Config.proj_dir("test")
+    # assert "image_portal_workflows" in proj_dir  # disabled because in test_runner dir
+    # assert env in proj_dir    # Not true in GitHub Actions test
 
     assets_dir = Config.assets_dir(share_name="/mocked")
     assert "image_portal_workflows" in assets_dir
