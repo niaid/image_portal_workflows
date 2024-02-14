@@ -1,5 +1,8 @@
+import shutil
 from pathlib import Path
-from pytools.HedwigZarrImages import HedwigZarrImages
+
+from rechunker import rechunk
+
 from em_workflows.config import Config
 from em_workflows.file_path import FilePath
 from em_workflows.constants import BIOFORMATS_NUM_WORKERS, RECHUNK_SIZE
@@ -10,16 +13,24 @@ setup_pytools_log()
 
 
 def rechunk_zarr(file_path: FilePath) -> None:
-    zarr_fp = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
-    utils.log(f"{zarr_fp} output zarr")
-    images = HedwigZarrImages(zarr_fp, read_only=False)
-    for _, image in images.series():
-        image.rechunk(RECHUNK_SIZE, in_memory=True)
+    source_store = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
+    utils.log(f"Rechunking {source_store}")
+
+    target_chunks = (RECHUNK_SIZE, RECHUNK_SIZE, RECHUNK_SIZE)
+    max_mem = "2GB"
+    target_store = Path(f"{file_path.working_dir}/target.zarr")
+    temp_store = Path(f"{file_path.working_dir}/temp.zarr")
+    # remove zarr stores or it won't work
+    shutil.rmtree(target_store)
+    shutil.rmtree(temp_store)
+    rechunk_plan = rechunk(
+        source_store, target_chunks, max_mem, target_store, temp_store=temp_store
+    )
+    rechunk_plan.execute()
 
 
 def bioformats_gen_zarr_dup(
     fp_in: Path,
-    rechunk: bool = False,
     width: int = None,
     height: int = None,
     resolutions: int = None,
@@ -29,7 +40,6 @@ def bioformats_gen_zarr_dup(
     Following params alter based on what kind of flow is running...
 
     :param input_fname: Depending on the flow, input fname might be different
-    :param rechunk: Rechunk zarrs if required
     :param width:
     :param height:
     :param resolutions:
@@ -70,7 +80,6 @@ def bioformats_gen_zarr_dup(
 def bioformats_gen_zarr(
     file_path: FilePath,
     input_fname: str,
-    rechunk: bool = False,
     width: int = None,
     height: int = None,
     resolutions: int = None,
@@ -80,7 +89,6 @@ def bioformats_gen_zarr(
     Following params alter based on what kind of flow is running...
 
     :param input_fname: Depending on the flow, input fname might be different
-    :param rechunk: Rechunk zarrs if required
     :param width:
     :param height:
     :param resolutions:
