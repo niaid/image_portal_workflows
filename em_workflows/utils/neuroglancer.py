@@ -19,7 +19,6 @@ def rechunk_zarr(file_path: FilePath) -> None:
 
 def bioformats_gen_zarr_dup(
     fp_in: Path,
-    rechunk: bool = False,
     width: int = None,
     height: int = None,
     resolutions: int = None,
@@ -29,7 +28,6 @@ def bioformats_gen_zarr_dup(
     Following params alter based on what kind of flow is running...
 
     :param input_fname: Depending on the flow, input fname might be different
-    :param rechunk: Rechunk zarrs if required
     :param width:
     :param height:
     :param resolutions:
@@ -70,7 +68,6 @@ def bioformats_gen_zarr_dup(
 def bioformats_gen_zarr(
     file_path: FilePath,
     input_fname: str,
-    rechunk: bool = False,
     width: int = None,
     height: int = None,
     resolutions: int = None,
@@ -80,7 +77,6 @@ def bioformats_gen_zarr(
     Following params alter based on what kind of flow is running...
 
     :param input_fname: Depending on the flow, input fname might be different
-    :param rechunk: Rechunk zarrs if required
     :param width:
     :param height:
     :param resolutions:
