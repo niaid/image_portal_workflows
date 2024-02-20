@@ -528,6 +528,10 @@ def get_callback_result(callback_data: list) -> list:
         utils.notify_api_completion,
         utils.copy_workdirs_and_cleanup_hook,
     ],
+    on_crashed=[
+        utils.notify_api_completion,
+        utils.copy_workdirs_and_cleanup_hook,
+    ],
 )
 def brt_flow(
     # This block of params map are for adoc file specfication.
