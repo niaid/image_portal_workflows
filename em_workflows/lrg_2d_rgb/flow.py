@@ -160,6 +160,10 @@ def gen_thumb(file_path: FilePath):
         utils.notify_api_completion,
         utils.copy_workdirs_and_cleanup_hook,
     ],
+    on_crashed=[
+        utils.notify_api_completion,
+        utils.copy_workdirs_and_cleanup_hook,
+    ],
 )
 # run_config=LocalRun(labels=[utils.get_environment()]),
 def lrg_2d_flow(

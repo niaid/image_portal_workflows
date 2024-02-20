@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 import pytest
 
+from prefect.exceptions import UnfinishedRun
+
 
 @pytest.mark.slow
 @pytest.mark.localdata
@@ -19,6 +21,7 @@ async def test_input_fname(mock_nfs_mount, caplog, mock_reuse_zarr):
     assert state.is_completed()
 
 
+@pytest.mark.asyncio
 async def test_no_mount_point_flow_fails(mock_binaries, monkeypatch, caplog):
     """
     If mounted path doesn't exist should fail the flow immediately
@@ -31,7 +34,7 @@ async def test_no_mount_point_flow_fails(mock_binaries, monkeypatch, caplog):
 
     monkeypatch.setattr(config, "NFS_MOUNT", _mock_NFS_MOUNT)
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(UnfinishedRun):
         await czi_flow(
             file_share=share_name,
             input_dir="test/input_files/IF_czi/Projects/Cropped_Image/",
@@ -40,6 +43,7 @@ async def test_no_mount_point_flow_fails(mock_binaries, monkeypatch, caplog):
     assert f"{share_name} doesn't exist. Failing!" in caplog.text, caplog.text
 
 
+@pytest.mark.asyncio
 async def test_czi_workflow_server_response_structure(
     mock_nfs_mount, caplog, mock_reuse_zarr, mock_callback_data
 ):

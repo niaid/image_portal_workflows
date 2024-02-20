@@ -213,6 +213,10 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
         utils.notify_api_completion,
         utils.copy_workdirs_and_cleanup_hook,
     ],
+    on_crashed=[
+        utils.notify_api_completion,
+        utils.copy_workdirs_and_cleanup_hook,
+    ],
 )
 def dm_flow(
     file_share: str,
