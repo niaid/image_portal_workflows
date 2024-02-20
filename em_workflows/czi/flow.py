@@ -216,6 +216,10 @@ def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
         utils.notify_api_completion,
         utils.copy_workdirs_and_cleanup_hook,
     ],
+    on_crashed=[
+        utils.notify_api_completion,
+        utils.copy_workdirs_and_cleanup_hook,
+    ],
 )
 async def czi_flow(
     file_share: str,
