@@ -8,7 +8,7 @@ Workflow servers are deployed in `development <https://prefect2.hedwig-workflow-
 
 In order to submit a workflow job, you will need deployment IDs of each of the workflows, as shown:
 
-.. list-table:: Deployment IDs (**Updated: 12/11/2023**)
+.. list-table:: Deployment IDs (**Updated: 01/26/2023**)
    :widths: 20 25 25 25
    :header-rows: 1
 
@@ -301,6 +301,18 @@ The pipeline parameters can be also be observed programatically using following 
      -H 'accept: application/json' -H "Authorization: Bearer $PREFECT_API_KEY" \
        | jq '.description,.id,.parameter_openapi_schema' > schema.json
 
+
+Pipeline Response
+-----------------
+
+All pipelines responses follow the same schema. Currently, all schema are documented in yaml files as such:
+
+.. literalinclude:: ../../api_schema/PipelineCallback.yaml
+   :language: yaml
+   :emphasize-lines: 1-5,13-21
+   :linenos:
+
+You can explore more on the yaml files in the `Github <https://github.com/niaid/image_portal_workflows/tree/main/api_schema>`_ repo.
 
 CLI/SDK Submission
 ------------------
