@@ -57,6 +57,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#large-2d-png-roi">Large 2d PNG / ROI</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#pipeline-response">Pipeline Response</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#cli-sdk-submission">CLI/SDK Submission</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#manual-submission">Manual Submission</a></li>
 </ul>
@@ -64,6 +65,7 @@
 <li class="toctree-l1"><a class="reference internal" href="api/index.html">API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="hpc.html">RML HPC (Big Sky)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="prefect.html">Managing Prefect Server</a></li>
+<li class="toctree-l1"><a class="reference internal" href="prefect.html#managing-prefect-worker">Managing Prefect Worker</a></li>
 </ul>
 
         </div>
@@ -96,7 +98,7 @@
 <p>Workflow servers are deployed in <a class="reference external" href="https://prefect2.hedwig-workflow-api.niaiddev.net">development</a>, <a class="reference external" href="https://prefect2.hedwig-workflow-api.niaidqa.net">qa</a>, and <a class="reference external" href="https://prefect2.hedwig-workflow-api.niaidprod.net">production</a> environments separately.</p>
 <p>In order to submit a workflow job, you will need deployment IDs of each of the workflows, as shown:</p>
 <table class="docutils align-default" id="id1">
-<caption><span class="caption-text">Deployment IDs (<strong>Updated: 12/11/2023</strong>)</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<caption><span class="caption-text">Deployment IDs (<strong>Updated: 01/26/2023</strong>)</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 21.1%" />
 <col style="width: 26.3%" />
@@ -392,6 +394,66 @@
 </pre></div>
 </div>
 </section>
+</section>
+<section id="pipeline-response">
+<h2>Pipeline Response<a class="headerlink" href="#pipeline-response" title="Link to this heading"></a></h2>
+<p>All pipelines responses follow the same schema. Currently, all schema are documented in yaml files as such:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="hll"><span class="linenos"> 1</span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+</span><span class="hll"><span class="linenos"> 2</span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">JSON emitted by pipeline upon completion.</span>
+</span><span class="hll"><span class="linenos"> 3</span><span class="nt">required</span><span class="p">:</span>
+</span><span class="hll"><span class="linenos"> 4</span><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">status</span>
+</span><span class="hll"><span class="linenos"> 5</span><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">files</span>
+</span><span class="linenos"> 6</span><span class="nt">properties</span><span class="p">:</span>
+<span class="linenos"> 7</span><span class="w">  </span><span class="nt">status</span><span class="p">:</span>
+<span class="linenos"> 8</span><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Success is considered true if ANY conversion is successful.</span>
+<span class="linenos"> 9</span><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="linenos">10</span><span class="w">    </span><span class="nt">enum</span><span class="p">:</span>
+<span class="linenos">11</span><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">success</span>
+<span class="linenos">12</span><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">error</span>
+<span class="hll"><span class="linenos">13</span><span class="w">  </span><span class="nt">files</span><span class="p">:</span>
+</span><span class="hll"><span class="linenos">14</span><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Input file paths, relative to projects_dir, grouped with generated outputs.</span>
+</span><span class="hll"><span class="linenos">15</span><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+</span><span class="hll"><span class="linenos">16</span><span class="w">    </span><span class="nt">required</span><span class="p">:</span>
+</span><span class="hll"><span class="linenos">17</span><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">primaryFilePath</span>
+</span><span class="hll"><span class="linenos">18</span><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">thumbnailIndex</span>
+</span><span class="hll"><span class="linenos">19</span><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">title</span>
+</span><span class="hll"><span class="linenos">20</span><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fileMetadata</span>
+</span><span class="hll"><span class="linenos">21</span><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imageSet</span>
+</span><span class="linenos">22</span>
+<span class="linenos">23</span><span class="w">    </span><span class="nt">items</span><span class="p">:</span>
+<span class="linenos">24</span><span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="linenos">25</span><span class="w">      </span><span class="nt">properties</span><span class="p">:</span>
+<span class="linenos">26</span><span class="w">        </span><span class="nt">primaryFilePath</span><span class="p">:</span>
+<span class="linenos">27</span><span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Input file path, relative to projects_dir</span>
+<span class="linenos">28</span><span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="linenos">29</span><span class="w">        </span><span class="nt">status</span><span class="p">:</span>
+<span class="linenos">30</span><span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">File level status of the workflow run</span>
+<span class="linenos">31</span><span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="linenos">32</span><span class="w">        </span><span class="nt">message</span><span class="p">:</span>
+<span class="linenos">33</span><span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Error message from the workflow conveyed to the user</span>
+<span class="linenos">34</span><span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="linenos">35</span><span class="w">        </span><span class="nt">thumbnailIndex</span><span class="p">:</span>
+<span class="linenos">36</span><span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">The index of the image in imageSet which consists of the &quot;label image&quot; thumbnail</span>
+<span class="linenos">37</span><span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">integer</span>
+<span class="linenos">38</span><span class="w">        </span><span class="nt">title</span><span class="p">:</span>
+<span class="linenos">39</span><span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">File specific, name of file minus path and extension. (Appears redundant.)</span>
+<span class="linenos">40</span><span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="linenos">41</span><span class="w">        </span><span class="nt">fileMetadata</span><span class="p">:</span>
+<span class="linenos">42</span><span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;</span>
+<span class="linenos">43</span><span class="w">            </span><span class="no">Per file information (as apposed to per imageSet element).</span>
+<span class="linenos">44</span><span class="w">            </span><span class="no">OMEXMLMetadataFile: `Location of METADATA.ome.xml`</span>
+<span class="linenos">45</span><span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="linenos">46</span><span class="w">          </span><span class="nt">additionalProperties</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="linenos">47</span><span class="w">        </span><span class="nt">imageSet</span><span class="p">:</span>
+<span class="linenos">48</span><span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;</span>
+<span class="linenos">49</span><span class="w">            </span><span class="no">Set of images contained within input file</span>
+<span class="linenos">50</span><span class="w">            </span><span class="no">Example: 1 for PNGs, n for CZIs</span>
+<span class="linenos">51</span><span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">array</span>
+<span class="linenos">52</span><span class="w">          </span><span class="nt">items</span><span class="p">:</span>
+<span class="linenos">53</span><span class="w">            </span><span class="nt">$ref</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ImageSet.yaml</span>
+</pre></div>
+</div>
+<p>You can explore more on the yaml files in the <a class="reference external" href="https://github.com/niaid/image_portal_workflows/tree/main/api_schema">Github</a> repo.</p>
 </section>
 <section id="cli-sdk-submission">
 <h2>CLI/SDK Submission<a class="headerlink" href="#cli-sdk-submission" title="Link to this heading"></a></h2>

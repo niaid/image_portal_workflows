@@ -52,8 +52,11 @@
 <li class="toctree-l1"><a class="reference internal" href="hpc.html">RML HPC (Big Sky)</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Managing Prefect Server</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#prefect-server-is-running-but-workpool-is-not-available">Prefect Server is running, but workpool is not available</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#deploying-workflows">Deploying workflows</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#continuous-deployment-dev-to-qa-to-prod">Continuous Deployment (dev to qa to prod)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#managing-prefect-worker">Managing Prefect Worker</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#deploying-workflows">Deploying workflows</a></li>
 </ul>
 </li>
 </ul>
@@ -93,13 +96,6 @@
 <p><strong>Manual instruction:</strong></p>
 <p>If the prefect server is running, but the workpool is not available, then you can create a workpool by going to the website where the prefect server is hosted. Go to <cite>Work Pools</cite> tab and create a workpool with the name <cite>workpool</cite>. This is the name of the workpool that is defined in [prefect.yaml &gt; definitions &gt; work_pools &gt; name](<a class="reference external" href="https://github.com/niaid/image_portal_workflows/pull/353/files#diff-b49a6f022232810a70f1a0c2feffbbe84d018b2418a7996e52430c6063ada3a3R23">https://github.com/niaid/image_portal_workflows/pull/353/files#diff-b49a6f022232810a70f1a0c2feffbbe84d018b2418a7996e52430c6063ada3a3R23</a>) file.</p>
 </section>
-<section id="deploying-workflows">
-<h2>Deploying workflows<a class="headerlink" href="#deploying-workflows" title="Link to this heading"></a></h2>
-<p>Once the prefect server is running and workpool is created. You can login to respective <em>BigSky</em> instance (dev, qa, prod) and deploy the workflows.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prefect</span> <span class="n">deploy</span> <span class="o">--</span><span class="nb">all</span>
-</pre></div>
-</div>
-</section>
 <section id="continuous-deployment-dev-to-qa-to-prod">
 <h2>Continuous Deployment (dev to qa to prod)<a class="headerlink" href="#continuous-deployment-dev-to-qa-to-prod" title="Link to this heading"></a></h2>
 <p>Assuming that <cite>dev</cite> environment is working as expected, we can promote the environment to <cite>qa</cite> and <cite>prod</cite> as well.</p>
@@ -112,6 +108,44 @@
 </pre></div>
 </div>
 <p>This can then again be applied for the <cite>qa</cite> to <cite>prod</cite> changes.</p>
+</section>
+</section>
+<section id="managing-prefect-worker">
+<h1>Managing Prefect Worker<a class="headerlink" href="#managing-prefect-worker" title="Link to this heading"></a></h1>
+<section id="deploying-workflows">
+<h2>Deploying workflows<a class="headerlink" href="#deploying-workflows" title="Link to this heading"></a></h2>
+<p>Once the prefect server is running and workpool is created. You can login to respective <em>BigSky</em> instance (dev, qa, prod) and deploy the workflows.</p>
+<p>Make sure the configurations are correct:</p>
+<ol class="arabic">
+<li><p>Update prefect.yaml to change the user and/or directory names</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># by default pull.directory setting is set for prod environment</span>
+<span class="n">directory</span><span class="p">:</span> <span class="o">/</span><span class="n">gs1</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">hedwig_prod</span><span class="o">/</span><span class="n">image_portal_workflows</span>
+
+<span class="c1"># change it to dev or qa, based on your environment</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check prefect config with view</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prefect</span> <span class="n">config</span> <span class="n">view</span>
+
+<span class="c1"># Update config iff required</span>
+<span class="n">export</span> <span class="n">PREFECT_API_KEY</span><span class="o">=</span><span class="n">xyz</span>
+<span class="n">export</span> <span class="n">PREFECT_API_URL</span><span class="o">=</span><span class="n">abc</span><span class="o">.</span><span class="n">com</span>
+</pre></div>
+</div>
+</li>
+<li><p>Deploy flows with prefect deploy</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prefect</span> <span class="n">deploy</span>
+<span class="c1"># Or deploy all based on prefect.yaml using the following setting</span>
+<span class="c1"># However, this will also deploy pytest_runner workflow in other envs (where it&#39;s not needed)</span>
+<span class="c1"># prefect deploy --all</span>
+</pre></div>
+</div>
+</li>
+<li><p>Run worker (properly via the helper_scripts/.service file)</p>
+<p>The service files should restarts the worker when killed. Normally, we would need to do this step</p>
+</li>
+</ol>
 </section>
 </section>
 
