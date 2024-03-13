@@ -440,8 +440,7 @@ def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> Lis
             _files.extend(input_dir.glob(f"*.{ext}"))
     if not _files:
         raise RuntimeError(f"Input dir {input_dir} not contain anything to process.")
-    log("found files")
-    log(_files)
+    log(f"found {len(_files)} files")
     return _files
 
 
