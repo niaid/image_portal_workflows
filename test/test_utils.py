@@ -173,6 +173,8 @@ def test_update_adoc(mock_nfs_mount):
     Test successful modification of adoc based on a template
     :todo: consider parameterizing this to test many values
     """
+    from em_workflows.brt import flow
+
     adoc_file = "plastic_brt"
     montage = 0
     gold = 15
@@ -193,7 +195,7 @@ def test_update_adoc(mock_nfs_mount):
         mrc_image = "test/input_files/brt_inputs/2013-1220-dA30_5-BSC-1_10.mrc"
         mrc_file = Path(os.path.join(Config.proj_dir(env), mrc_image))
 
-        updated_adoc = utils.update_adoc(
+        updated_adoc = flow.update_adoc(
             adoc_fp=copied_tmplt,
             tg_fp=mrc_file,
             montage=montage,
@@ -212,6 +214,8 @@ def test_update_adoc(mock_nfs_mount):
 
 
 def test_update_adoc_bad_surfaces(mock_nfs_mount):
+    from em_workflows.brt import flow
+
     adoc_file = "plastic_brt"
     montage = 0
     gold = 15
@@ -234,7 +238,7 @@ def test_update_adoc_bad_surfaces(mock_nfs_mount):
         mrc_file = Path(os.path.join(Config.proj_dir(env), mrc_image))
 
         with pytest.raises(ValueError) as fail_msg:
-            utils.update_adoc(
+            flow.update_adoc(
                 adoc_fp=copied_tmplt,
                 tg_fp=mrc_file,
                 montage=montage,
@@ -261,6 +265,8 @@ def test_mrc_to_movie(mock_nfs_mount):
     :todo: Determine method for storing test data; smaller test images would be helpful
     as current mrc is 1.5 GB.
     """
+    from em_workflows.sem_tomo import flow as sem_flow
+
     proj_dir = Config.proj_dir("test")
     input_dir = "test/input_files/sem_inputs/Projects/mrc_movie_test"
     input_path = Path(os.path.join(proj_dir, input_dir))
@@ -277,8 +283,8 @@ def test_mrc_to_movie(mock_nfs_mount):
     shutil.copy(image_path, mrc_filepath.working_dir)
 
     #    mrc_list = utils.gen_fps.__wrapped__(input_path, [image_path])
-    asset = utils.mrc_to_movie.__wrapped__(mrc_filepath, "adjusted", "recMovie")
-    assert type(asset) == dict
+    asset = sem_flow.mrc_to_movie.__wrapped__(mrc_filepath, "adjusted", "recMovie")
+    assert type(asset) is dict
     assert "adjusted_recMovie.mp4" in asset["path"]
 
 
@@ -286,9 +292,11 @@ def test_copy_template(mock_nfs_mount):
     """
     Tests that adoc template get copied to working directory
     """
+    from em_workflows.brt import flow as brt_flow
+
     with tempfile.TemporaryDirectory() as tmp_dir:
-        utils.copy_template(working_dir=tmp_dir, template_name="plastic_brt")
-        utils.copy_template(working_dir=tmp_dir, template_name="cryo_brt")
+        brt_flow.copy_template(working_dir=tmp_dir, template_name="plastic_brt")
+        brt_flow.copy_template(working_dir=tmp_dir, template_name="cryo_brt")
         tmp_path = Path(tmp_dir)
         assert tmp_path.exists()
         assert Path(tmp_path / "plastic_brt.adoc").exists()
@@ -299,9 +307,11 @@ def test_copy_template_missing(mock_nfs_mount):
     """
     Tests that adoc template get copied to working directory
     """
+    from em_workflows.brt import flow as brt_flow
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         with pytest.raises(FileNotFoundError) as fnfe:
-            utils.copy_template(working_dir=tmp_dir, template_name="no_such_tmplt")
+            brt_flow.copy_template(working_dir=tmp_dir, template_name="no_such_tmplt")
         assert "no_such_tmplt" in str(fnfe.value)
 
 
