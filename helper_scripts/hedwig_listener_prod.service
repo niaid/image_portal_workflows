@@ -1,16 +1,24 @@
 
 [Unit]
-Description=Starts the Production listener "Agent" which reaches out to workflow API.
+Description=Starts the Production listener worker, which reaches out to workflow API.
 After=network.target
+
 
 [Service]
 Type=simple
 User=hedwig_prod
 Group=hedwig_prod
-ExecStart=/gs1/home/hedwig_prod/image_portal_workflows/helper_scripts/hedwig_reg_listen.sh listen
-WorkingDirectory=/gs1/home/hedwig_prod
 Environment="HEDWIG_ENV=prod"
 Environment="REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt"
+Environment="PREFECT_API_URL=https://prefect2.hedwig-workflow-api.niaidprod.net/api"
+Environment="IMOD_DIR=/opt/rml/imod"
+WorkingDirectory=/gs1/home/hedwig_prod/image_portal_workflows
+# current setting on prod
+# WorkingDirectory=/gs1/home/hedwig_prod
+
+ExecStart=/gs1/home/hedwig_prod/prod/bin/prefect worker start --pool workpool
+Restart=always
+RestartSec="60s"
 
 [Install]
 WantedBy=multi-user.target
