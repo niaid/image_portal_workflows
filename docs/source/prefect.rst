@@ -39,9 +39,12 @@ Managing Prefect Worker
 Deploying workflows
 -------------------
 
+
 Once the prefect server is running and workpool is created. You can login to respective *BigSky* instance (dev, qa, prod) and deploy the workflows.
 
 Make sure the configurations are correct:
+
+0. Ensure prefect server `workpool` exists in the workpools tab on the appropriate Prefect Web console.
 
 1. Update prefect.yaml to change the user and/or directory names
 
@@ -62,7 +65,16 @@ Make sure the configurations are correct:
       export PREFECT_API_KEY=xyz
       export PREFECT_API_URL=abc.com
 
-3. Deploy flows with prefect deploy
+3. Check HPC worker daemon:
+
+   .. code-block::
+
+      systemctl status hedwig_listener_prod
+
+
+   Certain scenarios require the deamon to be restarted or reloaded, although typically we do not need to perform this step. (see helper_scripts/.service file) The service files should restart the worker if killed or on crash. 
+
+4. Deploy flows with prefect deploy
 
    .. code-block::
 
@@ -71,6 +83,3 @@ Make sure the configurations are correct:
       # However, this will also deploy pytest_runner workflow in other envs (where it's not needed)
       # prefect deploy --all
 
-4. Run worker (properly via the helper_scripts/.service file)
-
-   The service files should restarts the worker when killed. Normally, we would need to do this step
