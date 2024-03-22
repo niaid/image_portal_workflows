@@ -51,12 +51,12 @@
 <li class="toctree-l1"><a class="reference internal" href="api/index.html">API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="hpc.html">RML HPC (Big Sky)</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Managing Prefect Server</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#prefect-server-is-running-but-workpool-is-not-available">Prefect Server is running, but workpool is not available</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#continuous-deployment-dev-to-qa-to-prod">Continuous Deployment (dev to qa to prod)</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="#managing-prefect-worker">Managing Prefect Worker</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#deploying-workflows">Deploying workflows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting:</a></li>
 </ul>
 </li>
 </ul>
@@ -87,23 +87,14 @@
              
   <section id="managing-prefect-server">
 <h1>Managing Prefect Server<a class="headerlink" href="#managing-prefect-server" title="Link to this heading"></a></h1>
-<section id="prefect-server-is-running-but-workpool-is-not-available">
-<h2>Prefect Server is running, but workpool is not available<a class="headerlink" href="#prefect-server-is-running-but-workpool-is-not-available" title="Link to this heading"></a></h2>
-<p>In HPC, you can use the following command to create a work pool.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prefect</span> <span class="n">work</span><span class="o">-</span><span class="n">pool</span> <span class="n">create</span> <span class="s2">&quot;workpool&quot;</span>
-</pre></div>
-</div>
-<p><strong>Manual instruction:</strong></p>
-<p>If the prefect server is running, but the workpool is not available, then you can create a workpool by going to the website where the prefect server is hosted. Go to <cite>Work Pools</cite> tab and create a workpool with the name <cite>workpool</cite>. This is the name of the workpool that is defined in [prefect.yaml &gt; definitions &gt; work_pools &gt; name](<a class="reference external" href="https://github.com/niaid/image_portal_workflows/pull/353/files#diff-b49a6f022232810a70f1a0c2feffbbe84d018b2418a7996e52430c6063ada3a3R23">https://github.com/niaid/image_portal_workflows/pull/353/files#diff-b49a6f022232810a70f1a0c2feffbbe84d018b2418a7996e52430c6063ada3a3R23</a>) file.</p>
-</section>
 <section id="continuous-deployment-dev-to-qa-to-prod">
 <h2>Continuous Deployment (dev to qa to prod)<a class="headerlink" href="#continuous-deployment-dev-to-qa-to-prod" title="Link to this heading"></a></h2>
-<p>Assuming that <cite>dev</cite> environment is working as expected, we can promote the environment to <cite>qa</cite> and <cite>prod</cite> as well.</p>
-<p>The first thing we need to do is promote the image from <cite>dev</cite> to <cite>qa</cite>.</p>
+<p>Server images are promotoed from one environment to the next, i.e. <cite>dev</cite> -&gt; <cite>qa</cite> -&gt; <cite>prod</cite>.</p>
+<p>For example to promote the image from <cite>dev</cite> to <cite>qa</cite>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">spaces</span> <span class="n">task</span> <span class="o">-</span><span class="n">f</span> <span class="n">hedwig</span><span class="o">.</span><span class="n">spaces</span><span class="o">-</span><span class="n">solution</span><span class="o">.</span><span class="n">yaml</span> <span class="n">promote</span><span class="o">-</span><span class="n">image</span> <span class="o">--</span> <span class="n">dev</span> <span class="n">qa</span>
 </pre></div>
 </div>
-<p>Afterwards, we can deploy the aws infrastructure for <cite>qa</cite> as,</p>
+<p>We can then deploy the aws infrastructure for <cite>qa</cite>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">SPACES_SOLUTION_ENV</span><span class="o">=</span><span class="n">qa</span> <span class="n">spaces</span> <span class="n">task</span> <span class="o">-</span><span class="n">f</span> <span class="n">hedwig</span><span class="o">.</span><span class="n">spaces</span><span class="o">-</span><span class="n">solution</span><span class="o">.</span><span class="n">yaml</span> <span class="n">build</span><span class="o">-</span><span class="n">deploy</span>
 </pre></div>
 </div>
@@ -125,6 +116,12 @@
 </pre></div>
 </div>
 </li>
+<li><p>Check HPC worker daemon:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">systemctl</span> <span class="n">status</span> <span class="n">hedwig_listener_prod</span>
+</pre></div>
+</div>
+<p>Certain scenarios require the deamon to be restarted or reloaded, although typically we do not need to perform this step. (see helper_scripts/.service file) The <cite>systemctl</cite> should restart the worker if killed or on crash.</p>
+</li>
 <li><p>Check prefect config with view</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prefect</span> <span class="n">config</span> <span class="n">view</span>
 
@@ -142,10 +139,25 @@
 </pre></div>
 </div>
 </li>
-<li><p>Run worker (properly via the helper_scripts/.service file)</p>
-<p>The service files should restarts the worker when killed. Normally, we would need to do this step</p>
-</li>
 </ol>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting:<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Prefect Server is running, but workpool is not available</p>
+<blockquote>
+<div><p>In HPC, you can use the following command to create a work pool.
+<cite>prefect work-pool create “workpool”</cite>
+Enssure prefect server is running, and workpool is not available. If not create a workpool by going to the website where the prefect server is hosted. Go to <cite>Work Pools</cite> tab and create a workpool with the name <cite>workpool</cite>. This is the name of the workpool that is defined in prefect.yaml &gt; definitions &gt; work_pools &gt; name file.</p>
+</div></blockquote>
+</li>
+<li><p>IMOD unable to find <cite>env</cite></p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Unable</span> <span class="n">to</span> <span class="n">run</span> <span class="n">command</span><span class="o">.</span>
+<span class="n">Cannot</span> <span class="n">run</span> <span class="n">program</span> <span class="s2">&quot;env&quot;</span> <span class="p">(</span><span class="ow">in</span> <span class="n">directory</span> <span class="s2">&quot;?&quot;</span><span class="p">):</span> <span class="n">error</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">No</span> <span class="n">such</span> <span class="n">file</span> <span class="ow">or</span> <span class="n">directory</span>
+</pre></div>
+</div>
+<p>Note <cite>directory “?”</cite>, this implies that something is trying to run in a directory that does not exist. Ensure that the daemon is taken down, ensure that <cite>ps aux | grep hedwig</cite> does not list any processes that may be running, ensure that the service file is correct, ensure that the daemon is <cite>reloaded</cite> and <cite>started</cite>.</p>
 </section>
 </section>
 
