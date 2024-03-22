@@ -5,15 +5,15 @@ Managing Prefect Server
 Continuous Deployment (dev to qa to prod)
 -----------------------------------------
 
-Assuming that `dev` environment is working as expected, we can promote the environment to `qa` and `prod` as well.
+Server images are promotoed from one environment to the next, i.e. `dev` -> `qa` -> `prod`.
 
-The first thing we need to do is promote the image from `dev` to `qa`.
+For example to promote the image from `dev` to `qa`:
 
 .. code-block::
 
    spaces task -f hedwig.spaces-solution.yaml promote-image -- dev qa
 
-Afterwards, we can deploy the aws infrastructure for `qa` as,
+We can then deploy the aws infrastructure for `qa`:
 
 .. code-block::
 
@@ -40,7 +40,18 @@ Make sure the configurations are correct:
 
       # change it to dev or qa, based on your environment
 
-2. Check prefect config with view
+2. Check HPC worker daemon:
+
+   .. code-block::
+
+      systemctl status hedwig_listener_prod
+
+      
+   Certain scenarios require the deamon to be restarted or reloaded, although typically we do not need to perform this step. (see helper_scripts/.service file) The `systemctl` should restart the worker if killed or on crash. 
+
+
+
+3. Check prefect config with view
 
    .. code-block::
 
@@ -50,7 +61,7 @@ Make sure the configurations are correct:
       export PREFECT_API_KEY=xyz
       export PREFECT_API_URL=abc.com
 
-3. Deploy flows with prefect deploy
+4. Deploy flows with prefect deploy
 
    .. code-block::
 
@@ -59,9 +70,6 @@ Make sure the configurations are correct:
       # However, this will also deploy pytest_runner workflow in other envs (where it's not needed)
       # prefect deploy --all
 
-4. Run worker (properly via the helper_scripts/.service file)
-
-   The service files should restarts the worker when killed. Normally, we would need to do this step
 
 
 Troubleshooting:
@@ -81,5 +89,4 @@ Troubleshooting:
    Cannot run program "env" (in directory "?"): error=2, No such file or directory
 
 Note `directory "?"`, this implies that something is trying to run in a directory that does not exist. Ensure that the daemon is taken down, ensure that `ps aux | grep hedwig` does not list any processes that may be running, ensure that the service file is correct, ensure that the daemon is `reloaded` and `started`.
-
 
