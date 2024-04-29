@@ -1,5 +1,5 @@
 ****
-2D Electron Microscopy Workflow ( formally known as DM conversion workflow)
+2D Electron Microscopy Workflow ( formally known as DM conversion workflow )
 ****
 
 Overview:
@@ -43,6 +43,11 @@ Steps:
 .. code-block:: bash
  newstack -format TIFF -shrink $shrink_factor -antialias 6 -mode 0 -meansd "140,50" input.tiff output.tiff
 
+Conditionals:
+  - if the input image size is less than the desired key image size, then `-shrink` and `-antialias` options are not
+    used.
+  - if the input pixel type is 8-bit, then the `-meadsd` option is not used.
+
 The above command should convert any supported scalar pixel input type to an 8-bit image which a dynamic range
 reasonable for visualization. The `meansd` values could be considered tunable parameters.
 
@@ -50,12 +55,12 @@ Output Generation
 +++++++++++++++++
 
 The final step is to generate the thumbnail and key images with GraphicsMagick. The compression and filtering options
-are used for web display.
+are tuned for web display.
 
 Inputs: TIFF files
 Outputs: JPEG files
 Steps:
-  1. Use GraphicsMagick to generate the thumbnail and key images.
+  1. Use `GraphicsMagick`_ `convert`_ to generate the thumbnail and key images.
 
 .. code-block:: bash
  gm convert -size $output_size -resize $output_size -sharpen 2 -quality 80 input.tiff thumbnail.jpg
@@ -69,3 +74,5 @@ further turned based on the input image.
 .. _IMOD: https://bio3d.colorado.edu/imod/
 .. _dm2mrc: https://bio3d.colorado.edu/imod/doc/man/dm2mrc.html
 .. _newstack: https://bio3d.colorado.edu/doc/man/newstack.html
+.. _GraphicsMagick: http://www.graphicsmagick.org/
+.. _convert: http://www.graphicsmagick.org/convert.html
