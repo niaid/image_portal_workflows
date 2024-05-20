@@ -1,5 +1,5 @@
 python-dotenv
-prefect==2.14.18
+prefect==2.19.1
 prefect_dask
 dask-jobqueue
 natsort
