@@ -84,7 +84,7 @@ def run_tests(git_branch: str) -> str:
     log_prints=True,
     task_runner=Config.SLURM_EXECUTOR,
 )
-def pytest_flow(git_branch: str = "dev") -> None:
+def pytest_flow(git_branch: str = "main") -> None:
     test_report = run_tests.submit(git_branch)
     publish_artifact.submit(test_report)
 
