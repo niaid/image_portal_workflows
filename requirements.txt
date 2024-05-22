@@ -1,6 +1,6 @@
 python-dotenv
 prefect==2.19.1
-prefect_dask
+prefect[dask]
 dask-jobqueue
 natsort
 pytools@https://github.com/niaid/tomojs-pytools/releases/download/v3.1.1/pytools-3.1.1-py3-none-any.whl
