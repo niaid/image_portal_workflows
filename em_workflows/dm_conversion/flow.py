@@ -80,7 +80,7 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
         "IMOD_OUTPUT_FORMAT=TIF",
         DMConfig.newstack_loc,
         "-shrink",
-        f"{shrink_factor:.3f}"
+        f"{shrink_factor:.3f}",
         "-antialias",
         "6",
         "-mode",
@@ -116,6 +116,8 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     # utils.log(f"+++++++++++++++++++++++++++++++++++++++++++++")
 
     # work out shrink_factor
+    if file_path.fp_in.suffix.strip(".").lower() not in MRCS_EXT:
+        return
     shrink_factor = _calculate_shrink_factor( file_path.fp_in)
     # round to 3 decimal places
     shrink_factor_3 = f"{shrink_factor:.3f}"
