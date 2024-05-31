@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 from prefect import flow, task, unmapped, allow_failure
-from pytools.meta import is_int16
+from pytools.meta import is_16bit
 from pytools.convert import file_to_uint8
 
 from em_workflows.utils import utils
@@ -18,6 +18,22 @@ from em_workflows.dm_conversion.constants import (
     KEYIMG_EXTS,
     VALID_2D_INPUT_EXTS,
 )
+
+
+def _calculate_shrink_factor(filepath: Path, enforce_2d=True) -> float:
+    """
+    Calculate the shrink factor for the newstack command
+    """
+    dims = utils.lookup_dims(filepath)
+
+    if enforce_2d and dims.z != 1:
+        msg = f"mrc file {filepath} is not 2 dimensional. Contains {dims.z} Z dims."
+        raise RuntimeError(msg)
+
+    # use the min dimension of x & y to compute shrink_factor
+    min_xy = min(dims.x, dims.y)
+    # work out shrink_factor to make the resulting image LARGE_DIM
+    return min_xy / LARGE_DIM
 
 
 @task(
@@ -49,13 +65,34 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
     else return orig Path
     """
     if not (
-        file_path.fp_in.suffix.strip(".").lower() in TIFS_EXT
-        and is_int16(file_path.fp_in)
+            file_path.fp_in.suffix.strip(".").lower() in TIFS_EXT
+            and is_16bit(file_path.fp_in)
     ):
         return
     tif_8_bit = file_path.gen_output_fp(out_fname="as_8_bit.tif")
+    log_fp = f"{file_path.working_dir}/{file_path.base}_as_8_bit.log"
     utils.log(f"{file_path.fp_in} is a 16 bit tiff, converting to {tif_8_bit}")
-    file_to_uint8(in_file_path=file_path.fp_in, out_file_path=str(tif_8_bit))
+
+    shrink_factor = _calculate_shrink_factor(file_path.fp_in)
+
+    cmd = [
+        "env",
+        "IMOD_OUTPUT_FORMAT=TIF",
+        DMConfig.newstack_loc,
+        "-shrink",
+        f"{shrink_factor:.3f}",
+        "-antialias",
+        "6",
+        "-mode",
+        "0",
+        "-meansd",
+        "140,50",
+        file_path.fp_in.as_posix(),
+        str(tif_8_bit),
+    ]
+    utils.log(f"Generated cmd {cmd}")
+    FilePath.run(cmd, log_fp)
+
 
 
 @task(
@@ -77,16 +114,11 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     # min_max_histo = neuroglancer.gen_min_max_histo(file_path)
     # utils.log(min_max_histo)
     # utils.log(f"+++++++++++++++++++++++++++++++++++++++++++++")
+
+    # work out shrink_factor
     if file_path.fp_in.suffix.strip(".").lower() not in MRCS_EXT:
         return
-    dims = utils.lookup_dims(file_path.fp_in)
-    if dims.z != 1:
-        msg = f"mrc file {file_path.fp_in} is not 2 dimensional. Contains {dims.z} Z dims."
-        raise RuntimeError(msg)
-    # use the min dimension of x & y to compute shrink_factor
-    min_xy = min(dims.x, dims.y)
-    # work out shrink_factor
-    shrink_factor = min_xy / LARGE_DIM
+    shrink_factor = _calculate_shrink_factor( file_path.fp_in)
     # round to 3 decimal places
     shrink_factor_3 = f"{shrink_factor:.3f}"
     out_fp = f"{file_path.working_dir}/{file_path.base}_mrc_as_tiff.tiff"
