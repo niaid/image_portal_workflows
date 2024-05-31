@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 from prefect import flow, task, unmapped, allow_failure
-from pytools.meta import is_int16
+from pytools.meta import is_int16, is_16bit
 from pytools.convert import file_to_uint8
 
 from em_workflows.utils import utils
@@ -66,7 +66,7 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
     """
     if not (
             file_path.fp_in.suffix.strip(".").lower() in TIFS_EXT
-            and is_int16(file_path.fp_in)
+            and is_16bit(file_path.fp_in)
     ):
         return
     tif_8_bit = file_path.gen_output_fp(out_fname="as_8_bit.tif")
