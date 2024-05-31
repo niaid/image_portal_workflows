@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 from prefect import flow, task, unmapped, allow_failure
-from pytools.meta import is_int16, is_16bit
+from pytools.meta import is_16bit
 from pytools.convert import file_to_uint8
 
 from em_workflows.utils import utils
