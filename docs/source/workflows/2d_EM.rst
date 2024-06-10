@@ -4,7 +4,7 @@
 
 Overview:
 
-This workflow originally was designed to handle DM3 files form TEM or STEM microscopes but has been extended to handle
+This workflow originally was designed to handle DM3 files from TEM or STEM microscopes but has been extended to handle
 other 2D EM image file formats.
 
 Outputs:
@@ -26,7 +26,7 @@ Steps:
 Resampling
 ++++++++++
 
-The EM images can be broadly characterized has have a low signal to noise ratio and a high dynamic range with potential
+The EM images can be broadly characterized as having a low signal to noise ratio and a high dynamic range with potential
 outliers. The resampling or resizing of these images requires advanced algorithms and options that are not available
 with conventional image processing tools. Through proper resampling and filtering the images signal to noise ratio can
 be improved and the dynamic range can be reduced for better visualization.
@@ -41,15 +41,16 @@ Steps:
   3. Use the `newstack`_ tool to filter and resize/shrink the input image to approximately the desired size.
 
 .. code-block:: bash
- newstack -format TIFF -shrink $shrink_factor -antialias 6 -mode 0 -meansd "140,50" input.tiff output.tiff
+ newstack -format TIFF -shrink $shrink_factor -antialias 6 -mode 0 -float 1 input.tiff output.tiff
 
 Conditionals:
   - if the input image size is less than the desired key image size, then `-shrink` and `-antialias` options are not
     used.
-  - if the input pixel type is 8-bit, then the `-meadsd` option is not used.
+  - if the input pixel type is 8-bit, then the `float` option is not used.
 
 The above command should convert any supported scalar pixel input type to an 8-bit image which a dynamic range
-reasonable for visualization. The `meansd` values could be considered tunable parameters.
+reasonable for visualization. The `float` option is used so the resampled pixel intensities are normalized to fill the
+output range.
 
 Output Generation
 +++++++++++++++++
