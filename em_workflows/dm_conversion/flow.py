@@ -85,8 +85,9 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
         "6",
         "-mode",
         "0",
-        "-meansd",
-        "140,50",
+        # From the newstack manual for "-float": Enter 1 for each section to fill the data range.
+        "-float",
+        "1",
         file_path.fp_in.as_posix(),
         str(tif_8_bit),
     ]
