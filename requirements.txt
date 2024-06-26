@@ -3,4 +3,4 @@ prefect==2.19.1
 prefect[dask]
 dask-jobqueue
 natsort
-pytools@https://github.com/niaid/tomojs-pytools/releases/download/v3.2.0/pytools-3.2.0-py3-none-any.whl
+pytools@https://github.com/niaid/tomojs-pytools/releases/download/v3.3.0/pytools-3.3.0-py3-none-any.whl
