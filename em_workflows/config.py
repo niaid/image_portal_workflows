@@ -63,7 +63,7 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
         asynchronous=asynchronous,
         **cluster_kwargs,
     )
-    cluster.scale(1)
+    cluster.scale(5)
     # cluster.adapt(minimum=1, maximum=6)
     # to get logger, we must be within an active flow/task run
     print("Dask cluster started")
@@ -73,14 +73,15 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
 
 class Config:
     # location in RML HPC
+    imod_root = "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/imod-4.12.47-2fcggru32s3f4jl3ar5m2rztuqz5h2or"
     bioformats2raw = os.environ.get(
         "BIOFORMATS2RAW_LOC",
         "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw",
     )
-    brt_binary = os.environ.get("BRT_LOC", "/opt/rml/imod/bin/batchruntomo")
-    header_loc = os.environ.get("HEADER_LOC", "/opt/rml/imod/bin/header")
-    mrc2tif_loc = os.environ.get("MRC2TIF_LOC", "/opt/rml/imod/bin/mrc2tif")
-    newstack_loc = os.environ.get("NEWSTACK_LOC", "/opt/rml/imod/bin/newstack")
+    brt_binary = os.environ.get("BRT_LOC", f"{imod_root}/bin/batchruntomo")
+    header_loc = os.environ.get("HEADER_LOC", f"{imod_root}/bin/header")
+    mrc2tif_loc = os.environ.get("MRC2TIF_LOC", f"{imod_root}/bin/mrc2tif")
+    newstack_loc = os.environ.get("NEWSTACK_LOC", f"{imod_root}/bin/newstack")
 
     HIGH_SLURM_EXECUTOR = DaskTaskRunner(
         cluster_class=SLURM_exec,

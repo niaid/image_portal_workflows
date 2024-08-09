@@ -322,6 +322,8 @@ def copy_template(working_dir: Path, template_name: str) -> Path:
 
 @task(
     name="Batchruntomo conversion",
+    tags=["brt"],
+    # timeout_seconds=600,
     on_failure=[collect_exception_task_hook],
 )
 def run_brt(
