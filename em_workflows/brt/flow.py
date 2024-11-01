@@ -146,7 +146,7 @@ def gen_thumbs(middle_i_jpg: Path) -> Path:
     """
     thumb = f"{middle_i_jpg.parent}/keyimg_{middle_i_jpg.stem}_s.jpg"
     cmd = [
-        "gm",
+        BRTConfig.gm_loc,
         "convert",
         "-size",
         "300x300",

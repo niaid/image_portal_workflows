@@ -193,7 +193,7 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
         log = f"{output.parent}/jpeg_sm.log"
         asset_type = AssetType.THUMBNAIL
         cmd = [
-            "gm",
+            DMConfig.gm_loc,
             "convert",
             "-size",
             SMALL_2D,
@@ -211,7 +211,7 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
         log = f"{output.parent}/jpeg_lg.log"
         asset_type = AssetType.KEY_IMAGE
         cmd = [
-            "gm",
+            DMConfig.gm_loc,
             "convert",
             "-size",
             LARGE_2D,
