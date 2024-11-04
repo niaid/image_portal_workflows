@@ -34,6 +34,7 @@ Our pipelines rely on a number of freely available utilities:
 - `IMOD <https://bio3d.colorado.edu/imod/>`_
 - `bioformats2raw <https://github.com/glencoesoftware/bioformats2raw>`_
 - `imagemagick: <https://imagemagick.org/script/download.php>`_
+- `GraphicsMagick: <http://www.graphicsmagick.org>`_  Can be installed from condaforge.
 
 .. note::
    The ``.env`` file
@@ -68,7 +69,7 @@ Note, the container will need an `.env` file similar to any other environment. T
 to achieve this is copying the existing example file `.env.sample` to `.env`, this should work
 within the container as is.
 
-To build the docker image, use `--platform linux/amd63` option.
+To build the docker image, use `--platform linux/amd64` option.
 Explanation can be found `here <https://teams.microsoft.com/l/entity/com.microsoft.teamspace.tab.wiki/tab::4f55363b-bb53-4e5b-9564-8bed5289fdd5?context=%7B%22subEntityId%22%3A%22%7B%5C%22pageId%5C%22%3A15%2C%5C%22sectionId%5C%22%3A17%2C%5C%22origin%5C%22%3A2%7D%22%2C%22channelId%22%3A%2219%3A869be6677ee54848bc13f2066d847cc0%40thread.skype%22%7D&tenantId=14b77578-9773-42d5-8507-251ca2dc2b06>`_
 
 The basic usage for testing would look like below. The command assumes that you are running the container from the project directory where the main Dockerfile is located.

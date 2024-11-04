@@ -83,6 +83,10 @@ class Config:
     mrc2tif_loc = os.environ.get("MRC2TIF_LOC", f"{imod_root}/bin/mrc2tif")
     newstack_loc = os.environ.get("NEWSTACK_LOC", f"{imod_root}/bin/newstack")
 
+    # Location of GraphicsMagick binary
+    #
+    gm_loc = os.environ.get("GM_LOC", "/usr/bin/gm")
+
     HIGH_SLURM_EXECUTOR = DaskTaskRunner(
         cluster_class=SLURM_exec,
         cluster_kwargs=dict(
