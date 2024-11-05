@@ -278,22 +278,19 @@ class FilePath:
         - Captures stderr & stddout and writes them to the `log_file` input parameter.
         - If final returncode is not 0, raises a FAIL signal
         """
-        log("Trying to run: " + " ".join(cmd))
-        try:
-            sp = subprocess.run(cmd, check=False, capture_output=True)
-            stdout = sp.stdout.decode("utf-8")
-            stderr = sp.stderr.decode("utf-8")
-            with open(log_file, "w+") as _file:
-                _file.write(f"Trying to run {' '.join(cmd)}")
-                _file.write(f"STDOUT:{stdout}")
-                _file.write(f"STDERR:{stderr}")
-            if sp.returncode != 0:
-                msg = f"ERROR : {stderr} -- {stdout}"
-                log(msg)
-                raise RuntimeError(msg)
-            else:
-                msg = f"Command ok : {stderr} -- {stdout}"
-                log(msg)
-        except Exception as ex:
-            raise RuntimeError(str(ex))
-        return sp.returncode
+        log(f"Running subprocess: {' '.join(cmd)} logfile: {log_file}")
+
+        with (subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1) as p,
+              open(log_file, 'ab') as file):
+            file.write(f"Running subprocess: {' '.join(cmd)}\n".encode())
+
+            # write the outputs line by line as they come in
+            for line in p.stdout:
+                file.write(line)
+                log(line.decode())
+            file.flush()
+
+            if p.wait() != 0:
+                raise RuntimeError(f"Failed to run command: {' '.join(cmd)}")
+
+            return p.returncode
