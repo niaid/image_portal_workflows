@@ -1,7 +1,7 @@
 import datetime
 import shutil
 import os
-from typing import List, Dict
+from typing import List, Dict, Optional, AnyStr
 from pathlib import Path
 import tempfile
 import subprocess
@@ -272,15 +272,32 @@ class FilePath:
         shutil.rmtree(self.working_dir, ignore_errors=True)
 
     @staticmethod
-    def run(cmd: List[str], log_file: str) -> int:
+    def run(cmd: List[str], log_file: str, env: Optional[Dict[AnyStr, AnyStr]] = None, *, copy_env: bool = True) -> int:
         """Runs a Unix command as a subprocess
 
-        - Captures stderr & stddout and writes them to the `log_file` input parameter.
-        - If final returncode is not 0, raises a FAIL signal
+        - If final returncode is not 0, raises a RuntimeError
+
+        :param cmd: list of strings representing the command to run
+        :param log_file: path to the log file to write the stdout and stderr to
+        :param env: dictionary of additional environment variables to pass to the subprocess
+        :param copy_env: if True, the subprocess inherits the parent's environment
+        :return: the return code of the subprocess
+
+
         """
+
+        if env is None:
+            if not copy_env:
+                env = {}
+            # Note: if env is not and copy_env is True, the subprocess inherits the parent's environment,
+            # by passing env=None
+        elif copy_env:
+            # merge dictionaries python 3.9+
+            env = os.environ | env
+
         log(f"Running subprocess: {' '.join(cmd)} logfile: {log_file}")
 
-        with (subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1) as p,
+        with (subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env) as p,
               open(log_file, 'ab') as file):
             file.write(f"Running subprocess: {' '.join(cmd)}\n".encode())
 

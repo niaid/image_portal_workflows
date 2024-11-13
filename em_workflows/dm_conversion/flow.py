@@ -76,8 +76,6 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
     shrink_factor = _calculate_shrink_factor(file_path.fp_in)
 
     cmd = [
-        "env",
-        "IMOD_OUTPUT_FORMAT=TIF",
         DMConfig.newstack_loc,
         "-shrink",
         f"{shrink_factor:.3f}",
@@ -92,7 +90,7 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
         str(tif_8_bit),
     ]
     utils.log(f"Generated cmd {cmd}")
-    FilePath.run(cmd, log_fp)
+    FilePath.run(cmd, log_fp, env={"IMOD_OUTPUT_FORMAT": "TIF"})
 
 
 
@@ -127,8 +125,6 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
     utils.log(f"{file_path.fp_in.as_posix()} is a mrc file, will convert to {out_fp}.")
     # work out meansd
     cmd = [
-        "env",
-        "IMOD_OUTPUT_FORMAT=TIF",
         DMConfig.newstack_loc,
         "-shrink",
         shrink_factor_3,
@@ -142,7 +138,7 @@ def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
         out_fp,
     ]
     utils.log(f"Generated cmd {cmd}")
-    FilePath.run(cmd, log_fp)
+    FilePath.run(cmd, log_fp, env={"IMOD_OUTPUT_FORMAT": "TIF"})
 
 
 @task(
