@@ -1,5 +1,7 @@
 python-dotenv
-prefect[dask]==2.19.1
-dask-jobqueue
+prefect==2.19.1
+prefect_dask==0.2.9
+dask-jobqueue==0.8.5
 natsort
-pytools@https://github.com/niaid/tomojs-pytools/releases/download/v3.3.0/pytools-3.3.0-py3-none-any.whl
+pytools@https://github.com/niaid/tomojs-pytools/releases/download/v3.3.1/pytools-3.3.1-py3-none-any.whl
+griffe==0.42

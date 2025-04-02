@@ -108,7 +108,7 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
     if test_p.exists():
         mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%04d.jpg"
     cmd = [
-        "ffmpeg",
+        Config.ffmpeg_loc,
         "-f",
         "image2",
         "-framerate",

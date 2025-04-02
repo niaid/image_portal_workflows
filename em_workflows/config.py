@@ -45,7 +45,8 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     env_name = os.environ["HEDWIG_ENV"]
     flowrun_id = os.environ.get("PREFECT__FLOW_RUN_ID", "not-found")
     job_script_prologue = [
-        f"source /gs1/home/hedwig_{env_name}/{env_name}/bin/activate",
+        f"source /data/home/svc_hpchedwig_{env_name}/{env_name}/bin/activate",
+        "export IMOD_DIR=/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/imod-5.1.1-vyv6iidgdilzyxoqumqmdbyokzi4cdlx/IMOD",
         "echo $PATH",
     ]
     cluster = SLURMCluster(
@@ -57,7 +58,7 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
         job_script_prologue=job_script_prologue,
         # queue is arg for SBATCH --partition
         # to learn more about partitions, run `sinfo` in hpc
-        queue="int",
+        queue="all",
         walltime="4:00:00",
         # job_extra_directives=["--gres=gpu:1"],
         asynchronous=asynchronous,
@@ -73,19 +74,20 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
 
 class Config:
     # location in RML HPC
-    imod_root = "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/imod-4.12.47-2fcggru32s3f4jl3ar5m2rztuqz5h2or"
+    imod_root = "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/imod-5.1.1-vyv6iidgdilzyxoqumqmdbyokzi4cdlx/IMOD/"
     bioformats2raw = os.environ.get(
         "BIOFORMATS2RAW_LOC",
-        "/gs1/apps/user/spack-0.16.0/spack/opt/spack/linux-centos7-sandybridge/gcc-8.3.1/bioformats2raw-0.7.0-7kt7dff7f7fxmdjdk57u6xjuzmsxqodn/bin/bioformats2raw",
+        "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/bioformats2raw-0.9.4-yj7uyq6r7zduyd34h75nt6kootcuxrg4/bioformats2raw/bin/bioformats2raw",
     )
     brt_binary = os.environ.get("BRT_LOC", f"{imod_root}/bin/batchruntomo")
     header_loc = os.environ.get("HEADER_LOC", f"{imod_root}/bin/header")
     mrc2tif_loc = os.environ.get("MRC2TIF_LOC", f"{imod_root}/bin/mrc2tif")
     newstack_loc = os.environ.get("NEWSTACK_LOC", f"{imod_root}/bin/newstack")
+    ffmpeg_loc = "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/ffmpeg-6.0-zq2bmekz3iolxjshigm6b6q2w64kn5h2/bin/ffmpeg"
 
     # Location of GraphicsMagick binary
     #
-    gm_loc = os.environ.get("GM_LOC", "/usr/bin/gm")
+    gm_loc = os.environ.get("GM_LOC", "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/graphicsmagick-1.3.43-5cc6lqtchmgntmy66i56rs55nk6aqopp/bin/gm")
 
     HIGH_SLURM_EXECUTOR = DaskTaskRunner(
         cluster_class=SLURM_exec,
@@ -102,7 +104,7 @@ class Config:
         ),
     )
     user = os.environ["USER"]
-    tmp_dir = f"/gs1/Scratch/{user}_scratch/"
+    tmp_dir = f"/data/scratch/{user}"
 
     local_storage = LocalFileSystem(basepath=PREFECT_HOME.value() / "local-storage")
     pickle_serializer = PickleSerializer(picklelib="pickle")
