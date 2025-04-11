@@ -47,6 +47,7 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     job_script_prologue = [
         f"source /data/home/svc_hpchedwig_{env_name}/{env_name}/bin/activate",
         "export IMOD_DIR=/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/imod-5.1.1-vyv6iidgdilzyxoqumqmdbyokzi4cdlx/IMOD",
+        "export JAVA_OPTS='-Djava.io.tmpdir=/data/scratch'",
         "echo $PATH",
     ]
     cluster = SLURMCluster(

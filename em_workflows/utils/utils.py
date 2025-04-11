@@ -368,7 +368,7 @@ def run_brt(
     copy_tg_to_working_dir(fname=file_path.fp_in, working_dir=file_path.working_dir)
 
     # START BRT (Batchruntomo) - long running process.
-    cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "1", "-gpu", "1"]
+    cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "60", "-gpu", "1"]
     log_file = f"{file_path.working_dir}/brt_run.log"
     FilePath.run(cmd, log_file)
     rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
