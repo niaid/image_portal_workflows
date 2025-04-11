@@ -6,17 +6,14 @@ After=network.target
 
 [Service]
 Type=simple
-User=hedwig_prod
-Group=hedwig_prod
+User=svc_hpchedwig_prod
+Group=svc_hpchedwig_prod
 Environment="HEDWIG_ENV=prod"
 Environment="REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt"
 Environment="PREFECT_API_URL=https://prefect2.hedwig-workflow-api.niaidprod.net/api"
-Environment="IMOD_DIR=/opt/rml/imod"
-WorkingDirectory=/gs1/home/hedwig_prod/image_portal_workflows
-# current setting on prod
-# WorkingDirectory=/gs1/home/hedwig_prod
+WorkingDirectory=/data/home/svc_hpchedwig_prod/image_portal_workflows
 
-ExecStart=/gs1/home/hedwig_prod/prod/bin/prefect worker start --pool workpool
+ExecStart=/data/home/svc_hpchedwig_prod/prod/bin/python3 /data/home/svc_hpchedwig_prod/prod/bin/prefect worker start --pool workpool
 Restart=always
 RestartSec="60s"
 
