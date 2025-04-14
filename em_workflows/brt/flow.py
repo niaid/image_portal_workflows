@@ -204,7 +204,7 @@ def gen_tilt_movie(brt_output: utils.BrtOutput) -> Path:
     log_file = f"{ali_file.parent}/ffmpeg_tilt.log"
     movie_file = f"{ali_file.parent}/tiltMov_{ali_file.stem}.mp4"
     cmd = [
-        "ffmpeg",
+        BRTConfig.ffmpeg_loc,
         "-y",
         "-f",
         "image2",
@@ -269,7 +269,7 @@ def gen_recon_movie(ave_mrc: Path) -> Path:
     jpg_input_pattern = f"{mp4_base}*.jpg"
     key_mov = f"{ave_mrc.parent}/{ave_mrc.stem}_keyMov.mp4"
     cmd = [
-        "ffmpeg",
+        BRTConfig.ffmpeg_loc,
         "-f",
         "image2",
         "-pattern_type",
