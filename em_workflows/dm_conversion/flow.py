@@ -120,10 +120,11 @@ def convert_em_to_tiff(file_path: FilePath) -> FilePath:
     name="Scale Jpeg",
     on_failure=[utils.collect_exception_task_hook],
 )
-def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
+def scale_jpegs(file_path: FilePath) -> (dict, dict):
     """
     generates keyThumbnail and keyImage
-    looks for file names <something>_mrc_as_jpg.jpeg
+
+
     """
 
     as_tiff = Path(f"{file_path.working_dir}/{file_path.base}_as_tiff.tiff")
@@ -135,49 +136,51 @@ def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
         msg = f"Impossible state for {file_path.fp_in}"
         raise RuntimeError(msg)
 
-    if size.lower() == "s":
-        output = file_path.gen_output_fp("_SM.jpeg")
-        log = f"{output.parent}/jpeg_sm.log"
-        asset_type = AssetType.THUMBNAIL
-        cmd = [
-            DMConfig.gm_loc,
-            "convert",
-            "-size",
-            SMALL_2D,
-            cur.as_posix(),
-            "-resize",
-            SMALL_2D,
-            "-sharpen",
-            "2",
-            "-quality",
-            "70",
-            output.as_posix(),
-        ]
-    elif size.lower() == "l":
-        output = file_path.gen_output_fp("_LG.jpeg")
-        log = f"{output.parent}/jpeg_lg.log"
-        asset_type = AssetType.KEY_IMAGE
-        cmd = [
-            DMConfig.gm_loc,
-            "convert",
-            "-size",
-            LARGE_2D,
-            cur.as_posix(),
-            "-resize",
-            LARGE_2D,
-            # "-sharpen",
-            # "2",
-            "-quality",
-            "80",
-            output.as_posix(),
-        ]
-    else:
-        msg = "Jpeg scaler must have size argument set to 'l' or 's'"
-        raise RuntimeError(msg)
+
+    log = file_path.gen_output_fp(output_ext="_jpeg.log")
+
+    output_small = file_path.gen_output_fp(output_ext="_SM.jpeg")
+    asset_type = AssetType.THUMBNAIL
+    cmd = [
+        DMConfig.gm_loc,
+        "convert",
+        "-size",
+        SMALL_2D,
+        cur.as_posix(),
+        "-resize",
+        SMALL_2D,
+        "-sharpen",
+        "2",
+        "-quality",
+        "70",
+        output_small.as_posix(),
+    ]
     FilePath.run(cmd, log)
-    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=output)
-    asset_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
-    return asset_elt
+
+    asset_small_fp = file_path.copy_to_assets_dir(fp_to_cp=output_small)
+    asset_small_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_small_fp)
+
+    output_large = file_path.gen_output_fp(output_ext="_LG.jpeg")
+    asset_type = AssetType.KEY_IMAGE
+    cmd = [
+        DMConfig.gm_loc,
+        "convert",
+        "-size",
+        LARGE_2D,
+        cur.as_posix(),
+        "-resize",
+        LARGE_2D,
+        # "-sharpen",
+        # "2",
+        "-quality",
+        "80",
+        output_large.as_posix(),
+    ]
+    FilePath.run(cmd, log)
+    asset_large_fp = file_path.copy_to_assets_dir(fp_to_cp=output_large)
+    asset_large_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_large_fp)
+    return asset_small_elt, asset_large_elt
+
 
 
 @flow(
@@ -236,26 +239,15 @@ def dm_flow(
 
     tiff_results = convert_em_to_tiff.map(file_path=fps)
 
-    # Finally generate all valid suffixed results
-    keyimg_assets = scale_jpegs.map(
+    jpeg_assets = scale_jpegs.map(
         fps,
-        size=unmapped("l"),
-        wait_for=[allow_failure(tiff_results), allow_failure(tiff_results)],
-    )
-    thumb_assets = scale_jpegs.map(
-        fps,
-        size=unmapped("s"),
         wait_for=[allow_failure(tiff_results), allow_failure(tiff_results)],
     )
 
-    prim_fps = utils.gen_prim_fps.map(fp_in=fps)
-    callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
-    callback_with_keyimgs = utils.add_asset.map(
-        prim_fp=callback_with_thumbs, asset=keyimg_assets
-    )
+    prim_fps = utils.gen_prim_fps.map(fp_in=fps, additional_assets=jpeg_assets)
 
     callback_result = list()
-    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_keyimgs)):
+    for idx, (fp, cb) in enumerate(zip(fps.result(), prim_fps)):
         state = cb.wait()
         if state.is_completed():
             callback_result.append(cb.result())
