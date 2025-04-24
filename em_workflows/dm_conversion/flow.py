@@ -82,10 +82,11 @@ def _newstack_mrc_to_tiff(input_fn: Path, output_fn: Path, log_fn: Path, use_flo
 )
 def convert_em_to_tiff(file_path: FilePath) -> FilePath:
 
+    out_fp = file_path.gen_output_fp(output_ext="_as_tiff.tiff")
+    log_fp = file_path.gen_output_fp(output_ext="_as_tiff.log")
+
     if file_path.fp_in.suffix.strip(".").lower() in MRCS_EXT:
 
-        out_fp = file_path.gen_output_fp(out_fname="_as_tiff.tiff")
-        log_fp = file_path.working_dir/f"{file_path.base}_as_tiff.log"
         utils.log(f"{file_path.fp_in.as_posix()} is a mrc file, will convert to {out_fp}.")
 
         _newstack_mrc_to_tiff(file_path.fp_in, out_fp, log_fp, use_float=False)
@@ -95,22 +96,19 @@ def convert_em_to_tiff(file_path: FilePath) -> FilePath:
             and is_16bit(file_path.fp_in)
     ):
 
-        tif_8_bit = file_path.gen_output_fp(out_fname="_as_tiff.tif")
-        log_fp = file_path.working_dir/f"{file_path.base}_as_tiff.log"
-        utils.log(f"{file_path.fp_in} is a 16 bit tiff, converting to {tif_8_bit}")
+        utils.log(f"{file_path.fp_in} is a 16 bit tiff, converting to {out_fp}")
 
-        _newstack_mrc_to_tiff(file_path.fp_in, tif_8_bit, log_fp, use_float=True)
+        _newstack_mrc_to_tiff(file_path.fp_in, out_fp, log_fp, use_float=True)
 
     elif file_path.fp_in.suffix.strip(".").lower() in DMS_EXT:
-        dm_as_mrc = file_path.gen_output_fp(out_fname="dm_as_mrc.mrc")
+        dm_as_mrc = file_path.gen_output_fp(output_ext="dm_as_mrc.mrc")
         utils.log(msg=f"{file_path.fp_in} is a dm file, will convert to {dm_as_mrc}.")
-        log_file = file_path.working_dir/"dm2mrc.log"
+
+        mrc_log_fp = file_path.gen_output_fp(output_ext="_dm2mrc.log")
 
         cmd = [DMConfig.dm2mrc_loc, file_path.fp_in.as_posix(), dm_as_mrc.as_posix()]
-        FilePath.run(cmd=cmd, log_file=str(log_file))
+        FilePath.run(cmd=cmd, log_file=str(mrc_log_fp))
 
-        out_fp = file_path.working_dir/f"{file_path.base}_as_tiff.tiff"
-        log_fp = file_path.working_dir/f"{file_path.base}_as_tiff.log"
         utils.log(f"{dm_as_mrc} convert to {out_fp}.")
 
         _newstack_mrc_to_tiff(dm_as_mrc, out_fp, log_fp, use_float=True)
