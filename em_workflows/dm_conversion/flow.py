@@ -1,15 +1,20 @@
 from pathlib import Path
 from typing import Optional
 
+import SimpleITK as sitk
+import SimpleITK.utilities as sitkutils
+
 from prefect import flow, task, unmapped, allow_failure
 from pytools.meta import is_16bit
 from pytools.convert import file_to_uint8
 
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
-from em_workflows.constants import LARGE_DIM, AssetType
+from em_workflows.constants import AssetType
 from em_workflows.dm_conversion.config import DMConfig
 from em_workflows.dm_conversion.constants import (
+    LARGE_DIM,
+    SMALL_DIM,
     LARGE_2D,
     SMALL_2D,
     TIFS_EXT,
@@ -117,15 +122,18 @@ def convert_em_to_tiff(file_path: FilePath) -> FilePath:
 
 
 @task(
-    name="Scale Jpeg",
+    name="SITK Scale Jpeg",
     on_failure=[utils.collect_exception_task_hook],
 )
-def scale_jpegs(file_path: FilePath) -> (dict, dict):
+def sitk_scale_jpegs(file_path: FilePath) -> (dict, dict):
     """
     generates keyThumbnail and keyImage
 
 
     """
+
+    small_size = (SMALL_DIM, )*2
+    large_size = (LARGE_DIM, )*2
 
     as_tiff = Path(f"{file_path.working_dir}/{file_path.base}_as_tiff.tiff")
     if as_tiff.exists():
@@ -140,47 +148,22 @@ def scale_jpegs(file_path: FilePath) -> (dict, dict):
     log = file_path.gen_output_fp(output_ext="_jpeg.log")
 
     output_small = file_path.gen_output_fp(output_ext="_SM.jpeg")
-    asset_type = AssetType.THUMBNAIL
-    cmd = [
-        DMConfig.gm_loc,
-        "convert",
-        "-size",
-        SMALL_2D,
-        cur.as_posix(),
-        "-resize",
-        SMALL_2D,
-        "-sharpen",
-        "2",
-        "-quality",
-        "70",
-        output_small.as_posix(),
-    ]
-    FilePath.run(cmd, log)
 
+    img = sitk.ReadImage(cur)
+    small_img = sitkutils.resize(img, small_size, sitk.sitkLinear)
+    sitk.WriteImage(small_img, output_small, useCompression=True, compressionLevel=70)
+    asset_type = AssetType.THUMBNAIL
     asset_small_fp = file_path.copy_to_assets_dir(fp_to_cp=output_small)
     asset_small_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_small_fp)
 
     output_large = file_path.gen_output_fp(output_ext="_LG.jpeg")
+    large_img = sitkutils.resize(img, large_size, sitk.sitkLinear)
+    sitk.WriteImage(large_img, output_large, useCompression=True, compressionLevel=80)
+
     asset_type = AssetType.KEY_IMAGE
-    cmd = [
-        DMConfig.gm_loc,
-        "convert",
-        "-size",
-        LARGE_2D,
-        cur.as_posix(),
-        "-resize",
-        LARGE_2D,
-        # "-sharpen",
-        # "2",
-        "-quality",
-        "80",
-        output_large.as_posix(),
-    ]
-    FilePath.run(cmd, log)
     asset_large_fp = file_path.copy_to_assets_dir(fp_to_cp=output_large)
     asset_large_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_large_fp)
     return asset_small_elt, asset_large_elt
-
 
 
 @flow(
@@ -239,7 +222,7 @@ def dm_flow(
 
     tiff_results = convert_em_to_tiff.map(file_path=fps)
 
-    jpeg_assets = scale_jpegs.map(
+    jpeg_assets = sitk_scale_jpegs.map(
         fps,
         wait_for=[allow_failure(tiff_results), allow_failure(tiff_results)],
     )
