@@ -85,11 +85,32 @@ def _newstack_mrc_to_tiff(input_fn: Path, output_fn: Path, log_fn: Path, use_flo
 
     FilePath.run(cmd, str(log_fn), env={"IMOD_OUTPUT_FORMAT": "TIF"} )
 
+
+def _write_image_as_size(img:sitk.Image, size:(int,int), output_path:Path, compression_level:int) -> None:
+    """
+    Resize the image to the specified size and write it to the output file path with the specified compression level.
+    If the image is smaller than the specified size, it will not be resized.
+
+    :param img: A SimpleITK image object.
+    :param size:
+    :param output_path: Path the output filename, the file extension should be .jpeg
+    :param compression_level: The compression level for the output image. 0-100, 0 is no compression, 100 is maximum compression.
+    :return:
+    """
+    if any(img_sz > small_sz for img_sz, small_sz in zip(img.GetSize(), size)):
+        utils.log(msg=f"Resizing {img.GetSize()}->{size} for {output_path}...")
+        img = sitkutils.resize(img, size, interpolator=sitk.sitkLinear, fill=False, use_nearest_extrapolator=True)
+    else:
+        utils.log(msg=f"Writing {output_path}...")
+
+    sitk.WriteImage(img, output_path, useCompression=True, compressionLevel=compression_level)
+
+
 @task(
     name="Convert EM images to tiff",
     on_failure=[utils.collect_exception_task_hook],
 )
-def convert_em_to_tiff(file_path: FilePath) -> FilePath:
+def convert_em_to_tiff(file_path: FilePath) -> Path:
 
     out_fp = file_path.gen_output_fp(output_ext="_as_tiff.tiff")
     log_fp = file_path.gen_output_fp(output_ext="_as_tiff.log")
@@ -121,8 +142,10 @@ def convert_em_to_tiff(file_path: FilePath) -> FilePath:
         utils.log(f"{dm_as_mrc} convert to {out_fp}.")
 
         _newstack_mrc_to_tiff(dm_as_mrc, out_fp, log_fp, use_float=True)
+    else:
+        return file_path.fp_in
 
-    return file_path
+    return out_fp
 
 
 @task(
@@ -136,36 +159,25 @@ def sitk_scale_jpegs(file_path: FilePath) -> (dict, dict):
 
     """
 
-    convert_em_to_tiff.fn(file_path)
+    current_image_path = convert_em_to_tiff.fn(file_path)
 
-    small_size = (SMALL_DIM, )*2
-    large_size = (LARGE_DIM, )*2
+    if not current_image_path.exists():
+        raise RuntimeError(f"File {current_image_path} does not exist. Cannot convert to jpeg.")
 
-    as_tiff = Path(f"{file_path.working_dir}/{file_path.base}_as_tiff.tiff")
-    if as_tiff.exists():
-        cur = as_tiff
-    elif file_path.fp_in.suffix.strip(".").lower() in KEYIMG_EXTS:
-        cur = file_path.fp_in
-    else:
-        msg = f"Impossible state for {file_path.fp_in}"
-        raise RuntimeError(msg)
+    utils.log(msg=f"Reading {current_image_path}...")
+    img = sitk.ReadImage(current_image_path)
 
+    # Produce a small thumbnail
     output_small = file_path.gen_output_fp(output_ext="_SM.jpeg")
+    _write_image_as_size(img, (SMALL_DIM, )*2, output_small, 70)
 
-    utils.log(msg=f"Reading {cur}...")
-    img = sitk.ReadImage(cur)
-    utils.log(msg=f"Generating {img.GetSize()}->{small_size} {output_small}...")
-    small_img = sitkutils.resize(img, small_size, sitk.sitkLinear)
-    sitk.WriteImage(small_img, output_small, useCompression=True, compressionLevel=70)
     asset_type = AssetType.THUMBNAIL
     asset_small_fp = file_path.copy_to_assets_dir(fp_to_cp=output_small)
     asset_small_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_small_fp)
 
+    # Produce a large key image
     output_large = file_path.gen_output_fp(output_ext="_LG.jpeg")
-
-    utils.log(msg=f"Generating {img.GetSize()}->{large_size} {output_large}...")
-    large_img = sitkutils.resize(img, large_size, sitk.sitkLinear)
-    sitk.WriteImage(large_img, output_large, useCompression=True, compressionLevel=80)
+    _write_image_as_size(img, (LARGE_DIM, )*2, output_large, 80)
 
     asset_type = AssetType.KEY_IMAGE
     asset_large_fp = file_path.copy_to_assets_dir(fp_to_cp=output_large)
