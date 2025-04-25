@@ -144,8 +144,9 @@ def gen_prim_fps(fp_in: FilePath, additional_assets:(dict, ...)=None) -> Dict:
     base_elts = fp_in.gen_prim_fp_elt()
     log(f"Generated fp elt {base_elts}")
 
-    for asset in additional_assets:
-        add_asset.fn(base_elts, asset)
+    if additional_assets:
+        for asset in additional_assets:
+            add_asset.fn(base_elts, asset)
 
     return base_elts
 
