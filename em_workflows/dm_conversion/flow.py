@@ -146,9 +146,6 @@ def sitk_scale_jpegs(file_path: FilePath) -> (dict, dict):
         msg = f"Impossible state for {file_path.fp_in}"
         raise RuntimeError(msg)
 
-
-    log = file_path.gen_output_fp(output_ext="_jpeg.log")
-
     output_small = file_path.gen_output_fp(output_ext="_SM.jpeg")
 
     utils.log(msg=f"Reading {cur}...")
@@ -169,7 +166,8 @@ def sitk_scale_jpegs(file_path: FilePath) -> (dict, dict):
     asset_type = AssetType.KEY_IMAGE
     asset_large_fp = file_path.copy_to_assets_dir(fp_to_cp=output_large)
     asset_large_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_large_fp)
-    return asset_small_elt, asset_large_elt
+
+    return utils.gen_prim_fps.fn(fp_in=file_path, additional_assets=(asset_small_elt, asset_large_elt))
 
 
 @flow(
@@ -226,13 +224,7 @@ def dm_flow(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
     )
 
-    #tiff_results = convert_em_to_tiff.map(file_path=fps)
-
-    jpeg_assets = sitk_scale_jpegs.map(
-        fps
-    )
-
-    prim_fps = utils.gen_prim_fps.map(fp_in=fps, additional_assets=jpeg_assets)
+    prim_fps = sitk_scale_jpegs.map( fps )
 
     callback_result = list()
     for idx, (fp, cb) in enumerate(zip(fps.result(), prim_fps)):
