@@ -27,7 +27,7 @@ from em_workflows.dm_conversion.constants import (
 
 def _calculate_shrink_factor(filepath: Path, enforce_2d: bool = True, target_size: int = LARGE_DIM) -> float:
     """
-    Calculate the shrink factor for the newstack command
+    Calculate the shrink factor for the newstack command to produce an image of the target size on the largest dimension.
     """
     dims = utils.lookup_dims(filepath)
 
@@ -35,10 +35,10 @@ def _calculate_shrink_factor(filepath: Path, enforce_2d: bool = True, target_siz
         msg = f"mrc file {filepath} is not 2 dimensional. Contains {dims.z} Z dims."
         raise RuntimeError(msg)
 
-    # use the min dimension of x & y to compute shrink_factor
-    min_xy = min(dims.x, dims.y)
-    # work out shrink_factor to make the resulting image LARGE_DIM
-    return min_xy / target_size
+    # use the max dimension of x & y to compute shrink_factor
+    max_xy = max(dims.x, dims.y)
+    # work out shrink_factor to make the resulting image LARGE_DIM at max
+    return max_xy / target_size
 
 
 def _newstack_mrc_to_tiff(input_fn: Path, output_fn: Path, log_fn: Path, use_float=True, verbose=False) -> None:
