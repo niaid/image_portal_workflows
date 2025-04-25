@@ -111,6 +111,22 @@ def _write_image_as_size(img:sitk.Image, size:(int,int), output_path:Path, compr
     on_failure=[utils.collect_exception_task_hook],
 )
 def convert_em_to_tiff(file_path: FilePath) -> Path:
+    """
+    Performs the conversion of EM images to tiff format, adjusting the dynamic range and reducing the size of the image.
+
+    Three types of files are detected to need conversion:
+    - mrc files are converted to tiff using newstack
+    - 16-bit tiff files are converted to 8 bit tiff
+    - dm3/dm4 files are converted to mrc using dm2mrc, then to tiff using newstack
+
+    EM images are broadly characterized by a low signal-to-noise ratio and a high dynamic range, often with potential
+     outliers. Using newstack with shrink and antialiasing kernels is required to reduce the noise to produce a
+     high-quality tiff image. Additionally, to adjust the dynamic range, the meansd, or float options are used.
+
+
+    :param file_path:
+    :return:
+    """
 
     out_fp = file_path.gen_output_fp(output_ext="_as_tiff.tiff")
     log_fp = file_path.gen_output_fp(output_ext="_as_tiff.log")
@@ -149,13 +165,16 @@ def convert_em_to_tiff(file_path: FilePath) -> Path:
 
 
 @task(
-    name="SITK Scale Jpeg",
+    name="Generate key and thumbnail jpeg images ",
     on_failure=[utils.collect_exception_task_hook],
 )
-def sitk_scale_jpegs(file_path: FilePath) -> (dict, dict):
+def generate_jpegs(file_path: FilePath) -> dict:
     """
-    generates keyThumbnail and keyImage
+    Generates small and large jpegs from the input file and produce an asset dictionary.
 
+    The input image is converted to tiff for certain EM image, if needed.
+
+    SimpleITK is used to the original input or the converted tiff image to generate the jpegs.
 
     """
 
@@ -213,15 +232,11 @@ def dm_flow(
     x_no_api: bool = False,
     x_keep_workdir: bool = False,
 ):
-    # run_config=LocalRun(labels=[utils.get_environment()]),
     """
-    -list all inputs (ie files of relevant input type)
-    -create output dir for each.
-    -convert all 16bit tiffs to 8 bit, write to Assets dir.
-    -convert all dm3/dm4 files to mrc, write to Assets dir.
-    -convert <name>dm_as_mrc.mrc files to jpegs.
-    -convert all mrcs in Projects dir to jpegs.
-    -convert all tiffs/pngs/jpegs to correct size for thumbs, "sm" and "lg"
+    - List all inputs (files of a relevant input type)
+    - Create output directories
+    - Generate thumbnails and key images
+    - Post callback to the API with the access
     """
     utils.notify_api_running(x_no_api, token, callback_url)
 
@@ -240,7 +255,7 @@ def dm_flow(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
     )
 
-    prim_fps = sitk_scale_jpegs.map( fps )
+    prim_fps = generate_jpegs.map(fps)
 
     callback_result = list()
     for idx, (fp, cb) in enumerate(zip(fps.result(), prim_fps)):
