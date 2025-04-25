@@ -41,7 +41,7 @@ def _calculate_shrink_factor(filepath: Path, enforce_2d: bool = True, target_siz
     return min_xy / target_size
 
 
-def _newstack_mrc_to_tiff(input_fn: Path, output_fn: Path, log_fn: Path, use_float=True) -> None:
+def _newstack_mrc_to_tiff(input_fn: Path, output_fn: Path, log_fn: Path, use_float=True, verbose=False) -> None:
     """
     Convert mrc files to tiff using newstack while reducing the size of the image, and performing antialiasing suitable
     for EM images.
@@ -54,6 +54,7 @@ def _newstack_mrc_to_tiff(input_fn: Path, output_fn: Path, log_fn: Path, use_flo
     :param use_float: If true uses the newstack "float" option to  fill the data range of the output. This range is
       computed after the shrink operation. If false, uses the "meansd" option with the default values of 140,50, which
       computed before the shrink operation.
+    :param verbose: If true, the newstack command is run in normal mode. Otherwise, quiet mode is enabled.
     :return:
     """
 
@@ -68,6 +69,9 @@ def _newstack_mrc_to_tiff(input_fn: Path, output_fn: Path, log_fn: Path, use_flo
         "-mode",
         "0",
         ]
+
+    if not verbose:
+        cmd.append("-quiet")
 
     if use_float:
         cmd.extend(["-float", "1"])
