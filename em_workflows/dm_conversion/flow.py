@@ -132,6 +132,8 @@ def sitk_scale_jpegs(file_path: FilePath) -> (dict, dict):
 
     """
 
+    convert_em_to_tiff.fn(file_path)
+
     small_size = (SMALL_DIM, )*2
     large_size = (LARGE_DIM, )*2
 
@@ -149,7 +151,9 @@ def sitk_scale_jpegs(file_path: FilePath) -> (dict, dict):
 
     output_small = file_path.gen_output_fp(output_ext="_SM.jpeg")
 
+    utils.log(msg=f"Reading {cur}...")
     img = sitk.ReadImage(cur)
+    utils.log(msg=f"Generating {img.GetSize()}->{small_size} {output_small}...")
     small_img = sitkutils.resize(img, small_size, sitk.sitkLinear)
     sitk.WriteImage(small_img, output_small, useCompression=True, compressionLevel=70)
     asset_type = AssetType.THUMBNAIL
@@ -157,6 +161,8 @@ def sitk_scale_jpegs(file_path: FilePath) -> (dict, dict):
     asset_small_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_small_fp)
 
     output_large = file_path.gen_output_fp(output_ext="_LG.jpeg")
+
+    utils.log(msg=f"Generating {img.GetSize()}->{large_size} {output_large}...")
     large_img = sitkutils.resize(img, large_size, sitk.sitkLinear)
     sitk.WriteImage(large_img, output_large, useCompression=True, compressionLevel=80)
 
@@ -220,11 +226,10 @@ def dm_flow(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
     )
 
-    tiff_results = convert_em_to_tiff.map(file_path=fps)
+    #tiff_results = convert_em_to_tiff.map(file_path=fps)
 
     jpeg_assets = sitk_scale_jpegs.map(
-        fps,
-        wait_for=[allow_failure(tiff_results), allow_failure(tiff_results)],
+        fps
     )
 
     prim_fps = utils.gen_prim_fps.map(fp_in=fps, additional_assets=jpeg_assets)
