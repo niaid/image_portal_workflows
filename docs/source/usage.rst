@@ -17,23 +17,23 @@ In order to submit a workflow job, you will need deployment IDs of each of the w
      - QA
      - Production
    * - 2D / DM conversion
-     - 68dd3d3e-6c5d-4616-ab33-52d4dcbd8184
+     - b8b3854d-396a-4b92-ad91-48f3ff32b18a
      - 20ab41f5-3770-4834-97d0-33ce2f2d7c3e
      - a72f8c80-9c51-4b50-b2e5-1d27314bcccb
    * - FIBSEM
-     - 6eec994d-6d63-4e8e-b6fd-f4e516aa0caa
+     - 46ac3986-3d58-4a7c-9ad6-32b73a0c418f
      - 32ed45f3-37eb-4b34-8220-f52fc9c96fb7
      - 9d3f7d8d-308f-4d95-9433-66ae253a6379
    * - BRT
-     - 8a8f9c9b-476f-4b4c-8a19-881dc1cb5be9
+     - d1ad7a1e-c64a-4f7f-9af2-f065dd2b0a4c
      - 6fcb4637-878f-4630-9f89-2bdea430ac3e
      - cdf92549-80d9-4f4e-bde7-30409ed20e41
    * - IF / Multichannel CZI
-     - 265a8a6b-fa09-4503-a449-bdc5117933a5
+     - c2f50018-7d11-4535-8c6e-b039bfa025bd
      - 208568ff-f487-4e10-bbd2-208640d39143
      - dccb9b62-cd2e-489d-ac12-f35b76b91fb1
    * - Large 2D PNG / ROI
-     - 81f99df4-4de5-4f29-9b73-16dc9ee65b0c
+     - 432592af-0899-4425-94b4-c239614b1748
      - 8873c33b-d46d-4296-ae4f-0157ab2f5911
      - e5b25df2-6ae0-49f6-a080-cbe7c32e4f6a
 
