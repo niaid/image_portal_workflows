@@ -1,5 +1,5 @@
 ******
-2D Electron Microscopy Workflow (formally known as DM conversion workflow)
+2D Electron Microscopy Workflow (formally internally DM conversion workflow)
 ******
 
 Overview:
@@ -13,10 +13,37 @@ Outputs:
  1. A thumbnail image for each input image.
  2. A key image for each input image.
 
+.. list-table:: Supported Extensions for File Formats
+   :header-rows: 1
+
+   * - Format Type
+     - Description
+     - Extensions
+   * - DM3
+     -  image format used by Digital Micrograph
+     - dm3
+   * - DM4
+     - image format used by Digital Micrograph, possibly limited to 64-bit integers
+     - dm4
+   * - MRC
+     - image format used by the IMOD tool suite
+     - mrc
+   * - TIFF
+     - Standard Tag Image File Format ( TIFF 6.0 ), OME TIFF not supported, TIFF stacks not supported.
+     - tif, tiff
+   * - PNG
+     - Portable Network Graphics
+     - png
+   * - JPEG
+     - Joint Photographic Experts Group
+     - jpg, jpeg
+
+
 The toolbox of `IMOD`_ is used primarily to process the EM images, along with `SimpleITK` for additional image
 processing tasks.
 
-.. list-table:: Summary of Input File Types
+
+.. list-table:: Summary of Input Image Types
    :header-rows: 1
 
    * - Format Type
@@ -46,30 +73,6 @@ processing tasks.
      - Expected EM images with likely high dynamic range.
      - Convert to 8-bit TIFF via `newstack`_ command to resample, filter, and scale intensities to 8-bit.
 
-.. list-table:: Supported Extensions for File Formats
-   :header-rows: 1
-
-   * - Format Type
-     - Description
-     - Extensions
-   * - DM3
-     -  image format used by Digital Micrograph
-     - dm3
-   * - DM4
-     - image format used by Digital Micrograph, possibly limited to 64-bit integers
-     - dm4
-   * - MRC
-     - image format used by the IMOD tool suite
-     - mrc
-   * - TIFF
-     - Standard Tag Image File Format ( TIFF 6.0 ), OME TIFF not supported, TIFF stacks not supported.
-     - tif, tiff
-   * - PNG
-     - Portable Network Graphics
-     - png
-   * - JPEG
-     - Joint Photographic Experts Group
-     - jpg, jpeg
 
 Format Conversion
 +++++++++++++++++
