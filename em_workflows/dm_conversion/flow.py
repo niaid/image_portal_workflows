@@ -1,15 +1,20 @@
 from pathlib import Path
 from typing import Optional
 
+import SimpleITK as sitk
+import SimpleITK.utilities as sitkutils
+
 from prefect import flow, task, unmapped, allow_failure
 from pytools.meta import is_16bit
 from pytools.convert import file_to_uint8
 
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
-from em_workflows.constants import LARGE_DIM, AssetType
+from em_workflows.constants import AssetType
 from em_workflows.dm_conversion.config import DMConfig
 from em_workflows.dm_conversion.constants import (
+    LARGE_DIM,
+    SMALL_DIM,
     LARGE_2D,
     SMALL_2D,
     TIFS_EXT,
@@ -20,9 +25,9 @@ from em_workflows.dm_conversion.constants import (
 )
 
 
-def _calculate_shrink_factor(filepath: Path, enforce_2d=True) -> float:
+def _calculate_shrink_factor(filepath: Path, enforce_2d: bool = True, target_size: int = LARGE_DIM) -> float:
     """
-    Calculate the shrink factor for the newstack command
+    Calculate the shrink factor for the newstack command to produce an image of the target size on the largest dimension.
     """
     dims = utils.lookup_dims(filepath)
 
@@ -30,50 +35,30 @@ def _calculate_shrink_factor(filepath: Path, enforce_2d=True) -> float:
         msg = f"mrc file {filepath} is not 2 dimensional. Contains {dims.z} Z dims."
         raise RuntimeError(msg)
 
-    # use the min dimension of x & y to compute shrink_factor
-    min_xy = min(dims.x, dims.y)
-    # work out shrink_factor to make the resulting image LARGE_DIM
-    return min_xy / LARGE_DIM
+    # use the max dimension of x & y to compute shrink_factor
+    max_xy = max(dims.x, dims.y)
+    # work out shrink_factor to make the resulting image LARGE_DIM at max
+    return max_xy / target_size
 
 
-@task(
-    name="Convert DM to MRC",
-    on_failure=[utils.collect_exception_task_hook],
-)
-def convert_dms_to_mrc(file_path: FilePath) -> FilePath:
-    if file_path.fp_in.suffix.strip(".").lower() not in DMS_EXT:
-        return file_path
-    dm_as_mrc = file_path.gen_output_fp(out_fname="dm_as_mrc.mrc")
-    msg = f"Using dir: {file_path.fp_in}, : creating dm_as_mrc {dm_as_mrc}"
-    utils.log(msg=msg)
-    log_file = f"{dm_as_mrc.parent}/dm2mrc.log"
-    cmd = [DMConfig.dm2mrc_loc, file_path.fp_in.as_posix(), dm_as_mrc.as_posix()]
-    # utils.log(f"Generated cmd {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
-    return file_path
-
-
-@task(
-    name="Convert 16bit to 8bit tiffs",
-    on_failure=[utils.collect_exception_task_hook],
-)
-def convert_if_int16_tiff(file_path: FilePath) -> None:
+def _newstack_mrc_to_tiff(input_fn: Path, output_fn: Path, log_fn: Path, use_float=True, verbose=False) -> None:
     """
-    accepts a tiff Path obj
-    tests if 16 bit
-    if 16 bit convert (write to assets_dir) & return Path
-    else return orig Path
-    """
-    if not (
-            file_path.fp_in.suffix.strip(".").lower() in TIFS_EXT
-            and is_16bit(file_path.fp_in)
-    ):
-        return
-    tif_8_bit = file_path.gen_output_fp(out_fname="as_8_bit.tif")
-    log_fp = f"{file_path.working_dir}/{file_path.base}_as_8_bit.log"
-    utils.log(f"{file_path.fp_in} is a 16 bit tiff, converting to {tif_8_bit}")
+    Convert mrc files to tiff using newstack while reducing the size of the image, and performing antialiasing suitable
+    for EM images.
 
-    shrink_factor = _calculate_shrink_factor(file_path.fp_in)
+    https://bio3d.colorado.edu/imod/doc/man/newstack.html
+
+    :param input_fn: Input file path of a mrc file.
+    :param output_fn: Output file path of a tiff file.
+    :param log_fn: File path to a log file for the newstack command output.
+    :param use_float: If true uses the newstack "float" option to  fill the data range of the output. This range is
+      computed after the shrink operation. If false, uses the "meansd" option with the default values of 140,50, which
+      computed before the shrink operation.
+    :param verbose: If true, the newstack command is run in normal mode. Otherwise, quiet mode is enabled.
+    :return:
+    """
+
+    shrink_factor = _calculate_shrink_factor(input_fn, target_size=LARGE_DIM)
 
     cmd = [
         DMConfig.newstack_loc,
@@ -83,150 +68,141 @@ def convert_if_int16_tiff(file_path: FilePath) -> None:
         "6",
         "-mode",
         "0",
-        # From the newstack manual for "-float": Enter 1 for each section to fill the data range.
-        "-float",
-        "1",
-        file_path.fp_in.as_posix(),
-        str(tif_8_bit),
-    ]
-    utils.log(f"Generated cmd {cmd}")
-    FilePath.run(cmd, log_fp, env={"IMOD_OUTPUT_FORMAT": "TIF"})
-
-
-
-@task(
-    name="Convert 2D MRC to tiff",
-    on_failure=[utils.collect_exception_task_hook],
-)
-def convert_2d_mrc_to_tiff(file_path: FilePath) -> None:
-    """
-    Checks Projects dir for mrc inputs. We assume anything in Projects will be 2D.
-    Converts to tiff file, 1024 in size (using constant LARGE_DIM)
-
-    env IMOD_OUTPUT_FORMAT=TIF newstack \
-            --shrink $shrink_factor$ -antialias 6 -mode 0 -meansd 140,50 f_in.mrc f_out.tif
-    where shrink_factor is input_size/1024
-    used the smaller of x and y (4092/1024)
-    """
-    # nifti_fp = neuroglancer.gen_niftis.__wrapped__(file_path)
-    # utils.log(f"+++++++++++++++++++++++++++++++++++++++++++++")
-    # min_max_histo = neuroglancer.gen_min_max_histo(file_path)
-    # utils.log(min_max_histo)
-    # utils.log(f"+++++++++++++++++++++++++++++++++++++++++++++")
-
-    # work out shrink_factor
-    if file_path.fp_in.suffix.strip(".").lower() not in MRCS_EXT:
-        return
-    shrink_factor = _calculate_shrink_factor( file_path.fp_in)
-    # round to 3 decimal places
-    shrink_factor_3 = f"{shrink_factor:.3f}"
-    out_fp = f"{file_path.working_dir}/{file_path.base}_mrc_as_tiff.tiff"
-    log_fp = f"{file_path.working_dir}/{file_path.base}_mrc_as_tiff.log"
-    utils.log(f"{file_path.fp_in.as_posix()} is a mrc file, will convert to {out_fp}.")
-    # work out meansd
-    cmd = [
-        DMConfig.newstack_loc,
-        "-shrink",
-        shrink_factor_3,
-        "-antialias",
-        "6",
-        "-mode",
-        "0",
-        "-meansd",
-        "140,50",
-        file_path.fp_in.as_posix(),
-        out_fp,
-    ]
-    utils.log(f"Generated cmd {cmd}")
-    FilePath.run(cmd, log_fp, env={"IMOD_OUTPUT_FORMAT": "TIF"})
-
-
-@task(
-    name="Convert DM MRC to jpeg",
-    on_failure=[utils.collect_exception_task_hook],
-)
-def convert_dm_mrc_to_jpeg(file_path: FilePath) -> None:
-    """
-    converts previously generated mrc file, (derived from a dm file) to jpeg.
-    note, ignores everything that's NOT <name>dm_as_mrc.mrc
-    that is, convert_dm_mrc_to_jpeg does not process ALL mrc files.
-    """
-    dm_as_mrc = file_path.gen_output_fp(out_fname="dm_as_mrc.mrc")
-    if dm_as_mrc.exists():
-        mrc_as_jpg = file_path.gen_output_fp(out_fname="mrc_as_jpg.jpeg")
-        log_fp = f"{mrc_as_jpg.parent}/mrc2tif.log"
-        cmd = [DMConfig.mrc2tif_loc, "-j", dm_as_mrc.as_posix(), mrc_as_jpg.as_posix()]
-        utils.log(f"Generated cmd {cmd}")
-        FilePath.run(cmd, log_fp)
-
-
-@task(
-    name="Scale Jpeg",
-    on_failure=[utils.collect_exception_task_hook],
-)
-def scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]:
-    """
-    generates keyThumbnail and keyImage
-    looks for file names <something>_mrc_as_jpg.jpeg
-    """
-    mrc_as_jpg = file_path.gen_output_fp(out_fname="mrc_as_jpg.jpeg")
-    tif_8_bit = file_path.gen_output_fp(out_fname="as_8_bit.tif")
-    mrc_as_tiff = Path(f"{file_path.working_dir}/{file_path.base}_mrc_as_tiff.tiff")
-    if mrc_as_jpg.exists():
-        cur = mrc_as_jpg
-    elif tif_8_bit.exists():
-        cur = tif_8_bit
-    elif mrc_as_tiff.exists():
-        cur = mrc_as_tiff  # can ignore here if scaled
-    elif file_path.fp_in.suffix.strip(".").lower() in KEYIMG_EXTS:
-        cur = file_path.fp_in
-    else:
-        msg = f"Impossible state for {file_path.fp_in}"
-        raise RuntimeError(msg)
-
-    if size.lower() == "s":
-        output = file_path.gen_output_fp("_SM.jpeg")
-        log = f"{output.parent}/jpeg_sm.log"
-        asset_type = AssetType.THUMBNAIL
-        cmd = [
-            DMConfig.gm_loc,
-            "convert",
-            "-size",
-            SMALL_2D,
-            cur.as_posix(),
-            "-resize",
-            SMALL_2D,
-            "-sharpen",
-            "2",
-            "-quality",
-            "70",
-            output.as_posix(),
         ]
-    elif size.lower() == "l":
-        output = file_path.gen_output_fp("_LG.jpeg")
-        log = f"{output.parent}/jpeg_lg.log"
-        asset_type = AssetType.KEY_IMAGE
-        cmd = [
-            DMConfig.gm_loc,
-            "convert",
-            "-size",
-            LARGE_2D,
-            cur.as_posix(),
-            "-resize",
-            LARGE_2D,
-            # "-sharpen",
-            # "2",
-            "-quality",
-            "80",
-            output.as_posix(),
-        ]
+
+    if not verbose:
+        cmd.append("-quiet")
+
+    if use_float:
+        cmd.extend(["-float", "1"])
     else:
-        msg = "Jpeg scaler must have size argument set to 'l' or 's'"
-        raise RuntimeError(msg)
-    FilePath.run(cmd, log)
-    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=output)
-    asset_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
-    return asset_elt
+        cmd.extend(["-meansd", "140,50"])
+
+    cmd.extend([
+        input_fn.as_posix(),
+        output_fn.as_posix(),
+        ])
+
+    FilePath.run(cmd, str(log_fn), env={"IMOD_OUTPUT_FORMAT": "TIF"} )
+
+
+def _write_image_as_size(img:sitk.Image, size:(int,int), output_path:Path, compression_level:int) -> None:
+    """
+    Resize the image to the specified size and write it to the output file path with the specified compression level.
+    If the image is smaller than the specified size, it will not be resized.
+
+    :param img: A SimpleITK image object.
+    :param size:
+    :param output_path: Path the output filename, the file extension should be .jpeg
+    :param compression_level: The compression level for the output image. 0-100, 0 is no compression, 100 is maximum compression.
+    :return:
+    """
+    if any(img_sz > small_sz for img_sz, small_sz in zip(img.GetSize(), size)):
+        utils.log(msg=f"Resizing {img.GetSize()}->{size} for {output_path}...")
+        img = sitkutils.resize(img, size, interpolator=sitk.sitkLinear, fill=False, use_nearest_extrapolator=True)
+    else:
+        utils.log(msg=f"Writing {output_path}...")
+
+    sitk.WriteImage(img, output_path, useCompression=True, compressionLevel=compression_level)
+
+
+@task(
+    name="Convert EM images to tiff",
+    on_failure=[utils.collect_exception_task_hook],
+)
+def convert_em_to_tiff(file_path: FilePath) -> Path:
+    """
+    Performs the conversion of EM images to tiff format, adjusting the dynamic range and reducing the size of the image.
+
+    Three types of files are detected to need conversion:
+    - mrc files are converted to tiff using newstack
+    - 16-bit tiff files are converted to 8 bit tiff
+    - dm3/dm4 files are converted to mrc using dm2mrc, then to tiff using newstack
+
+    EM images are broadly characterized by a low signal-to-noise ratio and a high dynamic range, often with potential
+     outliers. Using newstack with shrink and antialiasing kernels is required to reduce the noise to produce a
+     high-quality tiff image. Additionally, to adjust the dynamic range, the meansd, or float options are used.
+
+
+    :param file_path:
+    :return:
+    """
+
+    out_fp = file_path.gen_output_fp(output_ext="_as_tiff.tiff")
+    log_fp = file_path.gen_output_fp(output_ext="_as_tiff.log")
+
+    if file_path.fp_in.suffix.strip(".").lower() in MRCS_EXT:
+
+        utils.log(f"{file_path.fp_in.as_posix()} is a mrc file, will convert to {out_fp}.")
+
+        _newstack_mrc_to_tiff(file_path.fp_in, out_fp, log_fp, use_float=False)
+
+    elif (
+            file_path.fp_in.suffix.strip(".").lower() in TIFS_EXT
+            and is_16bit(file_path.fp_in)
+    ):
+
+        utils.log(f"{file_path.fp_in} is a 16 bit tiff, converting to {out_fp}")
+
+        _newstack_mrc_to_tiff(file_path.fp_in, out_fp, log_fp, use_float=True)
+
+    elif file_path.fp_in.suffix.strip(".").lower() in DMS_EXT:
+        dm_as_mrc = file_path.gen_output_fp(output_ext="dm_as_mrc.mrc")
+        utils.log(msg=f"{file_path.fp_in} is a dm file, will convert to {dm_as_mrc}.")
+
+        mrc_log_fp = file_path.gen_output_fp(output_ext="_dm2mrc.log")
+
+        cmd = [DMConfig.dm2mrc_loc, file_path.fp_in.as_posix(), dm_as_mrc.as_posix()]
+        FilePath.run(cmd=cmd, log_file=str(mrc_log_fp))
+
+        utils.log(f"{dm_as_mrc} convert to {out_fp}.")
+
+        _newstack_mrc_to_tiff(dm_as_mrc, out_fp, log_fp, use_float=True)
+    else:
+        return file_path.fp_in
+
+    return out_fp
+
+
+@task(
+    name="Generate key and thumbnail jpeg images ",
+    on_failure=[utils.collect_exception_task_hook],
+)
+def generate_jpegs(file_path: FilePath) -> dict:
+    """
+    Generates small and large jpegs from the input file and produce an asset dictionary.
+
+    The input image is converted to tiff for certain EM image, if needed.
+
+    SimpleITK is used to the original input or the converted tiff image to generate the jpegs.
+
+    """
+
+    current_image_path = convert_em_to_tiff.fn(file_path)
+
+    if not current_image_path.exists():
+        raise RuntimeError(f"File {current_image_path} does not exist. Cannot convert to jpeg.")
+
+    utils.log(msg=f"Reading {current_image_path}...")
+    img = sitk.ReadImage(current_image_path)
+
+    # Produce a small thumbnail
+    output_small = file_path.gen_output_fp(output_ext="_SM.jpeg")
+    _write_image_as_size(img, (SMALL_DIM, )*2, output_small, 70)
+
+    asset_type = AssetType.THUMBNAIL
+    asset_small_fp = file_path.copy_to_assets_dir(fp_to_cp=output_small)
+    asset_small_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_small_fp)
+
+    # Produce a large key image
+    output_large = file_path.gen_output_fp(output_ext="_LG.jpeg")
+    _write_image_as_size(img, (LARGE_DIM, )*2, output_large, 80)
+
+    asset_type = AssetType.KEY_IMAGE
+    asset_large_fp = file_path.copy_to_assets_dir(fp_to_cp=output_large)
+    asset_large_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_large_fp)
+
+    return utils.gen_prim_fps.fn(fp_in=file_path, additional_assets=(asset_small_elt, asset_large_elt))
 
 
 @flow(
@@ -256,15 +232,11 @@ def dm_flow(
     x_no_api: bool = False,
     x_keep_workdir: bool = False,
 ):
-    # run_config=LocalRun(labels=[utils.get_environment()]),
     """
-    -list all inputs (ie files of relevant input type)
-    -create output dir for each.
-    -convert all 16bit tiffs to 8 bit, write to Assets dir.
-    -convert all dm3/dm4 files to mrc, write to Assets dir.
-    -convert <name>dm_as_mrc.mrc files to jpegs.
-    -convert all mrcs in Projects dir to jpegs.
-    -convert all tiffs/pngs/jpegs to correct size for thumbs, "sm" and "lg"
+    - List all inputs (files of a relevant input type)
+    - Create output directories
+    - Generate thumbnails and key images
+    - Post callback to the API with the access
     """
     utils.notify_api_running(x_no_api, token, callback_url)
 
@@ -283,37 +255,10 @@ def dm_flow(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
     )
 
-    # TODO move the three conversion block into if-else based on filetypes
-    tiff_results = convert_if_int16_tiff.map(file_path=fps)
-
-    # mrc is intermed format, to jpeg conversion
-    dm_to_mrc = convert_dms_to_mrc.map(file_path=fps)
-    mrc_results = convert_dm_mrc_to_jpeg.map(dm_to_mrc)
-
-    mrc_tiff_results = convert_2d_mrc_to_tiff.map(
-        file_path=fps, wait_for=[allow_failure(mrc_results)]
-    )
-
-    # Finally generate all valid suffixed results
-    keyimg_assets = scale_jpegs.map(
-        fps,
-        size=unmapped("l"),
-        wait_for=[allow_failure(tiff_results), allow_failure(mrc_tiff_results)],
-    )
-    thumb_assets = scale_jpegs.map(
-        fps,
-        size=unmapped("s"),
-        wait_for=[allow_failure(tiff_results), allow_failure(mrc_tiff_results)],
-    )
-
-    prim_fps = utils.gen_prim_fps.map(fp_in=fps)
-    callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
-    callback_with_keyimgs = utils.add_asset.map(
-        prim_fp=callback_with_thumbs, asset=keyimg_assets
-    )
+    prim_fps = generate_jpegs.map(fps)
 
     callback_result = list()
-    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_keyimgs)):
+    for idx, (fp, cb) in enumerate(zip(fps.result(), prim_fps)):
         state = cb.wait()
         if state.is_completed():
             callback_result.append(cb.result())
