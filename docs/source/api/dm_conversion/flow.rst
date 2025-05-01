@@ -5,9 +5,11 @@ DM conversion flow
    :members:
    :undoc-members:
    :show-inheritance:
+    :ignore-module-all:
 
-   .. autofunction:: convert_dms_to_mrc(file_path: FilePath) -> None
-   .. autofunction:: convert_if_int16_tiff(file_path: FilePath) -> None
-   .. autofunction:: convert_2d_mrc_to_tiff(file_path: FilePath) -> None
-   .. autofunction:: convert_dm_mrc_to_jpeg(file_path: FilePath) -> None
-   .. autofunction:: scale_jpegs(file_path: FilePath, size: str) -> Optional[dict]
+   .. autofunction:: dm_flow
+   .. autofunction:: _calculate_shrink_factor
+   .. autofunction:: _newstack_mrc_to_tiff
+   .. autofunction:: _write_image_as_size
+   .. autofunction:: convert_em_to_tiff
+   .. autofunction:: generate_jpegs
