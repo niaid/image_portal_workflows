@@ -1,17 +1,21 @@
 ******
-2D Electron Microscopy Workflow (formally internally DM conversion workflow)
+Small 2D Workflow (EM Microscopy)
 ******
 
 Overview:
 
-This workflow supports generating thumbnails and key images form input images. Certain EM file formats and contents
+This workflow generates a thumbnail and  a key images for each input image in a directory. Specific EM file formats
 use enhanced resampling and filtering techniques to reduce noise while adjusting the dynamic range of the images. This
 workflow originally was designed to handle DM3 files from TEM or STEM microscopes but has been extended to handle
-other 2D EM image file formats, including MRC and TIFF files.
+other 2D image file formats, including MRC, TIFF files and color figures.
 
 Outputs:
  1. A thumbnail image for each input image.
+   - An JPEG image with a maximum size of 300 pixels in both dimension.
+   - The aspect ratio is preserved and may be shortened to fit within the maximum size without padding.
+   - The image may be 8-bit RGB(A) or 8-bit gray-scale.
  2. A key image for each input image.
+   - Similar to the thumbnail image but with a maximum size of 1024 pixels in both dimension.
 
 .. list-table:: Supported Extensions for File Formats
    :header-rows: 1
@@ -20,10 +24,10 @@ Outputs:
      - Description
      - Extensions
    * - DM3
-     -  image format used by Digital Micrograph
+     - image format used by Digital Micrograph
      - dm3
    * - DM4
-     - image format used by Digital Micrograph, possibly limited to 64-bit integers
+     - image format used by Digital Micrograph, maybe limited to 64-bit integers
      - dm4
    * - MRC
      - image format used by the IMOD tool suite
@@ -52,7 +56,7 @@ processing tasks.
      - Processing Information
    * - JPEG, PNG, TIFF
      - 8-bit RGB (palette) or RGBA
-     - Images may be figures or rendered EM image of wells?.
+     - Example images include figure, TEM grid image or other illustrative images rendered into a color image.
      - Images should directly resized without intensity scaling or advanced filtering.
    * - TIFF, PNG, JPEG
      - 8-bit gray-scale
@@ -61,8 +65,7 @@ processing tasks.
    * - TIFF
      - 16-bit (signed or unsigned) gray-scale
      - EM images with a high dynamic range.
-     - Convert to 8-bit
-       - Use IMOD's `newstack`_ tool to resample, filter, and scale intensities to 8-bit.
+     - Use IMOD's `newstack`_ tool to resample, filter, and scale intensities to 8-bit.
    * - DM4 or DM3 Images
      - 32-bit float (after MRC conversion)
      - Minimally processed EM images with a high dynamic range.
@@ -74,51 +77,31 @@ processing tasks.
      - Convert to 8-bit TIFF via `newstack`_ command to resample, filter, and scale intensities to 8-bit.
 
 
-Format Conversion
-+++++++++++++++++
+EM Image Conversion
++++++++++++++++++++
 
-The first step is to convert the input to a format compatible with the IMOD tool suite (e.g., MRC or TIFF).
+High dynamic range EM images need to be rendered into an image that is suitable for display. The EM images are
+resampled, filtered and resized to reduce the dynamic range and improve the signal-to-noise ratio.
 
-Inputs: DM3, DM4, MRC, or TIFF files
-Outputs: MRC or TIFF files
+
+Inputs: DM3, DM4, MRC, or TIFF (16-bit) file
+Output: TIFF file
 Steps:
-1. Use the `dm2mrc`_ tool to convert DM3 or DM4 files to MRC format.
-2. For MRC files, no additional conversion is required.
-3. For 16-bit TIFF files, convert them to 8-bit TIFF using the `newstack`_ tool.
+1. If the input image is a DM4 or DM3 then the `dm2mrc`_ tool converts the input to an MRC format.
+   process also converts the pixel type to 32-bit float.
+2. After computing the input image size, the `newstack`_ tool is used to resample and filter the image to reduce the
+   dynamic range and improve the signal-to-noise ratio. The `newstack`_ tool also converts the pixel type to 8-bit
+   unsigned integer.
 
-Resampling
-++++++++++
-
-The EM images can be broadly characterized as having a low signal-to-noise ratio and a high dynamic range with potential
-outliers. The resampling or resizing of these images requires advanced algorithms and options that are not available
-with conventional image processing tools. Through proper resampling and filtering, the images' signal-to-noise ratio
-can be improved, and the dynamic range can be reduced for better visualization.
-
-The IMOD tool `newstack`_ is used to resample the images.
-
-Inputs: MRC or TIFF files
-Outputs: TIFF files as 8-bit images
-Steps:
-1. Determine the size or dimensions of the input images.
-2. Compute the factor to reduce the size of the input image to the desired key image size.
-3. Use the `newstack`_ tool to filter and resize/shrink the input image to approximately the desired size.
 
 .. code-block:: bash
+ newstack -format TIFF -shrink $shrink_factor -antialias 6 -mode 0 [-float 1|-meansd 140,50] input.tiff output.tiff
 
- newstack -format TIFF -shrink $shrink_factor -antialias 6 -mode 0 -float 1 input.tiff output.tiff
-
-Conditionals:
-  - If the input image size is less than the desired key image size, then `-shrink` and `-antialias` options are not
-    used.
-  - If the input pixel type is 8-bit, then the `float` option is not used.
-
-The above command converts any supported scalar pixel input type to an 8-bit image with a dynamic range reasonable for
-visualization. The `float` option is used so the resampled pixel intensities are normalized to fill the output range.
 
 Output Generation
 +++++++++++++++++
 
-The final step is to generate the thumbnail and key images using `SimpleITK`. The compression and filtering options are
+The final step is to generate the thumbnail and key image using `SimpleITK`. The compression and filtering options are
 tuned for web display.
 
 Inputs: TIFF files
@@ -132,7 +115,7 @@ Steps:
  sitk.WriteImage(img, output_path, useCompression=True, compressionLevel=compression_level)
 
 Note: The resizing operation ensures that the maximum dimension of the output matches the desired size, while preserving
-the input aspect ratio. The compression level is tunable and varies between thumbnails and key images.
+the input aspect ratio. If the input image is smaller than the desired size, it will not be resized.
 
 .. _IMOD: https://bio3d.colorado.edu/imod/
 .. _dm2mrc: https://bio3d.colorado.edu/imod/doc/man/dm2mrc.html
