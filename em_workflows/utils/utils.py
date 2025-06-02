@@ -131,9 +131,10 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
 
 
 @task
-def gen_prim_fps(fp_in: FilePath) -> Dict:
+def gen_prim_fps(fp_in: FilePath, additional_assets:(dict, ...)=None) -> Dict:
     """
     :param fp_in: FilePath of current input
+    :param additional_assets: A list of additional assets to be added to the primary element
     :outputs_with_exceptions this func is called with allow_failure - important
     :return: a Dict to hold the 'assets'
 
@@ -142,6 +143,11 @@ def gen_prim_fps(fp_in: FilePath) -> Dict:
     """
     base_elts = fp_in.gen_prim_fp_elt()
     log(f"Generated fp elt {base_elts}")
+
+    if additional_assets:
+        for asset in additional_assets:
+            add_asset.fn(base_elts, asset)
+
     return base_elts
 
 
