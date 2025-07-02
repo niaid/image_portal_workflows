@@ -58,6 +58,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#spatialomics-workflow">Spatialomics Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#small-2d-workflow-em-microscopy">Small 2D Workflow (EM Microscopy)</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Submitting Jobs</a></li>
@@ -279,6 +280,75 @@ Different outputs from different slides are split across different dirs.
 The pipeline will not parse out or otherwise link slides together in any way.
 Similarly there is no linking from from heatmaps to any specific slide.</p>
 <p>Also, other directories can exist in this directory, which will be ignored.</p>
+</section>
+<section id="small-2d-workflow-em-microscopy">
+<h2>Small 2D Workflow (EM Microscopy)<a class="headerlink" href="#small-2d-workflow-em-microscopy" title="Link to this heading"></a></h2>
+<p>Overview:</p>
+<p>This workflow generates a thumbnail and a key images for each input image in a directory. Specific EM file formats
+use enhanced resampling and filtering techniques to reduce noise while adjusting the dynamic range of the images. This
+workflow originally was designed to handle DM3 files from TEM or STEM microscopes but has been extended to handle
+other 2D image file formats, including MRC, TIFF files and color figures.</p>
+<dl>
+<dt>Outputs:</dt><dd><ol class="arabic simple">
+<li><p>A thumbnail image for each input image.</p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p>An JPEG image with a maximum size of 300 pixels in both dimension.</p></li>
+<li><p>The aspect ratio is preserved and may be shortened to fit within the maximum size without padding.</p></li>
+<li><p>The image may be 8-bit RGB(A) or 8-bit gray-scale.</p></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="2">
+<li><p>A key image for each input image.</p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p>Similar to the thumbnail image but with a maximum size of 1024 pixels in both dimension.</p></li>
+</ul>
+</div></blockquote>
+</dd>
+</dl>
+<p>The toolbox of <a class="reference external" href="https://bio3d.colorado.edu/imod/">IMOD</a> is used primarily to process the EM images, along with <a class="reference external" href="https://simpleitk.readthedocs.io/">SimpleITK</a> for additional image
+processing tasks.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Summary of Input Image Types</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Format Type</p></th>
+<th class="head"><p>Pixel Type</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Processing Information</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>JPEG, PNG, TIFF</p></td>
+<td><p>8-bit RGB (palette) or RGBA</p></td>
+<td><p>Example images include figure, TEM grid image or other illustrative images rendered into a color image.</p></td>
+<td><p>Images should directly resized without intensity scaling or advanced filtering.</p></td>
+</tr>
+<tr class="row-odd"><td><p>TIFF, PNG, JPEG</p></td>
+<td><p>8-bit gray-scale</p></td>
+<td><p>Images may be rendered EM images with captions or annotations.</p></td>
+<td><p>Images should directly resized without intensity scaling or advanced filtering.</p></td>
+</tr>
+<tr class="row-even"><td><p>TIFF</p></td>
+<td><p>16-bit (signed or unsigned) gray-scale</p></td>
+<td><p>EM images with a high dynamic range.</p></td>
+<td><p>Use IMOD’s <a class="reference external" href="https://bio3d.colorado.edu/doc/man/newstack.html">newstack</a> tool to resample, filter, and scale intensities to 8-bit.</p></td>
+</tr>
+<tr class="row-odd"><td><p>DM4 or DM3 Images</p></td>
+<td><p>32-bit float (after MRC conversion)</p></td>
+<td><p>Minimally processed EM images with a high dynamic range.</p></td>
+<td><p>Convert to MRC via <a class="reference external" href="https://bio3d.colorado.edu/imod/doc/man/dm2mrc.html">dm2mrc</a> command to 32-bit float MRC files, then use newstack to resample, filter, and scale
+intensities to 8-bit TIFF.</p></td>
+</tr>
+<tr class="row-even"><td><p>MRC (2D only)</p></td>
+<td><p>32-bit float ( no other current sample inputs )</p></td>
+<td><p>Expected EM images with likely high dynamic range.</p></td>
+<td><p>Convert to 8-bit TIFF via <a class="reference external" href="https://bio3d.colorado.edu/doc/man/newstack.html">newstack</a> command to resample, filter, and scale intensities to 8-bit.</p></td>
+</tr>
+</tbody>
+</table>
 </section>
 </section>
 
