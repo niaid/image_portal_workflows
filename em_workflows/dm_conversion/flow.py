@@ -115,9 +115,9 @@ def convert_em_to_tiff(file_path: FilePath) -> Path:
     Performs the conversion of EM images to tiff format, adjusting the dynamic range and reducing the size of the image.
 
     Three types of files are detected to need conversion:
-    - mrc files are converted to tiff using newstack
-    - 16-bit tiff files are converted to 8 bit tiff
-    - dm3/dm4 files are converted to mrc using dm2mrc, then to tiff using newstack
+      - mrc files are converted to tiff using newstack
+      - 16-bit tiff files are converted to 8-bit tiff
+      - dm3/dm4 files are converted to mrc using dm2mrc, then to tiff using newstack
 
     EM images are broadly characterized by a low signal-to-noise ratio and a high dynamic range, often with potential
      outliers. Using newstack with shrink and antialiasing kernels is required to reduce the noise to produce a
