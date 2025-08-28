@@ -262,16 +262,13 @@ async def czi_flow(
 
     callback_result = list()
     for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_zarrs)):
-        state = cb.wait()
-        if state.is_completed():
-            callback_result.append(cb.result())
-        else:
-            path = f"{state.state_details.flow_run_id}__{idx}"
-            try:
-                message = CZIConfig.local_storage.read_path(path)
-                callback_result.append(fp.gen_prim_fp_elt(message.decode()))
-            except ValueError:
-                callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
+        try:
+            # In Prefect v3, we can directly get the result without checking state
+            result = cb.result()
+            callback_result.append(result)
+        except Exception as e:
+            # If there's an error getting the result, use fallback
+            callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}"))
 
     # we have to filter out incomplete mapped runs before this reduce step
     callback_result = find_thumb_idx.submit(callback=callback_result)
@@ -282,3 +279,5 @@ async def czi_flow(
         callback_url=callback_url,
         files_elts=callback_result,
     )
+    
+    return callback_result

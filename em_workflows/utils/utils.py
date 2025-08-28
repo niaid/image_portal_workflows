@@ -4,7 +4,7 @@ import requests
 import os
 import shutil
 import json
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
@@ -417,7 +417,7 @@ def copy_workdir_logs(file_path: FilePath) -> Path:
 
 
 @task
-def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
+def list_files(input_dir: Path, exts: List[str], single_file: Optional[str] = None) -> List[Path]:
     """
     :param input_dir: libpath.Path of the input directory
     :param exts: List of str extensions to be checked
@@ -625,9 +625,6 @@ def get_input_dir(share_name: str, input_dir: str) -> Path:
 @task(
     # persisting to retrieve again in hooks
     persist_result=True,
-    result_storage=Config.local_storage,
-    result_serializer=Config.pickle_serializer,
-    result_storage_key="{flow_run.id}__gen_fps",
 )
 def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
     """
