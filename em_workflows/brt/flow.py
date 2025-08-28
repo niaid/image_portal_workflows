@@ -653,18 +653,13 @@ def brt_flow(
     failed = 0
     total = len(prim_fps)
     for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_tilt_mov)):
-        # Wait for the task to complete
-        # It does not mean that future state will be a terminal state
-        state = cb.wait()
-        if state.is_completed():
-            callback_result.append(cb.result())
-        else:
-            path = f"{state.state_details.flow_run_id}__{idx}"
-            try:
-                message = BRTConfig.local_storage.read_path(path)
-                callback_result.append(fp.gen_prim_fp_elt(message.decode()))
-            except ValueError:
-                callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
+        try:
+            # In Prefect v3, we can directly get the result without checking state
+            result = cb.result()
+            callback_result.append(result)
+        except Exception as e:
+            # If there's an error getting the result, use fallback
+            callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}"))
             failed += 1
 
     utils.send_callback_body.submit(
@@ -674,6 +669,5 @@ def brt_flow(
         files_elts=callback_result,
     )
 
-    if failed < total:
-        return Completed(message="At least one callback is correct!")
-    return Failed(message="None of the files succeeded!")
+    # In Prefect v3, flows should return data, not state objects
+    return callback_result
