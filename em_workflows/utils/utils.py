@@ -131,7 +131,7 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
 
 
 @task
-def gen_prim_fps(fp_in: FilePath, additional_assets:(dict, ...)=None) -> Dict:
+def gen_prim_fps(fp_in: FilePath, additional_assets: (dict, ...) = None) -> Dict:
     """
     :param fp_in: FilePath of current input
     :param additional_assets: A list of additional assets to be added to the primary element
@@ -219,6 +219,33 @@ def cleanup_workdir(fps: List[FilePath], x_keep_workdir: bool):
         for fp in fps:
             log(f"Trying to remove {fp.working_dir}")
             fp.rm_workdir()
+
+
+@task(name="Final Cleanup", retries=3, retry_delay_seconds=10)
+def final_cleanup_task(fps: List[FilePath], x_keep_workdir: bool = False):
+    """
+    Final cleanup task that always runs regardless of upstream failures.
+    Combines workdir log copying and cleanup operations.
+
+    This task should be called with allow_failure() to ensure it always runs
+    even when upstream tasks fail.
+    """
+    log("Starting final cleanup operations...")
+
+    # Copy workdir logs to assets
+    for fp in fps:
+        try:
+            copy_workdir_logs.fn(file_path=fp)
+            log(f"Copied workdir logs for {fp.base}")
+        except Exception as e:
+            log(f"Failed to copy workdir logs for {fp.base}: {e}")
+
+    # Cleanup working directories
+    try:
+        cleanup_workdir.fn(fps, x_keep_workdir)
+        log("Cleanup completed successfully")
+    except Exception as e:
+        log(f"Cleanup failed: {e}")
 
 
 def update_adoc(
@@ -417,7 +444,9 @@ def copy_workdir_logs(file_path: FilePath) -> Path:
 
 
 @task
-def list_files(input_dir: Path, exts: List[str], single_file: Optional[str] = None) -> List[Path]:
+def list_files(
+    input_dir: Path, exts: List[str], single_file: Optional[str] = None
+) -> List[Path]:
     """
     :param input_dir: libpath.Path of the input directory
     :param exts: List of str extensions to be checked
@@ -539,7 +568,10 @@ def notify_api_running(
 #     return ns
 
 
-def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
+import asyncio
+
+
+async def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State) -> None:
     """
     https://docs.prefect.io/core/concepts/states.html#overview.
     https://docs.prefect.io/core/concepts/notifications.html#state-handlers
@@ -553,33 +585,39 @@ def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
 
     if x_no_api:
         log(f"x_no_api flag used\nCompletion status: {status}")
-        return
+        return None
 
-    hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
-    hooks_log.write(f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n")
+    # Use aiohttp for async HTTP requests
+    import aiohttp
 
-    headers = {
-        "Authorization": "Bearer " + token,
-        "Content-Type": "application/json",
-    }
-    response = requests.post(
-        callback_url, headers=headers, data=json.dumps({"status": status})
-    )
-    hooks_log.write(f"Pipeline status is:{status}\n")
-    hooks_log.write(f"{response.ok=}\n")
-    hooks_log.write(f"{response.status_code=}\n")
-    hooks_log.write(f"{response.text=}\n")
-    hooks_log.write(f"{response.headers=}\n")
+    async with aiohttp.ClientSession() as session:
+        headers = {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json",
+        }
+        async with session.post(
+            callback_url, headers=headers, json={"status": status}
+        ) as response:
+            hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
+            hooks_log.write(
+                f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n"
+            )
+            hooks_log.write(f"Pipeline status is:{status}\n")
+            hooks_log.write(f"{response.status=}\n")
+            hooks_log.write(f"{response.reason=}\n")
+            hooks_log.write(f"{response.headers=}\n")
+            text = await response.text()
+            hooks_log.write(f"{text=}\n")
 
-    if not response.ok:
-        msg = f"Bad response code on callback: {response}"
-        log(msg=msg)
-        hooks_log.write(f"{msg}\n")
-        hooks_log.close()
-        raise RuntimeError(msg)
+            if response.status < 200 or response.status >= 300:
+                msg = f"Bad response code on callback: {response.status}"
+                log(msg=msg)
+                hooks_log.write(f"{msg}\n")
+                hooks_log.close()
+                raise RuntimeError(msg)
 
-    hooks_log.close()
-    return response.ok
+            hooks_log.close()
+    return None
 
 
 def get_environment() -> str:
@@ -646,8 +684,8 @@ def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePa
 def send_callback_body(
     x_no_api: bool,
     files_elts: List[Dict],
-    token: str = None,
-    callback_url: str = None,
+    token: Optional[str] = None,
+    callback_url: Optional[str] = None,
 ) -> None:
     """
     Upon completion of file conversion a callback is made to the calling
@@ -702,8 +740,8 @@ def callback_with_cleanup(
     fps: List[FilePath],
     callback_result: List,
     x_no_api: bool = False,
-    callback_url: str = None,
-    token: str = None,
+    callback_url: Optional[str] = None,
+    token: Optional[str] = None,
     x_keep_workdir: bool = False,
 ):
     cp_wd_logs_to_assets = copy_workdir_logs.map(fps, wait_for=[callback_result])

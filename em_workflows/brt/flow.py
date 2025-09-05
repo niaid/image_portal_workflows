@@ -520,18 +520,9 @@ def get_callback_result(callback_data: list) -> list:
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
     task_runner=BRTConfig.HIGH_SLURM_EXECUTOR,
-    on_completion=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
-    on_failure=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
-    on_crashed=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
+    on_completion=[utils.notify_api_completion],
+    on_failure=[utils.notify_api_completion],
+    on_crashed=[utils.notify_api_completion],
 )
 def brt_flow(
     # This block of params map are for adoc file specfication.
@@ -557,6 +548,7 @@ def brt_flow(
     x_keep_workdir: bool = False,
     adoc_template: str = "plastic_brt",
 ):
+    # Notify API that flow is running
     utils.notify_api_running(x_no_api, token, callback_url)
 
     # a single input_dir will have n tomograms
@@ -565,11 +557,15 @@ def brt_flow(
     )
     # input_dir_fp = utils.get_input_dir(input_dir=input_dir)
     input_fps = utils.list_files.submit(
-        input_dir=input_dir_fp, exts=["MRC", "ST", "mrc", "st"], single_file=x_file_name
+        input_dir=input_dir_fp.result(),
+        exts=["MRC", "ST", "mrc", "st"],
+        single_file=x_file_name,
     )
 
     fps = utils.gen_fps.submit(
-        share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
+        share_name=file_share,
+        input_dir=input_dir_fp.result(),
+        fps_in=input_fps.result(),
     )
     brt_outputs = utils.run_brt.map(
         file_path=fps,
@@ -627,36 +623,37 @@ def brt_flow(
     # repeatedly pass asset in to add_asset func to add asset in question.
     # allow_failure in gen_fps because we want to include EVERY fp, not just OK ones
     # prim_fps = utils.gen_prim_fps.map(fp_in=fps, wait_for=[allow_failure(brt_outputs)])
-    prim_fps = utils.gen_prim_fps.map(fp_in=fps)
-    callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
+    prim_fps = utils.gen_prim_fps.map(fp_in=fps.result())
+    callback_with_thumbs = utils.add_asset.map(
+        prim_fp=prim_fps, asset=thumb_assets.result()
+    )
     callback_with_keyimgs = utils.add_asset.map(
-        prim_fp=callback_with_thumbs, asset=keyimg_assets
+        prim_fp=callback_with_thumbs, asset=keyimg_assets.result()
     )
     callback_with_pyramids = utils.add_asset.map(
-        prim_fp=callback_with_keyimgs, asset=pyramid_assets
+        prim_fp=callback_with_keyimgs, asset=pyramid_assets.result()
     )
     callback_with_ave_vol = utils.add_asset.map(
-        prim_fp=callback_with_pyramids, asset=averagedVolume_assets
+        prim_fp=callback_with_pyramids, asset=averagedVolume_assets.result()
     )
     callback_with_bin_vol = utils.add_asset.map(
-        prim_fp=callback_with_ave_vol, asset=bin_vol_assets
+        prim_fp=callback_with_ave_vol, asset=bin_vol_assets.result()
     )
     callback_with_recon_mov = utils.add_asset.map(
-        prim_fp=callback_with_bin_vol, asset=recon_movie_assets
+        prim_fp=callback_with_bin_vol, asset=recon_movie_assets.result()
     )
     callback_with_tilt_mov = utils.add_asset.map(
-        prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
+        prim_fp=callback_with_recon_mov, asset=tilt_movie_assets.result()
     )
 
     # Ref: https://github.com/PrefectHQ/prefect/blob/98d33187ecce032defb8ec7a263de32564e7f7f6/src/prefect/futures.py#L43
     callback_result = list()
     failed = 0
     total = len(prim_fps)
-    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_tilt_mov)):
+    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_tilt_mov.result())):
         try:
             # In Prefect v3, we can directly get the result without checking state
-            result = cb.result()
-            callback_result.append(result)
+            callback_result.append(cb)
         except Exception as e:
             # If there's an error getting the result, use fallback
             callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}"))

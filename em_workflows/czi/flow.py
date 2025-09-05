@@ -216,15 +216,12 @@ def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
     task_runner=CZIConfig.SLURM_EXECUTOR,
     on_completion=[
         utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
     ],
     on_failure=[
         utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
     ],
     on_crashed=[
         utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
     ],
 )
 async def czi_flow(
@@ -238,46 +235,46 @@ async def czi_flow(
 ):
     utils.notify_api_running(x_no_api, token, callback_url)
 
-    input_dir_fp = utils.get_input_dir.submit(
+    input_dir_fp_future = utils.get_input_dir.submit(
         share_name=file_share, input_dir=input_dir
     )
+    input_dir_fp = input_dir_fp_future.result()
 
-    input_fps = utils.list_files.submit(
+    input_fps_future = utils.list_files.submit(
         input_dir_fp,
         VALID_CZI_INPUTS,
         single_file=x_file_name,
     )
-    fps = utils.gen_fps.submit(
+    input_fps = input_fps_future.result()
+
+    fps_future = utils.gen_fps.submit(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
     )
-    fp_results = fps.result()
+    fps = fps_future.result()
+
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     imageSets = await asyncio.gather(
-        *[generate_czi_imageset(file_path=fp) for fp in fp_results]
+        *[generate_czi_imageset(file_path=fp) for fp in fps]
     )
     callback_with_zarrs = utils.add_imageSet.map(prim_fp=prim_fps, imageSet=imageSets)
     callback_with_zarrs = update_file_metadata.map(
         file_path=fps, callback_with_zarr=callback_with_zarrs
     )
 
-    callback_result = list()
-    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_zarrs)):
-        try:
-            # In Prefect v3, we can directly get the result without checking state
-            result = cb.result()
-            callback_result.append(result)
-        except Exception as e:
-            # If there's an error getting the result, use fallback
-            callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}"))
+    callback_with_idx = find_thumb_idx.submit(callback=callback_with_zarrs)
+    callback_with_idx_result = callback_with_idx.result()
 
-    # we have to filter out incomplete mapped runs before this reduce step
-    callback_result = find_thumb_idx.submit(callback=callback_result)
-
-    utils.send_callback_body.submit(
+    send_callback_task = utils.send_callback_body.submit(
         x_no_api=x_no_api,
+        files_elts=callback_with_idx_result,
         token=token,
         callback_url=callback_url,
-        files_elts=callback_result,
+        wait_for=[utils.allow_failure(callback_with_zarrs)],
     )
-    
-    return callback_result
+
+    # Prefect v3: wait_for is a valid keyword for .submit()
+    cleanup_task = utils.final_cleanup_task.submit(
+        fps, x_keep_workdir, wait_for=[utils.allow_failure(send_callback_task)]
+    )
+
+    return callback_with_idx_result

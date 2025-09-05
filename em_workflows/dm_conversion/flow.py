@@ -25,7 +25,9 @@ from em_workflows.dm_conversion.constants import (
 )
 
 
-def _calculate_shrink_factor(filepath: Path, enforce_2d: bool = True, target_size: int = LARGE_DIM) -> float:
+def _calculate_shrink_factor(
+    filepath: Path, enforce_2d: bool = True, target_size: int = LARGE_DIM
+) -> float:
     """
     Calculate the shrink factor for the newstack command to produce an image of the target size on the largest dimension.
     """
@@ -41,7 +43,9 @@ def _calculate_shrink_factor(filepath: Path, enforce_2d: bool = True, target_siz
     return max_xy / target_size
 
 
-def _newstack_mrc_to_tiff(input_fn: Path, output_fn: Path, log_fn: Path, use_float=True, verbose=False) -> None:
+def _newstack_mrc_to_tiff(
+    input_fn: Path, output_fn: Path, log_fn: Path, use_float=True, verbose=False
+) -> None:
     """
     Convert mrc files to tiff using newstack while reducing the size of the image, and performing antialiasing suitable
     for EM images.
@@ -68,7 +72,7 @@ def _newstack_mrc_to_tiff(input_fn: Path, output_fn: Path, log_fn: Path, use_flo
         "6",
         "-mode",
         "0",
-        ]
+    ]
 
     if not verbose:
         cmd.append("-quiet")
@@ -78,15 +82,19 @@ def _newstack_mrc_to_tiff(input_fn: Path, output_fn: Path, log_fn: Path, use_flo
     else:
         cmd.extend(["-meansd", "140,50"])
 
-    cmd.extend([
-        input_fn.as_posix(),
-        output_fn.as_posix(),
-        ])
+    cmd.extend(
+        [
+            input_fn.as_posix(),
+            output_fn.as_posix(),
+        ]
+    )
 
-    FilePath.run(cmd, str(log_fn), env={"IMOD_OUTPUT_FORMAT": "TIF"} )
+    FilePath.run(cmd, str(log_fn), env={"IMOD_OUTPUT_FORMAT": "TIF"})
 
 
-def _write_image_as_size(img:sitk.Image, size:(int,int), output_path:Path, compression_level:int) -> None:
+def _write_image_as_size(
+    img: sitk.Image, size: tuple[int, int], output_path: Path, compression_level: int
+) -> None:
     """
     Resize the image to the specified size and write it to the output file path with the specified compression level.
     If the image is smaller than the specified size, it will not be resized.
@@ -99,11 +107,19 @@ def _write_image_as_size(img:sitk.Image, size:(int,int), output_path:Path, compr
     """
     if any(img_sz > small_sz for img_sz, small_sz in zip(img.GetSize(), size)):
         utils.log(msg=f"Resizing {img.GetSize()}->{size} for {output_path}...")
-        img = sitkutils.resize(img, size, interpolator=sitk.sitkLinear, fill=False, use_nearest_extrapolator=True)
+        img = sitkutils.resize(
+            img,
+            size,
+            interpolator=sitk.sitkLinear,
+            fill=False,
+            use_nearest_extrapolator=True,
+        )
     else:
         utils.log(msg=f"Writing {output_path}...")
 
-    sitk.WriteImage(img, output_path, useCompression=True, compressionLevel=compression_level)
+    sitk.WriteImage(
+        img, output_path, useCompression=True, compressionLevel=compression_level
+    )
 
 
 @task(
@@ -133,13 +149,14 @@ def convert_em_to_tiff(file_path: FilePath) -> Path:
 
     if file_path.fp_in.suffix.strip(".").lower() in MRCS_EXT:
 
-        utils.log(f"{file_path.fp_in.as_posix()} is a mrc file, will convert to {out_fp}.")
+        utils.log(
+            f"{file_path.fp_in.as_posix()} is a mrc file, will convert to {out_fp}."
+        )
 
         _newstack_mrc_to_tiff(file_path.fp_in, out_fp, log_fp, use_float=False)
 
-    elif (
-            file_path.fp_in.suffix.strip(".").lower() in TIFS_EXT
-            and is_16bit(file_path.fp_in)
+    elif file_path.fp_in.suffix.strip(".").lower() in TIFS_EXT and is_16bit(
+        file_path.fp_in
     ):
 
         utils.log(f"{file_path.fp_in} is a 16 bit tiff, converting to {out_fp}")
@@ -181,47 +198,45 @@ def generate_jpegs(file_path: FilePath) -> dict:
     current_image_path = convert_em_to_tiff.fn(file_path)
 
     if not current_image_path.exists():
-        raise RuntimeError(f"File {current_image_path} does not exist. Cannot convert to jpeg.")
+        raise RuntimeError(
+            f"File {current_image_path} does not exist. Cannot convert to jpeg."
+        )
 
     utils.log(msg=f"Reading {current_image_path}...")
     img = sitk.ReadImage(current_image_path)
 
     # Produce a small thumbnail
     output_small = file_path.gen_output_fp(output_ext="_SM.jpeg")
-    _write_image_as_size(img, (SMALL_DIM, )*2, output_small, 70)
+    _write_image_as_size(img, (SMALL_DIM, SMALL_DIM), output_small, 70)
 
     asset_type = AssetType.THUMBNAIL
     asset_small_fp = file_path.copy_to_assets_dir(fp_to_cp=output_small)
-    asset_small_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_small_fp)
+    asset_small_elt = file_path.gen_asset(
+        asset_type=asset_type, asset_fp=asset_small_fp
+    )
 
     # Produce a large key image
     output_large = file_path.gen_output_fp(output_ext="_LG.jpeg")
-    _write_image_as_size(img, (LARGE_DIM, )*2, output_large, 80)
+    _write_image_as_size(img, (LARGE_DIM, LARGE_DIM), output_large, 80)
 
     asset_type = AssetType.KEY_IMAGE
     asset_large_fp = file_path.copy_to_assets_dir(fp_to_cp=output_large)
-    asset_large_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_large_fp)
+    asset_large_elt = file_path.gen_asset(
+        asset_type=asset_type, asset_fp=asset_large_fp
+    )
 
-    return utils.gen_prim_fps.fn(fp_in=file_path, additional_assets=(asset_small_elt, asset_large_elt))
+    return utils.gen_prim_fps.fn(
+        fp_in=file_path, additional_assets=(asset_small_elt, asset_large_elt)
+    )
 
 
 @flow(
     name="Small 2D",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
-    task_runner=DMConfig.SLURM_EXECUTOR,
-    on_completion=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
-    on_failure=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
-    on_crashed=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
+    on_completion=[utils.notify_api_completion],
+    on_failure=[utils.notify_api_completion],
+    on_crashed=[utils.notify_api_completion],
 )
 def dm_flow(
     file_share: str,
@@ -240,38 +255,42 @@ def dm_flow(
     """
     utils.notify_api_running(x_no_api, token, callback_url)
 
-    # utils.log(input_dir)
-    input_dir_fp = utils.get_input_dir.submit(
+    input_dir_fp_future = utils.get_input_dir.submit(
         share_name=file_share, input_dir=input_dir
     )
+    input_dir_fp = input_dir_fp_future.result()
 
-    input_fps = utils.list_files.submit(
+    input_fps_future = utils.list_files.submit(
         input_dir_fp,
         VALID_2D_INPUT_EXTS,
         single_file=x_file_name,
     )
+    input_fps = input_fps_future.result()
 
-    fps = utils.gen_fps.submit(
+    fps_future = utils.gen_fps.submit(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
     )
+    fps = fps_future.result()
 
     prim_fps = generate_jpegs.map(fps)
 
     callback_result = list()
-    for idx, (fp, cb) in enumerate(zip(fps.result(), prim_fps)):
+    for idx, (fp, cb) in enumerate(zip(fps, prim_fps)):
         try:
-            # In Prefect v3, we can directly get the result without checking state
             result = cb.result()
             callback_result.append(result)
         except Exception as e:
-            # If there's an error getting the result, use fallback
             callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}"))
 
-    utils.send_callback_body.submit(
+    send_callback_task = utils.send_callback_body.submit(
         x_no_api=x_no_api,
         token=token,
         callback_url=callback_url,
         files_elts=callback_result,
     )
-    
+
+    utils.final_cleanup_task.submit(
+        fps, x_keep_workdir, wait_for=[allow_failure(send_callback_task)]
+    )
+
     return callback_result
