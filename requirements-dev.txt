@@ -1,12 +1,14 @@
-coverage
-coverage-badge
-pytest>=6.0
-pytest-cov
-pytest-env
-pytest-asyncio
-flake8
-black
-pre-commit
-sphinx-autobuild
-sphinx-rtd-theme
+
+
+coverage==7.5.3
+coverage-badge==1.1.0
+pytest==8.2.2
+pytest-cov==4.1.0
+pytest-env==1.1.5
+pytest-asyncio==0.23.7
+flake8==7.0.0
+black==24.4.2
+pre-commit==3.7.0
+sphinx-autobuild==2021.3.14
+sphinx-rtd-theme==2.0.0
 -r requirements.txt
