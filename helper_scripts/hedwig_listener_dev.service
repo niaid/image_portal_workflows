@@ -1,19 +1,21 @@
 [Unit]
-Description=Starts the DEV listener "Worker" which reaches out to workflow API.
+Description=Starts the Dev listener worker, which reaches out to workflow API.
 After=network.target
 
 [Service]
 Type=simple
-User=hedwig_dev
-Group=hedwig_dev
+User=svc_hpchedwig_dev
+Group=svc_hpchedwig_dev
+Environment="PREFECT_API_KEY=too_kewl_for_skewl"
 Environment="HEDWIG_ENV=dev"
 Environment="REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt"
 Environment="PREFECT_API_URL=https://prefect2.hedwig-workflow-api.niaiddev.net/api"
-Environment="IMOD_DIR=/opt/rml/imod"
-WorkingDirectory=/gs1/home/hedwig_dev/image_portal_workflows
-ExecStart=/gs1/home/hedwig_dev/dev/bin/prefect worker start --pool workpool
-Restart=always
-RestartSec="30min"
+Environment="TMPDIR=/data/scratch/svc_hpchedwig_dev/ai-rmlg14.niaid.nih.gov/tmp/"
+Environment="TMP=/data/scratch/svc_hpchedwig_dev/ai-rmlg14.niaid.nih.gov/tmp/"
+Environment="PREFECT_LOCAL_STORAGE_PATH=/data/scratch/svc_hpchedwig_dev/ai-rmlg14.niaid.nih.gov/tmp/"
+WorkingDirectory=/data/home/svc_hpchedwig_dev/image_portal_workflows
+
+ExecStart=/data/home/svc_hpchedwig_dev/image_portal_workflows/.venv/bin/prefect worker start --pool 'workpool'
 
 [Install]
 WantedBy=multi-user.target

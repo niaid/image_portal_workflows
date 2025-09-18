@@ -1,0 +1,40 @@
+[project]
+name = "image-portal-workflows"
+version = "0.1.0"
+description = "Image portal workflows using Prefect, Dask, and scientific Python tools."
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
+requires-python = ">=3.11"
+
+dependencies = [
+    "prefect==3.4.8",
+    "prefect-dask==0.3.0",
+    "dask-jobqueue==0.8.5",
+    "griffe==1.7.3",
+    "python-dotenv==1.1.1",
+    "natsort==8.4.0",
+    "pytools",           # If installed from wheel, specify URL or leave as is
+    "aiohttp==3.9.5",
+    "SimpleITK==2.3.1",
+    "Jinja2==3.1.6",
+    "requests==2.32.3"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.2.2",
+    "pytest-cov==4.1.0",
+    "black==24.4.2",
+    "mypy==1.10.0"
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.pytest.ini_options]
+addopts = "-v --cov=em_workflows --cov-report=term-missing"
+testpaths = [
+    "test"
+]
