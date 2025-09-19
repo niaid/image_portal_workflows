@@ -239,6 +239,12 @@ IF / Multichannel CZI
         "title": "input_dir",
         "position": 1
       },
+      "file_name": {
+        "type": "string",
+        "title": "file_name",
+        "position": 2
+      },
+
       "file_share": {
         "type": "string",
         "title": "file_share",
