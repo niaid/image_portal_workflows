@@ -124,7 +124,6 @@ def _write_image_as_size(
 
 @task(
     name="Convert EM images to tiff",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def convert_em_to_tiff(file_path: FilePath) -> Path:
     """
@@ -183,7 +182,6 @@ def convert_em_to_tiff(file_path: FilePath) -> Path:
 
 @task(
     name="Generate key and thumbnail jpeg images ",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def generate_jpegs(file_path: FilePath) -> dict:
     """

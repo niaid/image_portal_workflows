@@ -107,9 +107,6 @@ class Config:
     user = os.environ["USER"]
     tmp_dir = f"/data/scratch/{user}"
 
-    local_storage = LocalFileSystem(basepath=PREFECT_HOME.value() / "local-storage")
-    pickle_serializer = PickleSerializer(picklelib="pickle")
-
     @staticmethod
     def _mount_point(share_name: str) -> str:
         share = NFS_MOUNT.get(share_name)

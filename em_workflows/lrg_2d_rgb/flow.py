@@ -49,7 +49,6 @@ def convert_png_to_tiff(file_path: FilePath) -> FilePath:
 
 @task(
     name="Zarr generation",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_zarr(file_path: FilePath) -> None:
     input_tiff = f"{file_path.working_dir}/{file_path.base}.tiff"
@@ -63,7 +62,6 @@ def gen_zarr(file_path: FilePath) -> None:
 
 @task(
     name="Zarr rechunk",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def rechunk_zarr(file_path: FilePath) -> FilePath:
     ng.rechunk_zarr(file_path=file_path)
@@ -79,7 +77,6 @@ def copy_zarr_to_assets_dir(file_path: FilePath):
 
 @task(
     name="Neuroglancer asset generation",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def generate_ng_asset(file_path: FilePath) -> Dict:
     # Note; the seemingly redundancy of working and asset fp here.
@@ -207,22 +204,24 @@ def lrg_2d_flow(
     )
 
     callback_result = list()
+    failed = 0
+    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_pyramids.result())):
+        try:
+            callback_result.append(cb)
+        except Exception as e:
+            # If there's an error getting the result, use fallback
+            callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}"))
+            failed += 1
 
-    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_pyramids)):
-        state = cb.wait()
-        if state.is_completed():
-            callback_result.append(cb.result())
-        else:
-            path = f"{state.state_details.flow_run_id}__{idx}"
-            try:
-                message = LRG2DConfig.local_storage.read_path(path)
-                callback_result.append(fp.gen_prim_fp_elt(message.decode()))
-            except ValueError:
-                callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
-
-    utils.send_callback_body.submit(
+    send_callback_task = utils.send_callback_body.submit(
         x_no_api=x_no_api,
         token=token,
         callback_url=callback_url,
         files_elts=callback_result,
     )
+
+    utils.final_cleanup_task.submit(
+        fps, x_keep_workdir, wait_for=[utils.allow_failure(send_callback_task)]
+    )
+
+    return callback_result

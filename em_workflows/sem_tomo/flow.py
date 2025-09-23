@@ -38,7 +38,6 @@ from em_workflows.sem_tomo.constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_
 
 @task(
     name="mrc to xf image alignment",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_xfalign_comand(fp_in: FilePath) -> FilePath:
     """
@@ -66,7 +65,6 @@ def gen_xfalign_comand(fp_in: FilePath) -> FilePath:
 
 @task(
     name="xf to xg image alignment",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_align_xg(fp_in: FilePath) -> FilePath:
     """
@@ -92,7 +90,6 @@ def gen_align_xg(fp_in: FilePath) -> FilePath:
 
 @task(
     name="Newstack mrc generation",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_newstack_combi(fp_in: FilePath, stretch: None) -> Dict:
     """
@@ -129,7 +126,6 @@ def gen_newstack_combi(fp_in: FilePath, stretch: None) -> Dict:
 
 @task(
     name="tiff to mrc conversion",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def convert_tif_to_mrc(file_path: FilePath) -> FilePath:
     """
@@ -172,7 +168,6 @@ def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
 
 @task(
     name="Mid mrc generation",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_newstack_mid_mrc_command(fp_in: FilePath, **kwargs) -> FilePath:
     """
@@ -259,7 +254,6 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
 
 @task(
     name="Zarr generation",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_zarr(fp_in: FilePath, **kwargs) -> FilePath:
     file_path = fp_in
@@ -287,7 +281,6 @@ def gen_zarr(fp_in: FilePath, **kwargs) -> FilePath:
 
 @task(
     name="Neuroglancer metadata generation",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_ng_metadata(fp_in: FilePath) -> Dict:
     """
@@ -420,21 +413,24 @@ def sem_tomo_flow(
     )
 
     callback_result = list()
-    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_corr_movies)):
-        state = cb.wait()
-        if state.is_completed():
-            callback_result.append(cb.result())
-        else:
-            path = f"{state.state_details.flow_run_id}__{idx}"
-            try:
-                message = SEMConfig.local_storage.read_path(path)
-                callback_result.append(fp.gen_prim_fp_elt(message.decode()))
-            except ValueError:
-                callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
+    failed = 0
+    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_corr_movies.result())):
+        try:
+            callback_result.append(cb)
+        except Exception as e:
+            # If there's an error getting the result, use fallback
+            callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}"))
+            failed += 1
 
-    utils.send_callback_body.submit(
+    send_callback_task = utils.send_callback_body.submit(
         x_no_api=x_no_api,
         token=token,
         callback_url=callback_url,
         files_elts=callback_result,
     )
+
+    utils.final_cleanup_task.submit(
+        fps, x_keep_workdir, wait_for=[utils.allow_failure(send_callback_task)]
+    )
+
+    return callback_result

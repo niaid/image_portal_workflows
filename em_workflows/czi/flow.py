@@ -273,7 +273,7 @@ async def czi_flow(
     )
 
     # Prefect v3: wait_for is a valid keyword for .submit()
-    cleanup_task = utils.final_cleanup_task.submit(
+    utils.final_cleanup_task.submit(
         fps, x_keep_workdir, wait_for=[utils.allow_failure(send_callback_task)]
     )
 

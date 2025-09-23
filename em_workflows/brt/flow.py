@@ -44,7 +44,6 @@ from typing import Optional
 from pathlib import Path
 from natsort import os_sorted
 from prefect import task, flow, unmapped
-from prefect.states import Completed, Failed
 from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
@@ -136,7 +135,6 @@ def gen_mrc2tiff(fp_in: Path) -> None:
 
 @task(
     name="Thumbnail generation",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_thumbs(middle_i_jpg: Path) -> Path:
     """
@@ -178,7 +176,6 @@ def find_middle_image(fp_in: Path) -> Path:
 
 @task(
     name="Tilt movie generation",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_tilt_movie(brt_output: utils.BrtOutput) -> Path:
     """
@@ -228,7 +225,6 @@ def gen_tilt_movie(brt_output: utils.BrtOutput) -> Path:
 
 @task(
     name="Average mrc generation",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_ave_mrc(brt_output: utils.BrtOutput) -> Path:
     rec_file = brt_output.rec_file
@@ -244,7 +240,6 @@ def gen_ave_mrc(brt_output: utils.BrtOutput) -> Path:
 
 @task(
     name="Movie compilation",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_recon_movie(ave_mrc: Path) -> Path:
     """
@@ -349,7 +344,6 @@ def consolidate_ave_mrcs(fp_in: Path) -> Path:
 
 @task(
     name="Volume asset creation",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_ave_8_vol(ave_mrc: Path) -> Path:
     """
@@ -439,7 +433,6 @@ def cleanup_files(file_path: Path, pattern=str, keep_file: Path = None):
 
 @task(
     name="Zarr generation",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_zarr(brt_output: utils.BrtOutput) -> Path:
 
@@ -466,7 +459,6 @@ def copy_asset_gen_elt(file_path: FilePath, fp_to_cp: Path, asset_type: str) -> 
 
 @task(
     name="Neuroglancer metadata generation",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def gen_ng_metadata(fp_in: FilePath, zarr: Path) -> Dict:
     # Note; the seemingly redundancy of working and asset fp here.
