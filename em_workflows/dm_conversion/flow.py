@@ -232,6 +232,7 @@ def generate_jpegs(file_path: FilePath) -> dict:
     name="Small 2D",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
+    task_runner=DMConfig.SLURM_EXECUTOR,
     on_completion=[utils.notify_api_completion],
     on_failure=[utils.notify_api_completion],
     on_crashed=[utils.notify_api_completion],
