@@ -6,9 +6,6 @@ import sys
 from dotenv import load_dotenv
 from dask_jobqueue import SLURMCluster
 from prefect_dask.task_runners import DaskTaskRunner
-from prefect.filesystems import LocalFileSystem
-from prefect.serializers import PickleSerializer
-from prefect.settings import PREFECT_HOME
 import pytools
 
 from em_workflows.constants import NFS_MOUNT
@@ -44,10 +41,12 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     home = os.environ["HOME"]
     env_name = os.environ["HEDWIG_ENV"]
     flowrun_id = os.environ.get("PREFECT__FLOW_RUN_ID", "not-found")
+    current_dir = cluster_kwargs.pop("current_dir", home)
     job_script_prologue = [
-        f"source /data/home/svc_hpchedwig_{env_name}/{env_name}/bin/activate",
+        f"source /data/home/svc_hpchedwig_{env_name}/image_portal_workflows/.venv/bin/activate",
         "export IMOD_DIR=/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/imod-5.1.1-vyv6iidgdilzyxoqumqmdbyokzi4cdlx/IMOD",
         "export JAVA_OPTS='-Djava.io.tmpdir=/data/scratch'",
+        f"export PYTHONPATH={current_dir};$PYTHONPATH",
         "echo $PATH",
     ]
     cluster = SLURMCluster(
@@ -104,6 +103,17 @@ class Config:
             memory="256G",
         ),
     )
+
+    @staticmethod
+    def get_slurm_task_runner(current_dir: Path):
+        return DaskTaskRunner(
+            cluster_class=SLURM_exec,
+            cluster_kwargs=dict(
+                cores=20,
+                memory="256G",
+                current_dir=current_dir
+            ),
+        )
     user = os.environ["USER"]
     tmp_dir = f"/data/scratch/{user}"
 
