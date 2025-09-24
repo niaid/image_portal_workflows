@@ -53,7 +53,7 @@ from em_workflows.constants import AssetType
 from em_workflows.file_path import FilePath
 from em_workflows.brt.config import BRTConfig
 from em_workflows.brt.constants import BRT_DEPTH, BRT_HEIGHT, BRT_WIDTH
-from em_workflows.brt.callback_task import send_final_callback
+# from em_workflows.brt.callback_task import send_final_callback
 
 
 def gen_dimension_command(fp_in: Path) -> str:
