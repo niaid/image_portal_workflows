@@ -53,6 +53,7 @@ from em_workflows.constants import AssetType
 from em_workflows.file_path import FilePath
 from em_workflows.brt.config import BRTConfig
 from em_workflows.brt.constants import BRT_DEPTH, BRT_HEIGHT, BRT_WIDTH
+from em_workflows.brt.callback_task import send_final_callback
 
 
 def gen_dimension_command(fp_in: Path) -> str:
@@ -552,23 +553,23 @@ def brt_flow(
     utils.notify_api_running(x_no_api, token, callback_url)
 
     # a single input_dir will have n tomograms
-    input_dir_fp = utils.get_input_dir.submit(
+    input_dir_fp_future = utils.get_input_dir.submit(
         share_name=file_share, input_dir=input_dir
     )
-    # input_dir_fp = utils.get_input_dir(input_dir=input_dir)
-    input_fps = utils.list_files.submit(
-        input_dir=input_dir_fp.result(),
+
+    input_fps_future = utils.list_files.submit(
+        input_dir=input_dir_fp_future,
         exts=["MRC", "ST", "mrc", "st"],
         single_file=x_file_name,
     )
 
-    fps = utils.gen_fps.submit(
+    fps_future = utils.gen_fps.submit(
         share_name=file_share,
-        input_dir=input_dir_fp.result(),
-        fps_in=input_fps.result(),
+        input_dir=input_dir_fp_future,
+        fps_in=input_fps_future,
     )
     brt_outputs = utils.run_brt.map(
-        file_path=fps,
+        file_path=fps_future,
         adoc_template=unmapped(adoc_template),
         montage=unmapped(montage),
         gold=unmapped(gold),
@@ -583,88 +584,95 @@ def brt_flow(
     # END BRT, check files for success (else fail here)
 
     tilt_movies = gen_tilt_movie.map(brt_outputs)
+
     tilt_movie_assets = copy_asset_gen_elt.map(
-        file_path=fps, fp_to_cp=tilt_movies, asset_type=unmapped(AssetType.TILT_MOVIE)
+        file_path=fps_future,
+        fp_to_cp=tilt_movies,
+        asset_type=unmapped(AssetType.TILT_MOVIE),
     )
 
     mid_images = find_middle_image.map(tilt_movies)
+
     keyimg_assets = copy_asset_gen_elt.map(
-        file_path=fps, fp_to_cp=mid_images, asset_type=unmapped(AssetType.KEY_IMAGE)
+        file_path=fps_future,
+        fp_to_cp=mid_images,
+        asset_type=unmapped(AssetType.KEY_IMAGE),
     )
 
     thumbs = gen_thumbs.map(mid_images)
+
     thumb_assets = copy_asset_gen_elt.map(
-        file_path=fps, fp_to_cp=thumbs, asset_type=unmapped(AssetType.THUMBNAIL)
+        file_path=fps_future, fp_to_cp=thumbs, asset_type=unmapped(AssetType.THUMBNAIL)
     )
 
     ave_mrcs = gen_ave_mrc.map(brt_output=brt_outputs)
+
     averagedVolume_assets = copy_asset_gen_elt.map(
-        file_path=fps, fp_to_cp=ave_mrcs, asset_type=unmapped(AssetType.VOLUME)
+        file_path=fps_future, fp_to_cp=ave_mrcs, asset_type=unmapped(AssetType.VOLUME)
     )
 
     recon_movies = gen_recon_movie.map(ave_mrc=ave_mrcs)
+
     recon_movie_assets = copy_asset_gen_elt.map(
-        file_path=fps, fp_to_cp=recon_movies, asset_type=unmapped(AssetType.REC_MOVIE)
+        file_path=fps_future,
+        fp_to_cp=recon_movies,
+        asset_type=unmapped(AssetType.REC_MOVIE),
     )
+
     # Binned volume assets, for volslicer.
     bin_vol_mrcs = gen_ave_8_vol.map(ave_mrc=ave_mrcs)
+
     bin_vol_assets = copy_asset_gen_elt.map(
-        file_path=fps,
+        file_path=fps_future,
         fp_to_cp=bin_vol_mrcs,
         asset_type=unmapped(AssetType.AVERAGED_VOLUME),
     )
 
     zarrs = gen_zarr.map(brt_output=brt_outputs)
-    pyramid_assets = gen_ng_metadata.map(fp_in=fps, zarr=zarrs)
+
+    pyramid_assets = gen_ng_metadata.map(fp_in=fps_future, zarr=zarrs)
 
     # now we've done the computational work.
     # the relevant files have been put into the Assets dirs, but we need to inform the API
     # Generate a base "primary path" dict, and hang dicts onto this.
     # repeatedly pass asset in to add_asset func to add asset in question.
     # allow_failure in gen_fps because we want to include EVERY fp, not just OK ones
-    # prim_fps = utils.gen_prim_fps.map(fp_in=fps, wait_for=[allow_failure(brt_outputs)])
-    prim_fps = utils.gen_prim_fps.map(fp_in=fps.result())
-    callback_with_thumbs = utils.add_asset.map(
-        prim_fp=prim_fps, asset=thumb_assets.result()
-    )
+    # prim_fps = utils.gen_prim_fps.map(fp_in=fps_future, wait_for=[allow_failure(brt_outputs)])
+    prim_fps = utils.gen_prim_fps.map(fp_in=fps_future)
+
+    callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
+
     callback_with_keyimgs = utils.add_asset.map(
-        prim_fp=callback_with_thumbs, asset=keyimg_assets.result()
+        prim_fp=callback_with_thumbs, asset=keyimg_assets
     )
+
     callback_with_pyramids = utils.add_asset.map(
-        prim_fp=callback_with_keyimgs, asset=pyramid_assets.result()
+        prim_fp=callback_with_keyimgs, asset=pyramid_assets
     )
+
     callback_with_ave_vol = utils.add_asset.map(
-        prim_fp=callback_with_pyramids, asset=averagedVolume_assets.result()
+        prim_fp=callback_with_pyramids, asset=averagedVolume_assets
     )
+
     callback_with_bin_vol = utils.add_asset.map(
-        prim_fp=callback_with_ave_vol, asset=bin_vol_assets.result()
+        prim_fp=callback_with_ave_vol, asset=bin_vol_assets
     )
+
     callback_with_recon_mov = utils.add_asset.map(
-        prim_fp=callback_with_bin_vol, asset=recon_movie_assets.result()
+        prim_fp=callback_with_bin_vol, asset=recon_movie_assets
     )
+
     callback_with_tilt_mov = utils.add_asset.map(
-        prim_fp=callback_with_recon_mov, asset=tilt_movie_assets.result()
+        prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
 
-    # Ref: https://github.com/PrefectHQ/prefect/blob/98d33187ecce032defb8ec7a263de32564e7f7f6/src/prefect/futures.py#L43
-    callback_result = list()
-    failed = 0
-    total = len(prim_fps)
-    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_tilt_mov.result())):
-        try:
-            # In Prefect v3, we can directly get the result without checking state
-            callback_result.append(cb)
-        except Exception as e:
-            # If there's an error getting the result, use fallback
-            callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}"))
-            failed += 1
-
-    utils.send_callback_body.submit(
+    # Send callback - must resolve futures for the callback API
+    send_final_callback.submit(
         x_no_api=x_no_api,
         token=token,
         callback_url=callback_url,
-        files_elts=callback_result,
+        files_elts=callback_with_tilt_mov,
     )
 
-    # In Prefect v3, flows should return data, not state objects
-    return callback_result
+    # Return the final callback data
+    return callback_with_tilt_mov
