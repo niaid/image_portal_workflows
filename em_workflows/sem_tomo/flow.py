@@ -321,18 +321,9 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
     task_runner=SEMConfig.SLURM_EXECUTOR,
-    on_completion=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
-    on_failure=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
-    on_crashed=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
+    on_completion=[utils.notify_api_completion],
+    on_failure=[utils.notify_api_completion],
+    on_crashed=[utils.notify_api_completion],
 )
 def sem_tomo_flow(
     file_share: str,
@@ -409,18 +400,15 @@ def sem_tomo_flow(
         prim_fp=callback_with_pyramids, asset=base_mrcs
     )
     callback_with_corr_movies = utils.add_asset.map(
-        prim_fp=callback_with_corr_mrcs, asset=corrected_movie_assets
+        prim_fp=callback_with_corr_mrcs, asset=corrected_movie_assets, return_state=True
     )
 
     callback_result = list()
-    failed = 0
-    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_corr_movies.result())):
+    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_corr_movies)):
         try:
-            callback_result.append(cb)
+            callback_result.append(cb.result())
         except Exception as e:
-            # If there's an error getting the result, use fallback
-            callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}"))
-            failed += 1
+            callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}."))
 
     send_callback_task = utils.send_callback_body.submit(
         x_no_api=x_no_api,

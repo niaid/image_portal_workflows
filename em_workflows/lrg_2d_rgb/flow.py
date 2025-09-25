@@ -148,19 +148,10 @@ def gen_thumb(file_path: FilePath):
     name="Large 2d RGB",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
-    task_runner=LRG2DConfig.SLURM_EXECUTOR,
-    on_completion=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
-    on_failure=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
-    on_crashed=[
-        utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
-    ],
+    task_runner=LRG2DConfig.get_slurm_task_runner(Path(__file__).resolve().parent),
+    on_completion=[utils.notify_api_completion],
+    on_failure=[utils.notify_api_completion],
+    on_crashed=[utils.notify_api_completion],
 )
 # run_config=LocalRun(labels=[utils.get_environment()]),
 def lrg_2d_flow(
@@ -200,18 +191,15 @@ def lrg_2d_flow(
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
     callback_with_pyramids = utils.add_asset.map(
-        prim_fp=callback_with_thumbs, asset=zarr_assets
+        prim_fp=callback_with_thumbs, asset=zarr_assets, return_state=True
     )
 
     callback_result = list()
-    failed = 0
-    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_pyramids.result())):
+    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_pyramids)):
         try:
-            callback_result.append(cb)
+            callback_result.append(cb.result())
         except Exception as e:
-            # If there's an error getting the result, use fallback
             callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}"))
-            failed += 1
 
     send_callback_task = utils.send_callback_body.submit(
         x_no_api=x_no_api,

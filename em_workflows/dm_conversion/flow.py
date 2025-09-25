@@ -272,10 +272,10 @@ def dm_flow(
 
     callback_result = list()
     for idx, (fp, cb) in enumerate(zip(fps_future.result(), prim_fps)):
-        if cb.is_completed():
+        try:
             callback_result.append(cb.result())
-        else:
-            callback_result.append(fp.gen_prim_fp_elt("Error in jpeg generation."))
+        except Exception as e:
+            callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}."))
 
     send_callback_task = utils.send_callback_body.submit(
         x_no_api=x_no_api,
@@ -288,4 +288,4 @@ def dm_flow(
         fps_future, x_keep_workdir, wait_for=[allow_failure(send_callback_task)]
     )
 
-    return prim_fps
+    return callback_result
