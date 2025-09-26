@@ -1,13 +1,10 @@
-
-
 python-dotenv==1.1.1
-prefect==3.4.8
+prefect[dask]==3.4.8
 griffe==1.7.3
 Jinja2==3.1.6
 requests==2.32.3
 natsort==8.4.0
 pytools@https://github.com/niaid/tomojs-pytools/releases/download/v3.3.2/pytools-3.3.2-py3-none-any.whl
 aiohttp==3.9.5
-prefect_dask==0.3.0
 simpleitk==2.5.2
 dask-jobqueue==0.9.0

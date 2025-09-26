@@ -110,6 +110,60 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
     return asset
 
 
+@task(
+    name="Dimension lookup",
+)
+def gen_dimension_command(fp_in: Path) -> str:
+    """
+    | looks up the z dimension of an mrc file.
+    | ali_or_rec is nasty, str to denote whether you're using the `_ali` file or the `_rec` file.
+
+    :todo: this is duplicate, see utils.lookup_dims()
+    """
+    if fp_in.exists():
+        log(f"{fp_in} exists")
+    else:
+        log(f"{fp_in} DOES NOT exist, nothing to do here.")
+        return "error"
+    cmd = [Config.header_loc, "-s", fp_in]
+    sp = subprocess.run(cmd, check=False, capture_output=True)
+    if sp.returncode != 0:
+        stdout = sp.stdout.decode("utf-8")
+        stderr = sp.stderr.decode("utf-8")
+        msg = f"ERROR : {stderr} -- {stdout}"
+        log(msg)
+        raise RuntimeError(msg)
+    else:
+        stdout = sp.stdout.decode("utf-8")
+        stderr = sp.stderr.decode("utf-8")
+        msg = f"Command ok : {stderr} -- {stdout}"
+        log(msg)
+        xyz_dim = [int(x) for x in stdout.split()]
+        z_dim = xyz_dim[2]
+        log(f"z_dim: {z_dim:}")
+        return str(z_dim)
+
+
+@task(
+    name="File cleanup",
+)
+def cleanup_files(file_path: Path, pattern: str, keep_file: Path = None) -> None:
+    """
+    Given a ``FilePath`` and unix file ``pattern``, iterate through directory removing all files
+    that match the pattern
+    """
+    import glob
+    import os
+    f = f"{file_path.parent.as_posix()}/{pattern}"
+    log(f"trying to rm {f}")
+    files_to_rm = glob.glob(f)
+    for _file in files_to_rm:
+        if keep_file and keep_file.as_posix() == _file:
+            continue
+        os.remove(_file)
+    print(files_to_rm)
+
+
 @task
 def gen_prim_fps(fp_in: FilePath, additional_assets: (dict, ...) = None) -> Dict:
     """

@@ -148,7 +148,7 @@ def gen_thumb(file_path: FilePath):
     name="Large 2d RGB",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
-    task_runner=LRG2DConfig.get_slurm_task_runner(Path(__file__).resolve().parent),
+    task_runner=LRG2DConfig.SLURM_EXECUTOR,
     on_completion=[utils.notify_api_completion],
     on_failure=[utils.notify_api_completion],
     on_crashed=[utils.notify_api_completion],

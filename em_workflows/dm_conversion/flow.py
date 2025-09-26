@@ -271,6 +271,7 @@ def dm_flow(
     prim_fps = generate_jpegs.map(fps_future, return_state=True)
 
     callback_result = list()
+
     for idx, (fp, cb) in enumerate(zip(fps_future.result(), prim_fps)):
         try:
             callback_result.append(cb.result())
@@ -288,4 +289,4 @@ def dm_flow(
         fps_future, x_keep_workdir, wait_for=[allow_failure(send_callback_task)]
     )
 
-    return callback_result
+    return prim_fps

@@ -92,8 +92,8 @@ class Config:
     HIGH_SLURM_EXECUTOR = DaskTaskRunner(
         cluster_class=SLURM_exec,
         cluster_kwargs=dict(
-            cores=64,
-            memory="512G",
+            cores=60,
+            memory="100G",
         ),
     )
     SLURM_EXECUTOR = DaskTaskRunner(
@@ -114,6 +114,7 @@ class Config:
                 current_dir=current_dir
             ),
         )
+
     user = os.environ["USER"]
     tmp_dir = f"/data/scratch/{user}"
 
