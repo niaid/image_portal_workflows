@@ -629,7 +629,7 @@ def brt_flow(
 
  
     # Send callback - must resolve futures for the callback API
-    utils.send_callback_body.submit(
+    return utils.send_callback_body.submit(
         x_no_api=x_no_api,
         token=token,
         callback_url=callback_url,
