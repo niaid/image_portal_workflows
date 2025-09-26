@@ -4,7 +4,7 @@ import requests
 import os
 import shutil
 import json
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
@@ -63,28 +63,8 @@ def lookup_dims(fp: Path) -> Header:
         return xyz_cleaned
 
 
-def collect_exception_task_hook(task: Task, task_run: TaskRun, state: State):
-    """
-    This task hook should be used with tasks where you intend to know which step of the flow run broke.
-    Since most of our tasks are mapped by default using filepaths, it takes map index into account as well
-    So that we can notify the user, 'this step of this file broke'.
-    The message is written to a file using prefect's local storage.
-    In order to retrieve it, the flow needs to have a logic at the end,
-        to lookup for this file with exception message if the task run has failed.
-    """
-    message = f"Failure in pipeline step: {task.name}"
-    map_idx = task_run.name.split("-")[-1]
-    flow_run_id = state.state_details.flow_run_id
-    path = f"{flow_run_id}__{map_idx}"
-    try:
-        Config.local_storage.read_path(path)
-    except ValueError:  # ValueError path not found
-        Config.local_storage.write_path(path, message.encode())
-
-
 @task(
     name="mrc to movie generation",
-    on_failure=[collect_exception_task_hook],
 )
 def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
     """
@@ -130,8 +110,62 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
     return asset
 
 
+@task(
+    name="Dimension lookup",
+)
+def gen_dimension_command(fp_in: Path) -> str:
+    """
+    | looks up the z dimension of an mrc file.
+    | ali_or_rec is nasty, str to denote whether you're using the `_ali` file or the `_rec` file.
+
+    :todo: this is duplicate, see utils.lookup_dims()
+    """
+    if fp_in.exists():
+        log(f"{fp_in} exists")
+    else:
+        log(f"{fp_in} DOES NOT exist, nothing to do here.")
+        return "error"
+    cmd = [Config.header_loc, "-s", fp_in]
+    sp = subprocess.run(cmd, check=False, capture_output=True)
+    if sp.returncode != 0:
+        stdout = sp.stdout.decode("utf-8")
+        stderr = sp.stderr.decode("utf-8")
+        msg = f"ERROR : {stderr} -- {stdout}"
+        log(msg)
+        raise RuntimeError(msg)
+    else:
+        stdout = sp.stdout.decode("utf-8")
+        stderr = sp.stderr.decode("utf-8")
+        msg = f"Command ok : {stderr} -- {stdout}"
+        log(msg)
+        xyz_dim = [int(x) for x in stdout.split()]
+        z_dim = xyz_dim[2]
+        log(f"z_dim: {z_dim:}")
+        return str(z_dim)
+
+
+@task(
+    name="File cleanup",
+)
+def cleanup_files(file_path: Path, pattern: str, keep_file: Path = None) -> None:
+    """
+    Given a ``FilePath`` and unix file ``pattern``, iterate through directory removing all files
+    that match the pattern
+    """
+    import glob
+    import os
+    f = f"{file_path.parent.as_posix()}/{pattern}"
+    log(f"trying to rm {f}")
+    files_to_rm = glob.glob(f)
+    for _file in files_to_rm:
+        if keep_file and keep_file.as_posix() == _file:
+            continue
+        os.remove(_file)
+    print(files_to_rm)
+
+
 @task
-def gen_prim_fps(fp_in: FilePath, additional_assets:(dict, ...)=None) -> Dict:
+def gen_prim_fps(fp_in: FilePath, additional_assets: (dict, ...) = None) -> Dict:
     """
     :param fp_in: FilePath of current input
     :param additional_assets: A list of additional assets to be added to the primary element
@@ -219,6 +253,33 @@ def cleanup_workdir(fps: List[FilePath], x_keep_workdir: bool):
         for fp in fps:
             log(f"Trying to remove {fp.working_dir}")
             fp.rm_workdir()
+
+
+@task(name="Final Cleanup", retries=3, retry_delay_seconds=10)
+def final_cleanup_task(fps: List[FilePath], x_keep_workdir: bool = False):
+    """
+    Final cleanup task that always runs regardless of upstream failures.
+    Combines workdir log copying and cleanup operations.
+
+    This task should be called with allow_failure() to ensure it always runs
+    even when upstream tasks fail.
+    """
+    log("Starting final cleanup operations...")
+
+    # Copy workdir logs to assets
+    for fp in fps:
+        try:
+            copy_workdir_logs.fn(file_path=fp)
+            log(f"Copied workdir logs for {fp.base}")
+        except Exception as e:
+            log(f"Failed to copy workdir logs for {fp.base}: {e}")
+
+    # Cleanup working directories
+    try:
+        cleanup_workdir.fn(fps, x_keep_workdir)
+        log("Cleanup completed successfully")
+    except Exception as e:
+        log(f"Cleanup failed: {e}")
 
 
 def update_adoc(
@@ -330,7 +391,6 @@ def copy_template(working_dir: Path, template_name: str) -> Path:
     name="Batchruntomo conversion",
     tags=["brt"],
     # timeout_seconds=600,
-    on_failure=[collect_exception_task_hook],
 )
 def run_brt(
     file_path: FilePath,
@@ -417,7 +477,9 @@ def copy_workdir_logs(file_path: FilePath) -> Path:
 
 
 @task
-def list_files(input_dir: Path, exts: List[str], single_file: str = None) -> List[Path]:
+def list_files(
+    input_dir: Path, exts: List[str], single_file: Optional[str] = None
+) -> List[Path]:
     """
     :param input_dir: libpath.Path of the input directory
     :param exts: List of str extensions to be checked
@@ -539,7 +601,7 @@ def notify_api_running(
 #     return ns
 
 
-def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
+async def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State) -> None:
     """
     https://docs.prefect.io/core/concepts/states.html#overview.
     https://docs.prefect.io/core/concepts/notifications.html#state-handlers
@@ -553,33 +615,39 @@ def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State):
 
     if x_no_api:
         log(f"x_no_api flag used\nCompletion status: {status}")
-        return
+        return None
 
-    hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
-    hooks_log.write(f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n")
+    # Use aiohttp for async HTTP requests
+    import aiohttp
 
-    headers = {
-        "Authorization": "Bearer " + token,
-        "Content-Type": "application/json",
-    }
-    response = requests.post(
-        callback_url, headers=headers, data=json.dumps({"status": status})
-    )
-    hooks_log.write(f"Pipeline status is:{status}\n")
-    hooks_log.write(f"{response.ok=}\n")
-    hooks_log.write(f"{response.status_code=}\n")
-    hooks_log.write(f"{response.text=}\n")
-    hooks_log.write(f"{response.headers=}\n")
+    async with aiohttp.ClientSession() as session:
+        headers = {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json",
+        }
+        async with session.post(
+            callback_url, headers=headers, json={"status": status}
+        ) as response:
+            hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
+            hooks_log.write(
+                f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n"
+            )
+            hooks_log.write(f"Pipeline status is:{status}\n")
+            hooks_log.write(f"{response.status=}\n")
+            hooks_log.write(f"{response.reason=}\n")
+            hooks_log.write(f"{response.headers=}\n")
+            text = await response.text()
+            hooks_log.write(f"{text=}\n")
 
-    if not response.ok:
-        msg = f"Bad response code on callback: {response}"
-        log(msg=msg)
-        hooks_log.write(f"{msg}\n")
-        hooks_log.close()
-        raise RuntimeError(msg)
+            if response.status < 200 or response.status >= 300:
+                msg = f"Bad response code on callback: {response.status}"
+                log(msg=msg)
+                hooks_log.write(f"{msg}\n")
+                hooks_log.close()
+                raise RuntimeError(msg)
 
-    hooks_log.close()
-    return response.ok
+            hooks_log.close()
+    return None
 
 
 def get_environment() -> str:
@@ -625,9 +693,6 @@ def get_input_dir(share_name: str, input_dir: str) -> Path:
 @task(
     # persisting to retrieve again in hooks
     persist_result=True,
-    result_storage=Config.local_storage,
-    result_serializer=Config.pickle_serializer,
-    result_storage_key="{flow_run.id}__gen_fps",
 )
 def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
     """
@@ -649,8 +714,8 @@ def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePa
 def send_callback_body(
     x_no_api: bool,
     files_elts: List[Dict],
-    token: str = None,
-    callback_url: str = None,
+    token: Optional[str] = None,
+    callback_url: Optional[str] = None,
 ) -> None:
     """
     Upon completion of file conversion a callback is made to the calling
@@ -687,26 +752,12 @@ def send_callback_body(
         )
 
 
-def copy_workdirs_and_cleanup_hook(flow, flow_run, state):
-    stored_result = Config.local_storage.read_path(f"{flow_run.id}__gen_fps")
-    fps: List[FilePath] = Config.pickle_serializer.loads(
-        json.loads(stored_result)["data"].encode()
-    )
-    parameters = flow_run.parameters
-    x_keep_workdir = parameters.get("x_keep_workdir", False)
-
-    for fp in fps:
-        copy_workdir_logs.fn(file_path=fp)
-
-    cleanup_workdir.fn(fps, x_keep_workdir)
-
-
 def callback_with_cleanup(
     fps: List[FilePath],
     callback_result: List,
     x_no_api: bool = False,
-    callback_url: str = None,
-    token: str = None,
+    callback_url: Optional[str] = None,
+    token: Optional[str] = None,
     x_keep_workdir: bool = False,
 ):
     cp_wd_logs_to_assets = copy_workdir_logs.map(fps, wait_for=[callback_result])

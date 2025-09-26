@@ -56,7 +56,7 @@ def run_tests(git_branch: str) -> str:
         f"Git branch set to {git_branch}.\n{gh_sp.returncode=}\n{gh_sp.stdout=}\n{gh_sp.stderr=}"
     )
 
-    pytest_sp = subprocess.run("pytest".split(), check=False, capture_output=True)
+    pytest_sp = subprocess.run("pytest".split(), check=False, capture_output=True, shell=True)
     # "test/test_utils.py::test_task_result_persistend_and_accessed_by_hooks"
     utils.log(
         f"Pytest is done. {pytest_sp.returncode=}\n {pytest_sp.stdout=}\n {pytest_sp.stderr=}"
@@ -65,7 +65,7 @@ def run_tests(git_branch: str) -> str:
         raise RuntimeError(pytest_sp.stderr)
     # coverage.svg is used to show the coverage percentage in the github site
     sp = subprocess.run(
-        "coverage-badge -f -o coverage.svg".split(), check=False, capture_output=True
+        "coverage-badge -f -o coverage.svg".split(), check=False, capture_output=True, shell=True
     )
     utils.log(f"Coverage is done. {sp.returncode=}\n {sp.stdout=}\n {sp.stderr=}")
     if sp.stderr:
@@ -85,9 +85,8 @@ def run_tests(git_branch: str) -> str:
     task_runner=Config.SLURM_EXECUTOR,
 )
 def pytest_flow(git_branch: str = "main") -> None:
+    utils.log("Starting... tests")
     test_report = run_tests.submit(git_branch)
-    publish_artifact.submit(test_report)
-
-
-if __name__ == "__main__":
-    pytest_flow()
+    return test_report.result()
+    utils.log("Reporting...")
+    # publish_artifact.submit(test_report)
