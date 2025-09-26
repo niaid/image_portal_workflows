@@ -4,9 +4,8 @@ from typing import Optional
 import SimpleITK as sitk
 import SimpleITK.utilities as sitkutils
 
-from prefect import flow, task, unmapped, allow_failure
+from prefect import flow, task, allow_failure
 from pytools.meta import is_16bit
-from pytools.convert import file_to_uint8
 
 from em_workflows.utils import utils
 from em_workflows.file_path import FilePath
@@ -15,12 +14,12 @@ from em_workflows.dm_conversion.config import DMConfig
 from em_workflows.dm_conversion.constants import (
     LARGE_DIM,
     SMALL_DIM,
-    LARGE_2D,
-    SMALL_2D,
+    # LARGE_2D,
+    # SMALL_2D,
+    # KEYIMG_EXTS,
     TIFS_EXT,
     DMS_EXT,
     MRCS_EXT,
-    KEYIMG_EXTS,
     VALID_2D_INPUT_EXTS,
 )
 
@@ -124,7 +123,6 @@ def _write_image_as_size(
 
 @task(
     name="Convert EM images to tiff",
-    on_failure=[utils.collect_exception_task_hook],
 )
 def convert_em_to_tiff(file_path: FilePath) -> Path:
     """
@@ -183,7 +181,7 @@ def convert_em_to_tiff(file_path: FilePath) -> Path:
 
 @task(
     name="Generate key and thumbnail jpeg images ",
-    on_failure=[utils.collect_exception_task_hook],
+    task_run_name="Generate JPEG {file_path.fp_in}",
 )
 def generate_jpegs(file_path: FilePath) -> dict:
     """
@@ -234,6 +232,7 @@ def generate_jpegs(file_path: FilePath) -> dict:
     name="Small 2D",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
+    task_runner=DMConfig.get_slurm_task_runner(Path(__file__).resolve().parent),
     on_completion=[utils.notify_api_completion],
     on_failure=[utils.notify_api_completion],
     on_crashed=[utils.notify_api_completion],
@@ -258,29 +257,25 @@ def dm_flow(
     input_dir_fp_future = utils.get_input_dir.submit(
         share_name=file_share, input_dir=input_dir
     )
-    input_dir_fp = input_dir_fp_future.result()
 
     input_fps_future = utils.list_files.submit(
-        input_dir_fp,
+        input_dir_fp_future,
         VALID_2D_INPUT_EXTS,
         single_file=x_file_name,
     )
-    input_fps = input_fps_future.result()
 
     fps_future = utils.gen_fps.submit(
-        share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
+        share_name=file_share, input_dir=input_dir_fp_future, fps_in=input_fps_future
     )
-    fps = fps_future.result()
 
-    prim_fps = generate_jpegs.map(fps)
+    prim_fps = generate_jpegs.map(fps_future, return_state=True)
 
     callback_result = list()
-    for idx, (fp, cb) in enumerate(zip(fps, prim_fps)):
+    for idx, (fp, cb) in enumerate(zip(fps_future.result(), prim_fps)):
         try:
-            result = cb.result()
-            callback_result.append(result)
+            callback_result.append(cb.result())
         except Exception as e:
-            callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}"))
+            callback_result.append(fp.gen_prim_fp_elt(f"Error: {str(e)}."))
 
     send_callback_task = utils.send_callback_body.submit(
         x_no_api=x_no_api,
@@ -290,7 +285,7 @@ def dm_flow(
     )
 
     utils.final_cleanup_task.submit(
-        fps, x_keep_workdir, wait_for=[allow_failure(send_callback_task)]
+        fps_future, x_keep_workdir, wait_for=[allow_failure(send_callback_task)]
     )
 
     return callback_result

@@ -63,28 +63,8 @@ def lookup_dims(fp: Path) -> Header:
         return xyz_cleaned
 
 
-def collect_exception_task_hook(task: Task, task_run: TaskRun, state: State):
-    """
-    This task hook should be used with tasks where you intend to know which step of the flow run broke.
-    Since most of our tasks are mapped by default using filepaths, it takes map index into account as well
-    So that we can notify the user, 'this step of this file broke'.
-    The message is written to a file using prefect's local storage.
-    In order to retrieve it, the flow needs to have a logic at the end,
-        to lookup for this file with exception message if the task run has failed.
-    """
-    message = f"Failure in pipeline step: {task.name}"
-    map_idx = task_run.name.split("-")[-1]
-    flow_run_id = state.state_details.flow_run_id
-    path = f"{flow_run_id}__{map_idx}"
-    try:
-        Config.local_storage.read_path(path)
-    except ValueError:  # ValueError path not found
-        Config.local_storage.write_path(path, message.encode())
-
-
 @task(
     name="mrc to movie generation",
-    on_failure=[collect_exception_task_hook],
 )
 def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
     """
@@ -357,7 +337,6 @@ def copy_template(working_dir: Path, template_name: str) -> Path:
     name="Batchruntomo conversion",
     tags=["brt"],
     # timeout_seconds=600,
-    on_failure=[collect_exception_task_hook],
 )
 def run_brt(
     file_path: FilePath,
@@ -568,9 +547,6 @@ def notify_api_running(
 #     return ns
 
 
-import asyncio
-
-
 async def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State) -> None:
     """
     https://docs.prefect.io/core/concepts/states.html#overview.
@@ -720,20 +696,6 @@ def send_callback_body(
         raise RuntimeError(
             "Invalid state - need callback_url and token, OR set x_no_api to True."
         )
-
-
-def copy_workdirs_and_cleanup_hook(flow, flow_run, state):
-    stored_result = Config.local_storage.read_path(f"{flow_run.id}__gen_fps")
-    fps: List[FilePath] = Config.pickle_serializer.loads(
-        json.loads(stored_result)["data"].encode()
-    )
-    parameters = flow_run.parameters
-    x_keep_workdir = parameters.get("x_keep_workdir", False)
-
-    for fp in fps:
-        copy_workdir_logs.fn(file_path=fp)
-
-    cleanup_workdir.fn(fps, x_keep_workdir)
 
 
 def callback_with_cleanup(
