@@ -1,8 +1,6 @@
-
-
-coverage==7.5.3
-coverage-badge==1.1.0
-pytest==8.2.2
+coverage
+coverage-badge
+pytest~=8.3
 pytest-cov==4.1.0
 pytest-env==1.1.5
 pytest-asyncio==0.23.7
