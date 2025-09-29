@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="../../">
 <head>
@@ -8,14 +6,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DM conversion flow &mdash; Image Portal Workflows  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
 
   
-      <script src="../../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -96,8 +98,146 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="dm-conversion-flow">
-<h1>DM conversion flow<a class="headerlink" href="#dm-conversion-flow" title="Link to this heading"></a></h1>
+  <section id="module-em_workflows.dm_conversion.flow">
+<span id="dm-conversion-flow"></span><h1>DM conversion flow<a class="headerlink" href="#module-em_workflows.dm_conversion.flow" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.dm_conversion.flow.dm_flow">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.dm_conversion.flow.</span></span><span class="sig-name descname"><span class="pre">dm_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_share</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_no_api</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_keep_workdir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#em_workflows.dm_conversion.flow.dm_flow" title="Link to this definition"></a></dt>
+<dd><ul class="simple">
+<li><p>List all inputs (files of a relevant input type)</p></li>
+<li><p>Create output directories</p></li>
+<li><p>Generate thumbnails and key images</p></li>
+<li><p>Post callback to the API with the access</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.dm_conversion.flow._calculate_shrink_factor">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.dm_conversion.flow.</span></span><span class="sig-name descname"><span class="pre">_calculate_shrink_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_2d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1024</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#em_workflows.dm_conversion.flow._calculate_shrink_factor" title="Link to this definition"></a></dt>
+<dd><p>Calculate the shrink factor for the newstack command to produce an image of the target size on the largest dimension.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.dm_conversion.flow._newstack_mrc_to_tiff">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.dm_conversion.flow.</span></span><span class="sig-name descname"><span class="pre">_newstack_mrc_to_tiff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_float</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#em_workflows.dm_conversion.flow._newstack_mrc_to_tiff" title="Link to this definition"></a></dt>
+<dd><p>Convert mrc files to tiff using newstack while reducing the size of the image, and performing antialiasing suitable
+for EM images.</p>
+<p><a class="reference external" href="https://bio3d.colorado.edu/imod/doc/man/newstack.html">https://bio3d.colorado.edu/imod/doc/man/newstack.html</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_fn</strong> – Input file path of a mrc file.</p></li>
+<li><p><strong>output_fn</strong> – Output file path of a tiff file.</p></li>
+<li><p><strong>log_fn</strong> – File path to a log file for the newstack command output.</p></li>
+<li><p><strong>use_float</strong> – If true uses the newstack “float” option to  fill the data range of the output. This range is
+computed after the shrink operation. If false, uses the “meansd” option with the default values of 140,50, which
+computed before the shrink operation.</p></li>
+<li><p><strong>verbose</strong> – If true, the newstack command is run in normal mode. Otherwise, quiet mode is enabled.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.dm_conversion.flow._write_image_as_size">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.dm_conversion.flow.</span></span><span class="sig-name descname"><span class="pre">_write_image_as_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compression_level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#em_workflows.dm_conversion.flow._write_image_as_size" title="Link to this definition"></a></dt>
+<dd><p>Resize the image to the specified size and write it to the output file path with the specified compression level.
+If the image is smaller than the specified size, it will not be resized.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>img</strong> – A SimpleITK image object.</p></li>
+<li><p><strong>size</strong></p></li>
+<li><p><strong>output_path</strong> – Path the output filename, the file extension should be .jpeg</p></li>
+<li><p><strong>compression_level</strong> – The compression level for the output image. 0-100, 0 is no compression, 100 is maximum compression.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.dm_conversion.flow.convert_em_to_tiff">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.dm_conversion.flow.</span></span><span class="sig-name descname"><span class="pre">convert_em_to_tiff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="headerlink" href="#em_workflows.dm_conversion.flow.convert_em_to_tiff" title="Link to this definition"></a></dt>
+<dd><p>Performs the conversion of EM images to tiff format, adjusting the dynamic range and reducing the size of the image.</p>
+<dl class="simple">
+<dt>Three types of files are detected to need conversion:</dt><dd><ul class="simple">
+<li><p>mrc files are converted to tiff using newstack</p></li>
+<li><p>16-bit tiff files are converted to 8-bit tiff</p></li>
+<li><p>dm3/dm4 files are converted to mrc using dm2mrc, then to tiff using newstack</p></li>
+</ul>
+</dd>
+<dt>EM images are broadly characterized by a low signal-to-noise ratio and a high dynamic range, often with potential</dt><dd><p>outliers. Using newstack with shrink and antialiasing kernels is required to reduce the noise to produce a
+high-quality tiff image. Additionally, to adjust the dynamic range, the meansd, or float options are used.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.dm_conversion.flow.generate_jpegs">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.dm_conversion.flow.</span></span><span class="sig-name descname"><span class="pre">generate_jpegs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#em_workflows.dm_conversion.flow.generate_jpegs" title="Link to this definition"></a></dt>
+<dd><p>Generates small and large jpegs from the input file and produce an asset dictionary.</p>
+<p>The input image is converted to tiff for certain EM image, if needed.</p>
+<p>SimpleITK is used to the original input or the converted tiff image to generate the jpegs.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.dm_conversion.flow.</span></span><span class="sig-name descname"><span class="pre">convert_em_to_tiff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd><p>Performs the conversion of EM images to tiff format, adjusting the dynamic range and reducing the size of the image.</p>
+<dl class="simple">
+<dt>Three types of files are detected to need conversion:</dt><dd><ul class="simple">
+<li><p>mrc files are converted to tiff using newstack</p></li>
+<li><p>16-bit tiff files are converted to 8-bit tiff</p></li>
+<li><p>dm3/dm4 files are converted to mrc using dm2mrc, then to tiff using newstack</p></li>
+</ul>
+</dd>
+<dt>EM images are broadly characterized by a low signal-to-noise ratio and a high dynamic range, often with potential</dt><dd><p>outliers. Using newstack with shrink and antialiasing kernels is required to reduce the noise to produce a
+high-quality tiff image. Additionally, to adjust the dynamic range, the meansd, or float options are used.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.dm_conversion.flow.</span></span><span class="sig-name descname"><span class="pre">generate_jpegs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<dd><p>Generates small and large jpegs from the input file and produce an asset dictionary.</p>
+<p>The input image is converted to tiff for certain EM image, if needed.</p>
+<p>SimpleITK is used to the original input or the converted tiff image to generate the jpegs.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.dm_conversion.flow.</span></span><span class="sig-name descname"><span class="pre">dm_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_share</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_no_api</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_keep_workdir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#id2" title="Link to this definition"></a></dt>
+<dd><ul class="simple">
+<li><p>List all inputs (files of a relevant input type)</p></li>
+<li><p>Create output directories</p></li>
+<li><p>Generate thumbnails and key images</p></li>
+<li><p>Post callback to the API with the access</p></li>
+</ul>
+</dd></dl>
+
 </section>
 
 

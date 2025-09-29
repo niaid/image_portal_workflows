@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="../../">
 <head>
@@ -8,14 +6,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>sem tomo flow &mdash; Image Portal Workflows  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
 
   
-      <script src="../../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -96,8 +98,229 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="sem-tomo-flow">
-<h1>sem tomo flow<a class="headerlink" href="#sem-tomo-flow" title="Link to this heading"></a></h1>
+  <section id="module-em_workflows.sem_tomo.flow">
+<span id="sem-tomo-flow"></span><h1>sem tomo flow<a class="headerlink" href="#module-em_workflows.sem_tomo.flow" title="Link to this heading"></a></h1>
+<section id="sem-tomo-pipeline-overview">
+<h2>Sem Tomo pipeline overview:<a class="headerlink" href="#sem-tomo-pipeline-overview" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>Single directory is used to contain a set of gifs, which make up a single stack.</p></li>
+<li><p>tifs compiled into a single mrc file (source.mrc) in convert_tif_to_mrc()</p></li>
+<li><p>two metadata files (align xf, and align xg, are generated to allow creation of aligned mrc file (align.mrc)</p></li>
+<li><p>another mrc file is created, which tries to correct for stage tilt (needs stretch file).</p></li>
+</ul>
+<p>This file is called corrected.mrc. Note, if no correction is needed, a correction.mrc is
+still created, but without any actual correction of angle.</p>
+<p>The corrected mrc file is then contrast adjusted with mean std dev magic numbers “150,40”
+in gen_newstack_norm_command() this is referred to as the base mrc
+- A movie is created using the base.mrc file.
+- the midpoint of that file is computed, and snapshots are created using this midpoint.
+- We now want to create the pyramid assets, for neuroglancer / viewer.
+- Firstly create nifti file using the base mrc, then convert this to ng format.
+- To conclude, send callback stating the location of the various outputs.</p>
+</div></blockquote>
+</section>
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.sem_tomo.flow.gen_xfalign_comand">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_xfalign_comand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#em_workflows.sem_tomo.flow.gen_xfalign_comand" title="Link to this definition"></a></dt>
+<dd><p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xfalign</span> <span class="o">-</span><span class="n">pa</span> <span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">pr</span> <span class="n">source</span><span class="o">.</span><span class="n">mrc</span> <span class="n">align</span><span class="o">.</span><span class="n">xf</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.sem_tomo.flow.gen_align_xg">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_align_xg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#em_workflows.sem_tomo.flow.gen_align_xg" title="Link to this definition"></a></dt>
+<dd><p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xftoxg</span> <span class="o">-</span><span class="n">ro</span> <span class="o">-</span><span class="n">mi</span> <span class="mi">2</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">align</span><span class="o">.</span><span class="n">xf</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">align</span><span class="o">.</span><span class="n">xg</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.sem_tomo.flow.convert_tif_to_mrc">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">convert_tif_to_mrc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#em_workflows.sem_tomo.flow.convert_tif_to_mrc" title="Link to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">Generates source.mrc</div>
+<div class="line">assumes there’s tifs in input dir, uses all the tifs in dir</div>
+<div class="line">eg::</div>
+</div>
+<blockquote>
+<div><p>tif2mrc {DATAPATH}/<a href="#id1"><span class="problematic" id="id2">*</span></a>.tif {WORKDIR}/Source.mrc</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.sem_tomo.flow.create_stretch_file">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">create_stretch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tilt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#em_workflows.sem_tomo.flow.create_stretch_file" title="Link to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">Creates stretch.xf used to gen corrected.mrc</div>
+<div class="line">File looks like:</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">0</span> <span class="pre">0</span> <span class="pre">{TILT_PARAMETER}</span> <span class="pre">0</span> <span class="pre">0</span></code></p>
+<div class="line-block">
+<div class="line">where TILT_PARAMETER is calculated as 1/cos({TILT_ANGLE}).</div>
+<div class="line">Note that tilt angle is input in degrees, however cos method expects radians</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.sem_tomo.flow.gen_newstack_mid_mrc_command">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_newstack_mid_mrc_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#em_workflows.sem_tomo.flow.gen_newstack_mid_mrc_command" title="Link to this definition"></a></dt>
+<dd><p>Generates mid.mrc. eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">newstack</span> <span class="o">-</span><span class="n">secs</span> <span class="p">{</span><span class="n">MIDZ</span><span class="p">}</span><span class="o">-</span><span class="p">{</span><span class="n">MIDZ</span><span class="p">}</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="p">{</span><span class="n">BASENAME</span><span class="p">}</span><span class="o">.</span><span class="n">mrc</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">mid</span><span class="o">.</span><span class="n">mrc</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.sem_tomo.flow.gen_keyimg">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_keyimg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#em_workflows.sem_tomo.flow.gen_keyimg" title="Link to this definition"></a></dt>
+<dd><p>Generates keyimg (large thumb), eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mrc2tif</span> <span class="o">-</span><span class="n">j</span> <span class="o">-</span><span class="n">C</span> <span class="mi">0</span><span class="p">,</span><span class="mi">255</span> <span class="n">mid</span><span class="o">.</span><span class="n">mrc</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">keyimg_</span><span class="p">{</span><span class="n">BASENAME</span><span class="p">}</span><span class="o">.</span><span class="n">jpg</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.sem_tomo.flow.gen_keyimg_small">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_keyimg_small</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#em_workflows.sem_tomo.flow.gen_keyimg_small" title="Link to this definition"></a></dt>
+<dd><p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">convert</span> <span class="o">-</span><span class="n">size</span> <span class="mi">300</span><span class="n">x300</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">keyimg_</span><span class="p">{</span><span class="n">BASENAME</span><span class="p">}</span><span class="o">.</span><span class="n">jpg</span>                 <span class="o">-</span><span class="n">resize</span> <span class="mi">300</span><span class="n">x300</span> <span class="o">-</span><span class="n">sharpen</span> <span class="mi">2</span> <span class="o">-</span><span class="n">quality</span> <span class="mi">70</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">keyimg_</span><span class="p">{</span><span class="n">BASENAME</span><span class="p">}</span><span class="n">_s</span><span class="o">.</span><span class="n">jpg</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.sem_tomo.flow.gen_ng_metadata">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_ng_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../file_path.html#file_path.FilePath" title="file_path.FilePath"><span class="pre">FilePath</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#em_workflows.sem_tomo.flow.gen_ng_metadata" title="Link to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">Initialize HedwigZarrImages instace from .zarr group array</div>
+<div class="line">For each HedwigZarrImage obtain their metadata, consisting of:</div>
+</div>
+<ul class="simple">
+<li><p>shader_type</p></li>
+<li><p>dimension</p></li>
+<li><p>neuroglancer shader parameters</p></li>
+</ul>
+<div class="line-block">
+<div class="line">Note; the seemingly redundancy of working and asset fp here.</div>
+<div class="line">However asset fp is in the network file system and is deployed for access to the users</div>
+<div class="line">Working fp is actually used for getting the metadata</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_xfalign_comand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FilePath</span></span></span><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd><p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xfalign</span> <span class="o">-</span><span class="n">pa</span> <span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">pr</span> <span class="n">source</span><span class="o">.</span><span class="n">mrc</span> <span class="n">align</span><span class="o">.</span><span class="n">xf</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id3">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_align_xg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FilePath</span></span></span><a class="headerlink" href="#id3" title="Link to this definition"></a></dt>
+<dd><p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">xftoxg</span> <span class="o">-</span><span class="n">ro</span> <span class="o">-</span><span class="n">mi</span> <span class="mi">2</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">align</span><span class="o">.</span><span class="n">xf</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">align</span><span class="o">.</span><span class="n">xg</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.sem_tomo.flow.gen_newstack_combi">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_newstack_combi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stretch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#em_workflows.sem_tomo.flow.gen_newstack_combi" title="Link to this definition"></a></dt>
+<dd><p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">newstack</span> <span class="o">-</span><span class="n">x</span> <span class="n">align</span><span class="o">.</span><span class="n">xg</span> <span class="o">-</span><span class="n">x</span> <span class="n">stretch</span><span class="o">.</span><span class="n">xf</span> <span class="o">-</span><span class="n">meansd</span> <span class="mi">150</span><span class="p">,</span><span class="mi">40</span> <span class="o">-</span><span class="n">mo</span> <span class="mi">0</span> <span class="n">source</span><span class="o">.</span><span class="n">mrc</span> <span class="n">out</span><span class="o">.</span><span class="n">mrc</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id4">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">convert_tif_to_mrc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FilePath</span></span></span><a class="headerlink" href="#id4" title="Link to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">Generates source.mrc</div>
+<div class="line">assumes there’s tifs in input dir, uses all the tifs in dir</div>
+<div class="line">eg::</div>
+</div>
+<blockquote>
+<div><p>tif2mrc {DATAPATH}/<a href="#id5"><span class="problematic" id="id6">*</span></a>.tif {WORKDIR}/Source.mrc</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id7">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">create_stretch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tilt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#id7" title="Link to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">Creates stretch.xf used to gen corrected.mrc</div>
+<div class="line">File looks like:</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">0</span> <span class="pre">0</span> <span class="pre">{TILT_PARAMETER}</span> <span class="pre">0</span> <span class="pre">0</span></code></p>
+<div class="line-block">
+<div class="line">where TILT_PARAMETER is calculated as 1/cos({TILT_ANGLE}).</div>
+<div class="line">Note that tilt angle is input in degrees, however cos method expects radians</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id8">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_newstack_mid_mrc_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FilePath</span></span></span><a class="headerlink" href="#id8" title="Link to this definition"></a></dt>
+<dd><p>Generates mid.mrc. eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">newstack</span> <span class="o">-</span><span class="n">secs</span> <span class="p">{</span><span class="n">MIDZ</span><span class="p">}</span><span class="o">-</span><span class="p">{</span><span class="n">MIDZ</span><span class="p">}</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="p">{</span><span class="n">BASENAME</span><span class="p">}</span><span class="o">.</span><span class="n">mrc</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">mid</span><span class="o">.</span><span class="n">mrc</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id9">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_keyimg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#id9" title="Link to this definition"></a></dt>
+<dd><p>Generates keyimg (large thumb), eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mrc2tif</span> <span class="o">-</span><span class="n">j</span> <span class="o">-</span><span class="n">C</span> <span class="mi">0</span><span class="p">,</span><span class="mi">255</span> <span class="n">mid</span><span class="o">.</span><span class="n">mrc</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">keyimg_</span><span class="p">{</span><span class="n">BASENAME</span><span class="p">}</span><span class="o">.</span><span class="n">jpg</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id10">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_keyimg_small</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#id10" title="Link to this definition"></a></dt>
+<dd><p>eg:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">convert</span> <span class="o">-</span><span class="n">size</span> <span class="mi">300</span><span class="n">x300</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">keyimg_</span><span class="p">{</span><span class="n">BASENAME</span><span class="p">}</span><span class="o">.</span><span class="n">jpg</span>                 <span class="o">-</span><span class="n">resize</span> <span class="mi">300</span><span class="n">x300</span> <span class="o">-</span><span class="n">sharpen</span> <span class="mi">2</span> <span class="o">-</span><span class="n">quality</span> <span class="mi">70</span> <span class="p">{</span><span class="n">WORKDIR</span><span class="p">}</span><span class="o">/</span><span class="n">hedwig</span><span class="o">/</span><span class="n">keyimg_</span><span class="p">{</span><span class="n">BASENAME</span><span class="p">}</span><span class="n">_s</span><span class="o">.</span><span class="n">jpg</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.sem_tomo.flow.gen_zarr">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_zarr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">FilePath</span></span></span><a class="headerlink" href="#em_workflows.sem_tomo.flow.gen_zarr" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="id11">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">gen_ng_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">FilePath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="headerlink" href="#id11" title="Link to this definition"></a></dt>
+<dd><div class="line-block">
+<div class="line">Initialize HedwigZarrImages instace from .zarr group array</div>
+<div class="line">For each HedwigZarrImage obtain their metadata, consisting of:</div>
+</div>
+<ul class="simple">
+<li><p>shader_type</p></li>
+<li><p>dimension</p></li>
+<li><p>neuroglancer shader parameters</p></li>
+</ul>
+<div class="line-block">
+<div class="line">Note; the seemingly redundancy of working and asset fp here.</div>
+<div class="line">However asset fp is in the network file system and is deployed for access to the users</div>
+<div class="line">Working fp is actually used for getting the metadata</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="em_workflows.sem_tomo.flow.sem_tomo_flow">
+<span class="sig-prename descclassname"><span class="pre">em_workflows.sem_tomo.flow.</span></span><span class="sig-name descname"><span class="pre">sem_tomo_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_share</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_no_api</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_keep_workdir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tilt_angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#em_workflows.sem_tomo.flow.sem_tomo_flow" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 </section>
 
 

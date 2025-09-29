@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="./">
 <head>
@@ -7,14 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Index &mdash; Image Portal Workflows  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
   
-      <script src="_static/jquery.js?v=5d32c60e"></script>
-      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=5929fcd5"></script>
-      <script src="_static/doctools.js?v=9bcbadda"></script>
-      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="#" />
     <link rel="search" title="Search" href="search.html" /> 
@@ -77,7 +79,8 @@
 <h1 id="index">Index</h1>
 
 <div class="genindex-jumpbox">
- <a href="#A"><strong>A</strong></a>
+ <a href="#_"><strong>_</strong></a>
+ | <a href="#A"><strong>A</strong></a>
  | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
@@ -103,13 +106,31 @@
  | <a href="#Z"><strong>Z</strong></a>
  
 </div>
-<h2 id="A">A</h2>
+<h2 id="_">_</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/utils/utils.html#em_workflows.utils.utils.BrtOutput.ali_file">ali_file (em_workflows.utils.utils.BrtOutput attribute)</a>
+      <li><a href="api/dm_conversion/flow.html#em_workflows.dm_conversion.flow._calculate_shrink_factor">_calculate_shrink_factor() (in module em_workflows.dm_conversion.flow)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dm_conversion/flow.html#em_workflows.dm_conversion.flow._newstack_mrc_to_tiff">_newstack_mrc_to_tiff() (in module em_workflows.dm_conversion.flow)</a>
+</li>
+      <li><a href="api/dm_conversion/flow.html#em_workflows.dm_conversion.flow._write_image_as_size">_write_image_as_size() (in module em_workflows.dm_conversion.flow)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.add_asset">add_asset() (in module em_workflows.utils.utils)</a>
+</li>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.add_imageSet">add_imageSet() (in module em_workflows.utils.utils)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.BrtOutput.ali_file">ali_file (em_workflows.utils.utils.BrtOutput attribute)</a>
+</li>
       <li><a href="api/file_path.html#file_path.FilePath.assets_dir">assets_dir (file_path.FilePath property)</a>
 </li>
       <li><a href="api/config.html#config.Config.assets_dir">assets_dir() (config.Config static method)</a>
@@ -132,6 +153,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/brt/constants.html#em_workflows.brt.constants.BRT_DEPTH">BRT_DEPTH (in module em_workflows.brt.constants)</a>
 </li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.brt_flow">brt_flow() (in module em_workflows.brt.flow)</a>
+</li>
       <li><a href="api/brt/constants.html#em_workflows.brt.constants.BRT_HEIGHT">BRT_HEIGHT (in module em_workflows.brt.constants)</a>
 </li>
       <li><a href="api/brt/constants.html#em_workflows.brt.constants.BRT_WIDTH">BRT_WIDTH (in module em_workflows.brt.constants)</a>
@@ -146,7 +169,9 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/utils/utils.html#em_workflows.utils.utils.callback_with_cleanup">callback_with_cleanup() (in module em_workflows.utils.utils)</a>
 </li>
-      <li><a href="api/utils/utils.html#em_workflows.utils.utils.collect_exception_task_hook">collect_exception_task_hook() (in module em_workflows.utils.utils)</a>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.cleanup_files">cleanup_files() (in module em_workflows.utils.utils)</a>
+</li>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.cleanup_workdir">cleanup_workdir() (in module em_workflows.utils.utils)</a>
 </li>
       <li>
     config
@@ -157,6 +182,14 @@
       </ul></li>
       <li><a href="api/config.html#config.Config">Config (class in config)</a>
 </li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.consolidate_ave_mrcs">consolidate_ave_mrcs() (in module em_workflows.brt.flow)</a>, <a href="api/brt/flow.html#id7">[1]</a>
+</li>
+      <li><a href="api/dm_conversion/flow.html#em_workflows.dm_conversion.flow.convert_em_to_tiff">convert_em_to_tiff() (in module em_workflows.dm_conversion.flow)</a>, <a href="api/dm_conversion/flow.html#id0">[1]</a>
+</li>
+      <li><a href="api/sem_tomo/flow.html#em_workflows.sem_tomo.flow.convert_tif_to_mrc">convert_tif_to_mrc() (in module em_workflows.sem_tomo.flow)</a>, <a href="api/sem_tomo/flow.html#id4">[1]</a>
+</li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.copy_asset_gen_elt">copy_asset_gen_elt() (in module em_workflows.brt.flow)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/utils/utils.html#em_workflows.utils.utils.copy_template">copy_template() (in module em_workflows.utils.utils)</a>
@@ -165,17 +198,29 @@
 </li>
       <li><a href="api/file_path.html#file_path.FilePath.copy_to_assets_dir">copy_to_assets_dir() (file_path.FilePath method)</a>
 </li>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.copy_workdir_logs">copy_workdir_logs() (in module em_workflows.utils.utils)</a>
+</li>
       <li><a href="api/file_path.html#file_path.FilePath.copy_workdir_logs_to_assets">copy_workdir_logs_to_assets() (file_path.FilePath method)</a>
 </li>
       <li><a href="api/file_path.html#file_path.FilePath.copy_workdir_to_assets">copy_workdir_to_assets() (file_path.FilePath method)</a>
 </li>
-      <li><a href="api/utils/utils.html#em_workflows.utils.utils.copy_workdirs_and_cleanup_hook">copy_workdirs_and_cleanup_hook() (in module em_workflows.utils.utils)</a>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.copy_workdirs">copy_workdirs() (in module em_workflows.utils.utils)</a>
+</li>
+      <li><a href="api/czi/flow.html#em_workflows.czi.flow.copy_zarr_to_assets_dir">copy_zarr_to_assets_dir() (in module em_workflows.czi.flow)</a>, <a href="api/czi/flow.html#id2">[1]</a>
+</li>
+      <li><a href="api/sem_tomo/flow.html#em_workflows.sem_tomo.flow.create_stretch_file">create_stretch_file() (in module em_workflows.sem_tomo.flow)</a>, <a href="api/sem_tomo/flow.html#id7">[1]</a>
+</li>
+      <li><a href="api/czi/flow.html#em_workflows.czi.flow.czi_flow">czi_flow() (in module em_workflows.czi.flow)</a>
 </li>
   </ul></td>
 </tr></table>
 
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/dm_conversion/flow.html#em_workflows.dm_conversion.flow.dm_flow">dm_flow() (in module em_workflows.dm_conversion.flow)</a>, <a href="api/dm_conversion/flow.html#id2">[1]</a>
+</li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/dm_conversion/constants.html#em_workflows.dm_conversion.constants.DMS_EXT">DMS_EXT (in module em_workflows.dm_conversion.constants)</a>
 </li>
@@ -193,10 +238,24 @@
 </li>
       </ul></li>
       <li>
+    em_workflows.brt.flow
+
+      <ul>
+        <li><a href="api/brt/flow.html#module-em_workflows.brt.flow">module</a>
+</li>
+      </ul></li>
+      <li>
     em_workflows.czi.constants
 
       <ul>
         <li><a href="api/czi/constants.html#module-em_workflows.czi.constants">module</a>
+</li>
+      </ul></li>
+      <li>
+    em_workflows.czi.flow
+
+      <ul>
+        <li><a href="api/czi/flow.html#module-em_workflows.czi.flow">module</a>
 </li>
       </ul></li>
       <li>
@@ -209,10 +268,24 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li>
+    em_workflows.dm_conversion.flow
+
+      <ul>
+        <li><a href="api/dm_conversion/flow.html#module-em_workflows.dm_conversion.flow">module</a>
+</li>
+      </ul></li>
+      <li>
     em_workflows.sem_tomo.constants
 
       <ul>
         <li><a href="api/sem_tomo/constants.html#module-em_workflows.sem_tomo.constants">module</a>
+</li>
+      </ul></li>
+      <li>
+    em_workflows.sem_tomo.flow
+
+      <ul>
+        <li><a href="api/sem_tomo/flow.html#module-em_workflows.sem_tomo.flow">module</a>
 </li>
       </ul></li>
       <li>
@@ -241,8 +314,6 @@
 </li>
       <li><a href="api/sem_tomo/constants.html#em_workflows.sem_tomo.constants.FIBSEM_HEIGHT">FIBSEM_HEIGHT (in module em_workflows.sem_tomo.constants)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/sem_tomo/constants.html#em_workflows.sem_tomo.constants.FIBSEM_WIDTH">FIBSEM_WIDTH (in module em_workflows.sem_tomo.constants)</a>
 </li>
       <li>
@@ -252,7 +323,15 @@
         <li><a href="api/file_path.html#module-file_path">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/file_path.html#file_path.FilePath">FilePath (class in file_path)</a>
+</li>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.final_cleanup_task">final_cleanup_task() (in module em_workflows.utils.utils)</a>
+</li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.find_middle_image">find_middle_image() (in module em_workflows.brt.flow)</a>
+</li>
+      <li><a href="api/czi/flow.html#em_workflows.czi.flow.find_thumb_idx">find_thumb_idx() (in module em_workflows.czi.flow)</a>, <a href="api/czi/flow.html#id6">[1]</a>
 </li>
   </ul></td>
 </tr></table>
@@ -260,15 +339,77 @@
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.gen_ali_asmbl">gen_ali_asmbl() (in module em_workflows.brt.flow)</a>, <a href="api/brt/flow.html#id1">[1]</a>
+</li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.gen_ali_x">gen_ali_x() (in module em_workflows.brt.flow)</a>, <a href="api/brt/flow.html#id0">[1]</a>
+</li>
+      <li><a href="api/sem_tomo/flow.html#em_workflows.sem_tomo.flow.gen_align_xg">gen_align_xg() (in module em_workflows.sem_tomo.flow)</a>, <a href="api/sem_tomo/flow.html#id3">[1]</a>
+</li>
       <li><a href="api/file_path.html#file_path.FilePath.gen_asset">gen_asset() (file_path.FilePath method)</a>
 </li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.gen_ave_8_vol">gen_ave_8_vol() (in module em_workflows.brt.flow)</a>, <a href="api/brt/flow.html#id8">[1]</a>
+</li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.gen_ave_jpgs_from_ave_mrc">gen_ave_jpgs_from_ave_mrc() (in module em_workflows.brt.flow)</a>, <a href="api/brt/flow.html#id9">[1]</a>
+</li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.gen_ave_mrc">gen_ave_mrc() (in module em_workflows.brt.flow)</a>
+</li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.gen_clip_avgs">gen_clip_avgs() (in module em_workflows.brt.flow)</a>, <a href="api/brt/flow.html#id6">[1]</a>
+</li>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.gen_dimension_command">gen_dimension_command() (in module em_workflows.utils.utils)</a>
+</li>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.gen_fps">gen_fps() (in module em_workflows.utils.utils)</a>
+</li>
+      <li><a href="api/sem_tomo/flow.html#em_workflows.sem_tomo.flow.gen_keyimg">gen_keyimg() (in module em_workflows.sem_tomo.flow)</a>, <a href="api/sem_tomo/flow.html#id9">[1]</a>
+</li>
+      <li><a href="api/sem_tomo/flow.html#em_workflows.sem_tomo.flow.gen_keyimg_small">gen_keyimg_small() (in module em_workflows.sem_tomo.flow)</a>, <a href="api/sem_tomo/flow.html#id10">[1]</a>
+</li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.gen_mrc2tiff">gen_mrc2tiff() (in module em_workflows.brt.flow)</a>, <a href="api/brt/flow.html#id2">[1]</a>
+</li>
+      <li><a href="api/sem_tomo/flow.html#em_workflows.sem_tomo.flow.gen_newstack_combi">gen_newstack_combi() (in module em_workflows.sem_tomo.flow)</a>
+</li>
+      <li><a href="api/sem_tomo/flow.html#em_workflows.sem_tomo.flow.gen_newstack_mid_mrc_command">gen_newstack_mid_mrc_command() (in module em_workflows.sem_tomo.flow)</a>, <a href="api/sem_tomo/flow.html#id8">[1]</a>
+</li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.gen_ng_metadata">gen_ng_metadata() (in module em_workflows.brt.flow)</a>
+
+      <ul>
+        <li><a href="api/sem_tomo/flow.html#em_workflows.sem_tomo.flow.gen_ng_metadata">(in module em_workflows.sem_tomo.flow)</a>, <a href="api/sem_tomo/flow.html#id11">[1]</a>
+</li>
+      </ul></li>
       <li><a href="api/file_path.html#file_path.FilePath.gen_output_fp">gen_output_fp() (file_path.FilePath method)</a>
 </li>
       <li><a href="api/file_path.html#file_path.FilePath.gen_prim_fp_elt">gen_prim_fp_elt() (file_path.FilePath method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.gen_prim_fps">gen_prim_fps() (in module em_workflows.utils.utils)</a>
+</li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.gen_recon_movie">gen_recon_movie() (in module em_workflows.brt.flow)</a>, <a href="api/brt/flow.html#id5">[1]</a>
+</li>
+      <li><a href="api/czi/flow.html#em_workflows.czi.flow.gen_thumb">gen_thumb() (in module em_workflows.czi.flow)</a>, <a href="api/czi/flow.html#id0">[1]</a>
+</li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.gen_thumbs">gen_thumbs() (in module em_workflows.brt.flow)</a>, <a href="api/brt/flow.html#id3">[1]</a>
+</li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.gen_tilt_movie">gen_tilt_movie() (in module em_workflows.brt.flow)</a>, <a href="api/brt/flow.html#id4">[1]</a>
+</li>
+      <li><a href="api/sem_tomo/flow.html#em_workflows.sem_tomo.flow.gen_xfalign_comand">gen_xfalign_comand() (in module em_workflows.sem_tomo.flow)</a>, <a href="api/sem_tomo/flow.html#id0">[1]</a>
+</li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.gen_zarr">gen_zarr() (in module em_workflows.brt.flow)</a>
+
+      <ul>
+        <li><a href="api/sem_tomo/flow.html#em_workflows.sem_tomo.flow.gen_zarr">(in module em_workflows.sem_tomo.flow)</a>
+</li>
+      </ul></li>
+      <li><a href="api/czi/flow.html#em_workflows.czi.flow.generate_czi_imageset">generate_czi_imageset() (in module em_workflows.czi.flow)</a>, <a href="api/czi/flow.html#id4">[1]</a>
+</li>
       <li><a href="api/utils/utils.html#em_workflows.utils.utils.generate_flow_run_name">generate_flow_run_name() (in module em_workflows.utils.utils)</a>
+</li>
+      <li><a href="api/czi/flow.html#em_workflows.czi.flow.generate_imageset">generate_imageset() (in module em_workflows.czi.flow)</a>, <a href="api/czi/flow.html#id3">[1]</a>
+</li>
+      <li><a href="api/dm_conversion/flow.html#em_workflows.dm_conversion.flow.generate_jpegs">generate_jpegs() (in module em_workflows.dm_conversion.flow)</a>, <a href="api/dm_conversion/flow.html#id1">[1]</a>
+</li>
+      <li><a href="api/czi/flow.html#em_workflows.czi.flow.generate_zarr">generate_zarr() (in module em_workflows.czi.flow)</a>, <a href="api/czi/flow.html#id5">[1]</a>
+</li>
+      <li><a href="api/brt/flow.html#em_workflows.brt.flow.get_callback_result">get_callback_result() (in module em_workflows.brt.flow)</a>
 </li>
       <li><a href="api/file_path.html#file_path.FilePath.get_environment">get_environment() (file_path.FilePath method)</a>
 
@@ -276,6 +417,10 @@
         <li><a href="api/utils/utils.html#em_workflows.utils.utils.get_environment">(in module em_workflows.utils.utils)</a>
 </li>
       </ul></li>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.get_input_dir">get_input_dir() (in module em_workflows.utils.utils)</a>
+</li>
+      <li><a href="api/config.html#config.Config.get_slurm_task_runner">get_slurm_task_runner() (config.Config static method)</a>
+</li>
       <li><a href="api/config.html#config.Config.gm_loc">gm_loc (config.Config attribute)</a>
 </li>
   </ul></td>
@@ -324,7 +469,9 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/dm_conversion/constants.html#em_workflows.dm_conversion.constants.LARGE_2D">LARGE_2D (in module em_workflows.dm_conversion.constants)</a>
 </li>
-      <li><a href="api/config.html#config.Config.local_storage">local_storage (config.Config attribute)</a>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.list_dirs">list_dirs() (in module em_workflows.utils.utils)</a>
+</li>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.list_files">list_files() (in module em_workflows.utils.utils)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -354,11 +501,19 @@
 </li>
         <li><a href="api/brt/constants.html#module-em_workflows.brt.constants">em_workflows.brt.constants</a>
 </li>
+        <li><a href="api/brt/flow.html#module-em_workflows.brt.flow">em_workflows.brt.flow</a>
+</li>
         <li><a href="api/czi/constants.html#module-em_workflows.czi.constants">em_workflows.czi.constants</a>
+</li>
+        <li><a href="api/czi/flow.html#module-em_workflows.czi.flow">em_workflows.czi.flow</a>
 </li>
         <li><a href="api/dm_conversion/constants.html#module-em_workflows.dm_conversion.constants">em_workflows.dm_conversion.constants</a>
 </li>
+        <li><a href="api/dm_conversion/flow.html#module-em_workflows.dm_conversion.flow">em_workflows.dm_conversion.flow</a>
+</li>
         <li><a href="api/sem_tomo/constants.html#module-em_workflows.sem_tomo.constants">em_workflows.sem_tomo.constants</a>
+</li>
+        <li><a href="api/sem_tomo/flow.html#module-em_workflows.sem_tomo.flow">em_workflows.sem_tomo.flow</a>
 </li>
         <li><a href="api/utils/neuroglancer.html#module-em_workflows.utils.neuroglancer">em_workflows.utils.neuroglancer</a>
 </li>
@@ -370,6 +525,8 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/config.html#config.Config.mrc2tif_loc">mrc2tif_loc (config.Config attribute)</a>
+</li>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.mrc_to_movie">mrc_to_movie() (in module em_workflows.utils.utils)</a>
 </li>
       <li><a href="api/dm_conversion/constants.html#em_workflows.dm_conversion.constants.MRCS_EXT">MRCS_EXT (in module em_workflows.dm_conversion.constants)</a>
 </li>
@@ -385,18 +542,18 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/utils/utils.html#em_workflows.utils.utils.notify_api_completion">notify_api_completion() (in module em_workflows.utils.utils)</a>
 </li>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.notify_api_running">notify_api_running() (in module em_workflows.utils.utils)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/config.html#config.Config.pickle_serializer">pickle_serializer (config.Config attribute)</a>
+      <li><a href="api/dm_conversion/constants.html#em_workflows.dm_conversion.constants.PNGS_EXT">PNGS_EXT (in module em_workflows.dm_conversion.constants)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/dm_conversion/constants.html#em_workflows.dm_conversion.constants.PNGS_EXT">PNGS_EXT (in module em_workflows.dm_conversion.constants)</a>
-</li>
       <li><a href="api/config.html#config.Config.proj_dir">proj_dir() (config.Config static method)</a>
 </li>
   </ul></td>
@@ -407,8 +564,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/utils/utils.html#em_workflows.utils.utils.BrtOutput.rec_file">rec_file (em_workflows.utils.utils.BrtOutput attribute)</a>
 </li>
-      <li><a href="api/utils/neuroglancer.html#em_workflows.utils.neuroglancer.rechunk_zarr">rechunk_zarr() (in module em_workflows.utils.neuroglancer)</a>
+      <li><a href="api/czi/flow.html#em_workflows.czi.flow.rechunk_zarr">rechunk_zarr() (in module em_workflows.czi.flow)</a>, <a href="api/czi/flow.html#id1">[1]</a>
+
+      <ul>
+        <li><a href="api/utils/neuroglancer.html#em_workflows.utils.neuroglancer.rechunk_zarr">(in module em_workflows.utils.neuroglancer)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/config.html#config.Config.repo_dir">repo_dir (config.Config attribute)</a>
@@ -417,18 +578,24 @@
 </li>
       <li><a href="api/file_path.html#file_path.FilePath.run">run() (file_path.FilePath static method)</a>
 </li>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.run_brt">run_brt() (in module em_workflows.utils.utils)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/config.html#config.setup_pytools_log">setup_pytools_log() (in module config)</a>
+      <li><a href="api/sem_tomo/flow.html#em_workflows.sem_tomo.flow.sem_tomo_flow">sem_tomo_flow() (in module em_workflows.sem_tomo.flow)</a>
 </li>
-      <li><a href="api/czi/constants.html#em_workflows.czi.constants.SITK_COMPRESSION_LVL">SITK_COMPRESSION_LVL (in module em_workflows.czi.constants)</a>
+      <li><a href="api/utils/utils.html#em_workflows.utils.utils.send_callback_body">send_callback_body() (in module em_workflows.utils.utils)</a>
+</li>
+      <li><a href="api/config.html#config.setup_pytools_log">setup_pytools_log() (in module config)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/czi/constants.html#em_workflows.czi.constants.SITK_COMPRESSION_LVL">SITK_COMPRESSION_LVL (in module em_workflows.czi.constants)</a>
+</li>
       <li><a href="api/config.html#config.SLURM_exec">SLURM_exec() (in module config)</a>
 </li>
       <li><a href="api/config.html#config.Config.SLURM_EXECUTOR">SLURM_EXECUTOR (config.Config attribute)</a>
@@ -465,6 +632,8 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/czi/flow.html#em_workflows.czi.flow.update_file_metadata">update_file_metadata() (in module em_workflows.czi.flow)</a>, <a href="api/czi/flow.html#id7">[1]</a>
+</li>
       <li><a href="api/config.html#config.Config.user">user (config.Config attribute)</a>
 </li>
   </ul></td>
