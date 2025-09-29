@@ -16,7 +16,7 @@ push:
 # https://docs.prefect.io/latest/api-ref/prefect/deployments/steps/pull/#prefect.deployments.steps.pull.set_working_directory
 pull:
 - prefect.deployments.steps.set_working_directory:
-    directory: /gs1/home/hedwig_prod/image_portal_workflows
+    directory: /data/home/svc_hpchedwig_dev/image_portal_workflows
 # - prefect.deployments.steps.git_clone:
 #     repository: git@github.com:niaid/image_portal_workflows.git
 #     branch: feature/prefect2

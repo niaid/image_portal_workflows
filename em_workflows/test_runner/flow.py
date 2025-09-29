@@ -13,6 +13,7 @@ These workflows are created simply to aid developers.
 """
 import os
 from pathlib import Path
+from datetime import datetime
 import subprocess
 
 from prefect import flow, task
@@ -24,10 +25,11 @@ from em_workflows.utils import utils
 
 @task
 def publish_artifact(report: str) -> None:
+    date = datetime.today().strftime("%Y-%m-%d")
     create_markdown_artifact(
         key="pytest-cov-report",
         markdown=report,
-        description="Pytest Coverage Report",
+        description=f"Pytest Coverage Report ({date})",
     )
 
 
@@ -63,13 +65,6 @@ def run_tests(git_branch: str) -> str:
     )
     if pytest_sp.stderr:
         raise RuntimeError(pytest_sp.stderr)
-    # coverage.svg is used to show the coverage percentage in the github site
-    sp = subprocess.run(
-        "coverage-badge -f -o coverage.svg".split(), check=False, capture_output=True, shell=True
-    )
-    utils.log(f"Coverage is done. {sp.returncode=}\n {sp.stdout=}\n {sp.stderr=}")
-    if sp.stderr:
-        raise RuntimeError(sp.stderr)
     report = pytest_sp.stdout.decode()
     # pytest returns a test report with warnings, failure details and more
     # However, the meat of the pytest report is after the ---- coverage: pattern
@@ -85,8 +80,5 @@ def run_tests(git_branch: str) -> str:
     task_runner=Config.SLURM_EXECUTOR,
 )
 def pytest_flow(git_branch: str = "main") -> None:
-    utils.log("Starting... tests")
     test_report = run_tests.submit(git_branch)
-    return test_report.result()
-    utils.log("Reporting...")
-    # publish_artifact.submit(test_report)
+    publish_artifact.submit(test_report)

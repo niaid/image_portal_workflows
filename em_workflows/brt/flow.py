@@ -626,9 +626,7 @@ def brt_flow(
     callback_with_tilt_mov = utils.add_asset.map(
         prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
-
  
-    # Send callback - must resolve futures for the callback API
     return utils.send_callback_body.submit(
         x_no_api=x_no_api,
         token=token,
