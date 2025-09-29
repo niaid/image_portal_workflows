@@ -12,13 +12,14 @@ from prefect.exceptions import UnfinishedRun
 async def test_input_fname(mock_nfs_mount, caplog, mock_reuse_zarr):
     from em_workflows.czi.flow import czi_flow
 
-    state = await czi_flow(
+    result = await czi_flow(
         file_share="test",
+        file_name="KC_M3_S2_ReducedImageSubset2.czi",
         input_dir="test/input_files/IF_czi/Projects/Cropped_Image/",
         x_no_api=True,
-        return_state=True,
     )
-    assert state.is_completed()
+    # In Prefect v3, flows return results directly, not state objects
+    assert result is not None
 
 
 @pytest.mark.asyncio
@@ -34,13 +35,12 @@ async def test_no_mount_point_flow_fails(mock_binaries, monkeypatch, caplog):
 
     monkeypatch.setattr(config, "NFS_MOUNT", _mock_NFS_MOUNT)
 
-    with pytest.raises(UnfinishedRun):
+    with pytest.raises(RuntimeError, match=f"{share_name} doesn't exist. Failing!"):
         await czi_flow(
             file_share=share_name,
             input_dir="test/input_files/IF_czi/Projects/Cropped_Image/",
             x_no_api=True,
         )
-    assert f"{share_name} doesn't exist. Failing!" in caplog.text, caplog.text
 
 
 @pytest.mark.asyncio

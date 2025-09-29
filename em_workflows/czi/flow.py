@@ -143,7 +143,8 @@ def generate_imageset(file_path: FilePath,
 @flow(
     name="SubFlow: Generate czi imageset",
     log_prints=True,
-    task_runner=CZIConfig.HIGH_SLURM_EXECUTOR,
+    # task_runner=CZIConfig.HIGH_SLURM_EXECUTOR,
+    task_runner=CZIConfig.get_slurm_task_runner(Path(__file__).resolve().parent),
 )
 async def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
     """
@@ -211,26 +212,24 @@ def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
 
 @flow(
     name="IF CZI",
+    version="1.2",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
-    task_runner=CZIConfig.SLURM_EXECUTOR,
+    task_runner=CZIConfig.get_slurm_task_runner(Path(__file__).resolve().parent),
     on_completion=[
         utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
     ],
     on_failure=[
         utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
     ],
     on_crashed=[
         utils.notify_api_completion,
-        utils.copy_workdirs_and_cleanup_hook,
     ],
 )
 async def czi_flow(
     file_share: str,
     input_dir: str,
-    x_file_name: Optional[str] = None,
+    file_name: Optional[str] = None,
     callback_url: Optional[str] = None,
     token: Optional[str] = None,
     x_no_api: bool = False,
@@ -245,40 +244,35 @@ async def czi_flow(
     input_fps = utils.list_files.submit(
         input_dir_fp,
         VALID_CZI_INPUTS,
-        single_file=x_file_name,
+        single_file=file_name,
     )
+
     fps = utils.gen_fps.submit(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
-    )
-    fp_results = fps.result()
+    ).result()
+    
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     imageSets = await asyncio.gather(
-        *[generate_czi_imageset(file_path=fp) for fp in fp_results]
+        *[generate_czi_imageset(file_path=fp) for fp in fps]
     )
     callback_with_zarrs = utils.add_imageSet.map(prim_fp=prim_fps, imageSet=imageSets)
     callback_with_zarrs = update_file_metadata.map(
         file_path=fps, callback_with_zarr=callback_with_zarrs
     )
 
-    callback_result = list()
-    for idx, (fp, cb) in enumerate(zip(fps.result(), callback_with_zarrs)):
-        state = cb.wait()
-        if state.is_completed():
-            callback_result.append(cb.result())
-        else:
-            path = f"{state.state_details.flow_run_id}__{idx}"
-            try:
-                message = CZIConfig.local_storage.read_path(path)
-                callback_result.append(fp.gen_prim_fp_elt(message.decode()))
-            except ValueError:
-                callback_result.append(fp.gen_prim_fp_elt("Something went wrong!"))
+    callback_with_idx = find_thumb_idx.submit(callback=callback_with_zarrs)
 
-    # we have to filter out incomplete mapped runs before this reduce step
-    callback_result = find_thumb_idx.submit(callback=callback_result)
-
-    utils.send_callback_body.submit(
+    send_callback_task = utils.send_callback_body.submit(
         x_no_api=x_no_api,
+        files_elts=callback_with_idx,
         token=token,
         callback_url=callback_url,
-        files_elts=callback_result,
+        wait_for=[utils.allow_failure(callback_with_zarrs)],
     )
+
+    # Prefect v3: wait_for is a valid keyword for .submit()
+    utils.final_cleanup_task.submit(
+        fps, x_keep_workdir, wait_for=[utils.allow_failure(send_callback_task)]
+    ).wait()
+
+    return send_callback_task
