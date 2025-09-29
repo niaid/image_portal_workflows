@@ -14,7 +14,7 @@ async def test_input_fname(mock_nfs_mount, caplog, mock_reuse_zarr):
 
     result = await czi_flow(
         file_share="test",
-        x_file_name="KC_M3_S2_ReducedImageSubset2.czi",
+        file_name="KC_M3_S2_ReducedImageSubset2.czi",
         input_dir="test/input_files/IF_czi/Projects/Cropped_Image/",
         x_no_api=True,
     )
