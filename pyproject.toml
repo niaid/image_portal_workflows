@@ -2,39 +2,41 @@
 name = "image-portal-workflows"
 version = "0.1.0"
 description = "Image portal workflows using Prefect, Dask, and scientific Python tools."
+readme = "README.rst"
 authors = [
-    { name = "Your Name", email = "your.email@example.com" }
+    { name = "Philip MacMenamin", email = "philip.macmenamin@nih.gov" },
+    { name = "Bradley Lowekamp", email = "blowekamp@mail.nih.gov" },
+    { name = "Anish Shrestha", email = "anish.shrestha@nih.gov" },
 ]
-requires-python = ">=3.11"
-
+requires-python = ">=3.13"
 dependencies = [
-    "prefect==3.4.8",
-    "prefect-dask==0.3.0",
-    "dask-jobqueue==0.8.5",
-    "griffe==1.7.3",
-    "python-dotenv==1.1.1",
-    "natsort==8.4.0",
-    "pytools",           # If installed from wheel, specify URL or leave as is
     "aiohttp==3.9.5",
-    "SimpleITK==2.3.1",
-    "Jinja2==3.1.6",
-    "requests==2.32.3"
+    "dask-jobqueue==0.9.0",
+    "griffe==1.7.3",
+    "jinja2==3.1.6",
+    "natsort==8.4.0",
+    "prefect[dask]==3.4.8",
+    "python-dotenv==1.1.1",
+    "pytools",
+    "requests==2.32.3",
+    "simpleitk==2.5.2",
 ]
 
-[project.optional-dependencies]
+[tool.uv.sources]
+pytools = { url = "https://github.com/niaid/tomojs-pytools/releases/download/v3.3.2/pytools-3.3.2-py3-none-any.whl" }
+dask-jobqueue = { git = "https://github.com/dask/dask-jobqueue.git", rev = "b07308ea36da20ba4a109e53799e1dc26b613762" }
+
+[dependency-groups]
 dev = [
-    "pytest==8.2.2",
-    "pytest-cov==4.1.0",
     "black==24.4.2",
-    "mypy==1.10.0"
-]
-
-[tool.black]
-line-length = 88
-target-version = ['py311']
-
-[tool.pytest.ini_options]
-addopts = "-v --cov=em_workflows --cov-report=term-missing"
-testpaths = [
-    "test"
+    "coverage>=7.10.7",
+    "coverage-badge>=1.1.2",
+    "flake8==7.0.0",
+    "pre-commit==3.7.0",
+    "pytest~=8.3",
+    "pytest-asyncio==0.23.7",
+    "pytest-cov==4.1.0",
+    "pytest-env==1.1.5",
+    "sphinx-autobuild==2021.3.14",
+    "sphinx-rtd-theme==2.0.0",
 ]
