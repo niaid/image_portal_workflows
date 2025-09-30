@@ -419,6 +419,6 @@ def sem_tomo_flow(
 
     utils.final_cleanup_task.submit(
         fps, x_keep_workdir, wait_for=[utils.allow_failure(send_callback_task)]
-    )
+    ).wait()
 
     return callback_result

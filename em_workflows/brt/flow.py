@@ -627,9 +627,15 @@ def brt_flow(
         prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
  
-    return utils.send_callback_body.submit(
+    send_callback_task = utils.send_callback_body.submit(
         x_no_api=x_no_api,
         token=token,
         callback_url=callback_url,
         files_elts=callback_with_tilt_mov,
     )
+
+    utils.final_cleanup_task.submit(
+        fps_future, x_keep_workdir, wait_for=[utils.allow_failure(send_callback_task)]
+    ).wait()
+
+    return callback_with_tilt_mov

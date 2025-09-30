@@ -287,6 +287,6 @@ def dm_flow(
 
     utils.final_cleanup_task.submit(
         fps_future, x_keep_workdir, wait_for=[allow_failure(send_callback_task)]
-    )
+    ).wait()
 
-    return prim_fps
+    return callback_result
