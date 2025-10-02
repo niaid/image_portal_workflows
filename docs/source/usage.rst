@@ -6,9 +6,9 @@ NOTE: You need to be in NIH VPN to be able to submit jobs for your workflow runs
 
 Workflow servers are deployed in `development <https://prefect2.hedwig-workflow-api.niaiddev.net>`_, `qa <https://prefect2.hedwig-workflow-api.niaidqa.net>`_, and `production <https://prefect2.hedwig-workflow-api.niaidprod.net>`_ environments separately.
 
-In order to submit a workflow job, you will need deployment IDs of each of the workflows, as shown:
+In order to submit a workflow job you will need deployment IDs of each of the workflows. To find these IDs, you can visit the respective server (eg dev etc), and view the deployments eg `here <https://prefect2.hedwig-workflow-api.niaidqa.net/deployments>`_. For convenience we make an attempt to duplicate the IDs in the table below, however it's possible they may change during active development and redeployment.
 
-.. list-table:: Deployment IDs (**Updated: 01/26/2023**)
+.. list-table:: Deployment IDs (**Updated: 10/01/2025**)
    :widths: 20 25 25 25
    :header-rows: 1
 
@@ -17,7 +17,7 @@ In order to submit a workflow job, you will need deployment IDs of each of the w
      - QA
      - Production
    * - 2D / DM conversion
-     - b8b3854d-396a-4b92-ad91-48f3ff32b18a
+     - f1cfe205-2d9b-43ad-a37d-69b41ef74251
      - 20ab41f5-3770-4834-97d0-33ce2f2d7c3e
      - a72f8c80-9c51-4b50-b2e5-1d27314bcccb
    * - FIBSEM
@@ -29,7 +29,7 @@ In order to submit a workflow job, you will need deployment IDs of each of the w
      - 6fcb4637-878f-4630-9f89-2bdea430ac3e
      - cdf92549-80d9-4f4e-bde7-30409ed20e41
    * - IF / Multichannel CZI
-     - c2f50018-7d11-4535-8c6e-b039bfa025bd
+     - f395d4ef-732f-4de5-98de-363f08f7be20
      - 208568ff-f487-4e10-bbd2-208640d39143
      - dccb9b62-cd2e-489d-ac12-f35b76b91fb1
    * - Large 2D PNG / ROI
