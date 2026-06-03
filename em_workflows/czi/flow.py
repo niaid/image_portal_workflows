@@ -1,20 +1,4 @@
 #!/usr/bin/env python3
-"""
-Immunofluorescence (IF) microscopy overview:
---------------------------------------------
-
-    - The CZI file format has been developed by ZEISS to store multidimensional IF images such as:
-        - z-stacks, time lapse, and multiposition experiments.
-    - We rely on applications like OME Bio-Formats / OMERO, Fiji, python-bioformats to view and process czi files
-    - The IF images are visualized with neuroglancer
-    - The file also consists of metadata along with label and macro (RGB) images
-
-Pipeline overview:
-------------------
-    - Convert czi file to OME-NGFF zarr format with OME XML
-    - Generate neuroglancer meta-data from zarr sub-image for each IF image
-    - Create thumbnail image from zarr label sub-image
-"""
 import asyncio
 from pathlib import Path
 from typing import List, Dict, Optional
