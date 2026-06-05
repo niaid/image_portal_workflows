@@ -1,6 +1,6 @@
-******
+********************************************
 Multi-channel Microscopy Workflow (CZI/SVS)
-******
+*******************************************
 
 Overview:
 
@@ -11,9 +11,9 @@ RGB brightfield images such as H&E-stained CZI slides. The workflow converts inp
 generates neuroglancer-compatible metadata, and creates thumbnail images for visualization and downstream analysis.
 
 Outputs:
- 1. OME-NGFF zarr file for each input file, including OME-XML metadata.
- 2. Neuroglancer metadata for each sub-image (scene/channel) in the zarr file.
- 3. Thumbnail JPEG image for each label sub-image.
+1. OME-NGFF zarr file for each input file, including OME-XML metadata.
+2. Neuroglancer metadata for each sub-image (scene/channel) in the zarr file.
+3. Thumbnail JPEG image for each label sub-image.
 
 .. list-table:: Supported Extensions for File Formats
    :header-rows: 1
