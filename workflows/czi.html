@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pipeline Steps &mdash; Image Portal Workflows  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Image Portal Workflows
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Project Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="index.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Submitting Jobs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hpc.html">RML HPC (Big Sky)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../prefect.html">Managing Prefect Server</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../prefect.html#managing-prefect-worker">Managing Prefect Worker</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Image Portal Workflows</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Pipeline Steps</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/workflows/czi.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p>Overview:</p>
+<p>This workflow is referred to externally by Hedwig as the <strong>Multi-channel</strong> pipeline. It processes multidimensional
+microscopy images stored in CZI (ZEISS) and SVS (Aperio) file formats. Supported image types include
+immunofluorescence (IF) multi-channel images (e.g., z-stacks, time lapse, and multiposition experiments) as well as
+RGB brightfield images such as H&amp;E-stained CZI slides. The workflow converts input files to OME-NGFF zarr format,
+generates neuroglancer-compatible metadata, and creates thumbnail images for visualization and downstream analysis.</p>
+<p>Outputs:
+1. OME-NGFF zarr file for each input file, including OME-XML metadata.
+2. Neuroglancer metadata for each sub-image (scene/channel) in the zarr file.
+3. Thumbnail JPEG image for each label sub-image.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Supported Extensions for File Formats</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Format Type</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Extensions</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>CZI</p></td>
+<td><p>ZEISS multidimensional microscopy image (IF multi-channel and RGB H&amp;E brightfield)</p></td>
+<td><p>czi, CZI</p></td>
+</tr>
+<tr class="row-odd"><td><p>SVS</p></td>
+<td><p>Aperio whole-slide image</p></td>
+<td><p>svs, SVS</p></td>
+</tr>
+</tbody>
+</table>
+<p>The workflow relies on OME <a class="reference external" href="https://www.openmicroscopy.org/bio-formats/">Bio-Formats</a> (via the <code class="docutils literal notranslate"><span class="pre">bioformats2raw</span></code> tool) for reading CZI and SVS files.
+Visualization is performed with <a class="reference external" href="https://github.com/google/neuroglancer">Neuroglancer</a>.</p>
+<section id="pipeline-steps">
+<h1>Pipeline Steps<a class="headerlink" href="#pipeline-steps" title="Link to this heading"></a></h1>
+<ol class="arabic">
+<li><p><strong>Input File to Zarr Conversion</strong>
+- Uses <code class="docutils literal notranslate"><span class="pre">bioformats2raw</span></code> to convert CZI or SVS files to <a class="reference external" href="https://ngff.openmicroscopy.org/">OME-NGFF</a> zarr format, preserving OME-XML metadata.
+- Output: <code class="docutils literal notranslate"><span class="pre">.zarr</span></code> directory for each input file.</p></li>
+<li><p><strong>Rechunking Zarr</strong>
+- Re-chunks the zarr structure so that multi-channel/RGB channels are not split between chunks, using</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">zarr_rechunk</span></code> from tomojs-pytools.</p>
+</div></blockquote>
+</li>
+<li><p><strong>Copy Zarr to Assets Directory</strong>
+- Copies the generated zarr files to the assets directory for downstream use.</p></li>
+<li><p><strong>Generate ImageSet and Thumbnails</strong>
+- For each sub-image in the zarr file:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Determines the shader type: <code class="docutils literal notranslate"><span class="pre">RGB</span></code> (for H&amp;E and other RGB images), <code class="docutils literal notranslate"><span class="pre">Grayscale</span></code>, or <code class="docutils literal notranslate"><span class="pre">MultiChannel</span></code>
+(for IF fluorescence images).</p></li>
+<li><p>Generates neuroglancer metadata (shader, dimensions, shader parameters).</p></li>
+<li><p>For label sub-images, generates a thumbnail JPEG using SimpleITK (rotated 90° for correct orientation).</p></li>
+<li><p>Macro sub-images are ignored.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><strong>Metadata Attachment</strong>
+- Attaches the OME-XML metadata file location to the zarr group for developer reference and provenance.</p></li>
+<li><p><strong>Callback and API Notification</strong>
+- Sends results and metadata to the API callback URL if provided.</p></li>
+</ol>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Summary of Input Image Types</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Format Type</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Processing Information</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>CZI (IF multi-channel)</p></td>
+<td><p>Multidimensional immunofluorescence image (z-stacks, time lapse, multiposition)</p></td>
+<td><p>Converted to OME-NGFF zarr; neuroglancer metadata generated with <code class="docutils literal notranslate"><span class="pre">MultiChannel</span></code> or <code class="docutils literal notranslate"><span class="pre">Grayscale</span></code> shader;
+thumbnails created for label sub-images.</p></td>
+</tr>
+<tr class="row-odd"><td><p>CZI (RGB H&amp;E)</p></td>
+<td><p>RGB brightfield whole-slide image (e.g., H&amp;E stained tissue)</p></td>
+<td><p>Converted to OME-NGFF zarr; neuroglancer metadata generated with <code class="docutils literal notranslate"><span class="pre">RGB</span></code> shader; thumbnails created for
+label sub-images.</p></td>
+</tr>
+<tr class="row-even"><td><p>SVS</p></td>
+<td><p>Aperio whole-slide image</p></td>
+<td><p>Converted to OME-NGFF zarr; neuroglancer metadata generated; thumbnails created for label sub-images.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>Macro sub-images in the input file are ignored by the workflow.</p></li>
+<li><p>Label sub-images are used for thumbnail generation; the thumbnail is rotated 90° for correct orientation.</p></li>
+<li><p>OME-XML metadata is attached to the output zarr for troubleshooting and provenance.</p></li>
+<li><p>The shader type (<code class="docutils literal notranslate"><span class="pre">RGB</span></code>, <code class="docutils literal notranslate"><span class="pre">Grayscale</span></code>, or <code class="docutils literal notranslate"><span class="pre">MultiChannel</span></code>) is determined automatically from the OME-XML
+metadata of each sub-image.</p></li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, NIAID.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
