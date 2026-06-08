@@ -628,7 +628,7 @@ async def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State) -> 
         async with session.post(
             callback_url, headers=headers, json={"status": status}
         ) as response:
-            hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
+            hooks_log = open(f"/data/home/svc_hpchedwig_dev/slurm-log/{flowrun_id}/notify-api-completion.txt", "w")
             hooks_log.write(
                 f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n"
             )
