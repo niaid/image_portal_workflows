@@ -1,20 +1,4 @@
 #!/usr/bin/env python3
-"""
-Immunofluorescence (IF) microscopy overview:
---------------------------------------------
-
-    - The CZI file format has been developed by ZEISS to store multidimensional IF images such as:
-        - z-stacks, time lapse, and multiposition experiments.
-    - We rely on applications like OME Bio-Formats / OMERO, Fiji, python-bioformats to view and process czi files
-    - The IF images are visualized with neuroglancer
-    - The file also consists of metadata along with label and macro (RGB) images
-
-Pipeline overview:
-------------------
-    - Convert czi file to OME-NGFF zarr format with OME XML
-    - Generate neuroglancer meta-data from zarr sub-image for each IF image
-    - Create thumbnail image from zarr label sub-image
-"""
 import asyncio
 from pathlib import Path
 from typing import List, Dict, Optional
@@ -46,7 +30,7 @@ def gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> d
     if sitk_image:
         output_jpeg = f"{file_path.working_dir}/{file_path.base}_{image_name}_sm.jpeg"
         if image_name == "label image":
-            # Rotate the image 90 CW
+            # Rotate the image 90
             sitk_image = sitk.Flip(sitk.PermuteAxes(sitk_image, [1, 0]), [True, False])
         sitk.WriteImage(
             sitk_image,
@@ -71,7 +55,7 @@ def rechunk_zarr(file_path: FilePath) -> None:
 @task
 def copy_zarr_to_assets_dir(file_path: FilePath) -> None:
     """
-    Copy the zarr files generated from czi files using bioformats2raw to assets folder
+    Copy the zarr files generated from CZI or SVS files using bioformats2raw to the assets folder
     """
     output_zarr = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
     file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
@@ -83,12 +67,12 @@ def generate_imageset(file_path: FilePath,
     """
     :param: use_default_dask: If True, reuses the Prefect Dask Scheduler for the ZARR and Dask array operations.
 
-    | ImageSet consists of all the assets for a particular zarr sub-image and label images
-    | Macro image is ignored
-    | Label image is added as an thumbnail asset
-    | Zarr sub-images are added as neurglancerZarr asset along with their metadata
+    | ImageSet consists of all the assets for a particular zarr sub-image and label sub-images.
+    | Macro sub-images are ignored.
+    | Label sub-images are added as thumbnail assets (JPEG, rotated 90° for correct orientation).
+    | Zarr sub-images are added as neuroglancerZarr assets along with their metadata.
     | Metadata includes:
-        - shader
+        - shader (RGB, Grayscale, or MultiChannel — determined from OME-XML metadata)
         - dimensions
         - shaderParameters
     """
@@ -141,20 +125,20 @@ def generate_imageset(file_path: FilePath,
 
 
 @flow(
-    name="SubFlow: Generate czi imageset",
+    name="SubFlow: Generate multi-channel imageset",
     log_prints=True,
     # task_runner=CZIConfig.HIGH_SLURM_EXECUTOR,
     task_runner=CZIConfig.get_slurm_task_runner(Path(__file__).resolve().parent),
 )
 async def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
     """
-    Subflow for heavy lifting operation
+    Subflow for per-file processing of CZI or SVS inputs.
 
     Overview:
-        - Generate zarr from czi
-        - Rechunk zarr files
+        - Convert input file (CZI or SVS) to OME-NGFF zarr using bioformats2raw
+        - Rechunk zarr so channels are not split between chunks
         - Copy zarr files to assets folder
-        - Generate imageset for the assets
+        - Generate imageset (neuroglancer metadata and thumbnails) for the assets
     """
     zarr_result = generate_zarr.submit(file_path)
     rechunk_result = rechunk_zarr.submit(file_path, wait_for=[zarr_result])
@@ -169,7 +153,7 @@ async def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
 @task
 def generate_zarr(file_path: FilePath):
     """
-    Uses bioformats2raw command to convert czi file to OME-NGFF zarr file
+    Uses bioformats2raw to convert a CZI or SVS input file to OME-NGFF zarr format.
     """
     input_czi = f"{file_path.proj_dir}/{file_path.base}.czi"
     ng.bioformats_gen_zarr(
@@ -211,7 +195,7 @@ def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
 
 
 @flow(
-    name="IF CZI",
+    name="Multi-channel",
     version="1.2",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
