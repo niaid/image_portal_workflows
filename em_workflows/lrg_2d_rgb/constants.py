@@ -6,4 +6,4 @@ SMALL_THUMB_X = SMALL_THUMB_Y = SMALL_DIM
 # JPEG image quality
 JPEG_QUAL = 90
 
-VALID_LRG_2D_RGB_INPUTS = ["png", "PNG"]
+VALID_LRG_2D_RGB_INPUTS = ["png", "PNG", "tif", "TIF", "tiff", "TIFF"]
