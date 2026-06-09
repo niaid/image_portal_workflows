@@ -187,7 +187,7 @@ def lrg_2d_flow(
     rechunk = rechunk_zarr.map(file_path=zarrs)
     copy_to_assets = copy_zarr_to_assets_dir.map(file_path=rechunk)
     zarr_assets = generate_ng_asset.map(file_path=copy_to_assets)
-    thumb_assets = gen_thumb.map(file_path=zarrs)
+    thumb_assets = gen_thumb.map(file_path=rechunk)
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     callback_with_thumbs = utils.add_asset.map(prim_fp=prim_fps, asset=thumb_assets)
     callback_with_pyramids = utils.add_asset.map(
