@@ -495,9 +495,8 @@ def list_files(
     _files = list()
     if single_file:
         log(f"Looking for single file: {single_file} in {input_dir}")
-        fp = Path(f"{input_dir}/{single_file}")
-        ext = fp.suffix.strip(".")
-        if ext in exts:
+        fp = input_dir / single_file
+        if any([single_file.endswith(f".{e}") for e in exts]):
             if not fp.exists():
                 raise RuntimeError(
                     f"Expected file: {single_file}, not found in input_dir"
