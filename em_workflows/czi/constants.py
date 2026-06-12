@@ -1,4 +1,4 @@
-VALID_CZI_INPUTS = ["czi", "CZI", "svs", "SVS"]
+VALID_CZI_INPUTS = ["czi", "CZI", "svs", "SVS", "ome.tiff", "OME.TIFF", "ome.tif", "OME.TIF"]
 SITK_COMPRESSION_LVL = 90
 THUMB_X_DIM = 300
 THUMB_Y_DUM = 300
