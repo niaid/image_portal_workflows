@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Large 2D RGB Workflow &mdash; Image Portal Workflows  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Image Portal Workflows
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Project Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="index.html">Workflows</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Submitting Jobs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hpc.html">RML HPC (Big Sky)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../prefect.html">Managing Prefect Server</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../prefect.html#managing-prefect-worker">Managing Prefect Worker</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Image Portal Workflows</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Large 2D RGB Workflow</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/workflows/large_2d.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="large-2d-rgb-workflow">
+<h1>Large 2D RGB Workflow<a class="headerlink" href="#large-2d-rgb-workflow" title="Link to this heading"></a></h1>
+<p>Overview:</p>
+<p>This workflow is referred to externally by Hedwig as the <strong>Flat 2D</strong> pipeline. It processes large 2D RGB images
+(PNG or TIFF) to produce an OME-NGFF zarr pyramid suitable for <a class="reference external" href="https://github.com/google/neuroglancer">Neuroglancer</a> visualization, along with a thumbnail
+and a key image for browsing. The pipeline is intended for any large 2D image that requires Neuroglancer
+visualization, including annotated micrographs, color composites, and other 2D figures.</p>
+<dl class="simple">
+<dt>Outputs:</dt><dd><ol class="arabic simple">
+<li><p>OME-NGFF zarr pyramid (neuroglancerZarr asset) for Neuroglancer visualization, including neuroglancer metadata.</p></li>
+<li><p>Thumbnail JPEG image — maximum 300 × 300 pixels, aspect ratio preserved.</p></li>
+<li><p>Key image JPEG — maximum 1024 × 1024 pixels, aspect ratio preserved.</p></li>
+</ol>
+</dd>
+</dl>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Supported Extensions for File Formats</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Format Type</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Extensions</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>PNG</p></td>
+<td><p>Portable Network Graphics</p></td>
+<td><p>png, PNG</p></td>
+</tr>
+<tr class="row-odd"><td><p>TIFF</p></td>
+<td><p>Tag Image File Format</p></td>
+<td><p>tif, TIF, tiff, TIFF</p></td>
+</tr>
+</tbody>
+</table>
+<p>The workflow uses <a class="reference external" href="https://imagemagick.org/">ImageMagick</a> for input normalization, OME <a class="reference external" href="https://www.openmicroscopy.org/bio-formats/">Bio-Formats</a> (via <code class="docutils literal notranslate"><span class="pre">bioformats2raw</span></code>) for zarr
+conversion, <code class="docutils literal notranslate"><span class="pre">zarr_rechunk</span></code> from tomojs-pytools for rechunking, and <a class="reference external" href="https://simpleitk.readthedocs.io/">SimpleITK</a> for thumbnail and key image
+generation. Visualization is performed with <a class="reference external" href="https://github.com/google/neuroglancer">Neuroglancer</a>.</p>
+<section id="pipeline-steps">
+<h2>Pipeline Steps<a class="headerlink" href="#pipeline-steps" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p><strong>Input Normalization to TIFF</strong>
+- Uses ImageMagick <code class="docutils literal notranslate"><span class="pre">convert</span></code> to produce a normalized TIFF from the input PNG or TIFF file.
+- Alpha transparency is removed and replaced with a white background.
+- Tile geometry is set to 128 × 128 pixels for downstream processing optimization.
+- Output: <code class="docutils literal notranslate"><span class="pre">.tiff</span></code> file in the working directory.</p></li>
+<li><p><strong>TIFF to Zarr Conversion</strong>
+- Uses <code class="docutils literal notranslate"><span class="pre">bioformats2raw</span></code> to convert the normalized TIFF to an <a class="reference external" href="https://ngff.openmicroscopy.org/">OME-NGFF</a> zarr pyramid.
+- Output: <code class="docutils literal notranslate"><span class="pre">.zarr</span></code> directory in the working directory.</p></li>
+<li><p><strong>Rechunking Zarr</strong>
+- Re-chunks the zarr structure so that multi-channel/RGB channels are not split between chunks, using</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">zarr_rechunk</span></code> from tomojs-pytools.</p>
+</div></blockquote>
+</li>
+<li><p><strong>Copy Zarr to Assets Directory</strong>
+- Copies the rechunked zarr to the assets directory for downstream access.</p></li>
+<li><p><strong>Generate Neuroglancer Asset</strong>
+- Reads the zarr from the working directory to compute metadata.
+- Determines the shader type (<code class="docutils literal notranslate"><span class="pre">RGB</span></code>, <code class="docutils literal notranslate"><span class="pre">Grayscale</span></code>, or <code class="docutils literal notranslate"><span class="pre">MultiChannel</span></code>) automatically from the image data.
+- Produces a <code class="docutils literal notranslate"><span class="pre">neuroglancerZarr</span></code> asset pointing to the <code class="docutils literal notranslate"><span class="pre">0</span></code> (full-resolution) level of the zarr in the</p>
+<blockquote>
+<div><p>assets directory, along with neuroglancer metadata (shader, dimensions, shaderParameters).</p>
+</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">dimensions</span></code> field is currently hardcoded to <code class="docutils literal notranslate"><span class="pre">XY</span></code> as the GUI does not accept <code class="docutils literal notranslate"><span class="pre">XYC</span></code> for this
+pipeline.</p>
+</div>
+</li>
+<li><p><strong>Generate Thumbnail and Key Image</strong>
+- Uses <a class="reference external" href="https://simpleitk.readthedocs.io/">SimpleITK</a> to extract and resize the image from the working zarr.
+- Thumbnail: maximum 300 × 300 pixels, written as JPEG (quality 90).
+- Key image: maximum 1024 × 1024 pixels, written as JPEG (quality 90).
+- Both images are copied to the assets directory.</p></li>
+<li><p><strong>Callback and API Notification</strong>
+- Sends results and metadata to the API callback URL if provided.</p></li>
+</ol>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Summary of Input Image Types</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Format Type</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Processing Information</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>PNG</p></td>
+<td><p>Color or grayscale PNG image, possibly with alpha transparency</p></td>
+<td><p>Normalized to TIFF (alpha removed, white background); converted to OME-NGFF zarr;
+neuroglancer metadata and thumbnail/key image generated.</p></td>
+</tr>
+<tr class="row-odd"><td><p>TIFF</p></td>
+<td><p>Color or grayscale TIFF image</p></td>
+<td><p>Normalized to TIFF (alpha removed, white background); converted to OME-NGFF zarr;
+neuroglancer metadata and thumbnail/key image generated.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>All inputs pass through the TIFF normalization step regardless of format. This ensures a consistent
+tiled TIFF with alpha removed for reliable zarr conversion.</p></li>
+<li><p>The shader type (<code class="docutils literal notranslate"><span class="pre">RGB</span></code>, <code class="docutils literal notranslate"><span class="pre">Grayscale</span></code>, or <code class="docutils literal notranslate"><span class="pre">MultiChannel</span></code>) is determined automatically from the image data.</p></li>
+<li><p>Thumbnail and key image dimensions preserve the aspect ratio and will be at most the stated maximum size.</p></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, NIAID.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
