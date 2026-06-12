@@ -11,3 +11,5 @@ Workflows
 .. include:: spatialomics.rst
 
 .. include:: 2d_EM.rst
+
+.. include:: large_2d.rst
