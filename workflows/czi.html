@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pipeline Steps &mdash; Image Portal Workflows  documentation</title>
+  <title>Multi-channel Microscopy Workflow (CZI/SVS/OME-TIFF) &mdash; Image Portal Workflows  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
 
@@ -67,7 +67,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Pipeline Steps</li>
+      <li class="breadcrumb-item active">Multi-channel Microscopy Workflow (CZI/SVS/OME-TIFF)</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/workflows/czi.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -77,9 +77,11 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <p>Overview:</p>
+  <section id="multi-channel-microscopy-workflow-czi-svs-ome-tiff">
+<h1>Multi-channel Microscopy Workflow (CZI/SVS/OME-TIFF)<a class="headerlink" href="#multi-channel-microscopy-workflow-czi-svs-ome-tiff" title="Link to this heading"></a></h1>
+<p>Overview:</p>
 <p>This workflow is referred to externally by Hedwig as the <strong>Multi-channel</strong> pipeline. It processes multidimensional
-microscopy images stored in CZI (ZEISS) and SVS (Aperio) file formats. Supported image types include
+microscopy images stored in CZI (ZEISS), SVS (Aperio), and OME-TIFF file formats. Supported image types include
 immunofluorescence (IF) multi-channel images (e.g., z-stacks, time lapse, and multiposition experiments) as well as
 RGB brightfield images such as H&amp;E-stained CZI slides. The workflow converts input files to OME-NGFF zarr format,
 generates neuroglancer-compatible metadata, and creates thumbnail images for visualization and downstream analysis.</p>
@@ -104,15 +106,19 @@ generates neuroglancer-compatible metadata, and creates thumbnail images for vis
 <td><p>Aperio whole-slide image</p></td>
 <td><p>svs, SVS</p></td>
 </tr>
+<tr class="row-even"><td><p>OME-TIFF</p></td>
+<td><p>Open Microscopy Environment TIFF; supports single-file and multi-file datasets with modality interpreted from embedded OME-XML metadata</p></td>
+<td><p>ome.tiff, OME.TIFF, ome.tif, OME.TIF</p></td>
+</tr>
 </tbody>
 </table>
-<p>The workflow relies on OME <a class="reference external" href="https://www.openmicroscopy.org/bio-formats/">Bio-Formats</a> (via the <code class="docutils literal notranslate"><span class="pre">bioformats2raw</span></code> tool) for reading CZI and SVS files.
+<p>The workflow relies on OME <a class="reference external" href="https://www.openmicroscopy.org/bio-formats/">Bio-Formats</a> (via the <code class="docutils literal notranslate"><span class="pre">bioformats2raw</span></code> tool) for reading CZI, SVS, and OME-TIFF files.
 Visualization is performed with <a class="reference external" href="https://github.com/google/neuroglancer">Neuroglancer</a>.</p>
 <section id="pipeline-steps">
-<h1>Pipeline Steps<a class="headerlink" href="#pipeline-steps" title="Link to this heading"></a></h1>
+<h2>Pipeline Steps<a class="headerlink" href="#pipeline-steps" title="Link to this heading"></a></h2>
 <ol class="arabic">
 <li><p><strong>Input File to Zarr Conversion</strong>
-- Uses <code class="docutils literal notranslate"><span class="pre">bioformats2raw</span></code> to convert CZI or SVS files to <a class="reference external" href="https://ngff.openmicroscopy.org/">OME-NGFF</a> zarr format, preserving OME-XML metadata.
+- Uses <code class="docutils literal notranslate"><span class="pre">bioformats2raw</span></code> to convert CZI, SVS, or OME-TIFF files to <a class="reference external" href="https://ngff.openmicroscopy.org/">OME-NGFF</a> zarr format, preserving OME-XML metadata.
 - Output: <code class="docutils literal notranslate"><span class="pre">.zarr</span></code> directory for each input file.</p></li>
 <li><p><strong>Rechunking Zarr</strong>
 - Re-chunks the zarr structure so that multi-channel/RGB channels are not split between chunks, using</p>
@@ -162,6 +168,10 @@ label sub-images.</p></td>
 <td><p>Aperio whole-slide image</p></td>
 <td><p>Converted to OME-NGFF zarr; neuroglancer metadata generated; thumbnails created for label sub-images.</p></td>
 </tr>
+<tr class="row-odd"><td><p>OME-TIFF</p></td>
+<td><p>Open Microscopy Environment TIFF</p></td>
+<td><p>Converted to OME-NGFF zarr via <code class="docutils literal notranslate"><span class="pre">bioformats2raw</span></code>; embedded OME-XML metadata is preserved in the output zarr; ( generally does not have a label sub-image)</p></td>
+</tr>
 </tbody>
 </table>
 <div class="admonition note">
@@ -172,8 +182,15 @@ label sub-images.</p></td>
 <li><p>OME-XML metadata is attached to the output zarr for troubleshooting and provenance.</p></li>
 <li><p>The shader type (<code class="docutils literal notranslate"><span class="pre">RGB</span></code>, <code class="docutils literal notranslate"><span class="pre">Grayscale</span></code>, or <code class="docutils literal notranslate"><span class="pre">MultiChannel</span></code>) is determined automatically from the OME-XML
 metadata of each sub-image.</p></li>
+<li><p>For OME-TIFF files, <code class="docutils literal notranslate"><span class="pre">bioformats2raw</span></code> autodetects embedded OME-XML regardless of whether it is stored
+inline in the TIFF header or as a companion <code class="docutils literal notranslate"><span class="pre">.ome.xml</span></code> sidecar file. The <code class="docutils literal notranslate"><span class="pre">ome.tiff</span></code> / <code class="docutils literal notranslate"><span class="pre">ome.tif</span></code>
+compound extension (case-insensitive) is used to identify OME-TIFF inputs.</p></li>
+<li><p>Multi-file OME-TIFF datasets (where image planes are split across multiple TIFF files) are supported.
+Set <code class="docutils literal notranslate"><span class="pre">single_file</span></code> to the name of the <strong>first</strong> TIFF file in the series; <code class="docutils literal notranslate"><span class="pre">bioformats2raw</span></code> will
+locate and assemble the remaining files automatically via the embedded OME-XML file list.</p></li>
 </ul>
 </div>
+</section>
 </section>
 
 
