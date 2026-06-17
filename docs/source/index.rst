@@ -18,3 +18,4 @@ Image Portal Workflows's documentation
    api/index
    hpc
    prefect
+   instruments
