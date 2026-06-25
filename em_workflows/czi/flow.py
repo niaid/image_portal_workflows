@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import asyncio
 from pathlib import Path
 from typing import List, Dict, Optional
 
@@ -219,6 +218,8 @@ async def czi_flow(
     x_no_api: bool = False,
     x_keep_workdir: bool = False,
 ):
+    import asyncio
+    
     utils.notify_api_running(x_no_api, token, callback_url)
 
     input_dir_fp = utils.get_input_dir.submit(
