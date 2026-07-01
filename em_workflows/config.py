@@ -46,7 +46,7 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
         f"source /data/home/svc_hpchedwig_{env_name}/image_portal_workflows/.venv/bin/activate",
         "export IMOD_DIR=/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/imod-5.1.1-vyv6iidgdilzyxoqumqmdbyokzi4cdlx/IMOD",
         "export JAVA_OPTS='-Djava.io.tmpdir=/data/scratch'",
-        f"export PYTHONPATH={current_dir};$PYTHONPATH",
+        f"export PYTHONPATH={current_dir}:$PYTHONPATH",
         "echo $PATH",
     ]
     from dask_jobqueue import SLURMCluster
