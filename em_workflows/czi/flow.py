@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import asyncio
 from pathlib import Path
 from typing import List, Dict, Optional
 
@@ -129,7 +130,7 @@ def generate_imageset(file_path: FilePath,
     # task_runner=CZIConfig.HIGH_SLURM_EXECUTOR,
     task_runner=CZIConfig.get_slurm_task_runner(Path(__file__).resolve().parent),
 )
-def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
+async def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
     """
     Subflow for per-file processing of CZI or SVS inputs.
 
@@ -209,7 +210,7 @@ def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
         utils.notify_api_completion,
     ],
 )
-def czi_flow(
+async def czi_flow(
     file_share: str,
     input_dir: str,
     file_name: Optional[str] = None,
@@ -235,7 +236,9 @@ def czi_flow(
     ).result()
     
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
-    imageSets = generate_czi_imageset.map(file_path=fps)
+    imageSets = await asyncio.gather(
+        *[generate_czi_imageset(file_path=fp) for fp in fps]
+    )
     callback_with_zarrs = utils.add_imageSet.map(prim_fp=prim_fps, imageSet=imageSets)
     callback_with_zarrs = update_file_metadata.map(
         file_path=fps, callback_with_zarr=callback_with_zarrs
