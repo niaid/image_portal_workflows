@@ -2,10 +2,10 @@ import logging
 import os
 from pathlib import Path
 import sys
+import threading
 
 from dotenv import load_dotenv
-from dask_jobqueue import SLURMCluster
-from prefect_dask.task_runners import DaskTaskRunner
+from prefect.task_runners import ConcurrentTaskRunner
 import pytools
 
 from em_workflows.constants import NFS_MOUNT
@@ -49,6 +49,8 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
         f"export PYTHONPATH={current_dir};$PYTHONPATH",
         "echo $PATH",
     ]
+    from dask_jobqueue import SLURMCluster
+
     cluster = SLURMCluster(
         name="dask-worker",
         # processes=4,
@@ -89,30 +91,42 @@ class Config:
     #
     gm_loc = os.environ.get("GM_LOC", "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/graphicsmagick-1.3.43-5cc6lqtchmgntmy66i56rs55nk6aqopp/bin/gm")
 
-    HIGH_SLURM_EXECUTOR = DaskTaskRunner(
-        cluster_class=SLURM_exec,
-        cluster_kwargs=dict(
-            cores=60,
-            memory="100G",
-        ),
+    @staticmethod
+    def _build_task_runner(cores: int, memory: str, current_dir: Path = None):
+        # Dask/distributed startup can try to register signal handlers.
+        # Non-main thread imports (e.g., worker deserialization) must avoid this.
+        if threading.current_thread() is not threading.main_thread():
+            return ConcurrentTaskRunner()
+
+        from prefect_dask.task_runners import DaskTaskRunner
+
+        cluster_kwargs = dict(
+            cores=cores,
+            memory=memory,
+        )
+        if current_dir is not None:
+            cluster_kwargs["current_dir"] = current_dir
+
+        return DaskTaskRunner(
+            cluster_class=SLURM_exec,
+            cluster_kwargs=cluster_kwargs,
+        )
+
+    HIGH_SLURM_EXECUTOR = _build_task_runner.__func__(
+        cores=60,
+        memory="100G",
     )
-    SLURM_EXECUTOR = DaskTaskRunner(
-        cluster_class=SLURM_exec,
-        cluster_kwargs=dict(
-            cores=20,
-            memory="256G",
-        ),
+    SLURM_EXECUTOR = _build_task_runner.__func__(
+        cores=20,
+        memory="256G",
     )
 
     @staticmethod
     def get_slurm_task_runner(current_dir: Path):
-        return DaskTaskRunner(
-            cluster_class=SLURM_exec,
-            cluster_kwargs=dict(
-                cores=20,
-                memory="256G",
-                current_dir=current_dir
-            ),
+        return Config._build_task_runner(
+            cores=20,
+            memory="256G",
+            current_dir=current_dir,
         )
 
     user = os.environ["USER"]
