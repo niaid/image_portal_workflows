@@ -112,17 +112,16 @@ class Config:
             cluster_kwargs=cluster_kwargs,
         )
 
-    HIGH_SLURM_EXECUTOR = _build_task_runner.__func__(
-        cores=60,
-        memory="100G",
-    )
-    SLURM_EXECUTOR = _build_task_runner.__func__(
-        cores=20,
-        memory="256G",
-    )
+    @staticmethod
+    def get_high_slurm_task_runner(current_dir: Path = None):
+        return Config._build_task_runner(
+            cores=60,
+            memory="100G",
+            current_dir=current_dir,
+        )
 
     @staticmethod
-    def get_slurm_task_runner(current_dir: Path):
+    def get_slurm_task_runner(current_dir: Path = None):
         return Config._build_task_runner(
             cores=20,
             memory="256G",

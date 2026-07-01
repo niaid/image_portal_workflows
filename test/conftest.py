@@ -19,8 +19,16 @@ def mock_binaries(monkeypatch):
     from em_workflows.config import Config
 
     monkeypatch.setattr(Config, "tmp_dir", "/tmp")
-    monkeypatch.setattr(Config, "SLURM_EXECUTOR", ConcurrentTaskRunner())
-    monkeypatch.setattr(Config, "HIGH_SLURM_EXECUTOR", ConcurrentTaskRunner())
+    monkeypatch.setattr(
+        Config,
+        "get_slurm_task_runner",
+        staticmethod(lambda current_dir=None: ConcurrentTaskRunner()),
+    )
+    monkeypatch.setattr(
+        Config,
+        "get_high_slurm_task_runner",
+        staticmethod(lambda current_dir=None: ConcurrentTaskRunner()),
+    )
 
 
 @pytest.fixture

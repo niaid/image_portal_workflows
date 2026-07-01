@@ -480,7 +480,7 @@ def get_callback_result(callback_data: list) -> list:
     name="BRT",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
-    task_runner=BRTConfig.HIGH_SLURM_EXECUTOR,
+    task_runner=BRTConfig.get_high_slurm_task_runner(Path(__file__).resolve().parent),
     on_completion=[utils.notify_api_completion],
     on_failure=[utils.notify_api_completion],
     on_crashed=[utils.notify_api_completion],

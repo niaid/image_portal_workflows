@@ -46,7 +46,7 @@ def gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> d
 @task
 def rechunk_zarr(file_path: FilePath) -> None:
     """
-    Re-chunk the ZARR structure so that multi-channel/RGB channels are not split
+    # task_runner=CZIConfig.get_high_slurm_task_runner(Path(__file__).resolve().parent),
     between chunks with the zarr_rechunk command provided by tomojs-pytools.
     """
     ng.rechunk_zarr(file_path=file_path)
@@ -127,7 +127,7 @@ def generate_imageset(file_path: FilePath,
 @flow(
     name="SubFlow: Generate multi-channel imageset",
     log_prints=True,
-    # task_runner=CZIConfig.HIGH_SLURM_EXECUTOR,
+    # task_runner=CZIConfig.get_high_slurm_task_runner(Path(__file__).resolve().parent),
     task_runner=CZIConfig.get_slurm_task_runner(Path(__file__).resolve().parent),
 )
 async def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
