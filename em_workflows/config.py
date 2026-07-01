@@ -39,16 +39,12 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     More about the cluster: https://bigskywiki.niaid.nih.gov/big-sky-architecture
     """
     home = os.environ["HOME"]
-    env_name = os.environ["HEDWIG_ENV"]
     flowrun_id = os.environ.get("PREFECT__FLOW_RUN_ID", "not-found")
     current_dir = cluster_kwargs.pop("current_dir", home)
-    job_script_prologue = [
-        f"source /data/home/svc_hpchedwig_{env_name}/image_portal_workflows/.venv/bin/activate",
-        "export IMOD_DIR=/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/imod-5.1.1-vyv6iidgdilzyxoqumqmdbyokzi4cdlx/IMOD",
-        "export JAVA_OPTS='-Djava.io.tmpdir=/data/scratch'",
-        f"export PYTHONPATH={current_dir}:$PYTHONPATH",
-        "echo $PATH",
-    ]
+    job_script_prologue = cluster_kwargs.pop(
+        "job_script_prologue",
+        Config.get_base_job_script_prologue(current_dir),
+    )
     from dask_jobqueue import SLURMCluster
 
     cluster = SLURMCluster(
@@ -92,7 +88,30 @@ class Config:
     gm_loc = os.environ.get("GM_LOC", "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/graphicsmagick-1.3.43-5cc6lqtchmgntmy66i56rs55nk6aqopp/bin/gm")
 
     @staticmethod
-    def _build_task_runner(cores: int, memory: str, current_dir: Path = None):
+    def get_base_job_script_prologue(current_dir: Path = None) -> list[str]:
+        home = os.environ["HOME"]
+        env_name = os.environ["HEDWIG_ENV"]
+        current_dir = current_dir or home
+        return [
+            f"source /data/home/svc_hpchedwig_{env_name}/image_portal_workflows/.venv/bin/activate",
+            "export JAVA_OPTS='-Djava.io.tmpdir=/data/scratch'",
+            f"export PYTHONPATH={current_dir}:$PYTHONPATH",
+            "echo $PATH",
+        ]
+
+    @classmethod
+    def get_flow_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
+        return []
+
+    @classmethod
+    def get_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
+        return [
+            *cls.get_base_job_script_prologue(current_dir),
+            *cls.get_flow_job_script_prologue(current_dir),
+        ]
+
+    @classmethod
+    def _build_task_runner(cls, cores: int, memory: str, current_dir: Path = None):
         # Dask/distributed startup can try to register signal handlers.
         # Non-main thread imports (e.g., worker deserialization) must avoid this.
         if threading.current_thread() is not threading.main_thread():
@@ -103,6 +122,7 @@ class Config:
         cluster_kwargs = dict(
             cores=cores,
             memory=memory,
+            job_script_prologue=cls.get_job_script_prologue(current_dir),
         )
         if current_dir is not None:
             cluster_kwargs["current_dir"] = current_dir
@@ -112,17 +132,17 @@ class Config:
             cluster_kwargs=cluster_kwargs,
         )
 
-    @staticmethod
-    def get_high_slurm_task_runner(current_dir: Path = None):
-        return Config._build_task_runner(
+    @classmethod
+    def get_high_slurm_task_runner(cls, current_dir: Path = None):
+        return cls._build_task_runner(
             cores=60,
             memory="100G",
             current_dir=current_dir,
         )
 
-    @staticmethod
-    def get_slurm_task_runner(current_dir: Path = None):
-        return Config._build_task_runner(
+    @classmethod
+    def get_slurm_task_runner(cls, current_dir: Path = None):
+        return cls._build_task_runner(
             cores=20,
             memory="256G",
             current_dir=current_dir,
