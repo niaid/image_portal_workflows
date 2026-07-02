@@ -80,6 +80,9 @@ class Config:
     ffmpeg_loc = os.environ.get("FFMPEG_LOC", "ffmpeg")
     gm_loc = os.environ.get("GM_LOC", "gm")
     java_opts = os.environ.get("JAVA_OPTS", "-Djava.io.tmpdir=/data/scratch")
+    java_tool_options = os.environ.get(
+        "JAVA_TOOL_OPTIONS", "-Djava.io.tmpdir=/data/scratch"
+    )
 
     @classmethod
     def get_base_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
@@ -89,6 +92,7 @@ class Config:
         return [
             f"source /data/home/svc_hpchedwig_{env_name}/image_portal_workflows/.venv/bin/activate",
             f"export JAVA_OPTS=\"{cls.java_opts}\"",
+            f"export JAVA_TOOL_OPTIONS=\"{cls.java_tool_options}\"",
             f"export PYTHONPATH={current_dir.as_posix()}:$PYTHONPATH",
             "echo $PATH",
         ]
