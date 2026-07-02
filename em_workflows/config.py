@@ -86,11 +86,10 @@ class Config:
 
     @classmethod
     def get_base_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
-        home = os.environ["HOME"]
         env_name = os.environ["HEDWIG_ENV"]
         current_dir = Path(current_dir) if current_dir is not None else cls.repo_dir.parent
         return [
-            f"source /data/home/svc_hpchedwig_{env_name}/image_portal_workflows/.venv/bin/activate",
+            f"source /gs1/home/hedwig_{env_name}/{env_name}/bin/activate",
             f"export JAVA_OPTS=\"{cls.java_opts}\"",
             f"export JAVA_TOOL_OPTIONS=\"{cls.java_tool_options}\"",
             f"export PYTHONPATH={current_dir.as_posix()}:$PYTHONPATH",
