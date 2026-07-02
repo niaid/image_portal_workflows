@@ -15,5 +15,6 @@ class BRTConfig(Config):
             "module load imod",
             "module load bioformats2raw",
             "module load ffmpeg",
+            "export IMOD_DIR=/opt/rml/imod",
             "export PATH=\"${IMOD_DIR}/bin:${PATH}\"",
         ]
