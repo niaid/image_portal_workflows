@@ -14,4 +14,5 @@ class BRTConfig(Config):
         return [
             "module load imod",
             "module load bioformats2raw",
+            "module load ffmpeg",
         ]
