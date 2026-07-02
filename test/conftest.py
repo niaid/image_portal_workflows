@@ -137,3 +137,4 @@ def check_env_setup(request):
         assert "TIF2MRC_LOC" in content
         assert "XFALIGN_LOC" in content
         assert "XFTOXG_LOC" in content
+        assert "JAVA_OPTS" in content

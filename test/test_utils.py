@@ -31,7 +31,7 @@ def test_bio2r_environ(mock_nfs_mount, caplog):
     import os
     import tempfile
 
-    assert os.path.exists(Config.bioformats2raw)
+    assert shutil.which(Config.bioformats2raw)
     with tempfile.NamedTemporaryFile() as logfile:
         cmd = [Config.bioformats2raw, "--version"]
         out = FilePath.run(cmd=cmd, log_file=logfile.name)
@@ -100,18 +100,18 @@ def test_mount_config(mock_nfs_mount):
     assert SMALL_DIM == 300
     assert LARGE_2D == "1024x1024"
     assert SMALL_2D == "300x300"
-    assert os.path.exists(BRTConfig.binvol)
-    assert os.path.exists(Config.bioformats2raw)
-    assert os.path.exists(Config.brt_binary)
-    assert os.path.exists(DMConfig.dm2mrc_loc)
-    assert os.path.exists(BRTConfig.clip_loc)
+    assert shutil.which(BRTConfig.binvol)
+    assert shutil.which(Config.bioformats2raw)
+    assert shutil.which(Config.brt_binary)
+    assert shutil.which(DMConfig.dm2mrc_loc)
+    assert shutil.which(BRTConfig.clip_loc)
     # assert os.path.exists(SEMConfig.convert_loc) # uses gm instead (graphicsmagick)
-    assert os.path.exists(Config.header_loc)
-    assert os.path.exists(Config.mrc2tif_loc)
-    assert os.path.exists(Config.newstack_loc)
-    assert os.path.exists(SEMConfig.tif2mrc_loc)
-    assert os.path.exists(SEMConfig.xfalign_loc)
-    assert os.path.exists(SEMConfig.xftoxg_loc)
+    assert shutil.which(Config.header_loc)
+    assert shutil.which(Config.mrc2tif_loc)
+    assert shutil.which(Config.newstack_loc)
+    assert shutil.which(SEMConfig.tif2mrc_loc)
+    assert shutil.which(SEMConfig.xfalign_loc)
+    assert shutil.which(SEMConfig.xftoxg_loc)
 
 
 @pytest.mark.parametrize(

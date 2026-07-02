@@ -12,6 +12,7 @@ from em_workflows.constants import NFS_MOUNT
 
 # loads .env file into os.environ
 load_dotenv()
+os.environ.setdefault("JAVA_OPTS", "-Djava.io.tmpdir=/data/scratch")
 
 
 def setup_pytools_log():
@@ -71,21 +72,14 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
 
 
 class Config:
-    # location in RML HPC
-    imod_root = "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/imod-5.1.1-vyv6iidgdilzyxoqumqmdbyokzi4cdlx/IMOD/"
-    bioformats2raw = os.environ.get(
-        "BIOFORMATS2RAW_LOC",
-        "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/bioformats2raw-0.9.4-yj7uyq6r7zduyd34h75nt6kootcuxrg4/bioformats2raw/bin/bioformats2raw",
-    )
-    brt_binary = os.environ.get("BRT_LOC", f"{imod_root}/bin/batchruntomo")
-    header_loc = os.environ.get("HEADER_LOC", f"{imod_root}/bin/header")
-    mrc2tif_loc = os.environ.get("MRC2TIF_LOC", f"{imod_root}/bin/mrc2tif")
-    newstack_loc = os.environ.get("NEWSTACK_LOC", f"{imod_root}/bin/newstack")
-    ffmpeg_loc = "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/ffmpeg-6.0-zq2bmekz3iolxjshigm6b6q2w64kn5h2/bin/ffmpeg"
-
-    # Location of GraphicsMagick binary
-    #
-    gm_loc = os.environ.get("GM_LOC", "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/graphicsmagick-1.3.43-5cc6lqtchmgntmy66i56rs55nk6aqopp/bin/gm")
+    bioformats2raw = os.environ.get("BIOFORMATS2RAW_LOC", "bioformats2raw")
+    brt_binary = os.environ.get("BRT_LOC", "batchruntomo")
+    header_loc = os.environ.get("HEADER_LOC", "header")
+    mrc2tif_loc = os.environ.get("MRC2TIF_LOC", "mrc2tif")
+    newstack_loc = os.environ.get("NEWSTACK_LOC", "newstack")
+    ffmpeg_loc = os.environ.get("FFMPEG_LOC", "ffmpeg")
+    gm_loc = os.environ.get("GM_LOC", "gm")
+    java_opts = os.environ.get("JAVA_OPTS", "-Djava.io.tmpdir=/data/scratch")
 
     @classmethod
     def get_base_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
@@ -94,7 +88,7 @@ class Config:
         current_dir = Path(current_dir) if current_dir is not None else cls.repo_dir.parent
         return [
             f"source /data/home/svc_hpchedwig_{env_name}/image_portal_workflows/.venv/bin/activate",
-            "export JAVA_OPTS='-Djava.io.tmpdir=/data/scratch'",
+            f"export JAVA_OPTS=\"{cls.java_opts}\"",
             f"export PYTHONPATH={current_dir.as_posix()}:$PYTHONPATH",
             "echo $PATH",
         ]
