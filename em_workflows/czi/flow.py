@@ -127,7 +127,7 @@ def generate_imageset(file_path: FilePath,
 @flow(
     name="SubFlow: Generate multi-channel imageset",
     log_prints=True,
-    task_runner=CZIConfig.get_slurm_task_runner(Path(__file__).resolve().parent),
+    task_runner=CZIConfig.get_slurm_task_runner(),
 )
 async def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
     """
@@ -198,7 +198,7 @@ def update_file_metadata(file_path: FilePath, callback_with_zarr: Dict) -> Dict:
     version="1.2",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
-    task_runner=CZIConfig.get_slurm_task_runner(Path(__file__).resolve().parent),
+    task_runner=CZIConfig.get_slurm_task_runner(),
     on_completion=[
         utils.notify_api_completion,
     ],

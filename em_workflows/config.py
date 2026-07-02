@@ -40,7 +40,7 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     """
     home = os.environ["HOME"]
     flowrun_id = os.environ.get("PREFECT__FLOW_RUN_ID", "not-found")
-    current_dir = cluster_kwargs.pop("current_dir", home)
+    current_dir = cluster_kwargs.pop("current_dir", Config.repo_dir.parent)
     job_script_prologue = cluster_kwargs.pop(
         "job_script_prologue",
         Config.get_base_job_script_prologue(current_dir),
@@ -87,15 +87,15 @@ class Config:
     #
     gm_loc = os.environ.get("GM_LOC", "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/graphicsmagick-1.3.43-5cc6lqtchmgntmy66i56rs55nk6aqopp/bin/gm")
 
-    @staticmethod
-    def get_base_job_script_prologue(current_dir: Path = None) -> list[str]:
+    @classmethod
+    def get_base_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
         home = os.environ["HOME"]
         env_name = os.environ["HEDWIG_ENV"]
-        current_dir = current_dir or home
+        current_dir = Path(current_dir) if current_dir is not None else cls.repo_dir.parent
         return [
             f"source /data/home/svc_hpchedwig_{env_name}/image_portal_workflows/.venv/bin/activate",
             "export JAVA_OPTS='-Djava.io.tmpdir=/data/scratch'",
-            f"export PYTHONPATH={current_dir}:$PYTHONPATH",
+            f"export PYTHONPATH={current_dir.as_posix()}:$PYTHONPATH",
             "echo $PATH",
         ]
 

@@ -320,7 +320,7 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     name="SEM TOMO",
     flow_run_name=utils.generate_flow_run_name,
     log_prints=True,
-    task_runner=SEMConfig.get_slurm_task_runner(Path(__file__).resolve().parent),
+    task_runner=SEMConfig.get_slurm_task_runner(),
     on_completion=[utils.notify_api_completion],
     on_failure=[utils.notify_api_completion],
     on_crashed=[utils.notify_api_completion],
