@@ -32,7 +32,7 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
 
     We can view the sbatch script using the following command, to know how the job is started
     by slurm:
-    python -c "from em_workflows import config; c = config.SLURM_exec(); print(c.job_script())"
+    python -c "from em_workflows import config; c = config.SLURM_exec(cores=8, memory='24GB'); print(c.job_script())"
 
     The processes determins number of dask workers, and nthreads = cores / processes
     The memory limit is also divided among the workers
@@ -88,12 +88,23 @@ class Config:
     def get_base_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
         env_name = os.environ["HEDWIG_ENV"]
         current_dir = Path(current_dir) if current_dir is not None else cls.repo_dir.parent
+        modules_init = os.environ.get("MODULES_INIT_SCRIPT", "/etc/alternatives/modules.sh")
         return [
             f"source /gs1/home/hedwig_{env_name}/{env_name}/bin/activate",
+            f". {modules_init}",
+            "module load imod",
+            "module load bioformats2raw",
+            "module load ffmpeg",
+            "module list",
+            "export IMOD_DIR=/opt/rml/imod",
+            "export PATH=\"${IMOD_DIR}/bin:${PATH}\"",
             f"export JAVA_OPTS=\"{cls.java_opts}\"",
             f"export JAVA_TOOL_OPTIONS=\"{cls.java_tool_options}\"",
             f"export PYTHONPATH={current_dir.as_posix()}:$PYTHONPATH",
-            "echo $PATH",
+            "echo PATH=$PATH",
+            "which imod || echo 'WARNING: imod not found'",
+            "which ffmpeg || echo 'WARNING: ffmpeg not found'",
+            "which bioformats2raw || echo 'WARNING: bioformats2raw not found'",
         ]
 
     @classmethod

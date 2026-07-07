@@ -11,11 +11,4 @@ class BRTConfig(Config):
 
     @classmethod
     def get_flow_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
-        return [
-            ". /etc/profile.d/modules.sh || . /usr/share/lmod/lmod/init/bash",
-            "module load imod",
-            "module load bioformats2raw",
-            "module load ffmpeg",
-            "export IMOD_DIR=/opt/rml/imod",
-            "export PATH=\"${IMOD_DIR}/bin:${PATH}\"",
-        ]
+        return []
