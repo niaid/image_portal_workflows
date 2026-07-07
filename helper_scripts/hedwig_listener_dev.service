@@ -15,7 +15,7 @@ Environment="TMP=/data/scratch/svc_hpchedwig_dev/ai-rmlg14.niaid.nih.gov/tmp/"
 Environment="PREFECT_LOCAL_STORAGE_PATH=/data/scratch/svc_hpchedwig_dev/ai-rmlg14.niaid.nih.gov/tmp/"
 WorkingDirectory=/data/home/svc_hpchedwig_dev/image_portal_workflows
 
-ExecStart=/data/home/svc_hpchedwig_dev/image_portal_workflows/.venv/bin/prefect worker start --pool 'workpool'
+ExecStart=/bin/bash -c '. /etc/alternatives/modules.sh; module load imod; module load bioformats2raw; module load ffmpeg; export IMOD_DIR=/opt/rml/imod; export PATH=/opt/rml/imod/bin:$PATH; exec /data/home/svc_hpchedwig_dev/image_portal_workflows/.venv/bin/prefect worker start --pool workpool'
 
 [Install]
 WantedBy=multi-user.target
