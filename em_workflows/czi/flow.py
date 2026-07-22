@@ -140,6 +140,7 @@ async def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
         - Generate imageset (neuroglancer metadata and thumbnails) for the assets
     """
     # DEBUG: skip zarr conversion and rechunk
+    print("[DEBUG] generate_czi_imageset: early return, skipping zarr/rechunk")
     return []
     zarr_result = generate_zarr.submit(file_path)
     rechunk_result = rechunk_zarr.submit(file_path, wait_for=[zarr_result])
@@ -240,6 +241,7 @@ async def czi_flow(
     imageSets = await asyncio.gather(
         *[generate_czi_imageset(file_path=fp) for fp in fps]
     )
+    print("[DEBUG] czi_flow: skipping update_file_metadata")
     callback_with_zarrs = utils.add_imageSet.map(prim_fp=prim_fps, imageSet=imageSets)
     # DEBUG: skip update_file_metadata
     # callback_with_zarrs = update_file_metadata.map(
