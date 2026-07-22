@@ -230,6 +230,9 @@ async def czi_flow(
         print("[DEBUG] ssl.create_default_context() OK")
     except Exception as e:
         print(f"[DEBUG] ssl.create_default_context() FAILED: {e}")
+
+    utils.notify_api_running(x_no_api, token, callback_url)
+    print("[DEBUG] czi_flow: notify_api_running OK")
     return None
 
     # input_fps = utils.list_files.submit(
