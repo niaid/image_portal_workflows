@@ -241,9 +241,10 @@ async def czi_flow(
         *[generate_czi_imageset(file_path=fp) for fp in fps]
     )
     callback_with_zarrs = utils.add_imageSet.map(prim_fp=prim_fps, imageSet=imageSets)
-    callback_with_zarrs = update_file_metadata.map(
-        file_path=fps, callback_with_zarr=callback_with_zarrs
-    )
+    # DEBUG: skip update_file_metadata
+    # callback_with_zarrs = update_file_metadata.map(
+    #     file_path=fps, callback_with_zarr=callback_with_zarrs
+    # )
 
     callback_with_idx = find_thumb_idx.submit(callback=callback_with_zarrs)
 
