@@ -139,9 +139,6 @@ async def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
         - Copy zarr files to assets folder
         - Generate imageset (neuroglancer metadata and thumbnails) for the assets
     """
-    # DEBUG: skip zarr conversion and rechunk
-    print("[DEBUG] generate_czi_imageset: early return, skipping zarr/rechunk")
-    return []
     zarr_result = generate_zarr.submit(file_path)
     rechunk_result = rechunk_zarr.submit(file_path, wait_for=[zarr_result])
     copy_to_assets = copy_zarr_to_assets_dir.submit(
@@ -221,11 +218,6 @@ async def czi_flow(
     x_no_api: bool = False,
     x_keep_workdir: bool = False,
 ):
-    import os
-    print("[DEBUG] czi_flow: entered")
-    print(f"[DEBUG] SSL_CERT_FILE={os.environ.get('SSL_CERT_FILE', '<not set>')!r}")
-    print(f"[DEBUG] REQUESTS_CA_BUNDLE={os.environ.get('REQUESTS_CA_BUNDLE', '<not set>')!r}")
-
     utils.notify_api_running.fn(x_no_api, token, callback_url)
 
     input_dir_fp = utils.get_input_dir.submit(
@@ -246,12 +238,10 @@ async def czi_flow(
     imageSets = await asyncio.gather(
         *[generate_czi_imageset(file_path=fp) for fp in fps]
     )
-    print("[DEBUG] czi_flow: skipping update_file_metadata")
     callback_with_zarrs = utils.add_imageSet.map(prim_fp=prim_fps, imageSet=imageSets)
-    # DEBUG: skip update_file_metadata
-    # callback_with_zarrs = update_file_metadata.map(
-    #     file_path=fps, callback_with_zarr=callback_with_zarrs
-    # )
+    callback_with_zarrs = update_file_metadata.map(
+        file_path=fps, callback_with_zarr=callback_with_zarrs
+    )
 
     callback_with_idx = find_thumb_idx.submit(callback=callback_with_zarrs)
 
