@@ -238,13 +238,6 @@ async def czi_flow(
     except Exception as e:
         print(f"[DEBUG] notify_api_running.fn() FAILED: {traceback.format_exc()}")
 
-    # Test calling it as a Prefect task (triggers httpx task-run creation)
-    try:
-        utils.notify_api_running(x_no_api, token, callback_url)
-        print("[DEBUG] notify_api_running() as task OK")
-    except Exception as e:
-        print(f"[DEBUG] notify_api_running() as task FAILED: {traceback.format_exc()}")
-
     return None
 
     # input_fps = utils.list_files.submit(
