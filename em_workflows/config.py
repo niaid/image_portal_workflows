@@ -89,6 +89,19 @@ class Config:
         env_name = os.environ["HEDWIG_ENV"]
         current_dir = Path(current_dir) if current_dir is not None else cls.repo_dir.parent
         modules_init = os.environ.get("MODULES_INIT_SCRIPT", "/etc/alternatives/modules.sh")
+        # Forward SSL cert env vars so Slurm workers can connect to the Prefect API.
+        # An empty/missing REQUESTS_CA_BUNDLE causes ssl.SSLError: passed invalid argument.
+        requests_ca = os.environ.get("REQUESTS_CA_BUNDLE", "")
+        ssl_cert = os.environ.get("SSL_CERT_FILE", "")
+        ssl_lines = []
+        if requests_ca:
+            ssl_lines.append(f"export REQUESTS_CA_BUNDLE={requests_ca}")
+        else:
+            ssl_lines.append("unset REQUESTS_CA_BUNDLE")
+        if ssl_cert:
+            ssl_lines.append(f"export SSL_CERT_FILE={ssl_cert}")
+        else:
+            ssl_lines.append("unset SSL_CERT_FILE")
         return [
             f"source /gs1/home/hedwig_{env_name}/{env_name}/bin/activate",
             f". {modules_init}",
@@ -101,7 +114,10 @@ class Config:
             f"export JAVA_OPTS=\"{cls.java_opts}\"",
             f"export JAVA_TOOL_OPTIONS=\"{cls.java_tool_options}\"",
             f"export PYTHONPATH={current_dir.as_posix()}:$PYTHONPATH",
+            *ssl_lines,
             "echo PATH=$PATH",
+            "echo REQUESTS_CA_BUNDLE=$REQUESTS_CA_BUNDLE",
+            "echo SSL_CERT_FILE=$SSL_CERT_FILE",
             "which imod || echo 'WARNING: imod not found'",
             "which ffmpeg || echo 'WARNING: ffmpeg not found'",
             "which bioformats2raw || echo 'WARNING: bioformats2raw not found'",
