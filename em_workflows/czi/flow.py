@@ -221,12 +221,15 @@ async def czi_flow(
     x_no_api: bool = False,
     x_keep_workdir: bool = False,
 ):
-    utils.notify_api_running(x_no_api, token, callback_url)
-
-    input_dir_fp = utils.get_input_dir.submit(
-        share_name=file_share, input_dir=input_dir
-    )
-    print(f"[DEBUG] czi_flow: after get_input_dir, result={input_dir_fp.result()}")
+    import os, ssl
+    print("[DEBUG] czi_flow: entered")
+    print(f"[DEBUG] SSL_CERT_FILE={os.environ.get('SSL_CERT_FILE', '<not set>')!r}")
+    print(f"[DEBUG] REQUESTS_CA_BUNDLE={os.environ.get('REQUESTS_CA_BUNDLE', '<not set>')!r}")
+    try:
+        ctx = ssl.create_default_context()
+        print("[DEBUG] ssl.create_default_context() OK")
+    except Exception as e:
+        print(f"[DEBUG] ssl.create_default_context() FAILED: {e}")
     return None
 
     # input_fps = utils.list_files.submit(
