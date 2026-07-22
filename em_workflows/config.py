@@ -14,6 +14,20 @@ from em_workflows.constants import NFS_MOUNT
 load_dotenv()
 os.environ.setdefault("JAVA_OPTS", "-Djava.io.tmpdir=/data/scratch")
 
+# Fix SSL_CERT_FILE for Python 3.13 / httpx / anyio.
+# In this HPC environment, the venv activation or module system sets SSL_CERT_FILE=""
+# (empty string). ssl.create_default_context() accepts the empty string without error
+# in Python 3.13, but the resulting SSL context fails at TLS read time with
+# "passed invalid argument". REQUESTS_CA_BUNDLE is already set correctly in the
+# service file, so mirror it into SSL_CERT_FILE so that httpx (used by Prefect
+# internally) gets a valid CA bundle.
+_ca_bundle = os.environ.get("REQUESTS_CA_BUNDLE", "").strip()
+if _ca_bundle:
+    os.environ["SSL_CERT_FILE"] = _ca_bundle
+elif not os.environ.get("SSL_CERT_FILE", "").strip():
+    # Neither is set — unset SSL_CERT_FILE so Python uses the system default.
+    os.environ.pop("SSL_CERT_FILE", None)
+
 
 def setup_pytools_log():
     pytools.logger.setLevel(logging.DEBUG)
