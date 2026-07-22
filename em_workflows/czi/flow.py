@@ -221,7 +221,7 @@ async def czi_flow(
     x_no_api: bool = False,
     x_keep_workdir: bool = False,
 ):
-    import os, ssl
+    import os, ssl, traceback
     print("[DEBUG] czi_flow: entered")
     print(f"[DEBUG] SSL_CERT_FILE={os.environ.get('SSL_CERT_FILE', '<not set>')!r}")
     print(f"[DEBUG] REQUESTS_CA_BUNDLE={os.environ.get('REQUESTS_CA_BUNDLE', '<not set>')!r}")
@@ -231,8 +231,20 @@ async def czi_flow(
     except Exception as e:
         print(f"[DEBUG] ssl.create_default_context() FAILED: {e}")
 
-    utils.notify_api_running(x_no_api, token, callback_url)
-    print("[DEBUG] czi_flow: notify_api_running OK")
+    # Test calling the raw function (bypasses Prefect task/httpx machinery)
+    try:
+        utils.notify_api_running.fn(x_no_api, token, callback_url)
+        print("[DEBUG] notify_api_running.fn() OK")
+    except Exception as e:
+        print(f"[DEBUG] notify_api_running.fn() FAILED: {traceback.format_exc()}")
+
+    # Test calling it as a Prefect task (triggers httpx task-run creation)
+    try:
+        utils.notify_api_running(x_no_api, token, callback_url)
+        print("[DEBUG] notify_api_running() as task OK")
+    except Exception as e:
+        print(f"[DEBUG] notify_api_running() as task FAILED: {traceback.format_exc()}")
+
     return None
 
     # input_fps = utils.list_files.submit(
