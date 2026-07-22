@@ -236,7 +236,9 @@ async def czi_flow(
     fps = utils.gen_fps.submit(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
     ).result()
-    
+    print(f"[DEBUG] czi_flow: gen_fps result: {fps}")
+    return None
+
     prim_fps = utils.gen_prim_fps.map(fp_in=fps)
     imageSets = await asyncio.gather(
         *[generate_czi_imageset(file_path=fp) for fp in fps]
