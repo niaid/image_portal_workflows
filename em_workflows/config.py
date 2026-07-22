@@ -103,18 +103,20 @@ class Config:
         env_name = os.environ["HEDWIG_ENV"]
         current_dir = Path(current_dir) if current_dir is not None else cls.repo_dir.parent
         modules_init = os.environ.get("MODULES_INIT_SCRIPT", "/etc/alternatives/modules.sh")
-        # Forward SSL cert env vars so Slurm workers can connect to the Prefect API.
-        # An empty/missing REQUESTS_CA_BUNDLE causes ssl.SSLError: passed invalid argument.
-        requests_ca = os.environ.get("REQUESTS_CA_BUNDLE", "")
-        ssl_cert = os.environ.get("SSL_CERT_FILE", "")
+        # Slurm workers need SSL_CERT_FILE set to a valid CA bundle so that
+        # Prefect's httpx client (running inside the worker) can connect to the
+        # Prefect API server. SSL_CERT_FILE="" (empty string) causes
+        # ssl.SSLError: passed invalid argument at TLS read time in Python 3.13.
+        # Use REQUESTS_CA_BUNDLE as the authoritative source since it is already
+        # correctly set in the service file.
+        requests_ca = os.environ.get("REQUESTS_CA_BUNDLE", "").strip()
         ssl_lines = []
         if requests_ca:
+            # Set both so requests AND httpx/anyio both find the right CA bundle.
             ssl_lines.append(f"export REQUESTS_CA_BUNDLE={requests_ca}")
+            ssl_lines.append(f"export SSL_CERT_FILE={requests_ca}")
         else:
             ssl_lines.append("unset REQUESTS_CA_BUNDLE")
-        if ssl_cert:
-            ssl_lines.append(f"export SSL_CERT_FILE={ssl_cert}")
-        else:
             ssl_lines.append("unset SSL_CERT_FILE")
         return [
             f"source /gs1/home/hedwig_{env_name}/{env_name}/bin/activate",
