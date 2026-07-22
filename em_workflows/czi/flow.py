@@ -241,36 +241,33 @@ async def czi_flow(
     fps = utils.gen_fps.submit(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps
     ).result()
-    print(f"[DEBUG] czi_flow: gen_fps result: {fps}")
-    return None
 
-    # prim_fps = utils.gen_prim_fps.map(fp_in=fps)
-    # imageSets = await asyncio.gather(
-    #     *[generate_czi_imageset(file_path=fp) for fp in fps]
-    # )
-    # print("[DEBUG] czi_flow: skipping update_file_metadata")
-    # callback_with_zarrs = utils.add_imageSet.map(prim_fp=prim_fps, imageSet=imageSets)
-    # # DEBUG: skip update_file_metadata
-    # # callback_with_zarrs = update_file_metadata.map(
-    # #     file_path=fps, callback_with_zarr=callback_with_zarrs
-    # # )
-
-    # callback_with_idx = find_thumb_idx.submit(callback=callback_with_zarrs)
-
-    # send_callback_task = utils.send_callback_body.submit(
-    #     x_no_api=x_no_api,
-    #     files_elts=callback_with_idx,
-    #     token=token,
-    #     callback_url=callback_url,
-    #     wait_for=[utils.allow_failure(callback_with_zarrs)],
+    prim_fps = utils.gen_prim_fps.map(fp_in=fps)
+    imageSets = await asyncio.gather(
+        *[generate_czi_imageset(file_path=fp) for fp in fps]
+    )
+    print("[DEBUG] czi_flow: skipping update_file_metadata")
+    callback_with_zarrs = utils.add_imageSet.map(prim_fp=prim_fps, imageSet=imageSets)
+    # DEBUG: skip update_file_metadata
+    # callback_with_zarrs = update_file_metadata.map(
+    #     file_path=fps, callback_with_zarr=callback_with_zarrs
     # )
 
-    # # Prefect v3: wait_for is a valid keyword for .submit()
-    # utils.final_cleanup_task.submit(
-    #     fps, x_keep_workdir, wait_for=[utils.allow_failure(send_callback_task)]
-    # ).wait()
+    callback_with_idx = find_thumb_idx.submit(callback=callback_with_zarrs)
 
-    # return send_callback_task
+    send_callback_task = utils.send_callback_body.submit(
+        x_no_api=x_no_api,
+        files_elts=callback_with_idx,
+        token=token,
+        callback_url=callback_url,
+        wait_for=[utils.allow_failure(callback_with_zarrs)],
+    )
+
+    utils.final_cleanup_task.submit(
+        fps, x_keep_workdir, wait_for=[utils.allow_failure(send_callback_task)]
+    ).wait()
+
+    return send_callback_task
 
     # input_fps = utils.list_files.submit(
     #     input_dir_fp,
