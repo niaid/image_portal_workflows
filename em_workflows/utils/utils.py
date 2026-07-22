@@ -690,8 +690,8 @@ def get_input_dir(share_name: str, input_dir: str) -> Path:
 
 
 @task(
-    # persisting to retrieve again in hooks
-    persist_result=True,
+    # DEBUG: persist_result disabled to test SSL/storage failure hypothesis
+    # persist_result=True,
 )
 def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
     """
