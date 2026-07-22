@@ -616,44 +616,38 @@ async def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State) -> 
         log(f"x_no_api flag used\nCompletion status: {status}")
         return None
 
-    # Use aiohttp for async HTTP requests
-    import ssl
-    import aiohttp
+    # Use httpx (same library Prefect uses internally) so SSL cert configuration
+    # is consistent. aiohttp was causing ssl.SSLError: passed invalid argument
+    # due to SSL_CERT_FILE being empty in the HPC environment.
+    import httpx
 
-    # Build SSL context explicitly from REQUESTS_CA_BUNDLE so that an empty or
-    # missing SSL_CERT_FILE in the HPC environment does not cause
-    # ssl.SSLError: [SSL] passed invalid argument (_ssl.c).
-    ca_bundle = os.environ.get("REQUESTS_CA_BUNDLE") or None
-    ssl_ctx = ssl.create_default_context(cafile=ca_bundle)
-    connector = aiohttp.TCPConnector(ssl=ssl_ctx)
-
-    async with aiohttp.ClientSession(connector=connector) as session:
-        headers = {
-            "Authorization": "Bearer " + token,
-            "Content-Type": "application/json",
-        }
-        async with session.post(
-            callback_url, headers=headers, json={"status": status}
-        ) as response:
-            hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
-            hooks_log.write(
-                f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n"
+    ca_bundle = os.environ.get("REQUESTS_CA_BUNDLE") or True
+    headers = {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json",
+    }
+    hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
+    hooks_log.write(f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n")
+    hooks_log.write(f"Pipeline status is:{status}\n")
+    try:
+        async with httpx.AsyncClient(verify=ca_bundle) as client:
+            response = await client.post(
+                callback_url, headers=headers, json={"status": status}
             )
-            hooks_log.write(f"Pipeline status is:{status}\n")
-            hooks_log.write(f"{response.status=}\n")
-            hooks_log.write(f"{response.reason=}\n")
-            hooks_log.write(f"{response.headers=}\n")
-            text = await response.text()
-            hooks_log.write(f"{text=}\n")
-
-            if response.status < 200 or response.status >= 300:
-                msg = f"Bad response code on callback: {response.status}"
+            hooks_log.write(f"status_code={response.status_code}\n")
+            hooks_log.write(f"headers={response.headers}\n")
+            hooks_log.write(f"text={response.text}\n")
+            if not response.is_success:
+                msg = f"Bad response code on callback: {response.status_code}"
                 log(msg=msg)
                 hooks_log.write(f"{msg}\n")
                 hooks_log.close()
                 raise RuntimeError(msg)
-
-            hooks_log.close()
+    except Exception as e:
+        hooks_log.write(f"Exception: {e}\n")
+        hooks_log.close()
+        raise
+    hooks_log.close()
     return None
 
 
