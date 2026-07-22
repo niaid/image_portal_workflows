@@ -617,9 +617,17 @@ async def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State) -> 
         return None
 
     # Use aiohttp for async HTTP requests
+    import ssl
     import aiohttp
 
-    async with aiohttp.ClientSession() as session:
+    # Build SSL context explicitly from REQUESTS_CA_BUNDLE so that an empty or
+    # missing SSL_CERT_FILE in the HPC environment does not cause
+    # ssl.SSLError: [SSL] passed invalid argument (_ssl.c).
+    ca_bundle = os.environ.get("REQUESTS_CA_BUNDLE") or None
+    ssl_ctx = ssl.create_default_context(cafile=ca_bundle)
+    connector = aiohttp.TCPConnector(ssl=ssl_ctx)
+
+    async with aiohttp.ClientSession(connector=connector) as session:
         headers = {
             "Authorization": "Bearer " + token,
             "Content-Type": "application/json",
