@@ -139,6 +139,8 @@ async def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
         - Copy zarr files to assets folder
         - Generate imageset (neuroglancer metadata and thumbnails) for the assets
     """
+    # DEBUG: skip zarr conversion and rechunk
+    return []
     zarr_result = generate_zarr.submit(file_path)
     rechunk_result = rechunk_zarr.submit(file_path, wait_for=[zarr_result])
     copy_to_assets = copy_zarr_to_assets_dir.submit(
