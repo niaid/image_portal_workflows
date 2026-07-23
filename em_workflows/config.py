@@ -102,7 +102,6 @@ class Config:
     def get_base_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
         env_name = os.environ["HEDWIG_ENV"]
         current_dir = Path(current_dir) if current_dir is not None else cls.repo_dir.parent
-        modules_init = os.environ.get("MODULES_INIT_SCRIPT", "/etc/alternatives/modules.sh")
         # Slurm workers need SSL_CERT_FILE set to a valid CA bundle so that
         # Prefect's httpx client (running inside the worker) can connect to the
         # Prefect API server. SSL_CERT_FILE="" (empty string) causes
@@ -119,24 +118,7 @@ class Config:
             ssl_lines.append("unset REQUESTS_CA_BUNDLE")
             ssl_lines.append("unset SSL_CERT_FILE")
         return [
-            f"source /gs1/home/hedwig_{env_name}/{env_name}/bin/activate",
-            f". {modules_init}",
-            "module load imod",
-            "module load bioformats2raw",
-            "module load ffmpeg",
-            "module list",
-            "export IMOD_DIR=/opt/rml/imod",
-            "export PATH=\"${IMOD_DIR}/bin:${PATH}\"",
-            f"export JAVA_OPTS=\"{cls.java_opts}\"",
-            f"export JAVA_TOOL_OPTIONS=\"{cls.java_tool_options}\"",
-            f"export PYTHONPATH={current_dir.as_posix()}:$PYTHONPATH",
-            *ssl_lines,
-            "echo PATH=$PATH",
-            "echo REQUESTS_CA_BUNDLE=$REQUESTS_CA_BUNDLE",
-            "echo SSL_CERT_FILE=$SSL_CERT_FILE",
-            "which imod || echo 'WARNING: imod not found'",
-            "which ffmpeg || echo 'WARNING: ffmpeg not found'",
-            "which bioformats2raw || echo 'WARNING: bioformats2raw not found'",
+            f"source /gs1/home/hedwig_{env_name}/{env_name}/bin/activate"
         ]
 
     @classmethod
@@ -154,8 +136,8 @@ class Config:
     def _build_task_runner(cls, cores: int, memory: str, current_dir: Path = None):
         # Dask/distributed startup can try to register signal handlers.
         # Non-main thread imports (e.g., worker deserialization) must avoid this.
-        #  if threading.current_thread() is not threading.main_thread():
-        #      return ConcurrentTaskRunner()
+        if threading.current_thread() is not threading.main_thread():
+            return ConcurrentTaskRunner()
 
         from prefect_dask.task_runners import DaskTaskRunner
 
