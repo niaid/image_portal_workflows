@@ -1,5 +1,4 @@
 from pathlib import Path
-import os
 from pytools.HedwigZarrImages import HedwigZarrImages
 from em_workflows.config import Config
 from em_workflows.file_path import FilePath
