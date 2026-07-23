@@ -154,8 +154,8 @@ class Config:
     def _build_task_runner(cls, cores: int, memory: str, current_dir: Path = None):
         # Dask/distributed startup can try to register signal handlers.
         # Non-main thread imports (e.g., worker deserialization) must avoid this.
-        if threading.current_thread() is not threading.main_thread():
-            return ConcurrentTaskRunner()
+        #  if threading.current_thread() is not threading.main_thread():
+        #      return ConcurrentTaskRunner()
 
         from prefect_dask.task_runners import DaskTaskRunner
 
