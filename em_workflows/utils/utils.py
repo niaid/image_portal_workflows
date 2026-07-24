@@ -641,7 +641,6 @@ async def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State) -> 
                 msg = f"Bad response code on callback: {response.status_code}"
                 log(msg=msg)
                 hooks_log.write(f"{msg}\n")
-                hooks_log.close()
                 raise RuntimeError(msg)
     except Exception as e:
         hooks_log.write(f"Exception: {e}\n")
