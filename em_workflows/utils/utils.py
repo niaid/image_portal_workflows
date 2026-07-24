@@ -626,27 +626,31 @@ async def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State) -> 
         "Authorization": "Bearer " + token,
         "Content-Type": "application/json",
     }
-    hooks_log = open(f"slurm-log/{flowrun_id}-notify-api-completion.txt", "w")
-    hooks_log.write(f"Trying to notify: {x_no_api=}, {token=}, {callback_url=}\n")
-    hooks_log.write(f"Pipeline status is:{status}\n")
-    try:
-        async with httpx.AsyncClient(verify=ca_bundle) as client:
-            response = await client.post(
-                callback_url, headers=headers, json={"status": status}
-            )
-            hooks_log.write(f"status_code={response.status_code}\n")
-            hooks_log.write(f"headers={response.headers}\n")
-            hooks_log.write(f"text={response.text}\n")
-            if not response.is_success:
-                msg = f"Bad response code on callback: {response.status_code}"
-                log(msg=msg)
-                hooks_log.write(f"{msg}\n")
-                raise RuntimeError(msg)
-    except Exception as e:
-        hooks_log.write(f"Exception: {e}\n")
-        hooks_log.close()
-        raise
-    hooks_log.close()
+    redacted_token = (token[:4] + "****") if token else "(empty)"
+    log_dir = os.path.join(os.environ.get("HOME", "."), "slurm-log")
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, f"{flowrun_id}-notify-api-completion.txt")
+    with open(log_path, "w") as hooks_log:
+        hooks_log.write(
+            f"Trying to notify: {x_no_api=}, token={redacted_token}, {callback_url=}\n"
+        )
+        hooks_log.write(f"Pipeline status is:{status}\n")
+        try:
+            async with httpx.AsyncClient(verify=ca_bundle) as client:
+                response = await client.post(
+                    callback_url, headers=headers, json={"status": status}
+                )
+                hooks_log.write(f"status_code={response.status_code}\n")
+                hooks_log.write(f"headers={response.headers}\n")
+                hooks_log.write(f"text={response.text}\n")
+                if not response.is_success:
+                    msg = f"Bad response code on callback: {response.status_code}"
+                    log(msg=msg)
+                    hooks_log.write(f"{msg}\n")
+                    raise RuntimeError(msg)
+        except Exception as e:
+            hooks_log.write(f"Exception: {e}\n")
+            raise
     return None
 
 
