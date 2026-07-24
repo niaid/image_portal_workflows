@@ -621,7 +621,7 @@ async def notify_api_completion(flow: Flow, flow_run: FlowRun, state: State) -> 
     # due to SSL_CERT_FILE being empty in the HPC environment.
     import httpx
 
-    ca_bundle = os.environ.get("REQUESTS_CA_BUNDLE") or True
+    ca_bundle = (os.environ.get("REQUESTS_CA_BUNDLE") or "").strip() or True
     headers = {
         "Authorization": "Bearer " + token,
         "Content-Type": "application/json",
