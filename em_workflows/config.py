@@ -119,6 +119,7 @@ class Config:
             ssl_lines.append("unset SSL_CERT_FILE")
         return [
             f"source /gs1/home/hedwig_{env_name}/{env_name}/bin/activate",
+            f"export PYTHONPATH={current_dir}",
             *ssl_lines
         ]
 
