@@ -12,7 +12,7 @@ Environment="REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt"
 Environment="PREFECT_API_URL=https://prefect2.hedwig-workflow-api.niaidqa.net/api"
 Environment="IMOD_DIR=/opt/rml/imod"
 WorkingDirectory=/gs1/home/hedwig_qa/image_portal_workflows
-ExecStart=/gs1/home/hedwig_qa/qa/bin/prefect worker start --pool workpool
+ExecStart=/bin/bash -c '. /etc/alternatives/modules.sh; module load imod; module load bioformats2raw; module load ffmpeg; module load graphicsmagick; exec /gs1/home/hedwig_qa/qa/bin/prefect worker start --pool workpool'
 Restart=always
 RestartSec="30min"
 

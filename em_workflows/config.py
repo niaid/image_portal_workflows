@@ -2,16 +2,31 @@ import logging
 import os
 from pathlib import Path
 import sys
+import threading
 
 from dotenv import load_dotenv
-from dask_jobqueue import SLURMCluster
-from prefect_dask.task_runners import DaskTaskRunner
+from prefect.task_runners import ConcurrentTaskRunner
 import pytools
 
 from em_workflows.constants import NFS_MOUNT
 
 # loads .env file into os.environ
 load_dotenv()
+os.environ.setdefault("JAVA_OPTS", "-Djava.io.tmpdir=/data/scratch")
+
+# Fix SSL_CERT_FILE for Python 3.13 / httpx / anyio.
+# In this HPC environment, the venv activation or module system sets SSL_CERT_FILE=""
+# (empty string). ssl.create_default_context() accepts the empty string without error
+# in Python 3.13, but the resulting SSL context fails at TLS read time with
+# "passed invalid argument". REQUESTS_CA_BUNDLE is already set correctly in the
+# service file, so mirror it into SSL_CERT_FILE so that httpx (used by Prefect
+# internally) gets a valid CA bundle.
+_ca_bundle = os.environ.get("REQUESTS_CA_BUNDLE", "").strip()
+if _ca_bundle:
+    os.environ["SSL_CERT_FILE"] = _ca_bundle
+elif not os.environ.get("SSL_CERT_FILE", "").strip():
+    # Neither is set — unset SSL_CERT_FILE so Python uses the system default.
+    os.environ.pop("SSL_CERT_FILE", None)
 
 
 def setup_pytools_log():
@@ -31,7 +46,7 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
 
     We can view the sbatch script using the following command, to know how the job is started
     by slurm:
-    python -c "from em_workflows import config; c = config.SLURM_exec(); print(c.job_script())"
+    python -c "from em_workflows import config; c = config.SLURM_exec(cores=8, memory='24GB'); print(c.job_script())"
 
     The processes determins number of dask workers, and nthreads = cores / processes
     The memory limit is also divided among the workers
@@ -39,16 +54,14 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     More about the cluster: https://bigskywiki.niaid.nih.gov/big-sky-architecture
     """
     home = os.environ["HOME"]
-    env_name = os.environ["HEDWIG_ENV"]
     flowrun_id = os.environ.get("PREFECT__FLOW_RUN_ID", "not-found")
-    current_dir = cluster_kwargs.pop("current_dir", home)
-    job_script_prologue = [
-        f"source /data/home/svc_hpchedwig_{env_name}/image_portal_workflows/.venv/bin/activate",
-        "export IMOD_DIR=/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/imod-5.1.1-vyv6iidgdilzyxoqumqmdbyokzi4cdlx/IMOD",
-        "export JAVA_OPTS='-Djava.io.tmpdir=/data/scratch'",
-        f"export PYTHONPATH={current_dir};$PYTHONPATH",
-        "echo $PATH",
-    ]
+    current_dir = cluster_kwargs.pop("current_dir", Config.repo_dir.parent)
+    job_script_prologue = cluster_kwargs.pop(
+        "job_script_prologue",
+        Config.get_base_job_script_prologue(current_dir),
+    )
+    from dask_jobqueue import SLURMCluster
+
     cluster = SLURMCluster(
         name="dask-worker",
         # processes=4,
@@ -73,46 +86,90 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
 
 
 class Config:
-    # location in RML HPC
-    imod_root = "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/imod-5.1.1-vyv6iidgdilzyxoqumqmdbyokzi4cdlx/IMOD/"
-    bioformats2raw = os.environ.get(
-        "BIOFORMATS2RAW_LOC",
-        "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/bioformats2raw-0.9.4-yj7uyq6r7zduyd34h75nt6kootcuxrg4/bioformats2raw/bin/bioformats2raw",
-    )
-    brt_binary = os.environ.get("BRT_LOC", f"{imod_root}/bin/batchruntomo")
-    header_loc = os.environ.get("HEADER_LOC", f"{imod_root}/bin/header")
-    mrc2tif_loc = os.environ.get("MRC2TIF_LOC", f"{imod_root}/bin/mrc2tif")
-    newstack_loc = os.environ.get("NEWSTACK_LOC", f"{imod_root}/bin/newstack")
-    ffmpeg_loc = "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/ffmpeg-6.0-zq2bmekz3iolxjshigm6b6q2w64kn5h2/bin/ffmpeg"
-
-    # Location of GraphicsMagick binary
-    #
-    gm_loc = os.environ.get("GM_LOC", "/data/apps/software/spack/linux-rocky9-x86_64_v3/gcc-11.3.1/graphicsmagick-1.3.43-5cc6lqtchmgntmy66i56rs55nk6aqopp/bin/gm")
-
-    HIGH_SLURM_EXECUTOR = DaskTaskRunner(
-        cluster_class=SLURM_exec,
-        cluster_kwargs=dict(
-            cores=60,
-            memory="100G",
-        ),
-    )
-    SLURM_EXECUTOR = DaskTaskRunner(
-        cluster_class=SLURM_exec,
-        cluster_kwargs=dict(
-            cores=20,
-            memory="256G",
-        ),
+    bioformats2raw = os.environ.get("BIOFORMATS2RAW_LOC", "bioformats2raw")
+    brt_binary = os.environ.get("BRT_LOC", "batchruntomo")
+    header_loc = os.environ.get("HEADER_LOC", "header")
+    mrc2tif_loc = os.environ.get("MRC2TIF_LOC", "mrc2tif")
+    newstack_loc = os.environ.get("NEWSTACK_LOC", "newstack")
+    ffmpeg_loc = os.environ.get("FFMPEG_LOC", "ffmpeg")
+    gm_loc = os.environ.get("GM_LOC", "gm")
+    java_opts = os.environ.get("JAVA_OPTS", "-Djava.io.tmpdir=/data/scratch")
+    java_tool_options = os.environ.get(
+        "JAVA_TOOL_OPTIONS", "-Djava.io.tmpdir=/data/scratch"
     )
 
-    @staticmethod
-    def get_slurm_task_runner(current_dir: Path):
+    @classmethod
+    def get_base_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
+        env_name = os.environ["HEDWIG_ENV"]
+        current_dir = Path(current_dir) if current_dir is not None else cls.repo_dir.parent
+        # Slurm workers need SSL_CERT_FILE set to a valid CA bundle so that
+        # Prefect's httpx client (running inside the worker) can connect to the
+        # Prefect API server. SSL_CERT_FILE="" (empty string) causes
+        # ssl.SSLError: passed invalid argument at TLS read time in Python 3.13.
+        # Use REQUESTS_CA_BUNDLE as the authoritative source since it is already
+        # correctly set in the service file.
+        requests_ca = os.environ.get("REQUESTS_CA_BUNDLE", "").strip()
+        ssl_lines = []
+        if requests_ca:
+            # Set both so requests AND httpx/anyio both find the right CA bundle.
+            ssl_lines.append(f"export REQUESTS_CA_BUNDLE={requests_ca}")
+            ssl_lines.append(f"export SSL_CERT_FILE={requests_ca}")
+        else:
+            ssl_lines.append("unset REQUESTS_CA_BUNDLE")
+            ssl_lines.append("unset SSL_CERT_FILE")
+        return [
+            f"source /gs1/home/hedwig_{env_name}/{env_name}/bin/activate",
+            f"export PYTHONPATH={current_dir}",
+            *ssl_lines
+        ]
+
+    @classmethod
+    def get_flow_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
+        return []
+
+    @classmethod
+    def get_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
+        return [
+            *cls.get_base_job_script_prologue(current_dir),
+            *cls.get_flow_job_script_prologue(current_dir),
+        ]
+
+    @classmethod
+    def _build_task_runner(cls, cores: int, memory: str, current_dir: Path = None):
+        # Dask/distributed startup can try to register signal handlers.
+        # Non-main thread imports (e.g., worker deserialization) must avoid this.
+        if threading.current_thread() is not threading.main_thread():
+            return ConcurrentTaskRunner()
+
+        from prefect_dask.task_runners import DaskTaskRunner
+
+        cluster_kwargs = dict(
+            cores=cores,
+            memory=memory,
+            job_script_prologue=cls.get_job_script_prologue(current_dir),
+        )
+        if current_dir is not None:
+            cluster_kwargs["current_dir"] = current_dir
+
         return DaskTaskRunner(
             cluster_class=SLURM_exec,
-            cluster_kwargs=dict(
-                cores=20,
-                memory="256G",
-                current_dir=current_dir
-            ),
+            cluster_kwargs=cluster_kwargs,
+        )
+
+    @classmethod
+    def get_high_slurm_task_runner(cls, current_dir: Path = None):
+        return cls._build_task_runner(
+            cores=60,
+            memory="100G",
+            current_dir=current_dir,
+        )
+
+    @classmethod
+    def get_slurm_task_runner(cls, current_dir: Path = None):
+        return cls._build_task_runner(
+            cores=20,
+            memory="256G",
+            current_dir=current_dir,
         )
 
     user = os.environ["USER"]

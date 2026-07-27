@@ -77,7 +77,7 @@ def run_tests(git_branch: str) -> str:
     name="Pytest Runner",
     flow_run_name="Test-on-{git_branch}",
     log_prints=True,
-    task_runner=Config.SLURM_EXECUTOR,
+    task_runner=Config.get_slurm_task_runner(),
 )
 def pytest_flow(git_branch: str = "main") -> None:
     test_report = run_tests.submit(git_branch)

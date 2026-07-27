@@ -63,7 +63,14 @@ def bioformats_gen_zarr_dup(
         cmd.extend(["--downsample-type", "AREA"])
 
     cmd.extend([fp_in.as_posix(), output_zarr])
-    FilePath.run(cmd=cmd, log_file=log_fp)
+    FilePath.run(
+        cmd=cmd,
+        log_file=log_fp,
+        env={
+            "JAVA_OPTS": Config.java_opts,
+            "JAVA_TOOL_OPTIONS": Config.java_tool_options,
+        },
+    )
     return Path(output_zarr)
 
 
@@ -114,7 +121,14 @@ def bioformats_gen_zarr(
         cmd.extend(["--downsample-type", "AREA"])
 
     cmd.extend([input_fname, output_zarr])
-    FilePath.run(cmd=cmd, log_file=log_fp)
+    FilePath.run(
+        cmd=cmd,
+        log_file=log_fp,
+        env={
+            "JAVA_OPTS": Config.java_opts,
+            "JAVA_TOOL_OPTIONS": Config.java_tool_options,
+        },
+    )
     return Path(output_zarr)
 
 
