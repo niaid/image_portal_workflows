@@ -41,7 +41,7 @@ deployments:
   tags: *hedwig_tags
   description: |-
     Convert 2D dm, tiff, mrc, jpeg, png to keyimage and thumbnails
-  entrypoint: em_workflows/dm_conversion/flow.py:dm_flow
+  entrypoint: em_workflows.dm_conversion.flow:dm_flow
   parameters: {}
   work_pool: *dask_work_pool
   schedule:
@@ -50,7 +50,7 @@ deployments:
   tags: *hedwig_tags
   description: |-
     Convert large png files to neuroglancer assets (along with key/thumb images)
-  entrypoint: em_workflows/lrg_2d_rgb/flow.py:lrg_2d_flow
+  entrypoint: em_workflows.lrg_2d_rgb.flow:lrg_2d_flow
   parameters: {}
   work_pool: *dask_work_pool
   schedule:
@@ -59,7 +59,7 @@ deployments:
   tags: *hedwig_tags
   description: |-
     Convert fib-sem to neuroglancer assets (along with key/thumb images)
-  entrypoint: em_workflows/sem_tomo/flow.py:sem_tomo_flow
+  entrypoint: em_workflows.sem_tomo.flow:sem_tomo_flow
   parameters: {}
   work_pool: *dask_work_pool
   schedule:
@@ -68,7 +68,7 @@ deployments:
   tags: *hedwig_tags
   description: |-
     Convert mrc & st images using adoc templates to generate alignment and reconstrcuted movies. The average of reconstructed movie creates neuroglancer asset.
-  entrypoint: em_workflows/brt/flow.py:brt_flow
+  entrypoint: em_workflows.brt.flow:brt_flow
   parameters: {}
   work_pool: *dask_work_pool
   schedule:
@@ -77,7 +77,7 @@ deployments:
   tags: *hedwig_tags
   description: |-
     Convert czi images to neuroglancer assets
-  entrypoint: em_workflows/czi/flow.py:czi_flow
+  entrypoint: em_workflows.czi.flow:czi_flow
   parameters: {}
   work_pool: *dask_work_pool
   schedule:
@@ -85,7 +85,7 @@ deployments:
   version:
   tags: *hedwig_tags
   description: Runs pytests regularly and uploads coverage as artifacts
-  entrypoint: em_workflows/test_runner/flow.py:pytest_flow
+  entrypoint: em_workflows.test_runner.flow:pytest_flow
   parameters: {}
   work_pool: *dask_work_pool
   schedule:
