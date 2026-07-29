@@ -62,12 +62,15 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     )
     from dask_jobqueue import SLURMCluster
 
+    log_directory = f"{home}/slurm-log/{flowrun_id}"
+    os.makedirs(log_directory, exist_ok=True)
+
     cluster = SLURMCluster(
         name="dask-worker",
         # processes=4,
         death_timeout=121,
         local_directory=f"{home}/dask_tmp/",
-        log_directory=f"{home}/slurm-log/{flowrun_id}",
+        log_directory=log_directory,
         job_script_prologue=job_script_prologue,
         # queue is arg for SBATCH --partition
         # to learn more about partitions, run `sinfo` in hpc
