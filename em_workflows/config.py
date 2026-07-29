@@ -2,7 +2,6 @@ import logging
 import os
 from pathlib import Path
 import sys
-import threading
 
 from dotenv import load_dotenv
 from prefect.task_runners import ConcurrentTaskRunner
@@ -139,12 +138,15 @@ class Config:
 
     @classmethod
     def _build_task_runner(cls, cores: int, memory: str, current_dir: Path = None):
-        # Dask/distributed startup can try to register signal handlers.
-        # Non-main thread imports (e.g., worker deserialization) must avoid this.
-        if threading.current_thread() is not threading.main_thread():
+        try:
+            from prefect_dask.task_runners import DaskTaskRunner
+        except (ValueError, RuntimeError) as exc:
+            # Dask/distributed import can register signal handlers, which
+            # raises ValueError in non-main threads.  Fall back gracefully.
+            logging.getLogger(__name__).warning(
+                "Could not import DaskTaskRunner (%s), falling back to ConcurrentTaskRunner", exc
+            )
             return ConcurrentTaskRunner()
-
-        from prefect_dask.task_runners import DaskTaskRunner
 
         cluster_kwargs = dict(
             cores=cores,
