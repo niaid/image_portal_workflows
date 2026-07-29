@@ -2,7 +2,6 @@ import logging
 import os
 from pathlib import Path
 import sys
-import threading
 
 from dotenv import load_dotenv
 from prefect.task_runners import ConcurrentTaskRunner
@@ -62,12 +61,15 @@ def SLURM_exec(asynchronous: bool = False, **cluster_kwargs):
     )
     from dask_jobqueue import SLURMCluster
 
+    log_directory = f"{home}/slurm-log/{flowrun_id}"
+    os.makedirs(log_directory, exist_ok=True)
+
     cluster = SLURMCluster(
         name="dask-worker",
         # processes=4,
         death_timeout=121,
         local_directory=f"{home}/dask_tmp/",
-        log_directory=f"{home}/slurm-log/{flowrun_id}",
+        log_directory=log_directory,
         job_script_prologue=job_script_prologue,
         # queue is arg for SBATCH --partition
         # to learn more about partitions, run `sinfo` in hpc
@@ -100,8 +102,9 @@ class Config:
 
     @classmethod
     def get_base_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
-        env_name = os.environ["HEDWIG_ENV"]
         current_dir = Path(current_dir) if current_dir is not None else cls.repo_dir.parent
+        # Use the currently active virtualenv so SLURM workers match the main process.
+        venv_activate = f"{sys.prefix}/bin/activate"
         # Slurm workers need SSL_CERT_FILE set to a valid CA bundle so that
         # Prefect's httpx client (running inside the worker) can connect to the
         # Prefect API server. SSL_CERT_FILE="" (empty string) causes
@@ -118,7 +121,12 @@ class Config:
             ssl_lines.append("unset REQUESTS_CA_BUNDLE")
             ssl_lines.append("unset SSL_CERT_FILE")
         return [
-            f"source /gs1/home/hedwig_{env_name}/{env_name}/bin/activate",
+            "source /etc/profile.d/modules.sh",
+            "export MODULEPATH_ROOT=/usr/share/modulefiles",
+            "export LMOD_SITE_MODULEPATH=/data/apps/modulefiles/spack/linux-rocky9-x86_64/Core:/data/apps/modulefiles/conda:/data/apps/modulefiles/apptainer:/data/apps/modulefiles/misc",
+            "export MODULEPATH=/data/apps/modulefiles/spack/linux-rocky9-x86_64/clang/17.0.6:/data/apps/modulefiles/misc:/data/apps/modulefiles/apptainer:/data/apps/modulefiles/conda:/data/apps/modulefiles/spack/linux-rocky9-x86_64/Core:/etc/modulefiles:/usr/share/modulefiles:/usr/share/modulefiles/Linux:/usr/share/modulefiles/Core:/usr/share/lmod/lmod/modulefiles/Core",
+            "module load imod bioformats2raw ffmpeg graphicsmagick",
+            f"source {venv_activate}",
             f"export PYTHONPATH={current_dir}",
             *ssl_lines
         ]
@@ -136,12 +144,15 @@ class Config:
 
     @classmethod
     def _build_task_runner(cls, cores: int, memory: str, current_dir: Path = None):
-        # Dask/distributed startup can try to register signal handlers.
-        # Non-main thread imports (e.g., worker deserialization) must avoid this.
-        if threading.current_thread() is not threading.main_thread():
+        try:
+            from prefect_dask.task_runners import DaskTaskRunner
+        except (ValueError, RuntimeError) as exc:
+            # Dask/distributed import can register signal handlers, which
+            # raises ValueError in non-main threads.  Fall back gracefully.
+            logging.getLogger(__name__).warning(
+                "Could not import DaskTaskRunner (%s), falling back to ConcurrentTaskRunner", exc
+            )
             return ConcurrentTaskRunner()
-
-        from prefect_dask.task_runners import DaskTaskRunner
 
         cluster_kwargs = dict(
             cores=cores,
