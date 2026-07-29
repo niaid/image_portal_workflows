@@ -102,8 +102,9 @@ class Config:
 
     @classmethod
     def get_base_job_script_prologue(cls, current_dir: Path = None) -> list[str]:
-        env_name = os.environ["HEDWIG_ENV"]
         current_dir = Path(current_dir) if current_dir is not None else cls.repo_dir.parent
+        # Use the currently active virtualenv so SLURM workers match the main process.
+        venv_activate = f"{sys.prefix}/bin/activate"
         # Slurm workers need SSL_CERT_FILE set to a valid CA bundle so that
         # Prefect's httpx client (running inside the worker) can connect to the
         # Prefect API server. SSL_CERT_FILE="" (empty string) causes
@@ -120,7 +121,12 @@ class Config:
             ssl_lines.append("unset REQUESTS_CA_BUNDLE")
             ssl_lines.append("unset SSL_CERT_FILE")
         return [
-            f"source /gs1/home/hedwig_{env_name}/{env_name}/bin/activate",
+            "source /etc/profile.d/modules.sh",
+            "export MODULEPATH_ROOT=/usr/share/modulefiles",
+            "export LMOD_SITE_MODULEPATH=/data/apps/modulefiles/spack/linux-rocky9-x86_64/Core:/data/apps/modulefiles/conda:/data/apps/modulefiles/apptainer:/data/apps/modulefiles/misc",
+            "export MODULEPATH=/data/apps/modulefiles/spack/linux-rocky9-x86_64/clang/17.0.6:/data/apps/modulefiles/misc:/data/apps/modulefiles/apptainer:/data/apps/modulefiles/conda:/data/apps/modulefiles/spack/linux-rocky9-x86_64/Core:/etc/modulefiles:/usr/share/modulefiles:/usr/share/modulefiles/Linux:/usr/share/modulefiles/Core:/usr/share/lmod/lmod/modulefiles/Core",
+            "module load imod bioformats2raw ffmpeg graphicsmagick",
+            f"source {venv_activate}",
             f"export PYTHONPATH={current_dir}",
             *ssl_lines
         ]
