@@ -29,8 +29,8 @@ In order to submit a workflow job you will need deployment IDs of each of the wo
      - 6fcb4637-878f-4630-9f89-2bdea430ac3e
      - cdf92549-80d9-4f4e-bde7-30409ed20e41
    * - IF / Multichannel CZI
-     - f395d4ef-732f-4de5-98de-363f08f7be20
-     - 208568ff-f487-4e10-bbd2-208640d39143
+     - 7f0f7772-4bbb-450f-8691-aad1c4e2424d
+     - 65374108-5db0-46ef-a2d9-810e89115679
      - dccb9b62-cd2e-489d-ac12-f35b76b91fb1
    * - Large 2D PNG / ROI
      - 432592af-0899-4425-94b4-c239614b1748
