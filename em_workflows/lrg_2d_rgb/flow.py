@@ -157,7 +157,7 @@ def gen_thumb(file_path: FilePath):
 def lrg_2d_flow(
     file_share: str,
     input_dir: str,
-    x_file_name: Optional[str] = None,
+    file_name: Optional[str] = None,
     callback_url: Optional[str] = None,
     token: Optional[str] = None,
     x_no_api: bool = False,
@@ -177,7 +177,7 @@ def lrg_2d_flow(
     input_fps = utils.list_files.submit(
         input_dir_fp,
         VALID_LRG_2D_RGB_INPUTS,
-        single_file=x_file_name,
+        single_file=file_name,
     )
     fps = utils.gen_fps.submit(
         share_name=file_share, input_dir=input_dir_fp, fps_in=input_fps

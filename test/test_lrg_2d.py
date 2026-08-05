@@ -65,7 +65,7 @@ def test_lrg_2d_flow_failure_server_response(
     state = lrg_2d_flow(
         file_share="test",
         input_dir="/test/input_files/lrg_ROI_pngs/Projects",
-        x_file_name="even_smaller.png",
+        file_name="even_smaller.png",
         x_no_api=True,
         return_state=True,
     )
@@ -131,7 +131,7 @@ def test_only_wd_logs_are_copied(mock_nfs_mount):
     state = lrg_2d_flow(
         file_share="test",
         input_dir="/test/input_files/lrg_ROI_pngs/Projects",
-        x_file_name="even_smaller.png",
+        file_name="even_smaller.png",
         x_no_api=True,
         return_state=True,
     )
