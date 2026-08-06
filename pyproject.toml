@@ -39,13 +39,10 @@ pytools = { url = "https://github.com/niaid/tomojs-pytools/releases/download/v3.
 [dependency-groups]
 dev = [
     "black==26.5.1",
-    "coverage>=7.14.3",
-    "coverage-badge>=1.1.2",
     "flake8==7.3.0",
     "pre-commit==4.6.0",
     "pytest~=9.1",
     "pytest-asyncio==1.4.0",
-    "pytest-cov==7.1.0",
     "pytest-env==1.6.0",
     "sphinx-autobuild==2025.8.25",
     "sphinx-rtd-theme==3.1.0",
