@@ -27,9 +27,9 @@ from em_workflows.utils import utils
 def publish_artifact(report: str) -> None:
     date = datetime.today().strftime("%Y-%m-%d")
     create_markdown_artifact(
-        key="pytest-cov-report",
+        key="pytest-report",
         markdown=report,
-        description=f"Pytest Coverage Report ({date})",
+        description=f"Pytest Report ({date})",
     )
 
 
@@ -37,9 +37,8 @@ def publish_artifact(report: str) -> None:
 def run_tests(git_branch: str) -> str:
     """
     ***Limit to dev server***
-    Run pytest and save coverage
-    The returned string can be viewed in pytest server artifacts section
-    Currently, https://prefect2.hedwig-workflow-api.niaiddev.net/artifacts/key/pytest-cov-report
+    Run pytest and return the report.
+    The returned string can be viewed in prefect server artifacts section.
     """
     test_path = "test_runner"
     test_dir = Path.home() / test_path
@@ -59,18 +58,12 @@ def run_tests(git_branch: str) -> str:
     )
 
     pytest_sp = subprocess.run("pytest".split(), check=False, capture_output=True, shell=True)
-    # "test/test_utils.py::test_task_result_persistend_and_accessed_by_hooks"
     utils.log(
         f"Pytest is done. {pytest_sp.returncode=}\n {pytest_sp.stdout=}\n {pytest_sp.stderr=}"
     )
     if pytest_sp.stderr:
         raise RuntimeError(pytest_sp.stderr)
-    report = pytest_sp.stdout.decode()
-    # pytest returns a test report with warnings, failure details and more
-    # However, the meat of the pytest report is after the ---- coverage: pattern
-    # So we are only grabbing the main coverage report to show
-    idx = report.find("---------- coverage:")
-    return report[idx:]
+    return pytest_sp.stdout.decode()
 
 
 @flow(
