@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=83.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -19,7 +19,7 @@ dependencies = [
     "httpx>=0.27",
     "jinja2==3.1.6",
     "natsort==8.4.0",
-    "prefect[dask]==3.7.5",
+    "prefect[dask]==3.8.1",
     "python-dotenv==1.2.2",
     "pytools",
     "requests==2.34.2",
@@ -40,10 +40,10 @@ pytools = { url = "https://github.com/niaid/tomojs-pytools/releases/download/v3.
 dev = [
     "black==26.5.1",
     "flake8==7.3.0",
-    "pre-commit==4.6.0",
+    "pre-commit==4.6.1",
     "pytest~=9.1",
     "pytest-asyncio==1.4.0",
-    "pytest-env==1.6.0",
+    "pytest-env==1.7.0",
     "sphinx-autobuild==2025.8.25",
     "sphinx-rtd-theme==3.1.0",
 ]
