@@ -52,7 +52,6 @@ class FilePath:
         self.base = fp_in.stem
         self._working_dir = self.make_work_dir()
         self._assets_dir = self.make_assets_dir()
-        self.environment = self.get_environment()
         self.proj_root = Path(Config.proj_dir(share_name=share_name))
         self.asset_root = Path(Config.assets_dir(share_name=share_name))
         self.prim_fp_elt = self.gen_prim_fp_elt()
@@ -82,19 +81,6 @@ class FilePath:
         """
 
         return self._working_dir
-
-    def get_environment(self) -> str:
-        """
-        The workflows can operate in one of several environments,
-        named HEDWIG_ENV for historical reasons, eg prod, qa or dev.
-        This function looks up that environment.
-        Raises exception if no environment found.
-        """
-        env = os.environ.get("HEDWIG_ENV")
-        if not env:
-            msg = "Unable to look up HEDWIG_ENV. Should be exported set to one of: [dev, qa, prod]"
-            raise RuntimeError(msg)
-        return env
 
     def make_work_dir(self) -> Path:
         """
@@ -270,44 +256,3 @@ class FilePath:
         """Removes the the entire working directory"""
         log(f"Removing working dir: {self.working_dir}")
         shutil.rmtree(self.working_dir, ignore_errors=True)
-
-    @staticmethod
-    def run(cmd: List[str], log_file: str, env: Optional[Dict[AnyStr, AnyStr]] = None, *, copy_env: bool = True) -> int:
-        """Runs a Unix command as a subprocess
-
-        - If final returncode is not 0, raises a RuntimeError
-
-        :param cmd: list of strings representing the command to run
-        :param log_file: path to the log file to write the stdout and stderr to
-        :param env: dictionary of additional environment variables to pass to the subprocess
-        :param copy_env: if True, the subprocess inherits the parent's environment
-        :return: the return code of the subprocess
-
-
-        """
-
-        if env is None:
-            if not copy_env:
-                env = {}
-            # Note: if env is not and copy_env is True, the subprocess inherits the parent's environment,
-            # by passing env=None
-        elif copy_env:
-            # merge dictionaries python 3.9+
-            env = os.environ | env
-
-        log(f"Running subprocess: {' '.join(cmd)} logfile: {log_file}")
-
-        with (subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env) as p,
-              open(log_file, 'ab') as file):
-            file.write(f"Running subprocess: {' '.join(cmd)}\n".encode())
-
-            # write the outputs line by line as they come in
-            for line in p.stdout:
-                file.write(line)
-                log(line.decode())
-            file.flush()
-
-            if p.wait() != 0:
-                raise RuntimeError(f"Failed to run command: {' '.join(cmd)}")
-
-            return p.returncode

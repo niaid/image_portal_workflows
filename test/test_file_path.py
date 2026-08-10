@@ -1,6 +1,7 @@
 import os
 
 from em_workflows.file_path import FilePath
+from em_workflows.utils import utils
 from pathlib import Path
 import sys
 
@@ -36,7 +37,7 @@ def test_filepath_run(mock_nfs_mount, tmp_path, request):
 
     # Run the python shell, and produce output to stderr and stdout
     cmd = [sys.executable, "-c", "import sys; print('stdout'); print('stderr', file=sys.stderr)"]
-    fp_in.run(cmd, log_file=str(log_file))
+    utils.run(cmd, log_file=str(log_file))
 
     # Check if the log file was created
     assert log_file.exists()
@@ -65,7 +66,7 @@ def test_filepath_run_env(mock_nfs_mount, tmp_path, request):
 
     # Run the python shell, and print all environment variables
     cmd = [sys.executable, "-c", "import os; print(os.environ)"]
-    fp_in.run(cmd, log_file=str(log_file), env={"ENV_VAR": "env_var_value"}, copy_env=False)
+    utils.run(cmd, log_file=str(log_file), env={"ENV_VAR": "env_var_value"}, copy_env=False)
 
     # Check if the log file was created
     assert log_file.exists()
@@ -80,7 +81,7 @@ def test_filepath_run_env(mock_nfs_mount, tmp_path, request):
 
     # Run the python shell, and print all environment variables
     cmd = [sys.executable, "-c", "import os; print(os.environ)"]
-    fp_in.run(cmd, log_file=str(log_file), env={"ENV_VAR": "env_var_value"}, copy_env=True)
+    utils.run(cmd, log_file=str(log_file), env={"ENV_VAR": "env_var_value"}, copy_env=True)
 
     # Check if the log file was created
     assert log_file.exists()
@@ -96,7 +97,7 @@ def test_filepath_run_env(mock_nfs_mount, tmp_path, request):
 
     # Run the python shell, and print all environment variables
     cmd = [sys.executable, "-c", "import os; print(os.environ)"]
-    fp_in.run(cmd, log_file=str(log_file), env=None, copy_env=True)
+    utils.run(cmd, log_file=str(log_file), env=None, copy_env=True)
 
     # Check if the log file was created
     assert log_file.exists()
@@ -112,7 +113,7 @@ def test_filepath_run_env(mock_nfs_mount, tmp_path, request):
 
     # Run the python shell, and print all environment variables
     cmd = [sys.executable, "-c", "import os; print(os.environ)"]
-    fp_in.run(cmd, log_file=str(log_file), env=None, copy_env=False)
+    utils.run(cmd, log_file=str(log_file), env=None, copy_env=False)
 
     # Check if the log file was created
     assert log_file.exists()

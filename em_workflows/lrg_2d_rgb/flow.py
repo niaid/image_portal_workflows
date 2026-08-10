@@ -43,7 +43,7 @@ def convert_png_to_tiff(file_path: FilePath) -> FilePath:
         output_tiff,
     ]
     utils.log(f"Generated cmd {cmd}")
-    FilePath.run(cmd, log_fp)
+    utils.run(cmd, log_fp)
     return file_path
 
 

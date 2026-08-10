@@ -63,6 +63,33 @@ def lookup_dims(fp: Path) -> Header:
         return xyz_cleaned
 
 
+def run(cmd: List[str], log_file: str, env: Optional[Dict] = None, *, copy_env: bool = True) -> int:
+    """Runs a Unix command as a subprocess, writing stdout+stderr to log_file.
+
+    Raises RuntimeError if the command exits non-zero.
+    """
+    if env is None:
+        if not copy_env:
+            env = {}
+    elif copy_env:
+        env = os.environ | env
+
+    log(f"Running subprocess: {' '.join(cmd)} logfile: {log_file}")
+
+    with (subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env) as p,
+          open(log_file, 'ab') as file):
+        file.write(f"Running subprocess: {' '.join(cmd)}\n".encode())
+        for line in p.stdout:
+            file.write(line)
+            log(line.decode())
+        file.flush()
+
+        if p.wait() != 0:
+            raise RuntimeError(f"Failed to run command: {' '.join(cmd)}")
+
+        return p.returncode
+
+
 @task(
     name="mrc to movie generation",
 )
@@ -81,7 +108,7 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
     mrc = f"{file_path.working_dir}/{root}.mrc"
     log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
     cmd = [Config.mrc2tif_loc, "-j", "-C", "0,255", mrc, mp4]
-    FilePath.run(cmd=cmd, log_file=log_file)
+    run(cmd=cmd, log_file=log_file)
     mov = f"{file_path.working_dir}/{file_path.base}_{asset_type}.mp4"
     test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
     mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
@@ -104,7 +131,7 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
         mov,
     ]
     log_file = f"{file_path.working_dir}/{file_path.base}_{asset_type}.log"
-    FilePath.run(cmd=cmd, log_file=log_file)
+    run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(mov))
     asset = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
     return asset
@@ -436,7 +463,7 @@ def run_brt(
     # START BRT (Batchruntomo) - long running process.
     cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "60", "-gpu", "1"]
     log_file = f"{file_path.working_dir}/brt_run.log"
-    FilePath.run(cmd, log_file)
+    run(cmd, log_file)
     rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
     ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
     log(f"checking that dir {file_path.working_dir} contains ok BRT run")

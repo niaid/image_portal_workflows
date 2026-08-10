@@ -71,7 +71,7 @@ def gen_ali_x(fp_in: Path, z_dim) -> None:
         ali_x = f"{fp_in.parent}/{fp_in.stem}_align_{i_padded}.mrc"
         log_file = f"{fp_in.parent}/newstack_mid_pt.log"
         cmd = [BRTConfig.newstack_loc, "-secs", f"{i}-{i}", fp_in.as_posix(), ali_x]
-        FilePath.run(cmd=cmd, log_file=log_file)
+        utils.run(cmd=cmd, log_file=log_file)
 
 @task(
     name="Alignment assembly",
@@ -88,7 +88,7 @@ def gen_ali_asmbl(fp_in: Path) -> None:
     ali_base_cmd = [BRTConfig.newstack_loc, "-float", "3"]
     ali_base_cmd.extend(alis)
     ali_base_cmd.append(ali_asmbl)
-    FilePath.run(cmd=ali_base_cmd, log_file=f"{fp_in.parent}/asmbl.log")
+    utils.run(cmd=ali_base_cmd, log_file=f"{fp_in.parent}/asmbl.log")
 
 
 @task(
@@ -105,7 +105,7 @@ def gen_mrc2tiff(fp_in: Path) -> None:
     ali = f"{fp_in.parent}/{fp_in.stem}_ali"
     cmd = [BRTConfig.mrc2tif_loc, "-j", "-C", "0,255", ali_asmbl, ali]
     log_file = f"{fp_in.parent}/mrc2tif_align.log"
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
 
 
 @task(
@@ -134,7 +134,7 @@ def gen_thumbs(middle_i_jpg: Path) -> Path:
         thumb,
     ]
     log_file = f"{middle_i_jpg.parent}/thumb.log"
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     return Path(thumb)
 
 
@@ -196,7 +196,7 @@ def gen_tilt_movie(brt_output: utils.BrtOutput) -> Path:
         "1024,1024",
         movie_file,
     ]
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     
     utils.cleanup_files(file_path=ali_file, pattern="*_align_*.mrc")
     return Path(movie_file)
@@ -239,7 +239,7 @@ def gen_recon_movie(ave_mrc: Path) -> Path:
         ave_mrc.as_posix(),
         mp4_base,
     ]
-    FilePath.run(cmd=mrc2tiff_cmd, log_file=mrc2tiff_log_file)
+    utils.run(cmd=mrc2tiff_cmd, log_file=mrc2tiff_log_file)
     # don't put the 's in here, as per docs. subprocess messes them up
     jpg_input_pattern = f"{mp4_base}*.jpg"
     key_mov = f"{ave_mrc.parent}/{ave_mrc.stem}_keyMov.mp4"
@@ -262,7 +262,7 @@ def gen_recon_movie(ave_mrc: Path) -> Path:
         key_mov,
     ]
     log_file = f"{ave_mrc.parent}/{ave_mrc.stem}_keyMov.log"
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     utils.cleanup_files(file_path=ave_mrc, pattern="_mp4.*.jpg")
     return Path(key_mov)
 
@@ -300,7 +300,7 @@ def gen_clip_avgs(in_fp: Path, z_dim: str) -> None:
             ave_mrc,
         ]
         log_file = f"{in_fp.parent}/clip_avg.error.log"
-        FilePath.run(cmd=cmd, log_file=log_file)
+        utils.run(cmd=cmd, log_file=log_file)
 
 @task(
     name="Consolidate average MRCs",
@@ -320,7 +320,7 @@ def consolidate_ave_mrcs(fp_in: Path) -> Path:
     cmd.extend(aves)
     cmd.append(ave_mrc.as_posix())
     log_file = f"{fp_in.parent}/newstack_float.log"
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     utils.cleanup_files(file_path=ave_mrc, pattern="*_ave*.mrc", keep_file=ave_mrc)
     return ave_mrc
 
@@ -337,7 +337,7 @@ def gen_ave_8_vol(ave_mrc: Path) -> Path:
     ave_8_mrc = f"{ave_mrc.parent}/avebin8_{ave_mrc.stem}.mrc"
     cmd = [BRTConfig.binvol, "-binning", "2", ave_mrc.as_posix(), ave_8_mrc]
     log_file = f"{ave_mrc.parent}/ave_8_mrc.log"
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     return Path(ave_8_mrc)
 
 
@@ -352,7 +352,7 @@ def gen_ave_jpgs_from_ave_mrc(ave_mrc: Path):
     mp4 = f"{ave_mrc.parent}/{ave_mrc.stem}_mp4"
     log_file = f"{ave_mrc.parent}/recon_mrc2tiff.log"
     cmd = [BRTConfig.mrc2tif_loc, "-j", "-C", "100,255", ave_mrc.as_posix(), mp4]
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
 
 
 # @task
