@@ -64,6 +64,12 @@ class FilePath:
         self.proj_root = Path(Config.proj_dir(share_name=share_name))
         self.asset_root = Path(Config.assets_dir(share_name=share_name))
         self.prim_fp_elt = self.gen_prim_fp_elt()
+        self._frozen = True
+
+    def __setattr__(self, name: str, value: object) -> None:
+        if getattr(self, '_frozen', False):
+            raise AttributeError(f"{self.__class__.__name__} is immutable")
+        super().__setattr__(name, value)
 
     def __str__(self) -> str:
         return f"FilePath: proj_root:{self.proj_root}\n\
