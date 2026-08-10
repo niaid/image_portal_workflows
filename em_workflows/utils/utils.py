@@ -15,7 +15,7 @@ from prefect.runtime import flow_run
 from pytools.meta import read_ome_info
 
 from em_workflows.config import Config
-from em_workflows.file_path import FilePath
+from em_workflows.file_path import AssetDict, FilePath, ImageSetElement, PrimaryFPElement
 from em_workflows.utils.log import log
 
 # used for keeping outputs of imod's header command (dimensions of image).
@@ -177,7 +177,7 @@ def cleanup_files(file_path: Path, pattern: str, keep_file: Path = None) -> None
 
 
 @task
-def gen_prim_fps(fp_in: FilePath, additional_assets: (dict, ...) = None) -> Dict:
+def gen_prim_fps(fp_in: FilePath, additional_assets: (dict, ...) = None) -> PrimaryFPElement:
     """
     :param fp_in: FilePath of current input
     :param additional_assets: A list of additional assets to be added to the primary element
@@ -198,7 +198,7 @@ def gen_prim_fps(fp_in: FilePath, additional_assets: (dict, ...) = None) -> Dict
 
 
 @task
-def add_imageSet(prim_fp: dict, imageSet: list) -> Dict:
+def add_imageSet(prim_fp: PrimaryFPElement, imageSet: List[ImageSetElement]) -> PrimaryFPElement:
     """
     :param prim_fp: the 'primary' element, describing input file location
     :param imageSet: list of scenes
@@ -209,7 +209,7 @@ def add_imageSet(prim_fp: dict, imageSet: list) -> Dict:
 
 
 @task
-def add_asset(prim_fp: dict, asset: dict, image_idx: int = None) -> dict:
+def add_asset(prim_fp: PrimaryFPElement, asset: AssetDict | List[AssetDict], image_idx: int = None) -> PrimaryFPElement:
     """
     :param prim_fp: the 'primary' element (dict) to which assets are appended
     :param asset: The actual asset (output) to be added in the form of another dict
