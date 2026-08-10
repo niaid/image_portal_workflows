@@ -35,23 +35,187 @@ Batchruntomo pipeline overview:
 - Finally, we ``POST`` the JSON datastructure to the API, and cleanup temp dirs.
 """
 
+from collections import namedtuple
 from typing import Dict
 import json
 import glob
 import os
+import shutil
 import subprocess
 from typing import Optional
 from pathlib import Path
 from natsort import os_sorted
+from jinja2 import Environment, FileSystemLoader
 from prefect import task, flow, unmapped
 from pytools.HedwigZarrImages import HedwigZarrImages
 
+from em_workflows.config import Config
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
+from em_workflows.utils.log import log
 from em_workflows.constants import AssetType
 from em_workflows.file_path import FilePath
 from em_workflows.brt.config import BRTConfig
 from em_workflows.brt.constants import BRT_DEPTH, BRT_HEIGHT, BRT_WIDTH
+
+
+BrtOutput = namedtuple("BrtOutput", ["ali_file", "rec_file"])
+
+
+def update_adoc(
+    adoc_fp: Path,
+    tg_fp: Path,
+    montage: int,
+    gold: int,
+    focus: int,
+    fiducialless: int,
+    trackingMethod: int,
+    TwoSurfaces: int,
+    TargetNumberOfBeads: int,
+    LocalAlignments: int,
+    THICKNESS: int,
+) -> Path:
+    """
+    | Uses jinja templating to update the adoc file with input params.
+    | dual_p is calculated by inputs_paired() and is used to define `dual`
+    | Some of these parameters are derived programatically.
+
+    :todo: Remove references to ``dual_p`` in comments?
+    """
+    file_loader = FileSystemLoader(str(adoc_fp.parent))
+    env = Environment(loader=file_loader)
+    template = env.get_template(adoc_fp.name)
+
+    name = tg_fp.stem
+    currentBStackExt = None
+    stackext = tg_fp.suffix[1:]
+    # if dual_p:
+    #    dual = 1
+    #    currentBStackExt = tg_fp.suffix[1:]  # TODO - assumes both files are same ext
+    datasetDirectory = adoc_fp.parent
+    if int(TwoSurfaces) == 0:
+        SurfacesToAnalyze = 1
+    elif int(TwoSurfaces) == 1:
+        SurfacesToAnalyze = 2
+    else:
+        raise ValueError(
+            f"Unable to resolve SurfacesToAnalyze, TwoSurfaces \
+                is set to {TwoSurfaces}, and should be 0 or 1"
+        )
+    rpa_thickness = int(int(THICKNESS) * 1.5)
+
+    vals = {
+        "name": name,
+        "stackext": stackext,
+        "currentBStackExt": currentBStackExt,
+        "montage": montage,
+        "gold": gold,
+        "focus": focus,
+        "datasetDirectory": datasetDirectory,
+        "fiducialless": fiducialless,
+        "trackingMethod": trackingMethod,
+        "TwoSurfaces": TwoSurfaces,
+        "TargetNumberOfBeads": TargetNumberOfBeads,
+        "SurfacesToAnalyze": SurfacesToAnalyze,
+        "LocalAlignments": LocalAlignments,
+        "rpa_thickness": rpa_thickness,
+        "THICKNESS": THICKNESS,
+    }
+
+    output = template.render(vals)
+    adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
+    log("Created adoc: adoc_loc.as_posix()")
+    with open(adoc_loc, "w") as _file:
+        print(output, file=_file)
+    log(f"generated {adoc_loc}")
+    return adoc_loc
+
+
+def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
+    """
+    copies files (tomograms/mrc files) into working_dir
+    returns Path of copied file
+    :todo: Determine if the 'a' & 'b' files still exist and if these files need
+    to be copied. (See comment in ``run_brt`` before this call is made)
+    """
+    new_loc = Path(f"{working_dir}/{fname.name}")
+    if fname.exists():
+        shutil.copyfile(src=fname.as_posix(), dst=new_loc)
+    else:
+        fp_1 = Path(f"{fname.parent}/{fname.stem}a{fname.suffix}")
+        fp_2 = Path(f"{fname.parent}/{fname.stem}b{fname.suffix}")
+        if fp_1.exists() and fp_2.exists():
+            shutil.copyfile(src=fp_1.as_posix(), dst=f"{working_dir}/{fp_1.name}")
+            shutil.copyfile(src=fp_2.as_posix(), dst=f"{working_dir}/{fp_2.name}")
+        else:
+            raise RuntimeError(f"Files missing. {fp_1},{fp_2}. BRT run failure.")
+    return new_loc
+
+
+def copy_template(working_dir: Path, template_name: str) -> Path:
+    """
+    :param working_dir: libpath.Path of temporary working directory
+    :param template_name: base str name of the ADOC template
+    :return: libpath.Path of the copied file
+
+    copies the template adoc file to the working_dir
+    """
+    adoc_fp = f"{working_dir}/{template_name}.adoc"
+    template_fp = f"{Config.template_dir}/{template_name}.adoc"
+    log(f"trying to copy {template_fp} to {adoc_fp}")
+    shutil.copyfile(template_fp, adoc_fp)
+    return Path(adoc_fp)
+
+
+@task(
+    name="Batchruntomo conversion",
+    tags=["brt"],
+    # timeout_seconds=600,
+)
+def run_brt(
+    file_path: FilePath,
+    adoc_template: str,
+    montage: int,
+    gold: int,
+    focus: int,
+    fiducialless: int,
+    trackingMethod: int,
+    TwoSurfaces: int,
+    TargetNumberOfBeads: int,
+    LocalAlignments: int,
+    THICKNESS: int,
+) -> BrtOutput:
+    adoc_fp = copy_template(
+        working_dir=file_path.working_dir, template_name=adoc_template
+    )
+    updated_adoc = update_adoc(
+        adoc_fp=adoc_fp,
+        tg_fp=file_path.fp_in,
+        montage=montage,
+        gold=gold,
+        focus=focus,
+        fiducialless=fiducialless,
+        trackingMethod=trackingMethod,
+        TwoSurfaces=TwoSurfaces,
+        TargetNumberOfBeads=TargetNumberOfBeads,
+        LocalAlignments=LocalAlignments,
+        THICKNESS=THICKNESS,
+    )
+    # why do we need to copy these?
+    copy_tg_to_working_dir(fname=file_path.fp_in, working_dir=file_path.working_dir)
+
+    # START BRT (Batchruntomo) - long running process.
+    cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "60", "-gpu", "1"]
+    log_file = f"{file_path.working_dir}/brt_run.log"
+    utils.run(cmd, log_file)
+    rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
+    ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
+    log(f"checking that dir {file_path.working_dir} contains ok BRT run")
+
+    for _file in [rec_file, ali_file]:
+        if not _file.exists():
+            raise ValueError(f"File {_file} does not exist. BRT run failure.")
+    return BrtOutput(ali_file=ali_file, rec_file=rec_file)
 
 
 @task(
@@ -152,14 +316,14 @@ def find_middle_image(fp_in: Path) -> Path:
 @task(
     name="Tilt movie generation",
 )
-def gen_tilt_movie(brt_output: utils.BrtOutput) -> Path:
+def gen_tilt_movie(brt_output: BrtOutput) -> Path:
     """
     generates the tilt movie, eg::
 
         ffmpeg -f image2 -framerate 4 -i ${BASENAME}_ali.%03d.jpg -vcodec libx264 \
                 -pix_fmt yuv420p -s 1024,1024 tiltMov_${BASENAME}.mp4
     """
-    
+
     ali_file = brt_output.ali_file
 
     utils.log(f"created alinment file {ali_file}")
@@ -197,7 +361,7 @@ def gen_tilt_movie(brt_output: utils.BrtOutput) -> Path:
         movie_file,
     ]
     utils.run(cmd=cmd, log_file=log_file)
-    
+
     utils.cleanup_files(file_path=ali_file, pattern="*_align_*.mrc")
     return Path(movie_file)
 
@@ -205,7 +369,7 @@ def gen_tilt_movie(brt_output: utils.BrtOutput) -> Path:
 @task(
     name="Average mrc generation",
 )
-def gen_ave_mrc(brt_output: utils.BrtOutput) -> Path:
+def gen_ave_mrc(brt_output: BrtOutput) -> Path:
     rec_file = brt_output.rec_file
     utils.log("gen recon dims")
     rec_z_dim = utils.gen_dimension_command(fp_in=rec_file)
@@ -402,7 +566,7 @@ def gen_ave_jpgs_from_ave_mrc(ave_mrc: Path):
 @task(
     name="Zarr generation",
 )
-def gen_zarr(brt_output: utils.BrtOutput) -> Path:
+def gen_zarr(brt_output: BrtOutput) -> Path:
 
     if not brt_output.rec_file.is_file():
         raise ValueError(f"{brt_output.rec_file} does not exist")
@@ -526,7 +690,7 @@ def brt_flow(
         fps_in=input_fps_future,
     )
 
-    brt_outputs = utils.run_brt.map(
+    brt_outputs = run_brt.map(
         file_path=fps_future,
         adoc_template=unmapped(adoc_template),
         montage=unmapped(montage),
@@ -626,7 +790,7 @@ def brt_flow(
     callback_with_tilt_mov = utils.add_asset.map(
         prim_fp=callback_with_recon_mov, asset=tilt_movie_assets
     )
- 
+
     send_callback_task = utils.send_callback_body.submit(
         x_no_api=x_no_api,
         token=token,

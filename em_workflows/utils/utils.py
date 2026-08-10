@@ -7,7 +7,6 @@ import json
 from typing import List, Dict, Optional
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader
 from prefect import task, allow_failure
 from prefect.states import State
 from prefect.flows import Flow, FlowRun
@@ -20,7 +19,6 @@ from em_workflows.utils.log import log
 
 # used for keeping outputs of imod's header command (dimensions of image).
 Header = namedtuple("Header", "x y z")
-BrtOutput = namedtuple("BrtOutput", ["ali_file", "rec_file"])
 
 
 def lookup_dims(fp: Path) -> Header:
@@ -293,171 +291,6 @@ def final_cleanup_task(fps: List[FilePath], x_keep_workdir: bool = False):
         log("Cleanup completed successfully")
     except Exception as e:
         log(f"Cleanup failed: {e}")
-
-
-def update_adoc(
-    adoc_fp: Path,
-    tg_fp: Path,
-    montage: int,
-    gold: int,
-    focus: int,
-    fiducialless: int,
-    trackingMethod: int,
-    TwoSurfaces: int,
-    TargetNumberOfBeads: int,
-    LocalAlignments: int,
-    THICKNESS: int,
-) -> Path:
-    """
-    | Uses jinja templating to update the adoc file with input params.
-    | dual_p is calculated by inputs_paired() and is used to define `dual`
-    | Some of these parameters are derived programatically.
-
-    :todo: Remove references to ``dual_p`` in comments?
-    """
-    file_loader = FileSystemLoader(str(adoc_fp.parent))
-    env = Environment(loader=file_loader)
-    template = env.get_template(adoc_fp.name)
-
-    name = tg_fp.stem
-    currentBStackExt = None
-    stackext = tg_fp.suffix[1:]
-    # if dual_p:
-    #    dual = 1
-    #    currentBStackExt = tg_fp.suffix[1:]  # TODO - assumes both files are same ext
-    datasetDirectory = adoc_fp.parent
-    if int(TwoSurfaces) == 0:
-        SurfacesToAnalyze = 1
-    elif int(TwoSurfaces) == 1:
-        SurfacesToAnalyze = 2
-    else:
-        raise ValueError(
-            f"Unable to resolve SurfacesToAnalyze, TwoSurfaces \
-                is set to {TwoSurfaces}, and should be 0 or 1"
-        )
-    rpa_thickness = int(int(THICKNESS) * 1.5)
-
-    vals = {
-        "name": name,
-        "stackext": stackext,
-        "currentBStackExt": currentBStackExt,
-        "montage": montage,
-        "gold": gold,
-        "focus": focus,
-        "datasetDirectory": datasetDirectory,
-        "fiducialless": fiducialless,
-        "trackingMethod": trackingMethod,
-        "TwoSurfaces": TwoSurfaces,
-        "TargetNumberOfBeads": TargetNumberOfBeads,
-        "SurfacesToAnalyze": SurfacesToAnalyze,
-        "LocalAlignments": LocalAlignments,
-        "rpa_thickness": rpa_thickness,
-        "THICKNESS": THICKNESS,
-    }
-
-    output = template.render(vals)
-    adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
-    log("Created adoc: adoc_loc.as_posix()")
-    with open(adoc_loc, "w") as _file:
-        print(output, file=_file)
-    log(f"generated {adoc_loc}")
-    return adoc_loc
-
-
-def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
-    """
-    copies files (tomograms/mrc files) into working_dir
-    returns Path of copied file
-    :todo: Determine if the 'a' & 'b' files still exist and if these files need
-    to be copied. (See comment in ``run_brt`` before this call is made)
-    """
-    new_loc = Path(f"{working_dir}/{fname.name}")
-    if fname.exists():
-        shutil.copyfile(src=fname.as_posix(), dst=new_loc)
-    else:
-        fp_1 = Path(f"{fname.parent}/{fname.stem}a{fname.suffix}")
-        fp_2 = Path(f"{fname.parent}/{fname.stem}b{fname.suffix}")
-        if fp_1.exists() and fp_2.exists():
-            shutil.copyfile(src=fp_1.as_posix(), dst=f"{working_dir}/{fp_1.name}")
-            shutil.copyfile(src=fp_2.as_posix(), dst=f"{working_dir}/{fp_2.name}")
-        else:
-            raise RuntimeError(f"Files missing. {fp_1},{fp_2}. BRT run failure.")
-    return new_loc
-
-
-def copy_template(working_dir: Path, template_name: str) -> Path:
-    """
-    :param working_dir: libpath.Path of temporary working directory
-    :param template_name: base str name of the ADOC template
-    :return: libpath.Path of the copied file
-
-    copies the template adoc file to the working_dir
-    """
-    adoc_fp = f"{working_dir}/{template_name}.adoc"
-    template_fp = f"{Config.template_dir}/{template_name}.adoc"
-    log(f"trying to copy {template_fp} to {adoc_fp}")
-    shutil.copyfile(template_fp, adoc_fp)
-    return Path(adoc_fp)
-
-
-@task(
-    name="Batchruntomo conversion",
-    tags=["brt"],
-    # timeout_seconds=600,
-)
-def run_brt(
-    file_path: FilePath,
-    adoc_template: str,
-    montage: int,
-    gold: int,
-    focus: int,
-    fiducialless: int,
-    trackingMethod: int,
-    TwoSurfaces: int,
-    TargetNumberOfBeads: int,
-    LocalAlignments: int,
-    THICKNESS: int,
-) -> BrtOutput:
-    """
-    The natural place for this function is within the brt flow.
-    The reason for this is to facilitate testing. In prefect 1, a
-    flow lives within a context. This causes problems if things are mocked
-    for testing. If the function is in utils, these problems go away.
-    TODO, this is ugly. This might vanish in Prefect 2, since flows are
-    no longer obligated to being context dependant.
-    """
-
-    adoc_fp = copy_template(
-        working_dir=file_path.working_dir, template_name=adoc_template
-    )
-    updated_adoc = update_adoc(
-        adoc_fp=adoc_fp,
-        tg_fp=file_path.fp_in,
-        montage=montage,
-        gold=gold,
-        focus=focus,
-        fiducialless=fiducialless,
-        trackingMethod=trackingMethod,
-        TwoSurfaces=TwoSurfaces,
-        TargetNumberOfBeads=TargetNumberOfBeads,
-        LocalAlignments=LocalAlignments,
-        THICKNESS=THICKNESS,
-    )
-    # why do we need to copy these?
-    copy_tg_to_working_dir(fname=file_path.fp_in, working_dir=file_path.working_dir)
-
-    # START BRT (Batchruntomo) - long running process.
-    cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "60", "-gpu", "1"]
-    log_file = f"{file_path.working_dir}/brt_run.log"
-    run(cmd, log_file)
-    rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
-    ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
-    log(f"checking that dir {file_path.working_dir} contains ok BRT run")
-
-    for _file in [rec_file, ali_file]:
-        if not _file.exists():
-            raise ValueError(f"File {_file} does not exist. BRT run failure.")
-    return BrtOutput(ali_file=ali_file, rec_file=rec_file)
 
 
 # TODO replace "trigger=always_run"
