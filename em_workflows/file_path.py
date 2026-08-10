@@ -1,13 +1,34 @@
 import datetime
 import shutil
 import os
-from typing import List, Dict, Optional, AnyStr
+from typing import Dict, List, NotRequired, Optional, TypedDict
 from pathlib import Path
 import tempfile
-import subprocess
 
 from em_workflows.config import Config
 from em_workflows.utils.log import log
+
+
+class AssetDict(TypedDict):
+    type: str
+    path: str
+    metadata: NotRequired[Dict]  # only on neuroglancer assets
+
+
+class ImageSetElement(TypedDict):
+    imageName: str
+    imageMetadata: Optional[Dict]
+    assets: List[AssetDict]
+
+
+class PrimaryFPElement(TypedDict):
+    primaryFilePath: str
+    status: str
+    message: Optional[str]
+    thumbnailIndex: int
+    title: str
+    fileMetadata: Optional[Dict]
+    imageSet: List[ImageSetElement]
 
 
 class FilePath:
@@ -136,7 +157,7 @@ class FilePath:
         output_fp = f"{self.working_dir.as_posix()}/{f_name}"
         return Path(output_fp)
 
-    def gen_asset(self, asset_type: str, asset_fp) -> Dict:
+    def gen_asset(self, asset_type: str, asset_fp) -> AssetDict:
         """
         Construct and return an asset (dict) based on the asset "type" and FilePath
         :param asset_type: a string that details the type of output file
@@ -147,7 +168,7 @@ class FilePath:
         asset = {"type": asset_type, "path": assets_fp_no_root.as_posix()}
         return asset
 
-    def gen_prim_fp_elt(self, exceptions_as_str: str = None) -> Dict:
+    def gen_prim_fp_elt(self, exceptions_as_str: str = None) -> PrimaryFPElement:
         """
         creates a single primaryFilePath element, to which assets can be appended.
 
