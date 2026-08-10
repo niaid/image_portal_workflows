@@ -154,10 +154,9 @@ def generate_zarr(file_path: FilePath):
     """
     Uses bioformats2raw to convert a CZI or SVS input file to OME-NGFF zarr format.
     """
-    input_czi = file_path.fp_in.as_posix()
     ng.bioformats_gen_zarr(
-        file_path=file_path,
-        input_fname=input_czi,
+        fp_in=file_path.fp_in,
+        output_dir=file_path.working_dir,
         width=TILE_SIZE,
         height=TILE_SIZE,
     )

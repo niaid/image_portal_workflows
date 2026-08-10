@@ -104,19 +104,20 @@ class FilePath:
         eg: /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/tomogram_fname/
         Will be rm'd upon completion.
         """
-        working_dir = Path(tempfile.mkdtemp(dir=f"{Config.tmp_dir}"))
-        return Path(working_dir)
+        working_dir = Path(tempfile.mkdtemp(dir=Config.tmp_dir))
+        return working_dir
 
     def make_assets_dir(self) -> Path:
         """
         proj_dir comes in the form {mount_point}/RMLEMHedwigQA/Projects/Lab/PI/
         want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
         """
-        if "Projects" not in self.proj_dir.as_posix():
+        if "Projects" not in self.proj_dir.parts:
             msg = f"Error: Input directory {self.proj_dir} must contain the string 'Projects'."
             raise RuntimeError(msg)
-        assets_dir_as_str = self.proj_dir.as_posix().replace("/Projects", "/Assets")
-        assets_dir = Path(f"{assets_dir_as_str}/{self.base}")
+        parts = self.proj_dir.parts
+        idx = parts.index("Projects")
+        assets_dir = Path(*parts[:idx], "Assets", *parts[idx + 1:]) / self.base
         assets_dir.mkdir(parents=True, exist_ok=True)
         log(f"Created Assets dir {assets_dir}")
         return assets_dir
@@ -138,7 +139,7 @@ class FilePath:
         # {mount_point}/{dname}/keyMov_SARsCoV2_1.mp4
         # (note "SARsCoV2_1" in assets_dir)
         # If prim_fp is not used, no such subdir is created.
-        dest = Path(f"{self.assets_dir}/{fp_to_cp.name}")
+        dest = self.assets_dir / fp_to_cp.name
         log(f"copying {fp_to_cp} to {dest}")
         if fp_to_cp.is_dir():
             if dest.exists():
@@ -160,8 +161,8 @@ class FilePath:
         else:
             f_name = f"{self.fp_in.stem}{output_ext}"
 
-        output_fp = f"{self.working_dir.as_posix()}/{f_name}"
-        return Path(output_fp)
+        output_fp = self.working_dir / f_name
+        return output_fp
 
     def gen_asset(self, asset_type: str, asset_fp) -> AssetDict:
         """
@@ -233,9 +234,7 @@ class FilePath:
         - returns newly created dir
         """
         dir_name_as_date = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
-        dest = Path(
-            f"{self.assets_dir.as_posix()}/{dir_name_as_date}/{self.fp_in.stem}"
-        )
+        dest = self.assets_dir / dir_name_as_date / self.fp_in.stem
         if dest.exists():
             log(f"Output assets directory already exists! removing: {dest}")
             shutil.rmtree(dest)
@@ -250,9 +249,7 @@ class FilePath:
         - returns newly created dir
         """
         dir_name_as_date = datetime.datetime.now().strftime("logs_%I_%M%p_%B_%d_%Y")
-        dest = Path(
-            f"{self.assets_dir.as_posix()}/{dir_name_as_date}/{self.fp_in.stem}"
-        )
+        dest = self.assets_dir / dir_name_as_date / self.fp_in.stem
         if dest.exists():
             log(f"Output already exists! removing: {dest}")
             if dest.is_dir():
