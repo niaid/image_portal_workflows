@@ -63,7 +63,7 @@ def bioformats_gen_zarr_dup(
         cmd.extend(["--downsample-type", "AREA"])
 
     cmd.extend([fp_in.as_posix(), output_zarr])
-    FilePath.run(
+    utils.run(
         cmd=cmd,
         log_file=log_fp,
         env={
@@ -121,7 +121,7 @@ def bioformats_gen_zarr(
         cmd.extend(["--downsample-type", "AREA"])
 
     cmd.extend([input_fname, output_zarr])
-    FilePath.run(
+    utils.run(
         cmd=cmd,
         log_file=log_fp,
         env={
@@ -138,7 +138,7 @@ def zarr_build_multiscales(file_path: FilePath) -> None:
 
     utils.log("Building multiscales...")
     cmd_ms = ["zarr_build_multiscales", zarr.as_posix()]
-    FilePath.run(cmd=cmd_ms, log_file=log_file)
+    utils.run(cmd=cmd_ms, log_file=log_file)
 
 
 def zarr_build_multiscales2(zarr_fp: Path) -> None:
@@ -147,4 +147,4 @@ def zarr_build_multiscales2(zarr_fp: Path) -> None:
 
     utils.log("Building multiscales...")
     cmd_ms = ["zarr_build_multiscales", zarr.as_posix()]
-    FilePath.run(cmd=cmd_ms, log_file=log_file)
+    utils.run(cmd=cmd_ms, log_file=log_file)

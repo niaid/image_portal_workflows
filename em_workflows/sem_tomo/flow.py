@@ -59,7 +59,7 @@ def gen_xfalign_comand(fp_in: FilePath) -> FilePath:
         source_mrc.as_posix(),
         align_xf.as_posix(),
     ]
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     return fp_in
 
 
@@ -84,7 +84,7 @@ def gen_align_xg(fp_in: FilePath) -> FilePath:
         align_xg.as_posix(),
     ]
     utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     return fp_in
 
 
@@ -117,7 +117,7 @@ def gen_newstack_combi(fp_in: FilePath, stretch: None) -> Dict:
         base_mrc.as_posix(),
     ]
     utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     assets_fp_adjusted_mrc = fp_in.copy_to_assets_dir(fp_to_cp=base_mrc)
     return fp_in.gen_asset(
         asset_type=AssetType.AVERAGED_VOLUME, asset_fp=assets_fp_adjusted_mrc
@@ -143,7 +143,7 @@ def convert_tif_to_mrc(file_path: FilePath) -> FilePath:
     cmd.extend(os_sorted(files))
     cmd.append(output_fp.as_posix())
     utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     return file_path
 
 
@@ -192,7 +192,7 @@ def gen_newstack_mid_mrc_command(fp_in: FilePath, **kwargs) -> FilePath:
         mid_mrc.as_posix(),
     ]
     utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     return fp_in
 
 
@@ -215,7 +215,7 @@ def gen_keyimg(fp_in: FilePath) -> Dict:
         keyimg_fp.as_posix(),
     ]
     utils.log(f"Created keyimg {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=keyimg_fp)
     keyimg_asset = fp_in.gen_asset(asset_type=AssetType.KEY_IMAGE, asset_fp=asset_fp)
     return keyimg_asset
@@ -246,7 +246,7 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
         keyimg_sm_fp.as_posix(),
     ]
     utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=keyimg_sm_fp)
     keyimg_asset = fp_in.gen_asset(asset_type=AssetType.THUMBNAIL, asset_fp=asset_fp)
     return keyimg_asset

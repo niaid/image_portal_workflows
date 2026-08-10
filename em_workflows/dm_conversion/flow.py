@@ -88,7 +88,7 @@ def _newstack_mrc_to_tiff(
         ]
     )
 
-    FilePath.run(cmd, str(log_fn), env={"IMOD_OUTPUT_FORMAT": "TIF"})
+    utils.run(cmd, str(log_fn), env={"IMOD_OUTPUT_FORMAT": "TIF"})
 
 
 def _write_image_as_size(
@@ -168,7 +168,7 @@ def convert_em_to_tiff(file_path: FilePath) -> Path:
         mrc_log_fp = file_path.gen_output_fp(output_ext="_dm2mrc.log")
 
         cmd = [DMConfig.dm2mrc_loc, file_path.fp_in.as_posix(), dm_as_mrc.as_posix()]
-        FilePath.run(cmd=cmd, log_file=str(mrc_log_fp))
+        utils.run(cmd=cmd, log_file=str(mrc_log_fp))
 
         utils.log(f"{dm_as_mrc} convert to {out_fp}.")
 
