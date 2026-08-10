@@ -113,10 +113,6 @@ To run the entire test suite, in the portal_image_workflows directory, run::
 
     $ pytest
 
-To determine the test coverage, in the portal_image_workflows directory, run::
-
-    $ pytest --cov="." --cov-config=.coveragerc test
-
 There are also a couple ways to select specific types of tests based on pytest `markers
 <https://docs.pytest.org/en/7.1.x/example/markers.html#registering-markers>`_.
 Certain tests use the following decorators to "mark" it:
