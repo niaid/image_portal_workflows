@@ -123,7 +123,7 @@ def update_adoc(
     }
 
     output = template.render(vals)
-    adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
+    adoc_loc = adoc_fp.parent / f"{tg_fp.stem}.adoc"
     log("Created adoc: adoc_loc.as_posix()")
     with open(adoc_loc, "w") as _file:
         print(output, file=_file)
@@ -138,15 +138,15 @@ def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
     :todo: Determine if the 'a' & 'b' files still exist and if these files need
     to be copied. (See comment in ``run_brt`` before this call is made)
     """
-    new_loc = Path(f"{working_dir}/{fname.name}")
+    new_loc = working_dir / fname.name
     if fname.exists():
         shutil.copyfile(src=fname.as_posix(), dst=new_loc)
     else:
-        fp_1 = Path(f"{fname.parent}/{fname.stem}a{fname.suffix}")
-        fp_2 = Path(f"{fname.parent}/{fname.stem}b{fname.suffix}")
+        fp_1 = fname.parent / f"{fname.stem}a{fname.suffix}"
+        fp_2 = fname.parent / f"{fname.stem}b{fname.suffix}"
         if fp_1.exists() and fp_2.exists():
-            shutil.copyfile(src=fp_1.as_posix(), dst=f"{working_dir}/{fp_1.name}")
-            shutil.copyfile(src=fp_2.as_posix(), dst=f"{working_dir}/{fp_2.name}")
+            shutil.copyfile(src=fp_1.as_posix(), dst=working_dir / fp_1.name)
+            shutil.copyfile(src=fp_2.as_posix(), dst=working_dir / fp_2.name)
         else:
             raise RuntimeError(f"Files missing. {fp_1},{fp_2}. BRT run failure.")
     return new_loc
@@ -160,11 +160,11 @@ def copy_template(working_dir: Path, template_name: str) -> Path:
 
     copies the template adoc file to the working_dir
     """
-    adoc_fp = f"{working_dir}/{template_name}.adoc"
-    template_fp = f"{Config.template_dir}/{template_name}.adoc"
+    adoc_fp = working_dir / f"{template_name}.adoc"
+    template_fp = Config.template_dir / f"{template_name}.adoc"
     log(f"trying to copy {template_fp} to {adoc_fp}")
     shutil.copyfile(template_fp, adoc_fp)
-    return Path(adoc_fp)
+    return adoc_fp
 
 
 @task(
@@ -206,10 +206,10 @@ def run_brt(
 
     # START BRT (Batchruntomo) - long running process.
     cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "60", "-gpu", "1"]
-    log_file = f"{file_path.working_dir}/brt_run.log"
+    log_file = str(file_path.working_dir / "brt_run.log")
     utils.run(cmd, log_file)
-    rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
-    ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
+    rec_file = file_path.working_dir / f"{file_path.base}_rec.mrc"
+    ali_file = file_path.working_dir / f"{file_path.base}_ali.mrc"
     log(f"checking that dir {file_path.working_dir} contains ok BRT run")
 
     for _file in [rec_file, ali_file]:
@@ -232,8 +232,8 @@ def gen_ali_x(fp_in: Path, z_dim) -> None:
     """
     for i in range(1, int(z_dim)):
         i_padded = str(i).rjust(3, "0")
-        ali_x = f"{fp_in.parent}/{fp_in.stem}_align_{i_padded}.mrc"
-        log_file = f"{fp_in.parent}/newstack_mid_pt.log"
+        ali_x = str(fp_in.parent / f"{fp_in.stem}_align_{i_padded}.mrc")
+        log_file = str(fp_in.parent / "newstack_mid_pt.log")
         cmd = [BRTConfig.newstack_loc, "-secs", f"{i}-{i}", fp_in.as_posix(), ali_x]
         utils.run(cmd=cmd, log_file=log_file)
 
@@ -246,13 +246,13 @@ def gen_ali_asmbl(fp_in: Path) -> None:
 
        newstack -float 3 {BASENAME}_ali*.mrc ali_{BASENAME}.mrc
     """
-    alis = glob.glob(f"{fp_in.parent}/{fp_in.stem}_align_*.mrc")
+    alis = glob.glob(str(fp_in.parent / f"{fp_in.stem}_align_*.mrc"))
     alis.sort()
-    ali_asmbl = f"{fp_in.parent}/ali_{fp_in.stem}.mrc"
+    ali_asmbl = str(fp_in.parent / f"ali_{fp_in.stem}.mrc")
     ali_base_cmd = [BRTConfig.newstack_loc, "-float", "3"]
     ali_base_cmd.extend(alis)
     ali_base_cmd.append(ali_asmbl)
-    utils.run(cmd=ali_base_cmd, log_file=f"{fp_in.parent}/asmbl.log")
+    utils.run(cmd=ali_base_cmd, log_file=str(fp_in.parent / "asmbl.log"))
 
 
 @task(
@@ -265,10 +265,10 @@ def gen_mrc2tiff(fp_in: Path) -> None:
 
         mrc2tif -j -C 0,255 ali_BASENAME.mrc BASENAME_ali
     """
-    ali_asmbl = f"{fp_in.parent}/ali_{fp_in.stem}.mrc"
-    ali = f"{fp_in.parent}/{fp_in.stem}_ali"
+    ali_asmbl = str(fp_in.parent / f"ali_{fp_in.stem}.mrc")
+    ali = str(fp_in.parent / f"{fp_in.stem}_ali")
     cmd = [BRTConfig.mrc2tif_loc, "-j", "-C", "0,255", ali_asmbl, ali]
-    log_file = f"{fp_in.parent}/mrc2tif_align.log"
+    log_file = str(fp_in.parent / "mrc2tif_align.log")
     utils.run(cmd=cmd, log_file=log_file)
 
 
@@ -282,7 +282,7 @@ def gen_thumbs(middle_i_jpg: Path) -> Path:
         gm convert -size 300x300 BASENAME_ali.{MIDDLE_I}.jpg -resize 300x300 \
                 -sharpen 2 -quality 70 keyimg_BASENAME_s.jpg
     """
-    thumb = f"{middle_i_jpg.parent}/keyimg_{middle_i_jpg.stem}_s.jpg"
+    thumb = middle_i_jpg.parent / f"keyimg_{middle_i_jpg.stem}_s.jpg"
     cmd = [
         BRTConfig.gm_loc,
         "convert",
@@ -295,16 +295,16 @@ def gen_thumbs(middle_i_jpg: Path) -> Path:
         "2",
         "-quality",
         "70",
-        thumb,
+        thumb.as_posix(),
     ]
-    log_file = f"{middle_i_jpg.parent}/thumb.log"
+    log_file = str(middle_i_jpg.parent / "thumb.log")
     utils.run(cmd=cmd, log_file=log_file)
-    return Path(thumb)
+    return thumb
 
 
 @task
 def find_middle_image(fp_in: Path) -> Path:
-    images = glob.glob(f"{fp_in.parent}/*ali*jpg")
+    images = glob.glob(str(fp_in.parent / "*ali*jpg"))
     images_nat_sorted = os_sorted(images)
     middle_image = images_nat_sorted[int(len(images_nat_sorted) / 2)]
     utils.log(f"Found middle image {middle_image}")
@@ -340,9 +340,9 @@ def gen_tilt_movie(brt_output: BrtOutput) -> Path:
     utils.log("mrc2tif")
     gen_mrc2tiff(fp_in=ali_file)
 
-    input_fp = f"{ali_file.parent}/{ali_file.stem}_ali.%03d.jpg"
-    log_file = f"{ali_file.parent}/ffmpeg_tilt.log"
-    movie_file = f"{ali_file.parent}/tiltMov_{ali_file.stem}.mp4"
+    input_fp = str(ali_file.parent / f"{ali_file.stem}_ali.%03d.jpg")
+    log_file = str(ali_file.parent / "ffmpeg_tilt.log")
+    movie_file = ali_file.parent / f"tiltMov_{ali_file.stem}.mp4"
     cmd = [
         BRTConfig.ffmpeg_loc,
         "-y",
@@ -363,7 +363,7 @@ def gen_tilt_movie(brt_output: BrtOutput) -> Path:
     utils.run(cmd=cmd, log_file=log_file)
 
     utils.cleanup_files(file_path=ali_file, pattern="*_align_*.mrc")
-    return Path(movie_file)
+    return movie_file
 
 
 @task(
@@ -393,8 +393,8 @@ def gen_recon_movie(ave_mrc: Path) -> Path:
 
     """
     # gen_ave_jpgs_from_ave_mrc(ave_mrc=ave_mrc)
-    mp4_base = f"{ave_mrc.parent}/{ave_mrc.stem}_mp4"
-    mrc2tiff_log_file = f"{ave_mrc.parent}/recon_mrc2tiff.log"
+    mp4_base = str(ave_mrc.parent / f"{ave_mrc.stem}_mp4")
+    mrc2tiff_log_file = str(ave_mrc.parent / "recon_mrc2tiff.log")
     mrc2tiff_cmd = [
         BRTConfig.mrc2tif_loc,
         "-j",
@@ -406,7 +406,7 @@ def gen_recon_movie(ave_mrc: Path) -> Path:
     utils.run(cmd=mrc2tiff_cmd, log_file=mrc2tiff_log_file)
     # don't put the 's in here, as per docs. subprocess messes them up
     jpg_input_pattern = f"{mp4_base}*.jpg"
-    key_mov = f"{ave_mrc.parent}/{ave_mrc.stem}_keyMov.mp4"
+    key_mov = ave_mrc.parent / f"{ave_mrc.stem}_keyMov.mp4"
     cmd = [
         BRTConfig.ffmpeg_loc,
         "-f",
@@ -425,10 +425,10 @@ def gen_recon_movie(ave_mrc: Path) -> Path:
         "1024,1024",
         key_mov,
     ]
-    log_file = f"{ave_mrc.parent}/{ave_mrc.stem}_keyMov.log"
+    log_file = str(ave_mrc.parent / f"{ave_mrc.stem}_keyMov.log")
     utils.run(cmd=cmd, log_file=log_file)
     utils.cleanup_files(file_path=ave_mrc, pattern="_mp4.*.jpg")
-    return Path(key_mov)
+    return key_mov
 
 @task(
     name="Clip averages generation",
@@ -450,7 +450,7 @@ def gen_clip_avgs(in_fp: Path, z_dim: str) -> None:
         izmin = i - 2
         izmax = i + 2
         padded_val = str(i).zfill(4)
-        ave_mrc = f"{in_fp.parent}/{in_fp.stem}_ave{padded_val}.mrc"
+        ave_mrc = str(in_fp.parent / f"{in_fp.stem}_ave{padded_val}.mrc")
         min_max = f"{str(izmin)}-{str(izmax)}"
         cmd = [
             BRTConfig.clip_loc,
@@ -463,7 +463,7 @@ def gen_clip_avgs(in_fp: Path, z_dim: str) -> None:
             in_fp.as_posix(),
             ave_mrc,
         ]
-        log_file = f"{in_fp.parent}/clip_avg.error.log"
+        log_file = str(in_fp.parent / "clip_avg.error.log")
         utils.run(cmd=cmd, log_file=log_file)
 
 @task(
@@ -477,13 +477,13 @@ def consolidate_ave_mrcs(fp_in: Path) -> Path:
 
         newstack -float 3 BASENAME_ave* ave_BASENAME.mrc
     """
-    aves = glob.glob(f"{fp_in.parent}/{fp_in.stem}_ave*")
+    aves = glob.glob(str(fp_in.parent / f"{fp_in.stem}_ave*"))
     aves.sort()
-    ave_mrc = Path(f"{fp_in.parent}/ave_{fp_in.stem}.mrc")
+    ave_mrc = fp_in.parent / f"ave_{fp_in.stem}.mrc"
     cmd = [BRTConfig.newstack_loc, "-float", "3"]
     cmd.extend(aves)
     cmd.append(ave_mrc.as_posix())
-    log_file = f"{fp_in.parent}/newstack_float.log"
+    log_file = str(fp_in.parent / "newstack_float.log")
     utils.run(cmd=cmd, log_file=log_file)
     utils.cleanup_files(file_path=ave_mrc, pattern="*_ave*.mrc", keep_file=ave_mrc)
     return ave_mrc
@@ -498,11 +498,11 @@ def gen_ave_8_vol(ave_mrc: Path) -> Path:
 
         binvol -binning 2 WORKDIR/hedwig/ave_BASENAME.mrc WORKDIR/avebin8_BASENAME.mrc
     """
-    ave_8_mrc = f"{ave_mrc.parent}/avebin8_{ave_mrc.stem}.mrc"
-    cmd = [BRTConfig.binvol, "-binning", "2", ave_mrc.as_posix(), ave_8_mrc]
-    log_file = f"{ave_mrc.parent}/ave_8_mrc.log"
+    ave_8_mrc = ave_mrc.parent / f"avebin8_{ave_mrc.stem}.mrc"
+    cmd = [BRTConfig.binvol, "-binning", "2", ave_mrc.as_posix(), ave_8_mrc.as_posix()]
+    log_file = str(ave_mrc.parent / "ave_8_mrc.log")
     utils.run(cmd=cmd, log_file=log_file)
-    return Path(ave_8_mrc)
+    return ave_8_mrc
 
 
 def gen_ave_jpgs_from_ave_mrc(ave_mrc: Path):
@@ -513,8 +513,8 @@ def gen_ave_jpgs_from_ave_mrc(ave_mrc: Path):
 
         mrc2tif -j -C 100,255 WORKDIR/hedwig/ave_BASNAME.mrc hedwig/BASENAME_mp4
     """
-    mp4 = f"{ave_mrc.parent}/{ave_mrc.stem}_mp4"
-    log_file = f"{ave_mrc.parent}/recon_mrc2tiff.log"
+    mp4 = str(ave_mrc.parent / f"{ave_mrc.stem}_mp4")
+    log_file = str(ave_mrc.parent / "recon_mrc2tiff.log")
     cmd = [BRTConfig.mrc2tif_loc, "-j", "-C", "100,255", ave_mrc.as_posix(), mp4]
     utils.run(cmd=cmd, log_file=log_file)
 
@@ -571,8 +571,9 @@ def gen_zarr(brt_output: BrtOutput) -> Path:
     if not brt_output.rec_file.is_file():
         raise ValueError(f"{brt_output.rec_file} does not exist")
 
-    output_zarr = ng.bioformats_gen_zarr_dup(
+    output_zarr = ng.bioformats_gen_zarr(
         fp_in=brt_output.rec_file,
+        output_dir=brt_output.rec_file.parent,
         depth=BRT_DEPTH,
         width=BRT_WIDTH,
         height=BRT_HEIGHT,

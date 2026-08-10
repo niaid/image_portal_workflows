@@ -88,16 +88,16 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
     - Runs IMOD ``mrc2tif`` to convert the mrc to many jpgs named by z number
     - Calls ``ffmpeg`` to create the mp4 movie from the jpgs and returns it as an asset
     """
-    mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
-    mrc = f"{file_path.working_dir}/{root}.mrc"
-    log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
+    mp4 = str(file_path.working_dir / f"{file_path.base}_mp4")
+    mrc = str(file_path.working_dir / f"{root}.mrc")
+    log_file = str(file_path.working_dir / "recon_mrc2tiff.log")
     cmd = [Config.mrc2tif_loc, "-j", "-C", "0,255", mrc, mp4]
     run(cmd=cmd, log_file=log_file)
-    mov = f"{file_path.working_dir}/{file_path.base}_{asset_type}.mp4"
-    test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
-    mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
+    mov = str(file_path.working_dir / f"{file_path.base}_{asset_type}.mp4")
+    test_p = file_path.working_dir / f"{file_path.base}_mp4.1000.jpg"
+    mp4_input = str(file_path.working_dir / f"{file_path.base}_mp4.%03d.jpg")
     if test_p.exists():
-        mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%04d.jpg"
+        mp4_input = str(file_path.working_dir / f"{file_path.base}_mp4.%04d.jpg")
     cmd = [
         Config.ffmpeg_loc,
         "-f",
@@ -114,7 +114,7 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
         "1024,1024",
         mov,
     ]
-    log_file = f"{file_path.working_dir}/{file_path.base}_{asset_type}.log"
+    log_file = str(file_path.working_dir / f"{file_path.base}_{asset_type}.log")
     run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(mov))
     asset = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
@@ -165,7 +165,7 @@ def cleanup_files(file_path: Path, pattern: str, keep_file: Path = None) -> None
     """
     import glob
     import os
-    f = f"{file_path.parent.as_posix()}/{pattern}"
+    f = str(file_path.parent / pattern)
     log(f"trying to rm {f}")
     files_to_rm = glob.glob(f)
     for _file in files_to_rm:
