@@ -8,8 +8,7 @@ from typing import List, Dict, Optional
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
-from prefect import task, get_run_logger, allow_failure
-from prefect.exceptions import MissingContextError
+from prefect import task, allow_failure
 from prefect.states import State
 from prefect.flows import Flow, FlowRun
 from prefect.tasks import Task, TaskRun
@@ -17,24 +16,11 @@ from prefect.runtime import flow_run
 
 from em_workflows.config import Config
 from em_workflows.file_path import FilePath
+from em_workflows.utils.log import log
 
 # used for keeping outputs of imod's header command (dimensions of image).
 Header = namedtuple("Header", "x y z")
 BrtOutput = namedtuple("BrtOutput", ["ali_file", "rec_file"])
-
-
-def log(msg):
-    """
-    Convenience function to print an INFO message to both the "input_dir" context log and
-    the "root" prefect log.
-
-    :param msg: string to output
-    :return: None
-    """
-    try:
-        get_run_logger().info(msg)
-    except MissingContextError:
-        print(msg)
 
 
 def lookup_dims(fp: Path) -> Header:
