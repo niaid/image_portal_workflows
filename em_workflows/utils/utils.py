@@ -52,24 +52,29 @@ def run(cmd: List[str], log_file: str, env: Optional[Dict] = None, *, copy_env: 
 
     Raises RuntimeError if the command exits non-zero.
     """
+    cmd_fs = [os.fspath(c) for c in cmd]
+
     if env is None:
         if not copy_env:
             env = {}
     elif copy_env:
         env = os.environ | env
 
-    log(f"Running subprocess: {' '.join(cmd)} logfile: {log_file}")
+    cmd_display = " ".join(cmd_fs)
+    log(f"Running subprocess: {cmd_display} logfile: {log_file}")
 
-    with (subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env) as p,
-          open(log_file, 'ab') as file):
-        file.write(f"Running subprocess: {' '.join(cmd)}\n".encode())
+    with (
+        subprocess.Popen(cmd_fs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env) as p,
+        open(log_file, "ab") as file,
+    ):
+        file.write(f"Running subprocess: {cmd_display}\n".encode())
         for line in p.stdout:
             file.write(line)
             log(line.decode())
         file.flush()
 
         if p.wait() != 0:
-            raise RuntimeError(f"Failed to run command: {' '.join(cmd)}")
+            raise RuntimeError(f"Failed to run command: {cmd_display}")
 
         return p.returncode
 
