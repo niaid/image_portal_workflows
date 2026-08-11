@@ -124,7 +124,7 @@ def update_adoc(
 
     output = template.render(vals)
     adoc_loc = adoc_fp.parent / f"{tg_fp.stem}.adoc"
-    log("Created adoc: adoc_loc.as_posix()")
+    log(f"Created adoc: {adoc_loc.as_posix()}")
     with open(adoc_loc, "w") as _file:
         print(output, file=_file)
     log(f"generated {adoc_loc}")
