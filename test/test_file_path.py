@@ -1,6 +1,7 @@
 import os
 
-from em_workflows.file_path import FilePath
+from em_workflows.file_path import FileContext
+from em_workflows.utils import utils
 from pathlib import Path
 import sys
 
@@ -10,7 +11,7 @@ def test_gen_output_fp(mock_nfs_mount, tmp_path):
 
     file_base_name = input_dir.stem
 
-    fp_in = FilePath(share_name="test", input_dir=input_dir.parent, fp_in=input_dir)
+    fp_in = FileContext(share_name="test", input_dir=input_dir.parent, fp_in=input_dir)
 
     zarr = fp_in.gen_output_fp(output_ext=".zarr")
     rec_mrc = fp_in.gen_output_fp(output_ext="_rec.mrc")
@@ -24,7 +25,7 @@ def test_gen_output_fp(mock_nfs_mount, tmp_path):
     assert rec_mrc.name == f"{file_base_name}_rec.mrc"
 
 
-# Test the FilePath.run function by executing the python shell, and producing putput to stderr and stdout
+# Test the FileContext.run function by executing the python shell, and producing putput to stderr and stdout
 def test_filepath_run(mock_nfs_mount, tmp_path, request):
     current_test_name = request.node.name
     log_file = tmp_path/f"{current_test_name}.log"
@@ -32,11 +33,11 @@ def test_filepath_run(mock_nfs_mount, tmp_path, request):
     input_filename = "test/input_files/dm_inputs/Projects/Lab/PI/PrP - Protein.007.tif"
     input_dir = Path(input_filename).absolute()
 
-    fp_in = FilePath(share_name="test", input_dir=input_dir.parent, fp_in=input_dir)
+    fp_in = FileContext(share_name="test", input_dir=input_dir.parent, fp_in=input_dir)
 
     # Run the python shell, and produce output to stderr and stdout
     cmd = [sys.executable, "-c", "import sys; print('stdout'); print('stderr', file=sys.stderr)"]
-    fp_in.run(cmd, log_file=str(log_file))
+    utils.run(cmd, log_file=str(log_file))
 
     # Check if the log file was created
     assert log_file.exists()
@@ -48,7 +49,7 @@ def test_filepath_run(mock_nfs_mount, tmp_path, request):
         assert "stderr" in log_content
 
 
-# Write a pytest for FilePath.run function by executing the python shell which print the environment variables.
+# Write a pytest for FileContext.run function by executing the python shell which print the environment variables.
 # Combinations of setting the "env" parameter and "copy_env" need to be tested.
 def test_filepath_run_env(mock_nfs_mount, tmp_path, request):
     current_test_name = request.node.name
@@ -57,7 +58,7 @@ def test_filepath_run_env(mock_nfs_mount, tmp_path, request):
     input_filename = "test/input_files/dm_inputs/Projects/Lab/PI/PrP - Protein.007.tif"
     input_dir = Path(input_filename).absolute()
 
-    fp_in = FilePath(share_name="test", input_dir=input_dir.parent, fp_in=input_dir)
+    fp_in = FileContext(share_name="test", input_dir=input_dir.parent, fp_in=input_dir)
 
     os.environ["PARENT_ENV"] = "parent_env_value"
 
@@ -65,7 +66,7 @@ def test_filepath_run_env(mock_nfs_mount, tmp_path, request):
 
     # Run the python shell, and print all environment variables
     cmd = [sys.executable, "-c", "import os; print(os.environ)"]
-    fp_in.run(cmd, log_file=str(log_file), env={"ENV_VAR": "env_var_value"}, copy_env=False)
+    utils.run(cmd, log_file=str(log_file), env={"ENV_VAR": "env_var_value"}, copy_env=False)
 
     # Check if the log file was created
     assert log_file.exists()
@@ -80,7 +81,7 @@ def test_filepath_run_env(mock_nfs_mount, tmp_path, request):
 
     # Run the python shell, and print all environment variables
     cmd = [sys.executable, "-c", "import os; print(os.environ)"]
-    fp_in.run(cmd, log_file=str(log_file), env={"ENV_VAR": "env_var_value"}, copy_env=True)
+    utils.run(cmd, log_file=str(log_file), env={"ENV_VAR": "env_var_value"}, copy_env=True)
 
     # Check if the log file was created
     assert log_file.exists()
@@ -96,7 +97,7 @@ def test_filepath_run_env(mock_nfs_mount, tmp_path, request):
 
     # Run the python shell, and print all environment variables
     cmd = [sys.executable, "-c", "import os; print(os.environ)"]
-    fp_in.run(cmd, log_file=str(log_file), env=None, copy_env=True)
+    utils.run(cmd, log_file=str(log_file), env=None, copy_env=True)
 
     # Check if the log file was created
     assert log_file.exists()
@@ -112,7 +113,7 @@ def test_filepath_run_env(mock_nfs_mount, tmp_path, request):
 
     # Run the python shell, and print all environment variables
     cmd = [sys.executable, "-c", "import os; print(os.environ)"]
-    fp_in.run(cmd, log_file=str(log_file), env=None, copy_env=False)
+    utils.run(cmd, log_file=str(log_file), env=None, copy_env=False)
 
     # Check if the log file was created
     assert log_file.exists()

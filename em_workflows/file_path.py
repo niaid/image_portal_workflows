@@ -1,35 +1,44 @@
 import datetime
 import shutil
 import os
-from typing import List, Dict, Optional, AnyStr
+from typing import Dict, List, NotRequired, Optional, TypedDict
 from pathlib import Path
 import tempfile
-import subprocess
-
-from prefect import get_run_logger
-from prefect.exceptions import MissingContextError
 
 from em_workflows.config import Config
+from em_workflows.utils.log import log
 
 
-def log(msg: str) -> None:
+class AssetDict(TypedDict):
+    type: str
+    path: str
+    metadata: NotRequired[Dict]  # only on neuroglancer assets
+
+
+class ImageSetElement(TypedDict):
+    imageName: str
+    imageMetadata: Optional[Dict]
+    assets: List[AssetDict]
+
+
+class PrimaryFPElement(TypedDict):
+    primaryFilePath: str
+    status: str
+    message: Optional[str]
+    thumbnailIndex: int
+    title: str
+    fileMetadata: Optional[Dict]
+    imageSet: List[ImageSetElement]
+
+
+class FileContext:
     """
-    Convenience method to write an INFO message to a Prefect log.
-    """
-    try:
-        get_run_logger().info(msg)
-    except MissingContextError:
-        print(msg)
-
-
-class FilePath:
-    """
-    The FilePath class is used to track the directory structure of the input and output files
+    The FileContext class is used to track the directory structure of the input and output files
     when running an image pipeline. The output _asset_dir and a temporary (fast-disk) _working_dir
     are created for each input file. These members are @properties without setters to keep them immutable,
     as should the entire class, probably. It is important that each file have its own _working_dir to
     avoid any collisions during the asynchronous processing of the pipeline. Very many output files
-    are created in the _working_dir, but only the outputs we care about are added to the FilePath
+    are created in the _working_dir, but only the outputs we care about are added to the FileContext
     for copying to the _asset_dir later in the pipeline.
     An "asset" is a resource the Hedwig Web application uses. For example an asset might be an image,
     or a movie, or output of the pipeline, that the web application users care about.
@@ -52,13 +61,18 @@ class FilePath:
         self.base = fp_in.stem
         self._working_dir = self.make_work_dir()
         self._assets_dir = self.make_assets_dir()
-        self.environment = self.get_environment()
         self.proj_root = Path(Config.proj_dir(share_name=share_name))
         self.asset_root = Path(Config.assets_dir(share_name=share_name))
         self.prim_fp_elt = self.gen_prim_fp_elt()
+        self._frozen = True
+
+    def __setattr__(self, name: str, value: object) -> None:
+        if getattr(self, '_frozen', False):
+            raise AttributeError(f"{self.__class__.__name__} is immutable")
+        super().__setattr__(name, value)
 
     def __str__(self) -> str:
-        return f"FilePath: proj_root:{self.proj_root}\n\
+        return f"FileContext: proj_root:{self.proj_root}\n\
                 fp_in:{self.fp_in}\n\
                 prim_fp:{self.prim_fp_elt}\n\
                 working_dir:{self.working_dir}\n\
@@ -83,19 +97,6 @@ class FilePath:
 
         return self._working_dir
 
-    def get_environment(self) -> str:
-        """
-        The workflows can operate in one of several environments,
-        named HEDWIG_ENV for historical reasons, eg prod, qa or dev.
-        This function looks up that environment.
-        Raises exception if no environment found.
-        """
-        env = os.environ.get("HEDWIG_ENV")
-        if not env:
-            msg = "Unable to look up HEDWIG_ENV. Should be exported set to one of: [dev, qa, prod]"
-            raise RuntimeError(msg)
-        return env
-
     def make_work_dir(self) -> Path:
         """
         a temporary dir to house all files in the form:
@@ -103,26 +104,27 @@ class FilePath:
         eg: /gs1/home/macmenaminpe/tmp/tmp7gcsl4on/tomogram_fname/
         Will be rm'd upon completion.
         """
-        working_dir = Path(tempfile.mkdtemp(dir=f"{Config.tmp_dir}"))
-        return Path(working_dir)
+        working_dir = Path(tempfile.mkdtemp(dir=Config.tmp_dir))
+        return working_dir
 
     def make_assets_dir(self) -> Path:
         """
         proj_dir comes in the form {mount_point}/RMLEMHedwigQA/Projects/Lab/PI/
         want to create: {mount_point}/RMLEMHedwigQA/Assets/Lab/PI/
         """
-        if "Projects" not in self.proj_dir.as_posix():
+        if "Projects" not in self.proj_dir.parts:
             msg = f"Error: Input directory {self.proj_dir} must contain the string 'Projects'."
             raise RuntimeError(msg)
-        assets_dir_as_str = self.proj_dir.as_posix().replace("/Projects", "/Assets")
-        assets_dir = Path(f"{assets_dir_as_str}/{self.base}")
+        parts = self.proj_dir.parts
+        idx = parts.index("Projects")
+        assets_dir = Path(*parts[:idx], "Assets", *parts[idx + 1:]) / self.base
         assets_dir.mkdir(parents=True, exist_ok=True)
         log(f"Created Assets dir {assets_dir}")
         return assets_dir
 
     def copy_to_assets_dir(self, fp_to_cp: Path) -> Path:
         """
-        Copy FilePath to the assets (reported output) dir
+        Copy FileContext to the assets (reported output) dir
 
         - fp is the Path to be copied.
         - assets_dir is the root dir (the proj_dir with s/Projects/Assets/)
@@ -137,7 +139,7 @@ class FilePath:
         # {mount_point}/{dname}/keyMov_SARsCoV2_1.mp4
         # (note "SARsCoV2_1" in assets_dir)
         # If prim_fp is not used, no such subdir is created.
-        dest = Path(f"{self.assets_dir}/{fp_to_cp.name}")
+        dest = self.assets_dir / fp_to_cp.name
         log(f"copying {fp_to_cp} to {dest}")
         if fp_to_cp.is_dir():
             if dest.exists():
@@ -159,21 +161,21 @@ class FilePath:
         else:
             f_name = f"{self.fp_in.stem}{output_ext}"
 
-        output_fp = f"{self.working_dir.as_posix()}/{f_name}"
-        return Path(output_fp)
+        output_fp = self.working_dir / f_name
+        return output_fp
 
-    def gen_asset(self, asset_type: str, asset_fp) -> Dict:
+    def gen_asset(self, asset_type: str, asset_fp) -> AssetDict:
         """
-        Construct and return an asset (dict) based on the asset "type" and FilePath
+        Construct and return an asset (dict) based on the asset "type" and FileContext
         :param asset_type: a string that details the type of output file
-        :param asset_fp: the originating FilePath to "hang" the asset on
+        :param asset_fp: the originating FileContext to "hang" the asset on
         :return: the resulting "asset" in the form of a dict
         """
         assets_fp_no_root = asset_fp.relative_to(self.asset_root)
         asset = {"type": asset_type, "path": assets_fp_no_root.as_posix()}
         return asset
 
-    def gen_prim_fp_elt(self, exceptions_as_str: str = None) -> Dict:
+    def gen_prim_fp_elt(self, exceptions_as_str: str = None) -> PrimaryFPElement:
         """
         creates a single primaryFilePath element, to which assets can be appended.
 
@@ -232,9 +234,7 @@ class FilePath:
         - returns newly created dir
         """
         dir_name_as_date = datetime.datetime.now().strftime("work_dir_%I_%M%p_%B_%d_%Y")
-        dest = Path(
-            f"{self.assets_dir.as_posix()}/{dir_name_as_date}/{self.fp_in.stem}"
-        )
+        dest = self.assets_dir / dir_name_as_date / self.fp_in.stem
         if dest.exists():
             log(f"Output assets directory already exists! removing: {dest}")
             shutil.rmtree(dest)
@@ -249,9 +249,7 @@ class FilePath:
         - returns newly created dir
         """
         dir_name_as_date = datetime.datetime.now().strftime("logs_%I_%M%p_%B_%d_%Y")
-        dest = Path(
-            f"{self.assets_dir.as_posix()}/{dir_name_as_date}/{self.fp_in.stem}"
-        )
+        dest = self.assets_dir / dir_name_as_date / self.fp_in.stem
         if dest.exists():
             log(f"Output already exists! removing: {dest}")
             if dest.is_dir():
@@ -270,44 +268,3 @@ class FilePath:
         """Removes the the entire working directory"""
         log(f"Removing working dir: {self.working_dir}")
         shutil.rmtree(self.working_dir, ignore_errors=True)
-
-    @staticmethod
-    def run(cmd: List[str], log_file: str, env: Optional[Dict[AnyStr, AnyStr]] = None, *, copy_env: bool = True) -> int:
-        """Runs a Unix command as a subprocess
-
-        - If final returncode is not 0, raises a RuntimeError
-
-        :param cmd: list of strings representing the command to run
-        :param log_file: path to the log file to write the stdout and stderr to
-        :param env: dictionary of additional environment variables to pass to the subprocess
-        :param copy_env: if True, the subprocess inherits the parent's environment
-        :return: the return code of the subprocess
-
-
-        """
-
-        if env is None:
-            if not copy_env:
-                env = {}
-            # Note: if env is not and copy_env is True, the subprocess inherits the parent's environment,
-            # by passing env=None
-        elif copy_env:
-            # merge dictionaries python 3.9+
-            env = os.environ | env
-
-        log(f"Running subprocess: {' '.join(cmd)} logfile: {log_file}")
-
-        with (subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env) as p,
-              open(log_file, 'ab') as file):
-            file.write(f"Running subprocess: {' '.join(cmd)}\n".encode())
-
-            # write the outputs line by line as they come in
-            for line in p.stdout:
-                file.write(line)
-                log(line.decode())
-            file.flush()
-
-            if p.wait() != 0:
-                raise RuntimeError(f"Failed to run command: {' '.join(cmd)}")
-
-            return p.returncode

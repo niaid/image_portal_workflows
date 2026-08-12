@@ -72,9 +72,9 @@ def test_dm4_pipeline_failure_server_response(mock_nfs_mount, mock_callback_data
 
 def test_dm4_conv_clean_workdir(mock_nfs_mount):
     from em_workflows.dm_conversion.flow import dm_flow
-    from em_workflows.file_path import FilePath
+    from em_workflows.file_path import FileContext
 
-    with patch.object(FilePath, "rm_workdir") as patch_rm:
+    with patch.object(FileContext, "rm_workdir") as patch_rm:
         state = dm_flow(
             file_share="test",
             input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",
@@ -87,7 +87,7 @@ def test_dm4_conv_clean_workdir(mock_nfs_mount):
     # x_keep_workdir = False removes the workdir
     patch_rm.assert_called()
 
-    with patch.object(FilePath, "rm_workdir") as patch_rm:
+    with patch.object(FileContext, "rm_workdir") as patch_rm:
         state = dm_flow(
             file_share="test",
             input_dir="/test/input_files/dm_inputs/Projects/Lab/PI",

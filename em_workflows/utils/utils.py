@@ -7,34 +7,20 @@ import json
 from typing import List, Dict, Optional
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader
-from prefect import task, get_run_logger, allow_failure
-from prefect.exceptions import MissingContextError
+from prefect import task, allow_failure
 from prefect.states import State
 from prefect.flows import Flow, FlowRun
 from prefect.tasks import Task, TaskRun
 from prefect.runtime import flow_run
 
 from em_workflows.config import Config
-from em_workflows.file_path import FilePath
+from em_workflows.constants import AssetType
+from em_workflows.file_path import AssetDict, FileContext, ImageSetElement, PrimaryFPElement
+from em_workflows.utils.log import log
+from pytools.HedwigZarrImages import HedwigZarrImages
 
 # used for keeping outputs of imod's header command (dimensions of image).
 Header = namedtuple("Header", "x y z")
-BrtOutput = namedtuple("BrtOutput", ["ali_file", "rec_file"])
-
-
-def log(msg):
-    """
-    Convenience function to print an INFO message to both the "input_dir" context log and
-    the "root" prefect log.
-
-    :param msg: string to output
-    :return: None
-    """
-    try:
-        get_run_logger().info(msg)
-    except MissingContextError:
-        print(msg)
 
 
 def lookup_dims(fp: Path) -> Header:
@@ -63,12 +49,44 @@ def lookup_dims(fp: Path) -> Header:
         return xyz_cleaned
 
 
+def run(cmd: List[str], log_file: str, env: Optional[Dict] = None, *, copy_env: bool = True) -> int:
+    """Runs a Unix command as a subprocess, writing stdout+stderr to log_file.
+
+    Raises RuntimeError if the command exits non-zero.
+    """
+    cmd_fs = [os.fspath(c) for c in cmd]
+
+    if env is None:
+        if not copy_env:
+            env = {}
+    elif copy_env:
+        env = os.environ | env
+
+    cmd_display = " ".join(cmd_fs)
+    log(f"Running subprocess: {cmd_display} logfile: {log_file}")
+
+    with (
+        subprocess.Popen(cmd_fs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env) as p,
+        open(log_file, "ab") as file,
+    ):
+        file.write(f"Running subprocess: {cmd_display}\n".encode())
+        for line in p.stdout:
+            file.write(line)
+            log(line.decode())
+        file.flush()
+
+        if p.wait() != 0:
+            raise RuntimeError(f"Failed to run command: {cmd_display}")
+
+        return p.returncode
+
+
 @task(
     name="mrc to movie generation",
 )
-def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
+def mrc_to_movie(file_path: FileContext, root: str, asset_type: str, **kwargs):
     """
-    :param file_path: FilePath for the input
+    :param file_path: FileContext for the input
     :param root: base name of the mrc file
     :param asset_type: type of resulting output (movie)
     :param kwargs: additional arguments to wait for before executing this func
@@ -77,16 +95,16 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
     - Runs IMOD ``mrc2tif`` to convert the mrc to many jpgs named by z number
     - Calls ``ffmpeg`` to create the mp4 movie from the jpgs and returns it as an asset
     """
-    mp4 = f"{file_path.working_dir}/{file_path.base}_mp4"
-    mrc = f"{file_path.working_dir}/{root}.mrc"
-    log_file = f"{file_path.working_dir}/recon_mrc2tiff.log"
+    mp4 = str(file_path.working_dir / f"{file_path.base}_mp4")
+    mrc = str(file_path.working_dir / f"{root}.mrc")
+    log_file = str(file_path.working_dir / "recon_mrc2tiff.log")
     cmd = [Config.mrc2tif_loc, "-j", "-C", "0,255", mrc, mp4]
-    FilePath.run(cmd=cmd, log_file=log_file)
-    mov = f"{file_path.working_dir}/{file_path.base}_{asset_type}.mp4"
-    test_p = Path(f"{file_path.working_dir}/{file_path.base}_mp4.1000.jpg")
-    mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%03d.jpg"
+    run(cmd=cmd, log_file=log_file)
+    mov = str(file_path.working_dir / f"{file_path.base}_{asset_type}.mp4")
+    test_p = file_path.working_dir / f"{file_path.base}_mp4.1000.jpg"
+    mp4_input = str(file_path.working_dir / f"{file_path.base}_mp4.%03d.jpg")
     if test_p.exists():
-        mp4_input = f"{file_path.working_dir}/{file_path.base}_mp4.%04d.jpg"
+        mp4_input = str(file_path.working_dir / f"{file_path.base}_mp4.%04d.jpg")
     cmd = [
         Config.ffmpeg_loc,
         "-f",
@@ -103,8 +121,8 @@ def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
         "1024,1024",
         mov,
     ]
-    log_file = f"{file_path.working_dir}/{file_path.base}_{asset_type}.log"
-    FilePath.run(cmd=cmd, log_file=log_file)
+    log_file = str(file_path.working_dir / f"{file_path.base}_{asset_type}.log")
+    run(cmd=cmd, log_file=log_file)
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(mov))
     asset = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
     return asset
@@ -149,12 +167,12 @@ def gen_dimension_command(fp_in: Path) -> str:
 )
 def cleanup_files(file_path: Path, pattern: str, keep_file: Path = None) -> None:
     """
-    Given a ``FilePath`` and unix file ``pattern``, iterate through directory removing all files
+    Given a ``FileContext`` and unix file ``pattern``, iterate through directory removing all files
     that match the pattern
     """
     import glob
     import os
-    f = f"{file_path.parent.as_posix()}/{pattern}"
+    f = str(file_path.parent / pattern)
     log(f"trying to rm {f}")
     files_to_rm = glob.glob(f)
     for _file in files_to_rm:
@@ -165,14 +183,14 @@ def cleanup_files(file_path: Path, pattern: str, keep_file: Path = None) -> None
 
 
 @task
-def gen_prim_fps(fp_in: FilePath, additional_assets: (dict, ...) = None) -> Dict:
+def gen_prim_fps(fp_in: FileContext, additional_assets: (dict, ...) = None) -> PrimaryFPElement:
     """
-    :param fp_in: FilePath of current input
+    :param fp_in: FileContext of current input
     :param additional_assets: A list of additional assets to be added to the primary element
     :outputs_with_exceptions this func is called with allow_failure - important
     :return: a Dict to hold the 'assets'
 
-    This function delegates creation of primary fps to ``FilePath.gen_prim_fp_elt()``
+    This function delegates creation of primary fps to ``FileContext.gen_prim_fp_elt()``
     and creates a primary element for assets to be appended
     """
     base_elts = fp_in.gen_prim_fp_elt()
@@ -186,7 +204,7 @@ def gen_prim_fps(fp_in: FilePath, additional_assets: (dict, ...) = None) -> Dict
 
 
 @task
-def add_imageSet(prim_fp: dict, imageSet: list) -> Dict:
+def add_imageSet(prim_fp: PrimaryFPElement, imageSet: List[ImageSetElement]) -> PrimaryFPElement:
     """
     :param prim_fp: the 'primary' element, describing input file location
     :param imageSet: list of scenes
@@ -197,7 +215,7 @@ def add_imageSet(prim_fp: dict, imageSet: list) -> Dict:
 
 
 @task
-def add_asset(prim_fp: dict, asset: dict, image_idx: int = None) -> dict:
+def add_asset(prim_fp: PrimaryFPElement, asset: AssetDict | List[AssetDict], image_idx: int = None) -> PrimaryFPElement:
     """
     :param prim_fp: the 'primary' element (dict) to which assets are appended
     :param asset: The actual asset (output) to be added in the form of another dict
@@ -224,7 +242,7 @@ def add_asset(prim_fp: dict, asset: dict, image_idx: int = None) -> dict:
 
     **Note**: when running Dask distributed with Slurm, mutations to objects will be lost. Using
     funtional style avoids this. This is why the callback data structure is not built inside
-    the FilePath object at runtime.
+    the FileContext object at runtime.
     """
 
     if not image_idx:
@@ -239,12 +257,12 @@ def add_asset(prim_fp: dict, asset: dict, image_idx: int = None) -> dict:
 
 # triggers like "always_run" are managed when calling the task itself
 @task(retries=3, retry_delay_seconds=10)
-def cleanup_workdir(fps: List[FilePath], x_keep_workdir: bool):
+def cleanup_workdir(fps: List[FileContext], x_keep_workdir: bool):
     """
-    :param fp: a FilePath which has a working_dir to be removed
+    :param fp: a FileContext which has a working_dir to be removed
 
     | working_dir isn't needed after run, so remove unless "x_keep_workdir" is True.
-    | task wrapper on the FilePath rm_workdir method.
+    | task wrapper on the FileContext rm_workdir method.
 
     """
     if x_keep_workdir is True:
@@ -256,7 +274,7 @@ def cleanup_workdir(fps: List[FilePath], x_keep_workdir: bool):
 
 
 @task(name="Final Cleanup", retries=3, retry_delay_seconds=10)
-def final_cleanup_task(fps: List[FilePath], x_keep_workdir: bool = False):
+def final_cleanup_task(fps: List[FileContext], x_keep_workdir: bool = False):
     """
     Final cleanup task that always runs regardless of upstream failures.
     Combines workdir log copying and cleanup operations.
@@ -282,192 +300,27 @@ def final_cleanup_task(fps: List[FilePath], x_keep_workdir: bool = False):
         log(f"Cleanup failed: {e}")
 
 
-def update_adoc(
-    adoc_fp: Path,
-    tg_fp: Path,
-    montage: int,
-    gold: int,
-    focus: int,
-    fiducialless: int,
-    trackingMethod: int,
-    TwoSurfaces: int,
-    TargetNumberOfBeads: int,
-    LocalAlignments: int,
-    THICKNESS: int,
-) -> Path:
-    """
-    | Uses jinja templating to update the adoc file with input params.
-    | dual_p is calculated by inputs_paired() and is used to define `dual`
-    | Some of these parameters are derived programatically.
-
-    :todo: Remove references to ``dual_p`` in comments?
-    """
-    file_loader = FileSystemLoader(str(adoc_fp.parent))
-    env = Environment(loader=file_loader)
-    template = env.get_template(adoc_fp.name)
-
-    name = tg_fp.stem
-    currentBStackExt = None
-    stackext = tg_fp.suffix[1:]
-    # if dual_p:
-    #    dual = 1
-    #    currentBStackExt = tg_fp.suffix[1:]  # TODO - assumes both files are same ext
-    datasetDirectory = adoc_fp.parent
-    if int(TwoSurfaces) == 0:
-        SurfacesToAnalyze = 1
-    elif int(TwoSurfaces) == 1:
-        SurfacesToAnalyze = 2
-    else:
-        raise ValueError(
-            f"Unable to resolve SurfacesToAnalyze, TwoSurfaces \
-                is set to {TwoSurfaces}, and should be 0 or 1"
-        )
-    rpa_thickness = int(int(THICKNESS) * 1.5)
-
-    vals = {
-        "name": name,
-        "stackext": stackext,
-        "currentBStackExt": currentBStackExt,
-        "montage": montage,
-        "gold": gold,
-        "focus": focus,
-        "datasetDirectory": datasetDirectory,
-        "fiducialless": fiducialless,
-        "trackingMethod": trackingMethod,
-        "TwoSurfaces": TwoSurfaces,
-        "TargetNumberOfBeads": TargetNumberOfBeads,
-        "SurfacesToAnalyze": SurfacesToAnalyze,
-        "LocalAlignments": LocalAlignments,
-        "rpa_thickness": rpa_thickness,
-        "THICKNESS": THICKNESS,
-    }
-
-    output = template.render(vals)
-    adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
-    log("Created adoc: adoc_loc.as_posix()")
-    with open(adoc_loc, "w") as _file:
-        print(output, file=_file)
-    log(f"generated {adoc_loc}")
-    return adoc_loc
-
-
-def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
-    """
-    copies files (tomograms/mrc files) into working_dir
-    returns Path of copied file
-    :todo: Determine if the 'a' & 'b' files still exist and if these files need
-    to be copied. (See comment in ``run_brt`` before this call is made)
-    """
-    new_loc = Path(f"{working_dir}/{fname.name}")
-    if fname.exists():
-        shutil.copyfile(src=fname.as_posix(), dst=new_loc)
-    else:
-        fp_1 = Path(f"{fname.parent}/{fname.stem}a{fname.suffix}")
-        fp_2 = Path(f"{fname.parent}/{fname.stem}b{fname.suffix}")
-        if fp_1.exists() and fp_2.exists():
-            shutil.copyfile(src=fp_1.as_posix(), dst=f"{working_dir}/{fp_1.name}")
-            shutil.copyfile(src=fp_2.as_posix(), dst=f"{working_dir}/{fp_2.name}")
-        else:
-            raise RuntimeError(f"Files missing. {fp_1},{fp_2}. BRT run failure.")
-    return new_loc
-
-
-def copy_template(working_dir: Path, template_name: str) -> Path:
-    """
-    :param working_dir: libpath.Path of temporary working directory
-    :param template_name: base str name of the ADOC template
-    :return: libpath.Path of the copied file
-
-    copies the template adoc file to the working_dir
-    """
-    adoc_fp = f"{working_dir}/{template_name}.adoc"
-    template_fp = f"{Config.template_dir}/{template_name}.adoc"
-    log(f"trying to copy {template_fp} to {adoc_fp}")
-    shutil.copyfile(template_fp, adoc_fp)
-    return Path(adoc_fp)
-
-
-@task(
-    name="Batchruntomo conversion",
-    tags=["brt"],
-    # timeout_seconds=600,
-)
-def run_brt(
-    file_path: FilePath,
-    adoc_template: str,
-    montage: int,
-    gold: int,
-    focus: int,
-    fiducialless: int,
-    trackingMethod: int,
-    TwoSurfaces: int,
-    TargetNumberOfBeads: int,
-    LocalAlignments: int,
-    THICKNESS: int,
-) -> BrtOutput:
-    """
-    The natural place for this function is within the brt flow.
-    The reason for this is to facilitate testing. In prefect 1, a
-    flow lives within a context. This causes problems if things are mocked
-    for testing. If the function is in utils, these problems go away.
-    TODO, this is ugly. This might vanish in Prefect 2, since flows are
-    no longer obligated to being context dependant.
-    """
-
-    adoc_fp = copy_template(
-        working_dir=file_path.working_dir, template_name=adoc_template
-    )
-    updated_adoc = update_adoc(
-        adoc_fp=adoc_fp,
-        tg_fp=file_path.fp_in,
-        montage=montage,
-        gold=gold,
-        focus=focus,
-        fiducialless=fiducialless,
-        trackingMethod=trackingMethod,
-        TwoSurfaces=TwoSurfaces,
-        TargetNumberOfBeads=TargetNumberOfBeads,
-        LocalAlignments=LocalAlignments,
-        THICKNESS=THICKNESS,
-    )
-    # why do we need to copy these?
-    copy_tg_to_working_dir(fname=file_path.fp_in, working_dir=file_path.working_dir)
-
-    # START BRT (Batchruntomo) - long running process.
-    cmd = [Config.brt_binary, "-di", updated_adoc.as_posix(), "-cp", "60", "-gpu", "1"]
-    log_file = f"{file_path.working_dir}/brt_run.log"
-    FilePath.run(cmd, log_file)
-    rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
-    ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
-    log(f"checking that dir {file_path.working_dir} contains ok BRT run")
-
-    for _file in [rec_file, ali_file]:
-        if not _file.exists():
-            raise ValueError(f"File {_file} does not exist. BRT run failure.")
-    return BrtOutput(ali_file=ali_file, rec_file=rec_file)
-
-
 # TODO replace "trigger=always_run"
 @task(retries=1, retry_delay_seconds=10)
-def copy_workdirs(file_path: FilePath) -> Path:
+def copy_workdirs(file_path: FileContext) -> Path:
     """
     This task copies the workdir, in it's entirety, to the Assets path. This can
     be a very large number of files and storage space. This work is delgated to
-    FilePath.
+    FileContext.
 
     Primarily, used by brt-flow where SME had to deal with intermediate files
     for sanity checks.
 
-    :param file_path: FilePath of the current imagefile
+    :param file_path: FileContext of the current imagefile
     :return: pathlib.Path of copied directory
     """
     return file_path.copy_workdir_to_assets()
 
 
 @task
-def copy_workdir_logs(file_path: FilePath) -> Path:
+def copy_workdir_logs(file_path: FileContext) -> Path:
     """
-    :param file_path: FilePath of the current imagefile
+    :param file_path: FileContext of the current imagefile
     :return: pathlib.Path of copied directory
 
     This task copies the logs of intermediate commands ran during the workflow.
@@ -698,7 +551,7 @@ def get_input_dir(share_name: str, input_dir: str) -> Path:
     # persisting to retrieve again in hooks
     persist_result=True,
 )
-def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
+def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FileContext]:
     """
     Given in input directory (Path) and a list of input files (Path), return
     a list of FilePaths for the input files. This includes a temporary working
@@ -706,7 +559,7 @@ def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePa
     """
     fps = list()
     for fp in fps_in:
-        file_path = FilePath(share_name=share_name, input_dir=input_dir, fp_in=fp)
+        file_path = FileContext(share_name=share_name, input_dir=input_dir, fp_in=fp)
         msg = f"created working_dir {file_path.working_dir} for {fp.as_posix()}"
         log(msg)
         fps.append(file_path)
@@ -757,7 +610,7 @@ def send_callback_body(
 
 
 def callback_with_cleanup(
-    fps: List[FilePath],
+    fps: List[FileContext],
     callback_result: List,
     x_no_api: bool = False,
     callback_url: Optional[str] = None,
@@ -777,6 +630,31 @@ def callback_with_cleanup(
         x_keep_workdir,
         wait_for=[cb, allow_failure(cp_wd_logs_to_assets)],
     )
+
+
+@task(
+    name="Neuroglancer metadata generation",
+)
+def gen_ng_metadata(fp_in: FileContext, zarr: Path) -> Dict:
+    # asset fp is on the network filesystem; zarr path (working dir) is used for reading metadata
+    file_path = fp_in
+    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(zarr))
+    hw_images = HedwigZarrImages(zarr_path=zarr, read_only=False)
+    hw_image = hw_images[list(hw_images.get_series_keys())[0]]
+
+    # NOTE: this could be replaced by hw_image.path
+    # but hw_image is part of working dir (temporary)
+    first_zarr_arr = asset_fp / "0"
+
+    ng_asset = file_path.gen_asset(
+        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=first_zarr_arr
+    )
+    ng_asset["metadata"] = {
+        "shader": hw_image.shader_type,
+        "dimensions": hw_image.dims,
+        "shaderParameters": hw_image.neuroglancer_shader_parameters(mad_scale=5.0),
+    }
+    return ng_asset
 
 
 def generate_flow_run_name():

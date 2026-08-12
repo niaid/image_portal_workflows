@@ -8,7 +8,7 @@ from prefect import flow, task, allow_failure
 from pytools.meta import is_16bit
 
 from em_workflows.utils import utils
-from em_workflows.file_path import FilePath
+from em_workflows.file_path import FileContext
 from em_workflows.constants import AssetType
 from em_workflows.dm_conversion.config import DMConfig
 from em_workflows.dm_conversion.constants import (
@@ -88,7 +88,7 @@ def _newstack_mrc_to_tiff(
         ]
     )
 
-    FilePath.run(cmd, str(log_fn), env={"IMOD_OUTPUT_FORMAT": "TIF"})
+    utils.run(cmd, str(log_fn), env={"IMOD_OUTPUT_FORMAT": "TIF"})
 
 
 def _write_image_as_size(
@@ -124,7 +124,7 @@ def _write_image_as_size(
 @task(
     name="Convert EM images to tiff",
 )
-def convert_em_to_tiff(file_path: FilePath) -> Path:
+def convert_em_to_tiff(file_path: FileContext) -> Path:
     """
     Performs the conversion of EM images to tiff format, adjusting the dynamic range and reducing the size of the image.
 
@@ -168,7 +168,7 @@ def convert_em_to_tiff(file_path: FilePath) -> Path:
         mrc_log_fp = file_path.gen_output_fp(output_ext="_dm2mrc.log")
 
         cmd = [DMConfig.dm2mrc_loc, file_path.fp_in.as_posix(), dm_as_mrc.as_posix()]
-        FilePath.run(cmd=cmd, log_file=str(mrc_log_fp))
+        utils.run(cmd=cmd, log_file=str(mrc_log_fp))
 
         utils.log(f"{dm_as_mrc} convert to {out_fp}.")
 
@@ -183,7 +183,7 @@ def convert_em_to_tiff(file_path: FilePath) -> Path:
     name="Generate key and thumbnail jpeg images ",
     task_run_name="Generate JPEG {file_path.fp_in}",
 )
-def generate_jpegs(file_path: FilePath) -> dict:
+def generate_jpegs(file_path: FileContext) -> dict:
     """
     Generates small and large jpegs from the input file and produce an asset dictionary.
 

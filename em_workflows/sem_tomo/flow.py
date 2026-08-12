@@ -30,7 +30,7 @@ from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
-from em_workflows.file_path import FilePath
+from em_workflows.file_path import FileContext
 from em_workflows.constants import AssetType
 from em_workflows.sem_tomo.config import SEMConfig
 from em_workflows.sem_tomo.constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_WIDTH
@@ -39,7 +39,7 @@ from em_workflows.sem_tomo.constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_
 @task(
     name="mrc to xf image alignment",
 )
-def gen_xfalign_comand(fp_in: FilePath) -> FilePath:
+def gen_xfalign_comand(fp_in: FileContext) -> FileContext:
     """
     eg::
 
@@ -49,7 +49,7 @@ def gen_xfalign_comand(fp_in: FilePath) -> FilePath:
     if not source_mrc.exists():
         utils.log(f"{source_mrc} does not exist")
     align_xf = fp_in.gen_output_fp(out_fname="align.xf")
-    log_file = f"{source_mrc.parent}/xfalign.log"
+    log_file = str(source_mrc.parent / "xfalign.log")
     utils.log(f"xfalign log_file: {log_file}")
     cmd = [
         SEMConfig.xfalign_loc,
@@ -59,14 +59,14 @@ def gen_xfalign_comand(fp_in: FilePath) -> FilePath:
         source_mrc.as_posix(),
         align_xf.as_posix(),
     ]
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     return fp_in
 
 
 @task(
     name="xf to xg image alignment",
 )
-def gen_align_xg(fp_in: FilePath) -> FilePath:
+def gen_align_xg(fp_in: FileContext) -> FileContext:
     """
     eg::
 
@@ -74,7 +74,7 @@ def gen_align_xg(fp_in: FilePath) -> FilePath:
     """
     align_xg = fp_in.gen_output_fp(out_fname="align.xg")
     align_xf = fp_in.gen_output_fp(out_fname="align.xf")
-    log_file = f"{align_xg.parent}/xgalign.log"
+    log_file = str(align_xg.parent / "xgalign.log")
     cmd = [
         SEMConfig.xftoxg_loc,
         "-ro",
@@ -84,14 +84,14 @@ def gen_align_xg(fp_in: FilePath) -> FilePath:
         align_xg.as_posix(),
     ]
     utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     return fp_in
 
 
 @task(
     name="Newstack mrc generation",
 )
-def gen_newstack_combi(fp_in: FilePath, stretch: None) -> Dict:
+def gen_newstack_combi(fp_in: FileContext, stretch: None) -> Dict:
     """
     eg::
 
@@ -102,7 +102,7 @@ def gen_newstack_combi(fp_in: FilePath, stretch: None) -> Dict:
     source_mrc = fp_in.gen_output_fp(out_fname="source.mrc")
     base_mrc = fp_in.gen_output_fp(output_ext=".mrc", out_fname="adjusted.mrc")
     # output_fp = fp_in.gen_output_fp(out_fname="out.mrc")
-    log_file = f"{align_xg.parent}/ns_align.log"
+    log_file = str(align_xg.parent / "ns_align.log")
     cmd = [
         SEMConfig.newstack_loc,
         "-x",
@@ -117,7 +117,7 @@ def gen_newstack_combi(fp_in: FilePath, stretch: None) -> Dict:
         base_mrc.as_posix(),
     ]
     utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     assets_fp_adjusted_mrc = fp_in.copy_to_assets_dir(fp_to_cp=base_mrc)
     return fp_in.gen_asset(
         asset_type=AssetType.AVERAGED_VOLUME, asset_fp=assets_fp_adjusted_mrc
@@ -127,7 +127,7 @@ def gen_newstack_combi(fp_in: FilePath, stretch: None) -> Dict:
 @task(
     name="tiff to mrc conversion",
 )
-def convert_tif_to_mrc(file_path: FilePath) -> FilePath:
+def convert_tif_to_mrc(file_path: FileContext) -> FileContext:
     """
     | Generates source.mrc
     | assumes there's tifs in input dir, uses all the tifs in dir
@@ -136,19 +136,19 @@ def convert_tif_to_mrc(file_path: FilePath) -> FilePath:
         tif2mrc {DATAPATH}/*.tif {WORKDIR}/Source.mrc
     """
     output_fp = file_path.gen_output_fp(out_fname="source.mrc")
-    log_file = f"{output_fp.parent}/tif2mrc.log"
-    files = glob.glob(f"{file_path.fp_in.as_posix()}/*.tif")
+    log_file = str(output_fp.parent / "tif2mrc.log")
+    files = glob.glob(str(file_path.fp_in / "*.tif"))
 
     cmd = [SEMConfig.tif2mrc_loc]
     cmd.extend(os_sorted(files))
     cmd.append(output_fp.as_posix())
     utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     return file_path
 
 
 @task
-def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
+def create_stretch_file(tilt: float, fp_in: FileContext) -> None:
     """
     | Creates stretch.xf used to gen corrected.mrc
     | File looks like:
@@ -169,7 +169,7 @@ def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
 @task(
     name="Mid mrc generation",
 )
-def gen_newstack_mid_mrc_command(fp_in: FilePath, **kwargs) -> FilePath:
+def gen_newstack_mid_mrc_command(fp_in: FileContext, **kwargs) -> FileContext:
     """
     Generates mid.mrc. eg::
 
@@ -178,12 +178,12 @@ def gen_newstack_mid_mrc_command(fp_in: FilePath, **kwargs) -> FilePath:
     mid_mrc = fp_in.gen_output_fp(out_fname="mid.mrc")
     base_mrc = fp_in.gen_output_fp(output_ext=".mrc", out_fname="adjusted.mrc")
     utils.log(fp_in.fp_in.as_posix())
-    tifs = glob.glob(f"{fp_in.fp_in.as_posix()}/*tif")
+    tifs = glob.glob(str(fp_in.fp_in / "*tif"))
     # tile names can be an issue with inputs - natsort seems to get things  ~right
     tifs_nat_sorted = os_sorted(tifs)
     utils.log(tifs_nat_sorted)
     mid_z = str(int(len(tifs_nat_sorted) / 2))
-    log_file = f"{base_mrc.parent}/newstack_mid.log"
+    log_file = str(base_mrc.parent / "newstack_mid.log")
     cmd = [
         SEMConfig.newstack_loc,
         "-secs",
@@ -192,12 +192,12 @@ def gen_newstack_mid_mrc_command(fp_in: FilePath, **kwargs) -> FilePath:
         mid_mrc.as_posix(),
     ]
     utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     return fp_in
 
 
 @task
-def gen_keyimg(fp_in: FilePath) -> Dict:
+def gen_keyimg(fp_in: FileContext) -> Dict:
     """
     Generates keyimg (large thumb), eg::
 
@@ -205,7 +205,7 @@ def gen_keyimg(fp_in: FilePath) -> Dict:
     """
     mid_mrc = fp_in.gen_output_fp(out_fname="mid.mrc")
     keyimg_fp = fp_in.gen_output_fp(out_fname="keyimg.jpg")
-    log_file = f"{mid_mrc.parent}/mrc2tif.log"
+    log_file = str(mid_mrc.parent / "mrc2tif.log")
     cmd = [
         SEMConfig.mrc2tif_loc,
         "-j",
@@ -215,14 +215,14 @@ def gen_keyimg(fp_in: FilePath) -> Dict:
         keyimg_fp.as_posix(),
     ]
     utils.log(f"Created keyimg {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=keyimg_fp)
     keyimg_asset = fp_in.gen_asset(asset_type=AssetType.KEY_IMAGE, asset_fp=asset_fp)
     return keyimg_asset
 
 
 @task
-def gen_keyimg_small(fp_in: FilePath) -> Dict:
+def gen_keyimg_small(fp_in: FileContext) -> Dict:
     """
     eg::
 
@@ -231,7 +231,7 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
     """
     keyimg_fp = fp_in.gen_output_fp(out_fname="keyimg.jpg")
     keyimg_sm_fp = fp_in.gen_output_fp(out_fname="keyimg_sm.jpg")
-    log_file = f"{keyimg_sm_fp.parent}/convert.log"
+    log_file = str(keyimg_sm_fp.parent / "convert.log")
     cmd = [
         SEMConfig.convert_loc,
         "-size",
@@ -246,7 +246,7 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
         keyimg_sm_fp.as_posix(),
     ]
     utils.log(f"Created {cmd}")
-    FilePath.run(cmd=cmd, log_file=log_file)
+    utils.run(cmd=cmd, log_file=log_file)
     asset_fp = fp_in.copy_to_assets_dir(fp_to_cp=keyimg_sm_fp)
     keyimg_asset = fp_in.gen_asset(asset_type=AssetType.THUMBNAIL, asset_fp=asset_fp)
     return keyimg_asset
@@ -255,7 +255,7 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
 @task(
     name="Zarr generation",
 )
-def gen_zarr(fp_in: FilePath, **kwargs) -> FilePath:
+def gen_zarr(fp_in: FileContext, **kwargs) -> FileContext:
     file_path = fp_in
     # fallback mrc file
     input_file = file_path.fp_in.as_posix()
@@ -265,14 +265,15 @@ def gen_zarr(fp_in: FilePath, **kwargs) -> FilePath:
         input_file = base_mrc.as_posix()
 
     ng.bioformats_gen_zarr(
-        file_path=file_path,
-        input_fname=input_file,
+        fp_in=Path(input_file),
+        output_dir=file_path.working_dir,
+        zarr_stem=file_path.base,  # input_file may be adjusted.mrc; always name zarr after original
         depth=FIBSEM_DEPTH,
         width=FIBSEM_WIDTH,
         height=FIBSEM_HEIGHT,
         resolutions=1,
     )
-    output_zarr = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
+    output_zarr = file_path.working_dir / f"{file_path.base}.zarr"
     file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
 
     ng.zarr_build_multiscales(fp_in)
@@ -282,7 +283,7 @@ def gen_zarr(fp_in: FilePath, **kwargs) -> FilePath:
 @task(
     name="Neuroglancer metadata generation",
 )
-def gen_ng_metadata(fp_in: FilePath) -> Dict:
+def gen_ng_metadata(fp_in: FileContext) -> Dict:
     """
     | Initialize HedwigZarrImages instace from .zarr group array
     | For each HedwigZarrImage obtain their metadata, consisting of:
@@ -296,8 +297,8 @@ def gen_ng_metadata(fp_in: FilePath) -> Dict:
     """
 
     file_path = fp_in
-    asset_fp = Path(f"{file_path.assets_dir}/{file_path.base}.zarr")
-    working_fp = Path(f"{file_path.working_dir}/{file_path.base}.zarr")
+    asset_fp = file_path.assets_dir / f"{file_path.base}.zarr"
+    working_fp = file_path.working_dir / f"{file_path.base}.zarr"
     hw_images = HedwigZarrImages(zarr_path=working_fp, read_only=False)
     hw_image = hw_images[list(hw_images.get_series_keys())[0]]
 
