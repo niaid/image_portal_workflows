@@ -15,7 +15,7 @@ from prefect.runtime import flow_run
 
 from em_workflows.config import Config
 from em_workflows.constants import AssetType
-from em_workflows.file_path import AssetDict, FilePath, ImageSetElement, PrimaryFPElement
+from em_workflows.file_path import AssetDict, FileContext, ImageSetElement, PrimaryFPElement
 from em_workflows.utils.log import log
 from pytools.HedwigZarrImages import HedwigZarrImages
 
@@ -84,9 +84,9 @@ def run(cmd: List[str], log_file: str, env: Optional[Dict] = None, *, copy_env: 
 @task(
     name="mrc to movie generation",
 )
-def mrc_to_movie(file_path: FilePath, root: str, asset_type: str, **kwargs):
+def mrc_to_movie(file_path: FileContext, root: str, asset_type: str, **kwargs):
     """
-    :param file_path: FilePath for the input
+    :param file_path: FileContext for the input
     :param root: base name of the mrc file
     :param asset_type: type of resulting output (movie)
     :param kwargs: additional arguments to wait for before executing this func
@@ -167,7 +167,7 @@ def gen_dimension_command(fp_in: Path) -> str:
 )
 def cleanup_files(file_path: Path, pattern: str, keep_file: Path = None) -> None:
     """
-    Given a ``FilePath`` and unix file ``pattern``, iterate through directory removing all files
+    Given a ``FileContext`` and unix file ``pattern``, iterate through directory removing all files
     that match the pattern
     """
     import glob
@@ -183,14 +183,14 @@ def cleanup_files(file_path: Path, pattern: str, keep_file: Path = None) -> None
 
 
 @task
-def gen_prim_fps(fp_in: FilePath, additional_assets: (dict, ...) = None) -> PrimaryFPElement:
+def gen_prim_fps(fp_in: FileContext, additional_assets: (dict, ...) = None) -> PrimaryFPElement:
     """
-    :param fp_in: FilePath of current input
+    :param fp_in: FileContext of current input
     :param additional_assets: A list of additional assets to be added to the primary element
     :outputs_with_exceptions this func is called with allow_failure - important
     :return: a Dict to hold the 'assets'
 
-    This function delegates creation of primary fps to ``FilePath.gen_prim_fp_elt()``
+    This function delegates creation of primary fps to ``FileContext.gen_prim_fp_elt()``
     and creates a primary element for assets to be appended
     """
     base_elts = fp_in.gen_prim_fp_elt()
@@ -242,7 +242,7 @@ def add_asset(prim_fp: PrimaryFPElement, asset: AssetDict | List[AssetDict], ima
 
     **Note**: when running Dask distributed with Slurm, mutations to objects will be lost. Using
     funtional style avoids this. This is why the callback data structure is not built inside
-    the FilePath object at runtime.
+    the FileContext object at runtime.
     """
 
     if not image_idx:
@@ -257,12 +257,12 @@ def add_asset(prim_fp: PrimaryFPElement, asset: AssetDict | List[AssetDict], ima
 
 # triggers like "always_run" are managed when calling the task itself
 @task(retries=3, retry_delay_seconds=10)
-def cleanup_workdir(fps: List[FilePath], x_keep_workdir: bool):
+def cleanup_workdir(fps: List[FileContext], x_keep_workdir: bool):
     """
-    :param fp: a FilePath which has a working_dir to be removed
+    :param fp: a FileContext which has a working_dir to be removed
 
     | working_dir isn't needed after run, so remove unless "x_keep_workdir" is True.
-    | task wrapper on the FilePath rm_workdir method.
+    | task wrapper on the FileContext rm_workdir method.
 
     """
     if x_keep_workdir is True:
@@ -274,7 +274,7 @@ def cleanup_workdir(fps: List[FilePath], x_keep_workdir: bool):
 
 
 @task(name="Final Cleanup", retries=3, retry_delay_seconds=10)
-def final_cleanup_task(fps: List[FilePath], x_keep_workdir: bool = False):
+def final_cleanup_task(fps: List[FileContext], x_keep_workdir: bool = False):
     """
     Final cleanup task that always runs regardless of upstream failures.
     Combines workdir log copying and cleanup operations.
@@ -302,25 +302,25 @@ def final_cleanup_task(fps: List[FilePath], x_keep_workdir: bool = False):
 
 # TODO replace "trigger=always_run"
 @task(retries=1, retry_delay_seconds=10)
-def copy_workdirs(file_path: FilePath) -> Path:
+def copy_workdirs(file_path: FileContext) -> Path:
     """
     This task copies the workdir, in it's entirety, to the Assets path. This can
     be a very large number of files and storage space. This work is delgated to
-    FilePath.
+    FileContext.
 
     Primarily, used by brt-flow where SME had to deal with intermediate files
     for sanity checks.
 
-    :param file_path: FilePath of the current imagefile
+    :param file_path: FileContext of the current imagefile
     :return: pathlib.Path of copied directory
     """
     return file_path.copy_workdir_to_assets()
 
 
 @task
-def copy_workdir_logs(file_path: FilePath) -> Path:
+def copy_workdir_logs(file_path: FileContext) -> Path:
     """
-    :param file_path: FilePath of the current imagefile
+    :param file_path: FileContext of the current imagefile
     :return: pathlib.Path of copied directory
 
     This task copies the logs of intermediate commands ran during the workflow.
@@ -551,7 +551,7 @@ def get_input_dir(share_name: str, input_dir: str) -> Path:
     # persisting to retrieve again in hooks
     persist_result=True,
 )
-def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePath]:
+def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FileContext]:
     """
     Given in input directory (Path) and a list of input files (Path), return
     a list of FilePaths for the input files. This includes a temporary working
@@ -559,7 +559,7 @@ def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePa
     """
     fps = list()
     for fp in fps_in:
-        file_path = FilePath(share_name=share_name, input_dir=input_dir, fp_in=fp)
+        file_path = FileContext(share_name=share_name, input_dir=input_dir, fp_in=fp)
         msg = f"created working_dir {file_path.working_dir} for {fp.as_posix()}"
         log(msg)
         fps.append(file_path)
@@ -610,7 +610,7 @@ def send_callback_body(
 
 
 def callback_with_cleanup(
-    fps: List[FilePath],
+    fps: List[FileContext],
     callback_result: List,
     x_no_api: bool = False,
     callback_url: Optional[str] = None,
@@ -635,7 +635,7 @@ def callback_with_cleanup(
 @task(
     name="Neuroglancer metadata generation",
 )
-def gen_ng_metadata(fp_in: FilePath, zarr: Path) -> Dict:
+def gen_ng_metadata(fp_in: FileContext, zarr: Path) -> Dict:
     # asset fp is on the network filesystem; zarr path (working dir) is used for reading metadata
     file_path = fp_in
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(zarr))

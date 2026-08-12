@@ -11,7 +11,7 @@ import pytest
 from prefect.task_runners import ConcurrentTaskRunner
 from prefect.testing.utilities import prefect_test_harness
 
-from em_workflows.file_path import FilePath
+from em_workflows.file_path import FileContext
 
 
 @pytest.fixture
@@ -87,14 +87,14 @@ def mock_reuse_zarr(monkeypatch):
     original_gen_zarr = ng.bioformats_gen_zarr
     original_rechunk = ng.rechunk_zarr
 
-    def _mock_bioformats_gen_zarr(file_path: FilePath, *a, **kw):
+    def _mock_bioformats_gen_zarr(file_path: FileContext, *a, **kw):
         zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
         if Path(zarr_fp).exists():
             print("Reusing existing .zarr files! Avoiding bf2raw command.")
             return
         original_gen_zarr(file_path, *a, **kw)
 
-    def _mock_rechunk(file_path: FilePath, *a, **kw):
+    def _mock_rechunk(file_path: FileContext, *a, **kw):
         zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
         work_fp = f"{file_path.working_dir}/{file_path.base}.zarr"
         if Path(zarr_fp).exists():

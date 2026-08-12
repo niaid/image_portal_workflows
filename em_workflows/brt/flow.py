@@ -49,7 +49,7 @@ from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 from em_workflows.utils.log import log
 from em_workflows.constants import AssetType
-from em_workflows.file_path import FilePath
+from em_workflows.file_path import FileContext
 from em_workflows.brt.config import BRTConfig
 from em_workflows.brt.constants import BRT_DEPTH, BRT_HEIGHT, BRT_WIDTH
 
@@ -168,7 +168,7 @@ def copy_template(working_dir: Path, template_name: str) -> Path:
     # timeout_seconds=600,
 )
 def run_brt(
-    file_path: FilePath,
+    file_path: FileContext,
     adoc_template: str,
     montage: int,
     gold: int,
@@ -559,7 +559,7 @@ def gen_zarr(brt_output: BrtOutput) -> Path:
 
 
 @task
-def copy_asset_gen_elt(file_path: FilePath, fp_to_cp: Path, asset_type: str) -> dict:
+def copy_asset_gen_elt(file_path: FileContext, fp_to_cp: Path, asset_type: str) -> dict:
     asset_fp = file_path.copy_to_assets_dir(fp_to_cp=fp_to_cp)
     asset_elt = file_path.gen_asset(asset_type=asset_type, asset_fp=asset_fp)
     return asset_elt

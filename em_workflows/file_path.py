@@ -31,14 +31,14 @@ class PrimaryFPElement(TypedDict):
     imageSet: List[ImageSetElement]
 
 
-class FilePath:
+class FileContext:
     """
-    The FilePath class is used to track the directory structure of the input and output files
+    The FileContext class is used to track the directory structure of the input and output files
     when running an image pipeline. The output _asset_dir and a temporary (fast-disk) _working_dir
     are created for each input file. These members are @properties without setters to keep them immutable,
     as should the entire class, probably. It is important that each file have its own _working_dir to
     avoid any collisions during the asynchronous processing of the pipeline. Very many output files
-    are created in the _working_dir, but only the outputs we care about are added to the FilePath
+    are created in the _working_dir, but only the outputs we care about are added to the FileContext
     for copying to the _asset_dir later in the pipeline.
     An "asset" is a resource the Hedwig Web application uses. For example an asset might be an image,
     or a movie, or output of the pipeline, that the web application users care about.
@@ -72,7 +72,7 @@ class FilePath:
         super().__setattr__(name, value)
 
     def __str__(self) -> str:
-        return f"FilePath: proj_root:{self.proj_root}\n\
+        return f"FileContext: proj_root:{self.proj_root}\n\
                 fp_in:{self.fp_in}\n\
                 prim_fp:{self.prim_fp_elt}\n\
                 working_dir:{self.working_dir}\n\
@@ -124,7 +124,7 @@ class FilePath:
 
     def copy_to_assets_dir(self, fp_to_cp: Path) -> Path:
         """
-        Copy FilePath to the assets (reported output) dir
+        Copy FileContext to the assets (reported output) dir
 
         - fp is the Path to be copied.
         - assets_dir is the root dir (the proj_dir with s/Projects/Assets/)
@@ -166,9 +166,9 @@ class FilePath:
 
     def gen_asset(self, asset_type: str, asset_fp) -> AssetDict:
         """
-        Construct and return an asset (dict) based on the asset "type" and FilePath
+        Construct and return an asset (dict) based on the asset "type" and FileContext
         :param asset_type: a string that details the type of output file
-        :param asset_fp: the originating FilePath to "hang" the asset on
+        :param asset_fp: the originating FileContext to "hang" the asset on
         :return: the resulting "asset" in the form of a dict
         """
         assets_fp_no_root = asset_fp.relative_to(self.asset_root)

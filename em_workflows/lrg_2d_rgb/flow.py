@@ -7,7 +7,7 @@ from prefect import flow, task
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
-from em_workflows.file_path import FilePath
+from em_workflows.file_path import FileContext
 from em_workflows.constants import AssetType
 from em_workflows.lrg_2d_rgb.config import LRG2DConfig
 from em_workflows.lrg_2d_rgb.constants import (
@@ -21,7 +21,7 @@ from em_workflows.lrg_2d_rgb.constants import (
 
 
 @task
-def convert_png_to_tiff(file_path: FilePath) -> FilePath:
+def convert_png_to_tiff(file_path: FileContext) -> FileContext:
     """
     convert input.png -background white -alpha remove -alpha off ouput.tiff
     Adding argument: -define tiff:tile-geometry=128x128
@@ -50,7 +50,7 @@ def convert_png_to_tiff(file_path: FilePath) -> FilePath:
 @task(
     name="Zarr generation",
 )
-def gen_zarr(file_path: FilePath) -> None:
+def gen_zarr(file_path: FileContext) -> None:
     input_tiff = str(file_path.working_dir / f"{file_path.base}.tiff")
 
     ng.bioformats_gen_zarr(
@@ -63,13 +63,13 @@ def gen_zarr(file_path: FilePath) -> None:
 @task(
     name="Zarr rechunk",
 )
-def rechunk_zarr(file_path: FilePath) -> FilePath:
+def rechunk_zarr(file_path: FileContext) -> FileContext:
     ng.rechunk_zarr(file_path=file_path)
     return file_path
 
 
 @task
-def copy_zarr_to_assets_dir(file_path: FilePath):
+def copy_zarr_to_assets_dir(file_path: FileContext):
     output_zarr = file_path.working_dir / f"{file_path.base}.zarr"
     file_path.copy_to_assets_dir(fp_to_cp=Path(output_zarr))
     return file_path
@@ -78,7 +78,7 @@ def copy_zarr_to_assets_dir(file_path: FilePath):
 @task(
     name="Neuroglancer asset generation",
 )
-def generate_ng_asset(file_path: FilePath) -> Dict:
+def generate_ng_asset(file_path: FileContext) -> Dict:
     # Note; the seemingly redundancy of working and asset fp here.
     # However asset fp is in the network file system and is deployed for access to the users
     # Working fp is actually used for getting the metadata
@@ -106,7 +106,7 @@ def generate_ng_asset(file_path: FilePath) -> Dict:
 
 
 @task
-def gen_thumb(file_path: FilePath):
+def gen_thumb(file_path: FileContext):
     input_zarr = str(file_path.working_dir / f"{file_path.base}.zarr")
     zarr_images = HedwigZarrImages(zarr_path=Path(input_zarr), read_only=False)
     zarr_image: HedwigZarrImage = zarr_images[list(zarr_images.get_series_keys())[0]]

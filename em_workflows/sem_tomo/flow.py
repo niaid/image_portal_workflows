@@ -30,7 +30,7 @@ from pytools.HedwigZarrImages import HedwigZarrImages
 
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
-from em_workflows.file_path import FilePath
+from em_workflows.file_path import FileContext
 from em_workflows.constants import AssetType
 from em_workflows.sem_tomo.config import SEMConfig
 from em_workflows.sem_tomo.constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_WIDTH
@@ -39,7 +39,7 @@ from em_workflows.sem_tomo.constants import FIBSEM_DEPTH, FIBSEM_HEIGHT, FIBSEM_
 @task(
     name="mrc to xf image alignment",
 )
-def gen_xfalign_comand(fp_in: FilePath) -> FilePath:
+def gen_xfalign_comand(fp_in: FileContext) -> FileContext:
     """
     eg::
 
@@ -66,7 +66,7 @@ def gen_xfalign_comand(fp_in: FilePath) -> FilePath:
 @task(
     name="xf to xg image alignment",
 )
-def gen_align_xg(fp_in: FilePath) -> FilePath:
+def gen_align_xg(fp_in: FileContext) -> FileContext:
     """
     eg::
 
@@ -91,7 +91,7 @@ def gen_align_xg(fp_in: FilePath) -> FilePath:
 @task(
     name="Newstack mrc generation",
 )
-def gen_newstack_combi(fp_in: FilePath, stretch: None) -> Dict:
+def gen_newstack_combi(fp_in: FileContext, stretch: None) -> Dict:
     """
     eg::
 
@@ -127,7 +127,7 @@ def gen_newstack_combi(fp_in: FilePath, stretch: None) -> Dict:
 @task(
     name="tiff to mrc conversion",
 )
-def convert_tif_to_mrc(file_path: FilePath) -> FilePath:
+def convert_tif_to_mrc(file_path: FileContext) -> FileContext:
     """
     | Generates source.mrc
     | assumes there's tifs in input dir, uses all the tifs in dir
@@ -148,7 +148,7 @@ def convert_tif_to_mrc(file_path: FilePath) -> FilePath:
 
 
 @task
-def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
+def create_stretch_file(tilt: float, fp_in: FileContext) -> None:
     """
     | Creates stretch.xf used to gen corrected.mrc
     | File looks like:
@@ -169,7 +169,7 @@ def create_stretch_file(tilt: float, fp_in: FilePath) -> None:
 @task(
     name="Mid mrc generation",
 )
-def gen_newstack_mid_mrc_command(fp_in: FilePath, **kwargs) -> FilePath:
+def gen_newstack_mid_mrc_command(fp_in: FileContext, **kwargs) -> FileContext:
     """
     Generates mid.mrc. eg::
 
@@ -197,7 +197,7 @@ def gen_newstack_mid_mrc_command(fp_in: FilePath, **kwargs) -> FilePath:
 
 
 @task
-def gen_keyimg(fp_in: FilePath) -> Dict:
+def gen_keyimg(fp_in: FileContext) -> Dict:
     """
     Generates keyimg (large thumb), eg::
 
@@ -222,7 +222,7 @@ def gen_keyimg(fp_in: FilePath) -> Dict:
 
 
 @task
-def gen_keyimg_small(fp_in: FilePath) -> Dict:
+def gen_keyimg_small(fp_in: FileContext) -> Dict:
     """
     eg::
 
@@ -255,7 +255,7 @@ def gen_keyimg_small(fp_in: FilePath) -> Dict:
 @task(
     name="Zarr generation",
 )
-def gen_zarr(fp_in: FilePath, **kwargs) -> FilePath:
+def gen_zarr(fp_in: FileContext, **kwargs) -> FileContext:
     file_path = fp_in
     # fallback mrc file
     input_file = file_path.fp_in.as_posix()
@@ -283,7 +283,7 @@ def gen_zarr(fp_in: FilePath, **kwargs) -> FilePath:
 @task(
     name="Neuroglancer metadata generation",
 )
-def gen_ng_metadata(fp_in: FilePath) -> Dict:
+def gen_ng_metadata(fp_in: FileContext) -> Dict:
     """
     | Initialize HedwigZarrImages instace from .zarr group array
     | For each HedwigZarrImage obtain their metadata, consisting of:

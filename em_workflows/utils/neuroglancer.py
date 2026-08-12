@@ -1,7 +1,7 @@
 from pathlib import Path
 from pytools.HedwigZarrImages import HedwigZarrImages
 from em_workflows.config import Config
-from em_workflows.file_path import FilePath
+from em_workflows.file_path import FileContext
 from em_workflows.constants import BIOFORMATS_NUM_WORKERS, RECHUNK_SIZE
 from em_workflows.utils import utils
 from em_workflows.config import setup_pytools_log
@@ -9,7 +9,7 @@ from em_workflows.config import setup_pytools_log
 setup_pytools_log()
 
 
-def rechunk_zarr(file_path: FilePath) -> None:
+def rechunk_zarr(file_path: FileContext) -> None:
     zarr_fp = file_path.working_dir / f"{file_path.base}.zarr"
     utils.log(f"{zarr_fp} output zarr")
     images = HedwigZarrImages(zarr_fp, read_only=False)
@@ -65,7 +65,7 @@ def bioformats_gen_zarr(
     return output_zarr
 
 
-def zarr_build_multiscales(file_path: FilePath) -> None:
+def zarr_build_multiscales(file_path: FileContext) -> None:
     zarr = file_path.assets_dir / f"{file_path.base}.zarr" / "0"
     log_file = str(file_path.working_dir / f"{file_path.base}.log")
 

@@ -8,7 +8,7 @@ from prefect import flow, task, allow_failure
 from pytools.meta import is_16bit
 
 from em_workflows.utils import utils
-from em_workflows.file_path import FilePath
+from em_workflows.file_path import FileContext
 from em_workflows.constants import AssetType
 from em_workflows.dm_conversion.config import DMConfig
 from em_workflows.dm_conversion.constants import (
@@ -124,7 +124,7 @@ def _write_image_as_size(
 @task(
     name="Convert EM images to tiff",
 )
-def convert_em_to_tiff(file_path: FilePath) -> Path:
+def convert_em_to_tiff(file_path: FileContext) -> Path:
     """
     Performs the conversion of EM images to tiff format, adjusting the dynamic range and reducing the size of the image.
 
@@ -183,7 +183,7 @@ def convert_em_to_tiff(file_path: FilePath) -> Path:
     name="Generate key and thumbnail jpeg images ",
     task_run_name="Generate JPEG {file_path.fp_in}",
 )
-def generate_jpegs(file_path: FilePath) -> dict:
+def generate_jpegs(file_path: FileContext) -> dict:
     """
     Generates small and large jpegs from the input file and produce an asset dictionary.
 

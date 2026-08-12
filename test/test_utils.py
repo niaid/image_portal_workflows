@@ -16,7 +16,7 @@ from prefect.states import State
 from prefect.settings import PREFECT_HOME
 
 from em_workflows.utils import utils
-from em_workflows.file_path import FilePath
+from em_workflows.file_path import FileContext
 from em_workflows.config import Config
 from em_workflows.brt.config import BRTConfig
 from em_workflows.dm_conversion.config import DMConfig
@@ -27,14 +27,14 @@ from em_workflows.dm_conversion.constants import LARGE_2D, SMALL_2D, VALID_2D_IN
 
 def test_bio2r_environ(mock_nfs_mount, caplog):
     from em_workflows.config import Config
-    from em_workflows.file_path import FilePath
+    from em_workflows.file_path import FileContext
     import os
     import tempfile
 
     assert shutil.which(Config.bioformats2raw)
     with tempfile.NamedTemporaryFile() as logfile:
         cmd = [Config.bioformats2raw, "--version"]
-        out = FilePath.run(cmd=cmd, log_file=logfile.name)
+        out = FileContext.run(cmd=cmd, log_file=logfile.name)
         assert out == 0, "Command output is not success code"
         print(logfile.name)
         assert os.path.exists(logfile.name)
@@ -273,7 +273,7 @@ def test_mrc_to_movie(mock_nfs_mount):
     if not image_path.exists():
         pytest.skip(f"Image {image_path.name} not found")
 
-    mrc_filepath = FilePath(share_name="Test", input_dir=input_path, fp_in=image_path)
+    mrc_filepath = FileContext(share_name="Test", input_dir=input_path, fp_in=image_path)
     shutil.copy(image_path, mrc_filepath.working_dir)
 
     #    mrc_list = utils.gen_fps.__wrapped__(input_path, [image_path])
@@ -316,7 +316,7 @@ def test_copy_workdirs_small(mock_nfs_mount):
     with tempfile.TemporaryDirectory() as tmp_dir:
         input_path = Path(tmp_dir) / "Projects"
         image_path = Path(proj_dir) / test_dir / test_image
-        image_filepath = FilePath(share_name="", input_dir=input_path, fp_in=image_path)
+        image_filepath = FileContext(share_name="", input_dir=input_path, fp_in=image_path)
         shutil.copy(image_path, image_filepath.working_dir)
 
         workdest = utils.copy_workdirs.__wrapped__(image_filepath)

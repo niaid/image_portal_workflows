@@ -7,7 +7,7 @@ import SimpleITK as sitk
 from prefect import flow, task
 from pytools import HedwigZarrImage, HedwigZarrImages
 
-from em_workflows.file_path import FilePath, AssetDict, ImageSetElement, PrimaryFPElement
+from em_workflows.file_path import FileContext, AssetDict, ImageSetElement, PrimaryFPElement
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
 from em_workflows.czi.constants import (
@@ -20,7 +20,7 @@ from em_workflows.czi.constants import (
 from em_workflows.czi.config import CZIConfig
 
 
-def gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> Optional[AssetDict]:
+def gen_thumb(image: HedwigZarrImage, file_path: FileContext, image_name: str) -> Optional[AssetDict]:
     """
     Uses SimpleITK to extract and write jpeg thumbnail image for the zarr subimage
     """
@@ -44,7 +44,7 @@ def gen_thumb(image: HedwigZarrImage, file_path: FilePath, image_name: str) -> O
 
 
 @task
-def rechunk_zarr(file_path: FilePath) -> None:
+def rechunk_zarr(file_path: FileContext) -> None:
     """
     Re-chunk the ZARR structure so that multi-channel/RGB channels are not split
     between chunks with the zarr_rechunk command provided by tomojs-pytools.
@@ -53,7 +53,7 @@ def rechunk_zarr(file_path: FilePath) -> None:
 
 
 @task
-def copy_zarr_to_assets_dir(file_path: FilePath) -> None:
+def copy_zarr_to_assets_dir(file_path: FileContext) -> None:
     """
     Copy the zarr files generated from CZI or SVS files using bioformats2raw to the assets folder
     """
@@ -62,7 +62,7 @@ def copy_zarr_to_assets_dir(file_path: FilePath) -> None:
 
 
 @task
-def generate_imageset(file_path: FilePath,
+def generate_imageset(file_path: FileContext,
                       use_default_dask=False) -> List[ImageSetElement]:
     """
     :param: use_default_dask: If True, reuses the Prefect Dask Scheduler for the ZARR and Dask array operations.
@@ -129,7 +129,7 @@ def generate_imageset(file_path: FilePath,
     log_prints=True,
     task_runner=CZIConfig.get_slurm_task_runner(),
 )
-async def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
+async def generate_czi_imageset(file_path: FileContext) -> List[Dict]:
     """
     Subflow for per-file processing of CZI or SVS inputs.
 
@@ -150,7 +150,7 @@ async def generate_czi_imageset(file_path: FilePath) -> List[Dict]:
 
 
 @task
-def generate_zarr(file_path: FilePath):
+def generate_zarr(file_path: FileContext):
     """
     Uses bioformats2raw to convert a CZI or SVS input file to OME-NGFF zarr format.
     """
@@ -175,7 +175,7 @@ def find_thumb_idx(callback: List[PrimaryFPElement]) -> List[PrimaryFPElement]:
 
 
 @task
-def update_file_metadata(file_path: FilePath, callback_with_zarr: PrimaryFPElement) -> PrimaryFPElement:
+def update_file_metadata(file_path: FileContext, callback_with_zarr: PrimaryFPElement) -> PrimaryFPElement:
     """
     OME-xml metadata can be informative for developers to understand why the
     neuroglancer view is not appropriately rendering. This function attaches
