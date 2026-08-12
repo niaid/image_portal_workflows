@@ -14,8 +14,10 @@ from prefect.tasks import Task, TaskRun
 from prefect.runtime import flow_run
 
 from em_workflows.config import Config
+from em_workflows.constants import AssetType
 from em_workflows.file_path import AssetDict, FilePath, ImageSetElement, PrimaryFPElement
 from em_workflows.utils.log import log
+from pytools.HedwigZarrImages import HedwigZarrImages
 
 # used for keeping outputs of imod's header command (dimensions of image).
 Header = namedtuple("Header", "x y z")
@@ -628,6 +630,31 @@ def callback_with_cleanup(
         x_keep_workdir,
         wait_for=[cb, allow_failure(cp_wd_logs_to_assets)],
     )
+
+
+@task(
+    name="Neuroglancer metadata generation",
+)
+def gen_ng_metadata(fp_in: FilePath, zarr: Path) -> Dict:
+    # asset fp is on the network filesystem; zarr path (working dir) is used for reading metadata
+    file_path = fp_in
+    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(zarr))
+    hw_images = HedwigZarrImages(zarr_path=zarr, read_only=False)
+    hw_image = hw_images[list(hw_images.get_series_keys())[0]]
+
+    # NOTE: this could be replaced by hw_image.path
+    # but hw_image is part of working dir (temporary)
+    first_zarr_arr = asset_fp / "0"
+
+    ng_asset = file_path.gen_asset(
+        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=first_zarr_arr
+    )
+    ng_asset["metadata"] = {
+        "shader": hw_image.shader_type,
+        "dimensions": hw_image.dims,
+        "shaderParameters": hw_image.neuroglancer_shader_parameters(mad_scale=5.0),
+    }
+    return ng_asset
 
 
 def generate_flow_run_name():

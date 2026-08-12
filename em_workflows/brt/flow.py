@@ -36,19 +36,14 @@ Batchruntomo pipeline overview:
 """
 
 from collections import namedtuple
-from typing import Dict
 import json
 import glob
-import os
 import shutil
-import subprocess
 from typing import Optional
 from pathlib import Path
 from natsort import os_sorted
 from jinja2 import Environment, FileSystemLoader
 from prefect import task, flow, unmapped
-from pytools.HedwigZarrImages import HedwigZarrImages
-
 from em_workflows.config import Config
 from em_workflows.utils import utils
 from em_workflows.utils import neuroglancer as ng
@@ -218,11 +213,9 @@ def run_brt(
     return BrtOutput(ali_file=ali_file, rec_file=rec_file)
 
 
-@task(
-    name="Alignment sectioning",
-)
 def gen_ali_x(fp_in: Path, z_dim) -> None:
     """
+    - Alignment sectioning
     - chops an mrc input into its constituent Z sections.
     - eg if an mrc input has a z_dim of 10, 10 sections will be generated.
     - the i-i syntax is awkward, and may not be required. Eg possibly replace i-i with i.
@@ -237,11 +230,10 @@ def gen_ali_x(fp_in: Path, z_dim) -> None:
         cmd = [BRTConfig.newstack_loc, "-secs", f"{i}-{i}", fp_in.as_posix(), ali_x]
         utils.run(cmd=cmd, log_file=log_file)
 
-@task(
-    name="Alignment assembly",
-)
+
 def gen_ali_asmbl(fp_in: Path) -> None:
     """
+    Alignment assembly
     Use IMOD ``newstack`` to assemble, eg::
 
        newstack -float 3 {BASENAME}_ali*.mrc ali_{BASENAME}.mrc
@@ -255,11 +247,9 @@ def gen_ali_asmbl(fp_in: Path) -> None:
     utils.run(cmd=ali_base_cmd, log_file=str(fp_in.parent / "asmbl.log"))
 
 
-@task(
-    name="MRC to TIFF conversion",
-)
 def gen_mrc2tiff(fp_in: Path) -> None:
     """
+    MRC to TIFF conversion
     This generates a lot of jpegs (-j) which will be compiled into a movie.
     (That is, the -jpeg switch is set to produce jpegs) eg::
 
@@ -404,7 +394,6 @@ def gen_recon_movie(ave_mrc: Path) -> Path:
         mp4_base,
     ]
     utils.run(cmd=mrc2tiff_cmd, log_file=mrc2tiff_log_file)
-    # don't put the 's in here, as per docs. subprocess messes them up
     jpg_input_pattern = f"{mp4_base}*.jpg"
     key_mov = ave_mrc.parent / f"{ave_mrc.stem}_keyMov.mp4"
     cmd = [
@@ -505,20 +494,6 @@ def gen_ave_8_vol(ave_mrc: Path) -> Path:
     return ave_8_mrc
 
 
-def gen_ave_jpgs_from_ave_mrc(ave_mrc: Path):
-    """
-    - generates a load of jpgs from the ave_base.mrc with the format {base}_mp4.123.jpg \
-            **OR** {base}_mp4.1234.jpg depending on size of stack.
-    - These jpgs can later be compiled into a movie. eg::
-
-        mrc2tif -j -C 100,255 WORKDIR/hedwig/ave_BASNAME.mrc hedwig/BASENAME_mp4
-    """
-    mp4 = str(ave_mrc.parent / f"{ave_mrc.stem}_mp4")
-    log_file = str(ave_mrc.parent / "recon_mrc2tiff.log")
-    cmd = [BRTConfig.mrc2tif_loc, "-j", "-C", "100,255", ave_mrc.as_posix(), mp4]
-    utils.run(cmd=cmd, log_file=log_file)
-
-
 # @task
 # def list_paired_files(fnames: List[Path]) -> List[Path]:
 #     """
@@ -590,55 +565,16 @@ def copy_asset_gen_elt(file_path: FilePath, fp_to_cp: Path, asset_type: str) -> 
     return asset_elt
 
 
-@task(
-    name="Neuroglancer metadata generation",
-)
-def gen_ng_metadata(fp_in: FilePath, zarr: Path) -> Dict:
-    # Note; the seemingly redundancy of working and asset fp here.
-    # However asset fp is in the network file system and is deployed for access to the users
-    # Working fp is actually used for getting the metadata
-
-    file_path = fp_in
-    asset_fp = file_path.copy_to_assets_dir(fp_to_cp=Path(zarr))
-
-    utils.log("Instantiating HWZarrImages")
-    hw_images = HedwigZarrImages(zarr_path=zarr, read_only=False)
-    utils.log("Accessing first HWZarrImage")
-    hw_image = hw_images[list(hw_images.get_series_keys())[0]]
-
-    # NOTE: this could be replaced by hw_image.path
-    # but hw_image is part of working dir (temporary)
-    first_zarr_arr = asset_fp / "0"
-
-    ng_asset = file_path.gen_asset(
-        asset_type=AssetType.NEUROGLANCER_ZARR, asset_fp=first_zarr_arr
-    )
-    utils.log("Creating ng metadata")
-    utils.log("... getting shader type")
-    htype = hw_image.shader_type
-    utils.log("... getting dims")
-    hdims = hw_image.dims
-    utils.log("... getting shader params")
-    hparams = hw_image.neuroglancer_shader_parameters(mad_scale=5.0)
-    ng_asset["metadata"] = {
-        "shader": htype,
-        "dimensions": hdims,
-        "shaderParameters": hparams,
-    }
-    utils.log("DONE!!!")
-    return ng_asset
-
-
-@task
-def get_callback_result(callback_data: list) -> list:
-    cb_data = list()
-    for item in callback_data:
-        try:
-            json.dumps(item)
-            cb_data.append(item)
-        except TypeError:  # can't serialize the item
-            utils.log(f"Following item cannot be added to callback:\n\n{item}")
-    return cb_data
+#  @task
+#  def get_callback_result(callback_data: list) -> list:
+#      cb_data = list()
+#      for item in callback_data:
+#          try:
+#              json.dumps(item)
+#              cb_data.append(item)
+#          except TypeError:  # can't serialize the item
+#              utils.log(f"Following item cannot be added to callback:\n\n{item}")
+#      return cb_data
 
 
 @flow(
@@ -676,19 +612,19 @@ def brt_flow(
 ):
     utils.notify_api_running(x_no_api, token, callback_url)
 
-    input_dir_fp_future = utils.get_input_dir.submit(
+    input_dir = utils.get_input_dir.submit(
         share_name=file_share, input_dir=input_dir
     )
-    input_fps_future = utils.list_files.submit(
-        input_dir=input_dir_fp_future,
+    input_fps = utils.list_files.submit(
+        input_dir=input_dir,
         exts=["MRC", "ST", "mrc", "st"],
         single_file=x_file_name,
     )
 
     fps_future = utils.gen_fps.submit(
         share_name=file_share,
-        input_dir=input_dir_fp_future,
-        fps_in=input_fps_future,
+        input_dir=input_dir,
+        fps_in=input_fps,
     )
 
     brt_outputs = run_brt.map(
@@ -755,7 +691,7 @@ def brt_flow(
 
     zarrs = gen_zarr.map(brt_output=brt_outputs)
 
-    pyramid_assets = gen_ng_metadata.map(fp_in=fps_future, zarr=zarrs)
+    pyramid_assets = utils.gen_ng_metadata.map(fp_in=fps_future, zarr=zarrs)
 
     # now we've done the computational work.
     # the relevant files have been put into the Assets dirs, but we need to inform the API
