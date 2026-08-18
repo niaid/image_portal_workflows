@@ -40,7 +40,7 @@ pytools = { url = "https://github.com/niaid/tomojs-pytools/releases/download/v3.
 dev = [
     "black==26.5.1",
     "flake8==7.3.0",
-    "pre-commit==4.6.1",
+    "pre-commit==4.6.2",
     "pytest~=9.1",
     "pytest-asyncio==1.4.0",
     "pytest-env==1.7.0",
