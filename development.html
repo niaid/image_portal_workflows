@@ -154,7 +154,7 @@ Explanation can be found <a class="reference external" href="https://teams.micro
 docker<span class="w"> </span>build<span class="w"> </span>.<span class="w"> </span>-t<span class="w"> </span>hedwig_pipelines<span class="w"> </span>--platform<span class="w"> </span>linux/amd63
 
 <span class="c1"># Create a container using that image</span>
-docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">:/image_portal_workflows&quot;</span><span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span>hedwig_pipelines:latest
+docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span><span class="s2">"</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">:/image_portal_workflows"</span><span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span>hedwig_pipelines:latest
 
 <span class="c1"># run something inside the container</span>
 root@f3a8b5823032:/image_portal_workflows$<span class="w"> </span>pytest<span class="w"> </span>test/test_utils.py
@@ -191,11 +191,11 @@ Certain tests use the following decorators to “mark” it:</p>
 </ul>
 </div></blockquote>
 <p>So to run tests in GitHub Actions that don’t have all the data, run:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -m &quot;not localdata&quot;
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -m "not localdata"
 </pre></div>
 </div>
 <p>To run just run relatively quick tests, run:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -m &quot;not slow&quot;
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pytest -m "not slow"
 </pre></div>
 </div>
 <p>To run everything, along with verbose pytest output and logging turned on, run:</p>
@@ -231,7 +231,7 @@ API is documented in Sphinx from the the Python docstring automatically for the 
 methods.</p>
 <p>to create docs locally
 (note this will continually update the docs as they are saved, where they can be viewed on your browser):</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you&#39;re in the docs dir</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you're in the docs dir</span>
 <span class="nb">pwd</span>
 /home/macmenaminpe/image_portal_workflows/docs
 

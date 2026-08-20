@@ -134,7 +134,7 @@
 <li><p>Deploy flows with prefect deploy</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prefect</span> <span class="n">deploy</span>
 <span class="c1"># Or deploy all based on prefect.yaml using the following setting</span>
-<span class="c1"># However, this will also deploy pytest_runner workflow in other envs (where it&#39;s not needed)</span>
+<span class="c1"># However, this will also deploy pytest_runner workflow in other envs (where it's not needed)</span>
 <span class="c1"># prefect deploy --all</span>
 </pre></div>
 </div>
@@ -154,7 +154,7 @@ Enssure prefect server is running, and workpool is not available. If not create 
 <li><p>IMOD unable to find <cite>env</cite></p></li>
 </ul>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Unable</span> <span class="n">to</span> <span class="n">run</span> <span class="n">command</span><span class="o">.</span>
-<span class="n">Cannot</span> <span class="n">run</span> <span class="n">program</span> <span class="s2">&quot;env&quot;</span> <span class="p">(</span><span class="ow">in</span> <span class="n">directory</span> <span class="s2">&quot;?&quot;</span><span class="p">):</span> <span class="n">error</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">No</span> <span class="n">such</span> <span class="n">file</span> <span class="ow">or</span> <span class="n">directory</span>
+<span class="n">Cannot</span> <span class="n">run</span> <span class="n">program</span> <span class="s2">"env"</span> <span class="p">(</span><span class="ow">in</span> <span class="n">directory</span> <span class="s2">"?"</span><span class="p">):</span> <span class="n">error</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">No</span> <span class="n">such</span> <span class="n">file</span> <span class="ow">or</span> <span class="n">directory</span>
 </pre></div>
 </div>
 <p>Note <cite>directory “?”</cite>, this implies that something is trying to run in a directory that does not exist. Ensure that the daemon is taken down, ensure that <cite>ps aux | grep hedwig</cite> does not list any processes that may be running, ensure that the service file is correct, ensure that the daemon is <cite>reloaded</cite> and <cite>started</cite>.</p>
