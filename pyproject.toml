@@ -34,7 +34,7 @@ include = ["em_workflows", "em_workflows.*"]
 em_workflows = ["templates/*.adoc"]
 
 [tool.uv.sources]
-pytools = { url = "https://github.com/niaid/tomojs-pytools/releases/download/v3.3.2/pytools-3.3.2-py3-none-any.whl" }
+pytools = { url = "https://github.com/niaid/tomojs-pytools/releases/download/v3.3.3/pytools-3.3.3-py3-none-any.whl" }
 
 [dependency-groups]
 dev = [

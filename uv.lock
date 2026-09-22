@@ -753,7 +753,7 @@ requires-dist = [
     { name = "natsort", specifier = "==8.4.0" },
     { name = "prefect", extras = ["dask"], specifier = "==3.8.3" },
     { name = "python-dotenv", specifier = "==1.2.2" },
-    { name = "pytools", url = "https://github.com/niaid/tomojs-pytools/releases/download/v3.3.2/pytools-3.3.2-py3-none-any.whl" },
+    { name = "pytools", url = "https://github.com/niaid/tomojs-pytools/releases/download/v3.3.3/pytools-3.3.3-py3-none-any.whl" },
     { name = "requests", specifier = "==2.34.2" },
     { name = "simpleitk", specifier = "~=2.5.0" },
 ]
@@ -1528,8 +1528,8 @@ wheels = [
 
 [[package]]
 name = "pytools"
-version = "3.3.2"
-source = { url = "https://github.com/niaid/tomojs-pytools/releases/download/v3.3.2/pytools-3.3.2-py3-none-any.whl" }
+version = "3.3.3"
+source = { url = "https://github.com/niaid/tomojs-pytools/releases/download/v3.3.3/pytools-3.3.3-py3-none-any.whl" }
 dependencies = [
     { name = "click" },
     { name = "dask" },
@@ -1539,18 +1539,30 @@ dependencies = [
     { name = "zarr" },
 ]
 wheels = [
-    { url = "https://github.com/niaid/tomojs-pytools/releases/download/v3.3.2/pytools-3.3.2-py3-none-any.whl", hash = "sha256:5d956ade343a13542f8bd2cf3e85a42a1741e5831ef45627e09e973111657479" },
+    { url = "https://github.com/niaid/tomojs-pytools/releases/download/v3.3.3/pytools-3.3.3-py3-none-any.whl", hash = "sha256:36cbf6b4f07b72d787bec66019075b8870e4a6ce0356e6852ea0c48146fb1dac" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "black", marker = "extra == 'dev'" },
     { name = "click", specifier = ">=7.1" },
     { name = "dask" },
+    { name = "flake8", marker = "extra == 'dev'" },
+    { name = "fsspec", marker = "extra == 'dev'", specifier = "!=2023.9.0" },
     { name = "numpy", specifier = ">=1.21" },
+    { name = "ome-zarr", marker = "extra == 'dev'" },
+    { name = "packaging", marker = "extra == 'dev'" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=6.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'" },
+    { name = "setuptools-scm", marker = "extra == 'dev'" },
     { name = "simpleitk", specifier = "~=2.5.0" },
     { name = "simpleitkutilities", specifier = "~=0.3.0" },
+    { name = "sphinx", marker = "extra == 'docs'" },
+    { name = "sphinx-click", marker = "extra == 'docs'" },
+    { name = "wheel", marker = "extra == 'dev'" },
     { name = "zarr", specifier = "~=2.0" },
 ]
+provides-extras = ["dev", "docs"]
 
 [[package]]
 name = "pytz"
