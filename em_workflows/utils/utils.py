@@ -121,9 +121,9 @@ def gen_dimension_command(fp_in: Path) -> str:
     :todo: this is duplicate, see utils.lookup_dims()
     """
     if fp_in.exists():
-        log(f"{fp_in} exists")
+        log(f"'{fp_in}' exists")
     else:
-        log(f"{fp_in} DOES NOT exist, nothing to do here.")
+        log(f"'{fp_in}' DOES NOT exist, nothing to do here.")
         return "error"
     cmd = [Config.header_loc, "-s", fp_in]
     sp = subprocess.run(cmd, check=False, capture_output=True)
@@ -155,7 +155,7 @@ def cleanup_files(file_path: Path, pattern: str, keep_file: Path = None) -> None
     import glob
     import os
     f = f"{file_path.parent.as_posix()}/{pattern}"
-    log(f"trying to rm {f}")
+    log(f"trying to rm '{f}'")
     files_to_rm = glob.glob(f)
     for _file in files_to_rm:
         if keep_file and keep_file.as_posix() == _file:
@@ -251,7 +251,7 @@ def cleanup_workdir(fps: List[FilePath], x_keep_workdir: bool):
         log("x_keep_workdir is set to True, skipping removal.")
     else:
         for fp in fps:
-            log(f"Trying to remove {fp.working_dir}")
+            log(f"Trying to remove '{fp.working_dir}'")
             fp.rm_workdir()
 
 
@@ -270,9 +270,9 @@ def final_cleanup_task(fps: List[FilePath], x_keep_workdir: bool = False):
     for fp in fps:
         try:
             copy_workdir_logs.fn(file_path=fp)
-            log(f"Copied workdir logs for {fp.base}")
+            log(f"Copied workdir logs for '{fp.base}'")
         except Exception as e:
-            log(f"Failed to copy workdir logs for {fp.base}: {e}")
+            log(f"Failed to copy workdir logs for '{fp.base}': {e}")
 
     # Cleanup working directories
     try:
@@ -344,10 +344,10 @@ def update_adoc(
 
     output = template.render(vals)
     adoc_loc = Path(f"{adoc_fp.parent}/{tg_fp.stem}.adoc")
-    log("Created adoc: adoc_loc.as_posix()")
+    log(f"Created adoc: '{adoc_loc.as_posix()}'")
     with open(adoc_loc, "w") as _file:
         print(output, file=_file)
-    log(f"generated {adoc_loc}")
+    log(f"generated '{adoc_loc}'")
     return adoc_loc
 
 
@@ -368,7 +368,7 @@ def copy_tg_to_working_dir(fname: Path, working_dir: Path) -> Path:
             shutil.copyfile(src=fp_1.as_posix(), dst=f"{working_dir}/{fp_1.name}")
             shutil.copyfile(src=fp_2.as_posix(), dst=f"{working_dir}/{fp_2.name}")
         else:
-            raise RuntimeError(f"Files missing. {fp_1},{fp_2}. BRT run failure.")
+            raise RuntimeError(f"Files missing. '{fp_1}','{fp_2}'. BRT run failure.")
     return new_loc
 
 
@@ -382,7 +382,7 @@ def copy_template(working_dir: Path, template_name: str) -> Path:
     """
     adoc_fp = f"{working_dir}/{template_name}.adoc"
     template_fp = f"{Config.template_dir}/{template_name}.adoc"
-    log(f"trying to copy {template_fp} to {adoc_fp}")
+    log(f"trying to copy '{template_fp}' to '{adoc_fp}'")
     shutil.copyfile(template_fp, adoc_fp)
     return Path(adoc_fp)
 
@@ -439,11 +439,11 @@ def run_brt(
     FilePath.run(cmd, log_file)
     rec_file = Path(f"{file_path.working_dir}/{file_path.base}_rec.mrc")
     ali_file = Path(f"{file_path.working_dir}/{file_path.base}_ali.mrc")
-    log(f"checking that dir {file_path.working_dir} contains ok BRT run")
+    log(f"checking that dir '{file_path.working_dir}' contains ok BRT run")
 
     for _file in [rec_file, ali_file]:
         if not _file.exists():
-            raise ValueError(f"File {_file} does not exist. BRT run failure.")
+            raise ValueError(f"File '{_file}' does not exist. BRT run failure.")
     return BrtOutput(ali_file=ali_file, rec_file=rec_file)
 
 
@@ -494,21 +494,21 @@ def list_files(
     """
     _files = list()
     if single_file:
-        log(f"Looking for single file: {single_file} in {input_dir}")
+        log(f"Looking for single file: '{single_file}' in '{input_dir}'")
         fp = input_dir / single_file
         if any([single_file.endswith(f".{e}") for e in exts]):
             if not fp.exists():
                 raise RuntimeError(
-                    f"Expected file: {single_file}, not found in input_dir"
+                    f"Expected file: '{single_file}', not found in input_dir"
                 )
             else:
                 _files.append(fp)
     else:
-        log(f"Looking for *.{exts} in {input_dir}")
+        log(f"Looking for *.{exts} in '{input_dir}'")
         for ext in exts:
             _files.extend(input_dir.glob(f"*.{ext}"))
     if not _files:
-        raise RuntimeError(f"Input dir {input_dir} not contain anything to process.")
+        raise RuntimeError(f"Input dir '{input_dir}' not contain anything to process.")
     log(f"found {len(_files)} files")
     return _files
 
@@ -520,10 +520,10 @@ def list_dirs(input_dir_fp: Path) -> List[Path]:
     Some pipelines, eg SEM, store image stacks in dirs (rather than
     single files.
     """
-    log(f"trying to list {input_dir_fp}")
+    log(f"trying to list '{input_dir_fp}'")
     dirs = [Path(x) for x in input_dir_fp.iterdir() if x.is_dir()]
     if len(dirs) == 0:
-        raise RuntimeError(f"Unable to find any subdirs in dir: {input_dir_fp}")
+        raise RuntimeError(f"Unable to find any subdirs in dir: '{input_dir_fp}'")
     log(f"Found {dirs}")
     return dirs
 
@@ -688,9 +688,9 @@ def get_input_dir(share_name: str, input_dir: str) -> Path:
         input_dir = "/" + input_dir
     input_path_str = Config.proj_dir(share_name=share_name) + input_dir
     p = Path(input_path_str)
-    log(f"Checking input dir {p.as_posix()} which exists? {p.exists()}")
+    log(f"Checking input dir '{p.as_posix()}' which exists? {p.exists()}")
     if not p.exists():
-        raise RuntimeError(f"Fail get_input_dir, {p.as_posix()} does not exist")
+        raise RuntimeError(f"Fail get_input_dir, '{p.as_posix()}' does not exist")
     return p
 
 
@@ -707,7 +707,7 @@ def gen_fps(share_name: str, input_dir: Path, fps_in: List[Path]) -> List[FilePa
     fps = list()
     for fp in fps_in:
         file_path = FilePath(share_name=share_name, input_dir=input_dir, fp_in=fp)
-        msg = f"created working_dir {file_path.working_dir} for {fp.as_posix()}"
+        msg = f"created working_dir '{file_path.working_dir}' for '{fp.as_posix()}'"
         log(msg)
         fps.append(file_path)
     return fps
