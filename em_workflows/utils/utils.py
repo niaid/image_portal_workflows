@@ -14,6 +14,7 @@ from prefect.states import State
 from prefect.flows import Flow, FlowRun
 from prefect.tasks import Task, TaskRun
 from prefect.runtime import flow_run
+from pytools.meta import read_ome_info
 
 from em_workflows.config import Config
 from em_workflows.file_path import FilePath
@@ -476,14 +477,51 @@ def copy_workdir_logs(file_path: FilePath) -> Path:
     return file_path.copy_workdir_logs_to_assets()
 
 
+def _select_primary_tiffs(files: List[Path]) -> List[Path]:
+    """
+    Removes the non-primary TIFF files from multi-file OME-TIFF sets.
+
+    Single image can be represetned by a set of OME-TIFF files (e.g. one file
+    per channel). A directory may contain several such sets; for each one, only the first file (in the
+    dataset's own TiffData/UUID document order) is kept, the rest are dropped.
+    Non-tiff files, and tiffs that aren't part of a multi-file set, pass through.
+    """
+    names_in_dir = {f.name for f in files}
+    excluded_names = set()
+    for f in files:
+        if f.suffix.lower() not in (".tif", ".tiff"):
+            continue
+
+        if f in excluded_names: 
+            continue
+
+        try:
+            ome_info = read_ome_info(f)
+            if not ome_info.is_multi_file():
+                continue
+            set_files = list(ome_info.tiff_data_files())
+        except Exception as e:
+            # not an OME-TIFF, or a companion file with no embedded metadata of its own
+            log(f"Unable to read OME info from {f}, skipping multi-file check: {e}")
+            continue        
+        primary = set_files[0]
+        if primary not in names_in_dir:
+            log(f"Missing primary file {primary} for multi-file tiff set {set_files} not found in {f.parent}")
+        excluded_names.update(set_files[1:])
+    return [f for f in files if f.name not in excluded_names]
+
+
 @task
 def list_files(
-    input_dir: Path, exts: List[str], single_file: Optional[str] = None
+    input_dir: Path, exts: List[str], single_file: Optional[str] = None, *,
+    select_primary_tiffs: bool = False,
 ) -> List[Path]:
     """
     :param input_dir: libpath.Path of the input directory
     :param exts: List of str extensions to be checked
     :param single_file: if present, only that file returned
+    :param select_primary_tiffs: if True, collapse multi-file OME-TIFF sets down
+        to their first file (see ``_select_primary_tiffs``)
     :return: List of pathlib.Paths of matching files
 
     - List all files within input_dir with specified extension.
@@ -507,9 +545,11 @@ def list_files(
         log(f"Looking for *.{exts} in {input_dir}")
         for ext in exts:
             _files.extend(input_dir.glob(f"*.{ext}"))
+    if select_primary_tiffs:
+        _files = _select_primary_tiffs(_files)
+    log(f"found {len(_files)} files")
     if not _files:
         raise RuntimeError(f"Input dir {input_dir} not contain anything to process.")
-    log(f"found {len(_files)} files")
     return _files
 
 

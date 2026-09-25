@@ -228,6 +228,7 @@ async def czi_flow(
         input_dir_fp,
         VALID_CZI_INPUTS,
         single_file=file_name,
+        select_primary_tiffs=True,
     )
 
     fps = utils.gen_fps.submit(
