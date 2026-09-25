@@ -20,7 +20,7 @@ dependencies = [
     "jinja2==3.1.6",
     "natsort==8.4.0",
     "prefect[dask]==3.8.3",
-    "python-dotenv==1.2.2",
+    "python-dotenv==1.2.3",
     "pytools",
     "requests==2.34.2",
     "simpleitk~=2.5.0",
