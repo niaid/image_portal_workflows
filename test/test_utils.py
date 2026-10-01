@@ -75,7 +75,7 @@ def test_utils_log(caplog):
 
     my_flow()
 
-    assert "prefect.flow_runs:utils.py" in caplog.text
+    assert "prefect.flow_runs:log.py" in caplog.text
     assert "utils.log test123" in caplog.text
 
 
