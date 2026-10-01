@@ -87,12 +87,20 @@ def mock_reuse_zarr(monkeypatch):
     original_gen_zarr = ng.bioformats_gen_zarr
     original_rechunk = ng.rechunk_zarr
 
-    def _mock_bioformats_gen_zarr(file_path: FilePath, *a, **kw):
-        zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"
-        if Path(zarr_fp).exists():
+    def _mock_bioformats_gen_zarr(
+        fp_in: Path, output_dir: Path, zarr_stem: str = None, **kwargs
+    ) -> Path:
+        parts = fp_in.parent.parts
+        idx = parts.index("Projects")
+        zarr_name = f"{zarr_stem or fp_in.stem}.zarr"
+        zarr_fp = Path(*parts[:idx], "Assets", *parts[idx + 1 :]) / fp_in.stem / zarr_name
+        output_zarr = output_dir / zarr_name
+        if zarr_fp.exists():
             print("Reusing existing .zarr files! Avoiding bf2raw command.")
-            return
-        original_gen_zarr(file_path, *a, **kw)
+            return output_zarr
+        return original_gen_zarr(
+            fp_in=fp_in, output_dir=output_dir, zarr_stem=zarr_stem, **kwargs
+        )
 
     def _mock_rechunk(file_path: FilePath, *a, **kw):
         zarr_fp = f"{file_path.assets_dir}/{file_path.base}.zarr"

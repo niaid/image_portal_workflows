@@ -54,11 +54,11 @@ def test_lrg_2d_flow_failure_server_response(
 
     original_gen_zarr = ng.bioformats_gen_zarr
 
-    def fake_gen_zarr(file_path, input_fname):
-        print(f"Fake called for {input_fname=}")
-        if "even_smaller" in input_fname:
-            raise RuntimeError(f"Bad input file {input_fname}")
-        return original_gen_zarr(file_path, input_fname)
+    def fake_gen_zarr(fp_in, output_dir, **kwargs):
+        print(f"Fake called for {fp_in=}")
+        if "even_smaller" in fp_in.name:
+            raise RuntimeError(f"Bad input file {fp_in}")
+        return original_gen_zarr(fp_in=fp_in, output_dir=output_dir, **kwargs)
 
     monkeypatch.setattr(ng, "bioformats_gen_zarr", fake_gen_zarr)
 
@@ -92,10 +92,10 @@ def test_lrg_2d_flow_partial_failure_server_response(
 
     original_gen_zarr = ng.bioformats_gen_zarr
 
-    def fake_gen_zarr(file_path, input_fname):
-        if fails_for in input_fname:
-            raise RuntimeError(f"Bad input file {input_fname}")
-        return original_gen_zarr(file_path, input_fname)
+    def fake_gen_zarr(fp_in, output_dir, **kwargs):
+        if fails_for in fp_in.name:
+            raise RuntimeError(f"Bad input file {fp_in}")
+        return original_gen_zarr(fp_in=fp_in, output_dir=output_dir, **kwargs)
 
     monkeypatch.setattr(ng, "bioformats_gen_zarr", fake_gen_zarr)
 

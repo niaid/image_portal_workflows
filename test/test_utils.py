@@ -27,14 +27,13 @@ from em_workflows.dm_conversion.constants import LARGE_2D, SMALL_2D, VALID_2D_IN
 
 def test_bio2r_environ(mock_nfs_mount, caplog):
     from em_workflows.config import Config
-    from em_workflows.file_path import FilePath
     import os
     import tempfile
 
     assert shutil.which(Config.bioformats2raw)
     with tempfile.NamedTemporaryFile() as logfile:
         cmd = [Config.bioformats2raw, "--version"]
-        out = FilePath.run(cmd=cmd, log_file=logfile.name)
+        out = utils.run(cmd=cmd, log_file=logfile.name)
         assert out == 0, "Command output is not success code"
         print(logfile.name)
         assert os.path.exists(logfile.name)
@@ -168,88 +167,6 @@ def test_bad_lookup_dims(mock_nfs_mount):
     assert "Could not open" in str(fail_msg.value)
 
 
-def test_update_adoc(mock_nfs_mount):
-    """
-    Test successful modification of adoc based on a template
-    :todo: consider parameterizing this to test many values
-    """
-    adoc_file = "plastic_brt"
-    montage = 0
-    gold = 15
-    focus = 0
-    fiducialless = 1
-    trackingMethod = None
-    TwoSurfaces = 0
-    TargetNumberOfBeads = 20
-    LocalAlignments = 0
-    THICKNESS = 30
-
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        adoc_tmplt = Path(os.path.join(Config.template_dir, f"{adoc_file}.adoc"))
-        copied_tmplt = Path(tmp_dir) / f"{adoc_file}.adoc"
-        shutil.copy(adoc_tmplt, copied_tmplt)
-
-        env = utils.get_environment()
-        mrc_image = "test/input_files/brt_inputs/2013-1220-dA30_5-BSC-1_10.mrc"
-        mrc_file = Path(os.path.join(Config.proj_dir(env), mrc_image))
-
-        updated_adoc = utils.update_adoc(
-            adoc_fp=copied_tmplt,
-            tg_fp=mrc_file,
-            montage=montage,
-            gold=gold,
-            focus=focus,
-            fiducialless=fiducialless,
-            trackingMethod=trackingMethod,
-            TwoSurfaces=TwoSurfaces,
-            TargetNumberOfBeads=TargetNumberOfBeads,
-            LocalAlignments=LocalAlignments,
-            THICKNESS=THICKNESS,
-        )
-
-        assert updated_adoc.exists()
-        assert copied_tmplt.exists()
-
-
-def test_update_adoc_bad_surfaces(mock_nfs_mount):
-    adoc_file = "plastic_brt"
-    montage = 0
-    gold = 15
-    focus = 0
-    fiducialless = 1
-    trackingMethod = None
-    # NOTE: This value is invalid
-    TwoSurfaces = 2
-    TargetNumberOfBeads = 20
-    LocalAlignments = 0
-    THICKNESS = 30
-
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        adoc_tmplt = Path(os.path.join(Config.template_dir, f"{adoc_file}.adoc"))
-        copied_tmplt = Path(tmp_dir) / f"{adoc_file}.adoc"
-        shutil.copy(adoc_tmplt, copied_tmplt)
-
-        env = utils.get_environment()
-        mrc_image = "test/input_files/brt_inputs/2013-1220-dA30_5-BSC-1_10.mrc"
-        mrc_file = Path(os.path.join(Config.proj_dir(env), mrc_image))
-
-        with pytest.raises(ValueError) as fail_msg:
-            utils.update_adoc(
-                adoc_fp=copied_tmplt,
-                tg_fp=mrc_file,
-                montage=montage,
-                gold=gold,
-                focus=focus,
-                fiducialless=fiducialless,
-                trackingMethod=trackingMethod,
-                TwoSurfaces=TwoSurfaces,
-                TargetNumberOfBeads=TargetNumberOfBeads,
-                LocalAlignments=LocalAlignments,
-                THICKNESS=THICKNESS,
-            )
-        assert "Unable to resolve SurfacesToAnalyze" in str(fail_msg.value)
-
-
 @pytest.mark.slow
 @pytest.mark.localdata
 def test_mrc_to_movie(mock_nfs_mount):
@@ -280,29 +197,6 @@ def test_mrc_to_movie(mock_nfs_mount):
     asset = utils.mrc_to_movie.__wrapped__(mrc_filepath, "adjusted", "recMovie")
     assert type(asset) == dict
     assert "adjusted_recMovie.mp4" in asset["path"]
-
-
-def test_copy_template(mock_nfs_mount):
-    """
-    Tests that adoc template get copied to working directory
-    """
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        utils.copy_template(working_dir=tmp_dir, template_name="plastic_brt")
-        utils.copy_template(working_dir=tmp_dir, template_name="cryo_brt")
-        tmp_path = Path(tmp_dir)
-        assert tmp_path.exists()
-        assert Path(tmp_path / "plastic_brt.adoc").exists()
-        assert Path(tmp_path / "cryo_brt.adoc").exists()
-
-
-def test_copy_template_missing(mock_nfs_mount):
-    """
-    Tests that adoc template get copied to working directory
-    """
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        with pytest.raises(FileNotFoundError) as fnfe:
-            utils.copy_template(working_dir=tmp_dir, template_name="no_such_tmplt")
-        assert "no_such_tmplt" in str(fnfe.value)
 
 
 def test_copy_workdirs_small(mock_nfs_mount):
