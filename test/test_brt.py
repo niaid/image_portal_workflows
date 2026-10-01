@@ -11,7 +11,6 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from em_workflows.brt.flow import copy_template, update_adoc
 from em_workflows.config import Config
 from em_workflows.utils import utils
 
@@ -21,6 +20,8 @@ def test_update_adoc(mock_nfs_mount):
     Test successful modification of adoc based on a template
     :todo: consider parameterizing this to test many values
     """
+    from em_workflows.brt.flow import update_adoc
+
     adoc_file = "plastic_brt"
     montage = 0
     gold = 15
@@ -60,6 +61,8 @@ def test_update_adoc(mock_nfs_mount):
 
 
 def test_update_adoc_bad_surfaces(mock_nfs_mount):
+    from em_workflows.brt.flow import update_adoc
+
     adoc_file = "plastic_brt"
     montage = 0
     gold = 15
@@ -102,6 +105,8 @@ def test_copy_template(mock_nfs_mount):
     """
     Tests that adoc template get copied to working directory
     """
+    from em_workflows.brt.flow import copy_template
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         copy_template(working_dir=Path(tmp_dir), template_name="plastic_brt")
         copy_template(working_dir=Path(tmp_dir), template_name="cryo_brt")
@@ -115,6 +120,8 @@ def test_copy_template_missing(mock_nfs_mount):
     """
     Tests that adoc template get copied to working directory
     """
+    from em_workflows.brt.flow import copy_template
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         with pytest.raises(FileNotFoundError) as fnfe:
             copy_template(working_dir=Path(tmp_dir), template_name="no_such_tmplt")
