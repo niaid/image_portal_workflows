@@ -1,0 +1,59 @@
+name: Infrastructure Plan
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "What environment to run Terraform against"
+        required: true
+        type: choice
+        default: "dev"
+        options:
+          - "dev"
+          - "qa"
+          - "prod"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hedwig-workflow-api-${{ inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  HOME: /root
+  SPACES_CLI_CICD: true
+  SPACES_SOLUTION_FILE: hedwig.spaces-solution.yaml
+  SPACES_SOLUTION_ROLE: cicd-runner-admin
+
+jobs:
+  plan:
+    environment: ${{ inputs.environment }}
+    env:
+      SPACES_SOLUTION_ENV: ${{ inputs.environment }}
+    name: Plan
+    runs-on: [self-hosted, linux]
+    defaults:
+      run:
+        working-directory: deploy/hedwig-workflow-api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Install Build Agent SSH Key
+        uses: niaid/monarch-actions-key-writer@v2
+        with:
+          key: ${{ secrets.NIAID_BUILD_AGENTS_SSH_KEY }}
+          known_hosts: ${{ secrets.NIAID_KNOWN_HOSTS }}
+          if_key_exists: replace
+      - name: Install Spaces CLI
+        run: curl -s https://s3.amazonaws.com/pubfiles-coreinfra-0d49b49f3ba3/spaces-cli/install.sh | bash
+      - name: Export PATH
+        run: echo "$PATH:/root/.spaces-cli/bin" >> $GITHUB_PATH
+      - name: Update Spaces CLI
+        run: spaces update stable
+      - name: Plan
+        run: |
+          spaces task -- init
+          spaces task -- plan

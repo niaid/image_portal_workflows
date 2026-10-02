@@ -1,0 +1,178 @@
+version: 1
+
+name: prefect2
+space: hedwig-workflow-api
+env: dev
+
+
+solution:
+  name: Two-tier-webapp-ECS
+  version: 1.2.2
+  example: Linux-container-using-EFS-behind-an-ALB
+
+images:
+  app:
+    dockerfile: Dockerfile
+    path: .
+    default_args:
+      - '--rm'
+      - '--pull'
+
+terraform:
+  modules:
+    alb:
+      variables:
+        # This path can be inferred from server.py
+        health_check_path: "/api/health"
+        http_redirect: true
+        deletion_protection_enabled: true
+    container_definition:
+      variables:
+        container_cpu: 2048
+        container_memory: 4096
+        secrets: [
+          {name: "RDS_SECRETS_ARN", valueFrom: module.rds.secrets_manager_master_arn.0.secret_arn},
+          {name: "SERVER_KEYS", valueFrom: arn:aws:secretsmanager:us-east-1:637184356676:secret:dev/hedwig/server-keys-dG6Hh3},
+          ]
+        environment: [
+          {name: "RDS_ENDPOINT", value: module.rds.endpoint},
+          {name: "PREFECT_SERVER_API_PORT", value: 8080},
+          {name: "DATABASE", value: var.name},
+          {
+            name: "ALB_DNS_NAME",
+            value: "prefect2.hedwig-workflow-api.niaid${var.environment}.net"
+          }
+          ]
+        port_mappings:
+          # exposing 5432 for container to db connection
+          - containerPort: 5432
+            hostPort: 5432
+            protocol: tcp
+          - containerPort: 8080
+            hostPort: 8080
+            protocol: tcp
+    ecs_alb_service_task:
+      variables:
+        task_memory: 4096
+        task_cpu: 2048
+    waf:
+      variables:
+        common_rule_set_excluded_rules: ["SizeRestrictions_BODY"]
+        admin_protection_rule_set_excluded_rules: ["AdminProtection_URIPATH"]
+    rds:
+      source: https://github.com/niaid/tf-rds-solution.git
+      version: 1.0.0
+      variables:
+        monarch_ro_values: module.monarch_ro.values
+        database_name: var.name # this is database instance name
+        db_name: var.name # this is the database name to be created
+        instance_size: db.t3.medium
+        username: yoda
+        storage_type: gp2
+        allocated_storage: 50
+        maintenance_window: "Sat:06:00-Sat:08:00"
+        backup_window: "02:00-04:00"
+        backup_retention_period: 7
+        enable_enhanced_monitoring: false
+        monitoring_interval: 0
+        iam_database_authentication_enabled: false
+        deletion_protection: true
+        is_internal: false
+        engine: postgres
+        engine_version: "14.22"
+        database_port: 5432
+        logs_to_export:
+          - postgresql
+          - upgrade
+        db_parameter_group_name: var.name
+        db_parameter_group_family: postgres14
+        db_parameters:
+          - apply_method: immediate
+            name: rds.force_ssl
+            value: 1
+    rds-inbound-sg:
+      source: https://github.com/niaid/tf-security-group-rule.git
+      version: 1.0.0
+      variables:
+        rules:
+          prefect2-container-rds:
+            type: ingress
+            description: Allow inbound from prefect2 to db
+            from_port: 5432
+            to_port: 5432
+            protocol: tcp
+            source_security_group_id: module.ecs_alb_service_task.service_security_group_id
+            security_group_id: module.rds.security_group_id
+  outputs:
+    rds_secrets_manager_arn: module.rds.secrets_manager_master_arn
+    rds_endpoint: module.rds.endpoint
+  environments:
+    prod:
+      modules:
+        container_definition:
+          variables:
+            secrets: [
+              {name: "RDS_SECRETS_ARN", valueFrom: module.rds.secrets_manager_master_arn.0.secret_arn},
+              {name: "SERVER_KEYS", valueFrom: arn:aws:secretsmanager:us-east-1:512697175725:secret:prod/hedwig/server-keys-OC9MeH},
+              ]
+    qa:
+      modules:
+        rds:
+          variables:
+            allocated_storage: 25
+        container_definition:
+          variables:
+            secrets: [
+              {name: "RDS_SECRETS_ARN", valueFrom: module.rds.secrets_manager_master_arn.0.secret_arn},
+              {name: "SERVER_KEYS", valueFrom: arn:aws:secretsmanager:us-east-1:491308132932:secret:qa/hedwig/server-keys-wty56G},
+              ]
+taskfile:
+  version: 3
+  env:
+    SPACES_SOLUTION_ENV: '{{.SPACES_SOLUTION_ENV   | default "dev"}}'
+    SPACES_SOLUTION_APP: '{{.SPACES_SOLUTION_NAME  | default "app"}}'
+    SPACES_SOLUTION_ROLE: '{{.SPACES_SOLUTION_ROLE  | default "Admin"}}'
+    SPACES_SOLUTION_FILE: '{{.SPACES_SOLUTION_FILE  | default "hedwig.spaces-solution.yaml"}}'
+    SPACES_SOLUTION_NAME: '{{.SPACES_SOLUTION_NAME  | default "hedwig-workflow-api"}}'
+    SPACES_SOLUTION_STACK: '{{.SPACES_SOLUTION_STACK | default "prefect2"}}'
+  tasks:
+    init:
+      desc: Run 'terraform init' using the 'spaces tf' wrapper to initialize your infrastructure
+      cmds:
+        - spaces tf -env {{.SPACES_SOLUTION_ENV}} -role {{.SPACES_SOLUTION_ROLE}} -file {{.SPACES_SOLUTION_FILE}} -- init
+    plan:
+      desc: Run 'terraform plan' using the 'spaces tf' wrapper to see what new or changed configuration needs to be applied
+      cmds:
+        - spaces tf -env {{.SPACES_SOLUTION_ENV}} -role {{.SPACES_SOLUTION_ROLE}} -file {{.SPACES_SOLUTION_FILE}} -- plan
+    apply:
+      desc: Run 'terraform apply' using the 'spaces tf' wrapper, against a previously created 'plan'
+      cmds:
+        - spaces tf -env {{.SPACES_SOLUTION_ENV}} -role {{.SPACES_SOLUTION_ROLE}} -file {{.SPACES_SOLUTION_FILE}} -- apply
+    build:
+      desc: Build a Docker image, push it to ECR, and auto-promote it to the given environment
+      cmds:
+        - spaces build image -file {{.SPACES_SOLUTION_FILE}} -promote-to {{.SPACES_SOLUTION_ENV}}
+    deploy:
+      desc: Run 'terraform apply -auto-approve' using the 'spaces tf' wrapper script (like running 'plan' & 'apply')
+      cmds:
+        - spaces tf -env {{.SPACES_SOLUTION_ENV}} -role {{.SPACES_SOLUTION_ROLE}} -file {{.SPACES_SOLUTION_FILE}} -- apply -auto-approve
+    output:
+      desc: Run 'terraform output' using the 'spaces tf' wrapper script
+      cmds:
+        - spaces tf -env {{.SPACES_SOLUTION_ENV}} -role {{.SPACES_SOLUTION_ROLE}} -file {{.SPACES_SOLUTION_FILE}} -- output
+    build-deploy:
+      desc: First run the 'build' task and then run the 'deploy' task
+      cmds:
+        - task: build
+        - task: deploy
+    promote-image:
+      desc: Promote your image from a source environment (first argument) to a target environment (second argument), e.g  'promote-image -- dev qa'
+      vars:
+        SOURCE: '{{ splitList " " .CLI_ARGS | first }}'
+        TARGET: '{{ splitList " " .CLI_ARGS | last }}'
+      cmds:
+        - spaces promote image -space {{.SPACES_SOLUTION_NAME}} -name {{.SPACES_SOLUTION_STACK}}/{{.SPACES_SOLUTION_APP}} -source {{.SOURCE}} -target {{.TARGET}}
+    scan:
+      desc: Scan your built and promoted image for vulnerabilites and compliance violations
+      cmds:
+        - spaces scan app image -space {{.SPACES_SOLUTION_NAME}} -name {{.SPACES_SOLUTION_STACK}}/{{.SPACES_SOLUTION_APP}} -env {{.SPACES_SOLUTION_ENV}} -role Admin
