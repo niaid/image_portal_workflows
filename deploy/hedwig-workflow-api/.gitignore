@@ -1,0 +1,7 @@
+.spaces-tf/
+spaces-cli-debug/
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+.DS_Store

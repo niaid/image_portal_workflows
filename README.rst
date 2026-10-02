@@ -13,3 +13,12 @@
 Image Analysis Workflows, servicing NIAID's "Hedwig" project.
 
 Please see our `Spinx Docs <https://niaid.github.io/image_portal_workflows/>`_ for details.
+
+Prefect Server Infrastructure
+----------------------------
+
+The Prefect server image and Spaces/Terraform deployment configuration live in
+``deploy/hedwig-workflow-api/``. See the
+`deployment guide <deploy/hedwig-workflow-api/README.md>`_ for manual GitHub
+Actions, local commands, and the migration cutover checklist. The HPC workflows
+retain their existing package layout and deployment entrypoints.
